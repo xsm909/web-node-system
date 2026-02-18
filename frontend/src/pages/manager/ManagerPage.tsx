@@ -3,7 +3,6 @@ import ReactFlow, {
     addEdge,
     Background,
     Controls,
-    MiniMap,
     useNodesState,
     useEdgesState,
 } from 'reactflow';
@@ -114,6 +113,14 @@ export default function ManagerPage() {
         setMenu(null);
     }, []);
 
+    const onNodesDelete = useCallback(() => {
+        setMenu(null);
+    }, []);
+
+    const onMoveStart = useCallback(() => {
+        setMenu(null);
+    }, []);
+
     const handleDeleteNode = useCallback((nodeId: string) => {
         if (nodeId === 'node_start') {
             alert('Cannot delete the Start node. It is required for the workflow.');
@@ -121,6 +128,7 @@ export default function ManagerPage() {
         }
         setNodes((nds) => nds.filter((node) => node.id !== nodeId));
         setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+        setMenu(null);
     }, [setNodes, setEdges]);
 
     const handleCreateWorkflow = async (name: string) => {
@@ -254,13 +262,15 @@ export default function ManagerPage() {
                         onConnect={onConnect}
                         onNodeClick={onNodeClick}
                         onNodeDragStart={onNodeDragStart}
+                        onNodesDelete={onNodesDelete}
+                        onMoveStart={onMoveStart}
                         onPaneClick={() => setMenu(null)}
                         nodeTypes={nodeTypesConfig}
                         fitView
+                        proOptions={{ hideAttribution: true }}
                     >
                         <Background color="#333" gap={16} />
                         <Controls />
-                        <MiniMap nodeColor="#7c3aed" maskColor="rgba(0,0,0,0.5)" />
                     </ReactFlow>
                     {menu && (
                         <NodeContextMenu
