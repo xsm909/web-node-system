@@ -5,7 +5,8 @@ Uses RestrictedPython to safely execute node code.
 import traceback
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-from RestrictedPython import compile_restricted, safe_globals, safe_builtins, Guards
+import ast
+from RestrictedPython import compile_restricted, safe_globals, safe_builtins, Guards, RestrictingNodeTransformer
 from ..core.database import SessionLocal
 from ..models.workflow import Workflow, WorkflowExecution, NodeExecution, WorkflowStatus
 from ..models.node import NodeType
@@ -39,6 +40,40 @@ SAFE_GLOBALS = {
         "reversed": reversed,
     },
 }
+
+
+ALLOWED_MODULES = [
+    "math", "json", "datetime", "re", "random", 
+    "base64", "hashlib", "time", "collections", 
+    "itertools", "functools", "decimal", "statistics"
+]
+
+
+def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
+    """Restricted version of __import__ that only allows whitelisted modules."""
+    if name in ALLOWED_MODULES:
+        return __import__(name, globals, locals, fromlist, level)
+    raise ImportError(f"Module '{name}' is not allowed in the node sandbox.")
+
+
+class CustomRestrictingNodeTransformer(RestrictingNodeTransformer):
+    """Custom RestrictedPython transformer to allow type annotations in assignments."""
+
+    def visit_AnnAssign(self, node):
+        """Allow AnnAssign (type annotated assignments) by converting them to regular assignments."""
+        if node.value is None:
+            # For cases like 'x: int', just visit the target to ensure it's safe
+            return self.visit(node.target)
+        
+        # For cases like 'x: int = 1', convert to a regular assignment
+        assign_node = ast.Assign(
+            targets=[node.target],
+            value=node.value,
+            lineno=node.lineno,
+            col_offset=node.col_offset
+        )
+        # Inherit the rest of the safety checks from visit_Assign
+        return self.visit_Assign(assign_node)
 
 
 def _topological_sort(nodes: list, edges: list) -> list:
@@ -155,18 +190,6 @@ class WorkflowExecutor:
             outputs: dict = {}
             all_success = True
 
-            custom_globals = {
-                **SAFE_GLOBALS,
-                "__builtins__": {
-                    **SAFE_GLOBALS["__builtins__"],
-                    "print": self.restricted_print
-                },
-                "_print_": lambda _getattr_=None: self.NodePrintCollector(self, _getattr_),
-                "_getattr_": Guards.safer_getattr,
-                "_setattr_": Guards.guarded_setattr,
-                "_delattr_": Guards.guarded_delattr,
-            }
-
             for node_id in order:
                 self.current_node_id = node_id
                 node_data = node_map.get(node_id)
@@ -200,11 +223,36 @@ class WorkflowExecutor:
                             if src_id in outputs:
                                 inputs.update(outputs[src_id])
 
-                    # Execute in restricted environment
-                    byte_code = compile_restricted(code, f"<node:{node_id}>", "exec")
-                    local_vars = {}
-                    exec(byte_code, custom_globals, local_vars)
-                    run_fn = local_vars.get("run")
+                    # Execute in restricted environment using custom transformer to support AnnAssign
+                    byte_code = compile_restricted(
+                        code, 
+                        f"<node:{node_id}>", 
+                        "exec", 
+                        policy=CustomRestrictingNodeTransformer
+                    )
+                    
+                    # Create context-specific globals for this node
+                    node_globals = {
+                        **SAFE_GLOBALS,
+                        "__builtins__": {
+                            **SAFE_GLOBALS["__builtins__"],
+                            "print": self.restricted_print
+                        },
+                        "_print_": lambda _getattr_=None: self.NodePrintCollector(self, _getattr_),
+                        "_getattr_": Guards.safer_getattr,
+                        "_setattr_": Guards.guarded_setattr,
+                        "_delattr_": Guards.guarded_delattr,
+                        "__builtins__": {
+                            **SAFE_GLOBALS["__builtins__"],
+                            "print": self.restricted_print,
+                            "__import__": restricted_import
+                        },
+                    }
+                    
+                    # Execute with unified globals and locals to ensure top-level variables
+                    # are accessible within defined functions (like 'run')
+                    exec(byte_code, node_globals)
+                    run_fn = node_globals.get("run")
                     
                     if not run_fn:
                         raise ValueError("Node code must define a 'run(inputs, params)' function")
