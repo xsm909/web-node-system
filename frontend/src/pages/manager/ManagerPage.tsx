@@ -20,6 +20,7 @@ import type { NodeType } from '../../entities/node-type/model/types';
 import { UserList } from '../../widgets/user-list/ui/UserList';
 import { WorkflowList } from '../../widgets/workflow-list/ui/WorkflowList';
 import { NodeLibrary } from '../../widgets/node-library/ui/NodeLibrary';
+import { Console } from '../../widgets/console/ui/Console';
 import { CreateWorkflowForm } from '../../features/create-workflow/ui/CreateWorkflowForm';
 
 import styles from './ManagerPage.module.css';
@@ -35,6 +36,9 @@ export default function ManagerPage() {
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [isRunning, setIsRunning] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
+    const [executionLogs, setExecutionLogs] = useState([]);
+    const [isConsoleVisible, setIsConsoleVisible] = useState(false);
+    const [currentExecutionId, setCurrentExecutionId] = useState<number | null>(null);
 
     useEffect(() => {
         apiClient.get('/manager/users').then((r) => setAssignedUsers(r.data)).catch(() => { });
@@ -96,12 +100,46 @@ export default function ManagerPage() {
         });
     };
 
+    const pollExecution = useCallback(async (executionId: number) => {
+        try {
+            const { data } = await apiClient.get(`/manager/executions/${executionId}`);
+            setExecutionLogs(data.logs || []);
+
+            if (data.status === 'success' || data.status === 'failed') {
+                setIsRunning(false);
+                return true; // Stop polling
+            }
+            return false;
+        } catch (e) {
+            setIsRunning(false);
+            return true;
+        }
+    }, []);
+
+    useEffect(() => {
+        let timer: any;
+        if (isRunning && currentExecutionId) {
+            const poll = async () => {
+                const stopped = await pollExecution(currentExecutionId);
+                if (!stopped) {
+                    timer = setTimeout(poll, 1500);
+                }
+            };
+            poll();
+        }
+        return () => clearTimeout(timer);
+    }, [isRunning, currentExecutionId, pollExecution]);
+
     const runWorkflow = async () => {
         if (!activeWorkflow) return;
+        await saveWorkflow();
         setIsRunning(true);
+        setExecutionLogs([]);
+        setIsConsoleVisible(true);
         try {
-            await apiClient.post(`/manager/workflows/${activeWorkflow.id}/run`);
-        } finally {
+            const { data } = await apiClient.post(`/manager/workflows/${activeWorkflow.id}/run`);
+            setCurrentExecutionId(data.execution_id);
+        } catch (e) {
             setIsRunning(false);
         }
     };
@@ -166,6 +204,12 @@ export default function ManagerPage() {
                         <MiniMap nodeColor="#7c3aed" maskColor="rgba(0,0,0,0.5)" />
                     </ReactFlow>
                 </div>
+
+                <Console
+                    logs={executionLogs}
+                    isVisible={isConsoleVisible}
+                    onClose={() => setIsConsoleVisible(false)}
+                />
             </main>
         </div>
     );

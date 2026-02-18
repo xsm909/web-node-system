@@ -83,6 +83,21 @@ def _topological_sort(nodes: list, edges: list) -> list:
 def execute_workflow(execution_id: int):
     """Background task: execute a workflow."""
     db: Session = SessionLocal()
+    execution_logs = []
+
+    def log(message: str, node_id: str = None, level: str = "info"):
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "message": str(message),
+            "node_id": node_id,
+            "level": level
+        }
+        execution_logs.append(entry)
+
+    def restricted_print(*args, **kwargs):
+        message = " ".join(map(str, args))
+        log(message)
+
     try:
         execution = db.query(WorkflowExecution).filter(WorkflowExecution.id == execution_id).first()
         if not execution:
@@ -105,6 +120,15 @@ def execute_workflow(execution_id: int):
         outputs: dict = {}
         all_success = True
 
+        # Custom globals for this execution to capture prints
+        custom_globals = {
+            **SAFE_GLOBALS,
+            "__builtins__": {
+                **SAFE_GLOBALS["__builtins__"],
+                "print": restricted_print
+            }
+        }
+
         for node_id in order:
             node_data = node_map.get(node_id)
             if not node_data:
@@ -118,6 +142,8 @@ def execute_workflow(execution_id: int):
             db.add(node_exec)
             db.commit()
             db.refresh(node_exec)
+
+            log(f"Starting node: {node_id}", node_id=node_id)
 
             try:
                 # Get node type code
@@ -134,21 +160,36 @@ def execute_workflow(execution_id: int):
                         if src_id in outputs:
                             inputs.update(outputs[src_id])
 
-                result = _run_node_code(code, inputs, params)
-                outputs[node_id] = result
+                # Execute in restricted environment
+                byte_code = compile_restricted(code, f"<node:{node_id}>", "exec")
+                local_vars = {}
+                exec(byte_code, custom_globals, local_vars)
+                run_fn = local_vars.get("run")
+                
+                if not run_fn:
+                    raise ValueError("Node code must define a 'run(inputs, params)' function")
+                
+                result = run_fn(inputs, params)
+                if not isinstance(result, dict):
+                    result = {"output": result}
 
+                outputs[node_id] = result
                 node_exec.status = WorkflowStatus.success
                 node_exec.output = result
+                log(f"Node success: {node_id}", node_id=node_id)
 
             except Exception as e:
+                error_msg = traceback.format_exc()
                 node_exec.status = WorkflowStatus.failed
-                node_exec.error = traceback.format_exc()
+                node_exec.error = error_msg
+                log(f"Node failed: {node_id}\n{str(e)}", node_id=node_id, level="error")
                 all_success = False
 
             db.commit()
 
         execution.status = WorkflowStatus.success if all_success else WorkflowStatus.failed
         execution.result_summary = "Completed successfully" if all_success else "One or more nodes failed"
+        execution.logs = execution_logs
         execution.finished_at = datetime.now(timezone.utc)
         db.commit()
 
@@ -156,6 +197,8 @@ def execute_workflow(execution_id: int):
         if execution:
             execution.status = WorkflowStatus.failed
             execution.result_summary = str(e)
+            log(f"Workflow execution failed: {str(e)}", level="critical")
+            execution.logs = execution_logs
             db.commit()
     finally:
         db.close()

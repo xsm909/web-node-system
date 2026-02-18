@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
+from datetime import datetime
 from ..core.database import get_db
 from ..core.security import require_role, get_current_user
 from ..models.user import User
@@ -45,6 +46,31 @@ class NodeTypeOut(BaseModel):
     output_schema: dict
     parameters: list
     is_async: bool
+
+    class Config:
+        from_attributes = True
+
+
+class NodeExecutionOut(BaseModel):
+    id: int
+    node_id: str
+    status: str
+    output: dict = None
+    error: str = None
+
+    class Config:
+        from_attributes = True
+
+
+class ExecutionOut(BaseModel):
+    id: int
+    workflow_id: int
+    status: str
+    result_summary: str = None
+    logs: list = []
+    started_at: datetime
+    finished_at: datetime = None
+    node_results: List[NodeExecutionOut] = []
 
     class Config:
         from_attributes = True
@@ -122,3 +148,31 @@ def run_workflow(workflow_id: int, background_tasks: BackgroundTasks, current_us
 @router.get("/node-types", response_model=List[NodeTypeOut])
 def list_node_types(db: Session = Depends(get_db), _=manager_only):
     return db.query(NodeType).all()
+
+
+@router.get("/workflows/{workflow_id}/executions", response_model=List[ExecutionOut])
+def list_workflow_executions(workflow_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+    wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
+    if not wf:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    # Access control
+    client_ids = [u.id for u in current_user.assigned_clients]
+    if wf.owner_id not in client_ids:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    return db.query(WorkflowExecution).filter(WorkflowExecution.workflow_id == workflow_id).order_by(WorkflowExecution.started_at.desc()).limit(10).all()
+
+
+@router.get("/executions/{execution_id}", response_model=ExecutionOut)
+def get_execution_details(execution_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+    execution = db.query(WorkflowExecution).filter(WorkflowExecution.id == execution_id).first()
+    if not execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    
+    # Access control via workflow
+    wf = execution.workflow
+    client_ids = [u.id for u in current_user.assigned_clients]
+    if wf.owner_id not in client_ids:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    return execution
