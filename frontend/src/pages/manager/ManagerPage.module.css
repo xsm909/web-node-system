@@ -1,0 +1,243 @@
+.layout {
+    display: flex;
+    height: 100vh;
+    background: #0f0f1a;
+    color: #e2e8f0;
+}
+
+.sidebar {
+    width: 240px;
+    background: rgba(255, 255, 255, 0.04);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+    gap: 8px;
+    overflow-y: auto;
+}
+
+.logo {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #a78bfa;
+    padding: 0 8px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 8px;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.sectionTitle {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0 8px;
+    margin: 8px 0 4px;
+}
+
+.item,
+.activeItem {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: left;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+.activeItem {
+    background: rgba(124, 58, 237, 0.2);
+    color: #a78bfa;
+    font-weight: 600;
+}
+
+.logout {
+    margin-top: auto;
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.logout:hover {
+    border-color: #f87171;
+    color: #f87171;
+}
+
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.header h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+}
+
+.saveBtn,
+.runBtn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.saveBtn {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.saveBtn:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.runBtn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+}
+
+.runBtn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.runBtn:disabled,
+.saveBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.canvas {
+    flex: 1;
+    background: #111827;
+}
+
+.createForm {
+    display: flex;
+    gap: 8px;
+    padding: 0 8px 12px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.createInput {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #fff;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    outline: none;
+}
+
+.createInput:focus {
+    border-color: #a78bfa;
+}
+
+.createBtn {
+    background: #7c3aed;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.createBtn:hover:not(:disabled) {
+    background: #6d28d9;
+}
+
+.createBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.nodeLibrary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px 8px;
+}
+
+.LibraryItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+}
+
+.LibraryItem:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(167, 139, 250, 0.3);
+    transform: translateX(2px);
+}
+
+.nodeIcon {
+    font-size: 1.2rem;
+}
+
+.nodeInfo {
+    flex: 1;
+}
+
+.nodeName {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.nodeVersion {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.4);
+}
