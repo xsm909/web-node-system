@@ -23,6 +23,11 @@ import { NodeLibrary } from '../../widgets/node-library/ui/NodeLibrary';
 import { Console } from '../../widgets/console/ui/Console';
 import { CreateWorkflowForm } from '../../features/create-workflow/ui/CreateWorkflowForm';
 import { NodeContextMenu } from '../../widgets/node-context-menu/NodeContextMenu';
+import { StartNode } from '../../entities/node-type/ui/StartNode';
+
+const nodeTypesConfig = {
+    start: StartNode,
+};
 
 import styles from './ManagerPage.module.css';
 
@@ -33,8 +38,19 @@ export default function ManagerPage() {
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
     const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
+    const [nodes, setNodes, onNodesChangeRaw] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+    const onNodesChange = useCallback((changes: any) => {
+        const filteredChanges = changes.filter((change: any) => {
+            if (change.type === 'remove' && (change.id === 'node_start' || nodes.find(n => n.id === change.id)?.type === 'start')) {
+                return false;
+            }
+            return true;
+        });
+        onNodesChangeRaw(filteredChanges);
+    }, [onNodesChangeRaw, nodes]);
+
     const [isRunning, setIsRunning] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
     const [executionLogs, setExecutionLogs] = useState([]);
@@ -72,6 +88,13 @@ export default function ManagerPage() {
 
     const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
         event.preventDefault();
+
+        // Disable context menu for Start node
+        if (node.id === 'node_start' || node.type === 'start') {
+            setMenu(null);
+            return;
+        }
+
         const containerRect = (event.currentTarget as HTMLElement)
             .closest('.react-flow')
             ?.parentElement?.getBoundingClientRect();
@@ -92,6 +115,10 @@ export default function ManagerPage() {
     }, []);
 
     const handleDeleteNode = useCallback((nodeId: string) => {
+        if (nodeId === 'node_start') {
+            alert('Cannot delete the Start node. It is required for the workflow.');
+            return;
+        }
         setNodes((nds) => nds.filter((node) => node.id !== nodeId));
         setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
     }, [setNodes, setEdges]);
@@ -228,6 +255,7 @@ export default function ManagerPage() {
                         onNodeClick={onNodeClick}
                         onNodeDragStart={onNodeDragStart}
                         onPaneClick={() => setMenu(null)}
+                        nodeTypes={nodeTypesConfig}
                         fitView
                     >
                         <Background color="#333" gap={16} />

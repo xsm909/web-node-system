@@ -95,7 +95,23 @@ def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_curre
     client_ids = [u.id for u in current_user.assigned_clients]
     if data.owner_id not in client_ids:
         raise HTTPException(status_code=403, detail="Access denied")
-    wf = Workflow(name=data.name, owner_id=data.owner_id, created_by=current_user.id)
+    wf = Workflow(
+        name=data.name, 
+        owner_id=data.owner_id, 
+        created_by=current_user.id,
+        graph={
+            "nodes": [
+                {
+                    "id": "node_start", 
+                    "type": "start", 
+                    "position": {"x": 100, "y": 100}, 
+                    "deletable": False,
+                    "data": {"label": "Start", "nodeType": "Start"}
+                }
+            ], 
+            "edges": []
+        }
+    )
     db.add(wf)
     db.commit()
     db.refresh(wf)

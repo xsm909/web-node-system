@@ -119,8 +119,38 @@ class WorkflowExecutor:
             nodes = graph.get("nodes", [])
             edges = graph.get("edges", [])
 
-            order = _topological_sort(nodes, edges)
             node_map = {n["id"]: n for n in nodes}
+            
+            # Find Start node
+            start_node = next((n for n in nodes if n.get("data", {}).get("label") == "Start"), None)
+            
+            if start_node:
+                self.log(f"Found Start node: {start_node['id']}")
+                # Only execute nodes reachable from Start
+                reachable = {start_node["id"]}
+                stack = [start_node["id"]]
+                adj = {n["id"]: [] for n in nodes}
+                for edge in edges:
+                    src = edge.get("source")
+                    tgt = edge.get("target")
+                    if src in adj:
+                        adj[src].append(tgt)
+                
+                while stack:
+                    curr = stack.pop()
+                    for neighbor in adj.get(curr, []):
+                        if neighbor not in reachable:
+                            reachable.add(neighbor)
+                            stack.append(neighbor)
+                
+                # Filter nodes and edges
+                nodes = [n for n in nodes if n["id"] in reachable]
+                edges = [e for e in edges if e.get("source") in reachable and e.get("target") in reachable]
+                self.log(f"Reachable nodes from Start: {len(nodes)}")
+            else:
+                self.log("No 'Start' node found. Executing all nodes in topological order.", level="warning")
+
+            order = _topological_sort(nodes, edges)
 
             outputs: dict = {}
             all_success = True

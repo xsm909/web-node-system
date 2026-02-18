@@ -39,6 +39,19 @@ def seed():
             manager.assigned_clients.append(client)
             print("Assigned client1 to manager1")
 
+        if not db.query(NodeType).filter(NodeType.name == "Start").first():
+            node = NodeType(
+                name="Start",
+                version="1.0",
+                description="Entry point of the workflow execution system.",
+                code="def run(inputs, params):\n    print('Workflow started')\n    return {}",
+                input_schema={},
+                output_schema={},
+                parameters=[],
+            )
+            db.add(node)
+            print("Created mandatory node type: Start")
+
         # Create a sample node type
         if not db.query(NodeType).filter(NodeType.name == "Print Node").first():
             node = NodeType(

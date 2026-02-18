@@ -11,7 +11,7 @@ export function NodeLibrary({ nodeTypes, onAddNode }: NodeLibraryProps) {
         <div className={styles.section}>
             <h3 className={styles.sectionTitle}>Node Library</h3>
             <div className={styles.nodeLibrary}>
-                {nodeTypes.map((type) => (
+                {nodeTypes.filter(t => t.name !== 'Start').map((type) => (
                     <button
                         key={type.id}
                         className={styles.LibraryItem}
