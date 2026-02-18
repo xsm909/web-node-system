@@ -42,6 +42,11 @@ class NodeTypeOut(BaseModel):
     name: str
     version: str
     description: str
+    code: str
+    input_schema: dict
+    output_schema: dict
+    parameters: list
+    is_async: bool
 
     class Config:
         from_attributes = True
@@ -94,8 +99,11 @@ def update_node_type(node_id: int, data: NodeTypeCreate, db: Session = Depends(g
     node = db.query(NodeType).filter(NodeType.id == node_id).first()
     if not node:
         raise HTTPException(status_code=404, detail="Node type not found")
-    for k, v in data.model_dump().items():
+    
+    update_data = data.model_dump()
+    for k, v in update_data.items():
         setattr(node, k, v)
+        
     db.commit()
     db.refresh(node)
     return node
