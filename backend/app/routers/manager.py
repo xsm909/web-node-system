@@ -55,8 +55,8 @@ class NodeExecutionOut(BaseModel):
     id: int
     node_id: str
     status: str
-    output: dict = None
-    error: str = None
+    output: dict | None = None
+    error: str | None = None
 
     class Config:
         from_attributes = True
@@ -66,10 +66,10 @@ class ExecutionOut(BaseModel):
     id: int
     workflow_id: int
     status: str
-    result_summary: str = None
+    result_summary: str | None = None
     logs: list = []
     started_at: datetime
-    finished_at: datetime = None
+    finished_at: datetime | None = None
     node_results: List[NodeExecutionOut] = []
 
     class Config:
