@@ -87,6 +87,10 @@ export default function ManagerPage() {
         });
     }, []);
 
+    const onNodeDragStart = useCallback(() => {
+        setMenu(null);
+    }, []);
+
     const handleDeleteNode = useCallback((nodeId: string) => {
         setNodes((nds) => nds.filter((node) => node.id !== nodeId));
         setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
@@ -222,6 +226,7 @@ export default function ManagerPage() {
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
                         onNodeClick={onNodeClick}
+                        onNodeDragStart={onNodeDragStart}
                         onPaneClick={() => setMenu(null)}
                         fitView
                     >
