@@ -7,29 +7,22 @@ import ReactFlow, {
     useNodesState,
     useEdgesState,
 } from 'reactflow';
-import type { Connection, Edge, Node } from 'reactflow';
+import type { Connection, Node } from 'reactflow';
 import 'reactflow/dist/style.css';
+
 import { useAuthStore } from '../../features/auth/store';
 import { apiClient } from '../../shared/api/client';
+
+import type { AssignedUser } from '../../entities/user/model/types';
+import type { Workflow } from '../../entities/workflow/model/types';
+import type { NodeType } from '../../entities/node-type/model/types';
+
+import { UserList } from '../../widgets/user-list/ui/UserList';
+import { WorkflowList } from '../../widgets/workflow-list/ui/WorkflowList';
+import { NodeLibrary } from '../../widgets/node-library/ui/NodeLibrary';
+import { CreateWorkflowForm } from '../../features/create-workflow/ui/CreateWorkflowForm';
+
 import styles from './ManagerPage.module.css';
-
-interface AssignedUser {
-    id: number;
-    username: string;
-}
-
-interface Workflow {
-    id: number;
-    name: string;
-    status: string;
-}
-
-interface NodeType {
-    id: number;
-    name: string;
-    version: string;
-    description: string;
-}
 
 export default function ManagerPage() {
     const { logout } = useAuthStore();
@@ -41,7 +34,6 @@ export default function ManagerPage() {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [isRunning, setIsRunning] = useState(false);
-    const [newWorkflowName, setNewWorkflowName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
@@ -51,6 +43,11 @@ export default function ManagerPage() {
 
     const loadWorkflows = (userId: number) => {
         apiClient.get(`/manager/users/${userId}/workflows`).then((r) => setWorkflows(r.data)).catch(() => { });
+    };
+
+    const handleUserSelect = (user: AssignedUser) => {
+        setSelectedUser(user);
+        loadWorkflows(user.id);
     };
 
     const loadWorkflow = (wf: Workflow) => {
@@ -67,16 +64,15 @@ export default function ManagerPage() {
         [setEdges]
     );
 
-    const createWorkflow = async () => {
-        if (!selectedUser || !newWorkflowName) return;
+    const handleCreateWorkflow = async (name: string) => {
+        if (!selectedUser) return;
         setIsCreating(true);
         try {
             const { data } = await apiClient.post('/manager/workflows', {
-                name: newWorkflowName,
+                name,
                 owner_id: selectedUser.id,
             });
             setWorkflows((prev) => [...prev, data]);
-            setNewWorkflowName('');
             loadWorkflow(data);
         } finally {
             setIsCreating(false);
@@ -114,69 +110,34 @@ export default function ManagerPage() {
         <div className={styles.layout}>
             <aside className={styles.sidebar}>
                 <div className={styles.logo}>⚡ Workflow Engine</div>
-                <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>My Users</h3>
-                    {assignedUsers.map((u) => (
-                        <button
-                            key={u.id}
-                            className={selectedUser?.id === u.id ? styles.activeItem : styles.item}
-                            onClick={() => { setSelectedUser(u); loadWorkflows(u.id); }}
-                        >
-                            👤 {u.username}
-                        </button>
-                    ))}
-                </div>
+
+                <UserList
+                    users={assignedUsers}
+                    selectedUserId={selectedUser?.id}
+                    onSelect={handleUserSelect}
+                />
+
                 {selectedUser && (
-                    <div className={styles.section}>
-                        <h3 className={styles.sectionTitle}>Workflows</h3>
-                        <div className={styles.createForm}>
-                            <input
-                                type="text"
-                                placeholder="Workflow name..."
-                                value={newWorkflowName}
-                                onChange={(e) => setNewWorkflowName(e.target.value)}
-                                className={styles.createInput}
-                            />
-                            <button
-                                onClick={createWorkflow}
-                                disabled={isCreating || !newWorkflowName}
-                                className={styles.createBtn}
-                            >
-                                {isCreating ? '...' : '+'}
-                            </button>
-                        </div>
-                        {workflows.map((wf) => (
-                            <button
-                                key={wf.id}
-                                className={activeWorkflow?.id === wf.id ? styles.activeItem : styles.item}
-                                onClick={() => loadWorkflow(wf)}
-                            >
-                                📋 {wf.name}
-                            </button>
-                        ))}
-                    </div>
+                    <>
+                        <CreateWorkflowForm
+                            onCreate={handleCreateWorkflow}
+                            isCreating={isCreating}
+                        />
+                        <WorkflowList
+                            workflows={workflows}
+                            activeWorkflowId={activeWorkflow?.id}
+                            onSelect={loadWorkflow}
+                        />
+                    </>
                 )}
+
                 {activeWorkflow && (
-                    <div className={styles.section}>
-                        <h3 className={styles.sectionTitle}>Node Library</h3>
-                        <div className={styles.nodeLibrary}>
-                            {nodeTypes.map((type) => (
-                                <button
-                                    key={type.id}
-                                    className={styles.LibraryItem}
-                                    onClick={() => addNode(type)}
-                                    title={type.description}
-                                >
-                                    <span className={styles.nodeIcon}>📦</span>
-                                    <div className={styles.nodeInfo}>
-                                        <div className={styles.nodeName}>{type.name}</div>
-                                        <div className={styles.nodeVersion}>v{type.version}</div>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    <NodeLibrary
+                        nodeTypes={nodeTypes}
+                        onAddNode={addNode}
+                    />
                 )}
+
                 <button className={styles.logout} onClick={logout}>Sign Out</button>
             </aside>
 
