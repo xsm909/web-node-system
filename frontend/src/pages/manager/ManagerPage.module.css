@@ -148,6 +148,7 @@
 .canvas {
     flex: 1;
     background: #111827;
+    position: relative;
 }
 
 .createForm {

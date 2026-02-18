@@ -22,6 +22,7 @@ import { WorkflowList } from '../../widgets/workflow-list/ui/WorkflowList';
 import { NodeLibrary } from '../../widgets/node-library/ui/NodeLibrary';
 import { Console } from '../../widgets/console/ui/Console';
 import { CreateWorkflowForm } from '../../features/create-workflow/ui/CreateWorkflowForm';
+import { NodeContextMenu } from '../../widgets/node-context-menu/NodeContextMenu';
 
 import styles from './ManagerPage.module.css';
 
@@ -39,6 +40,7 @@ export default function ManagerPage() {
     const [executionLogs, setExecutionLogs] = useState([]);
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [currentExecutionId, setCurrentExecutionId] = useState<number | null>(null);
+    const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
 
     useEffect(() => {
         apiClient.get('/manager/users').then((r) => setAssignedUsers(r.data)).catch(() => { });
@@ -67,6 +69,28 @@ export default function ManagerPage() {
         (params: Connection) => setEdges((eds) => addEdge(params, eds)),
         [setEdges]
     );
+
+    const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+        event.preventDefault();
+        const containerRect = (event.currentTarget as HTMLElement)
+            .closest('.react-flow')
+            ?.parentElement?.getBoundingClientRect();
+
+        if (!containerRect) return;
+
+        const nodeRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+
+        setMenu({
+            x: nodeRect.left - containerRect.left + nodeRect.width / 2,
+            y: nodeRect.bottom - containerRect.top,
+            nodeId: node.id,
+        });
+    }, []);
+
+    const handleDeleteNode = useCallback((nodeId: string) => {
+        setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+        setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    }, [setNodes, setEdges]);
 
     const handleCreateWorkflow = async (name: string) => {
         if (!selectedUser) return;
@@ -197,12 +221,23 @@ export default function ManagerPage() {
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
+                        onNodeClick={onNodeClick}
+                        onPaneClick={() => setMenu(null)}
                         fitView
                     >
                         <Background color="#333" gap={16} />
                         <Controls />
                         <MiniMap nodeColor="#7c3aed" maskColor="rgba(0,0,0,0.5)" />
                     </ReactFlow>
+                    {menu && (
+                        <NodeContextMenu
+                            x={menu.x}
+                            y={menu.y}
+                            nodeId={menu.nodeId}
+                            onDelete={handleDeleteNode}
+                            onClose={() => setMenu(null)}
+                        />
+                    )}
                 </div>
 
                 <Console
