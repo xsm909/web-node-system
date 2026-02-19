@@ -127,7 +127,23 @@
 .codeEditor {
     font-family: 'Fira Code', 'Courier New', monospace;
     flex: 1;
-    min-height: 300px;
+    min-height: 400px;
+}
+
+.codeMirrorWrapper {
+    flex: 1;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 14px;
+}
+
+.codeMirrorWrapper :global(.cm-editor) {
+    height: 100%;
+}
+
+.codeMirrorWrapper :global(.cm-scroller) {
+    font-family: 'Fira Code', 'Courier New', monospace;
 }
 
 .modalActions {

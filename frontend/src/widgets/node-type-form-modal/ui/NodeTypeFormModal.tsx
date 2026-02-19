@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
+import CodeMirror from '@uiw/react-codemirror';
+import { python } from '@codemirror/lang-python';
+import { autocompletion, snippetCompletion } from '@codemirror/autocomplete';
 import styles from './NodeTypeFormModal.module.css';
 
 interface NodeTypeFormModalProps {
@@ -20,6 +23,32 @@ export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
     onSave,
 }) => {
     const [activeTab, setActiveTab] = useState<'info' | 'code'>('info');
+
+    const codeMirrorExtensions = useMemo(() => [
+        python(),
+        autocompletion({
+            override: [
+                (context) => {
+                    const word = context.matchBefore(/\w*/);
+                    if (word && word.from === word.to && !context.explicit) return null;
+                    return {
+                        from: word ? word.from : context.pos,
+                        options: [
+                            snippetCompletion('def run(inputs, params):\n\t${1:print("Hello")}\n\treturn ${2:{}}', {
+                                label: 'run',
+                                detail: 'Standard node function',
+                                type: 'function'
+                            }),
+                            { label: 'inputs', type: 'variable', detail: 'Node input data' },
+                            { label: 'params', type: 'variable', detail: 'Node parameters' },
+                            { label: 'print', type: 'function' },
+                            { label: 'return', type: 'keyword' },
+                        ]
+                    };
+                }
+            ]
+        })
+    ], []);
 
     if (!isOpen) return null;
 
@@ -95,11 +124,13 @@ export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
                             <div className={styles.tabPanel}>
                                 <div className={styles.formGroup}>
                                     <label>Python Code</label>
-                                    <textarea
-                                        className={`${styles.textarea} ${styles.codeEditor}`}
+                                    <CodeMirror
                                         value={formData.code || ''}
-                                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                        required
+                                        height="400px"
+                                        theme="dark"
+                                        extensions={codeMirrorExtensions}
+                                        onChange={(value) => setFormData({ ...formData, code: value })}
+                                        className={styles.codeMirrorWrapper}
                                         placeholder="# Write your node logic here..."
                                     />
                                 </div>
