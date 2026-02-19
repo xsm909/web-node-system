@@ -83,7 +83,6 @@ export default function AdminPage() {
             <main className={styles.main}>
                 <header className={styles.header}>
                     <h1>{activeTab === 'users' ? 'User Management' : 'Node Library'}</h1>
-                    <span className={styles.badge}>Admin</span>
                     {activeTab === 'nodes' && (
                         <button className={styles.addBtn} onClick={() => handleOpenModal()}>
                             + Add New Node
