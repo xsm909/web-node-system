@@ -13,4 +13,5 @@ class NodeType(Base):
     input_schema = Column(JSON, nullable=False, default={})
     output_schema = Column(JSON, nullable=False, default={})
     parameters = Column(JSON, nullable=False, default=[])
+    category = Column(String(50), nullable=True)
     is_async = Column(Boolean, default=False)

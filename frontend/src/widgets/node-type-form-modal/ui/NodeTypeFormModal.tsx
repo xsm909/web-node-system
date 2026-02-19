@@ -45,6 +45,15 @@ export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
                         />
                     </div>
                     <div className={styles.formGroup}>
+                        <label>Category</label>
+                        <input
+                            className={styles.input}
+                            value={formData.category || ''}
+                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            placeholder="e.g. Utility, Data, Logic"
+                        />
+                    </div>
+                    <div className={styles.formGroup}>
                         <label>Description</label>
                         <textarea
                             className={styles.textarea}

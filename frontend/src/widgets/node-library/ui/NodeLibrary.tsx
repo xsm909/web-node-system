@@ -22,7 +22,10 @@ export const NodeLibrary: React.FC<NodeLibraryProps> = ({ nodeTypes, onAddNode }
                         <span className={styles.nodeIcon}>📦</span>
                         <div className={styles.nodeInfo}>
                             <div className={styles.nodeName}>{n.name}</div>
-                            <div className={styles.nodeVersion}>v{n.version}</div>
+                            <div className={styles.nodeMeta}>
+                                <span className={styles.nodeVersion}>v{n.version}</span>
+                                {n.category && <span className={styles.nodeCategory}> • {n.category}</span>}
+                            </div>
                         </div>
                     </button>
                 ))}

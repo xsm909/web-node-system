@@ -33,9 +33,28 @@
     margin: 8px 0 0;
 }
 
+.meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
 .version {
     color: #a78bfa;
     font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.categoryBadge {
+    background: rgba(124, 58, 237, 0.2);
+    color: #a78bfa;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .actions {

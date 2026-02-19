@@ -48,6 +48,7 @@ def seed():
                 input_schema={},
                 output_schema={},
                 parameters=[],
+                category="System",
             )
             db.add(node)
             print("Created mandatory node type: Start")
@@ -62,6 +63,7 @@ def seed():
                 input_schema={"value": "string"},
                 output_schema={"value": "string"},
                 parameters=[{"name": "message", "type": "string", "default": "Hello!"}],
+                category="Utility",
             )
             db.add(node)
             print("Created sample node type: Print Node")

@@ -50,7 +50,19 @@
     font-weight: 500;
 }
 
+.nodeMeta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .nodeVersion {
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.nodeCategory {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
 }

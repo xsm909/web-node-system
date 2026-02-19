@@ -41,6 +41,7 @@ export default function AdminPage() {
                 input_schema: {},
                 output_schema: {},
                 parameters: [],
+                category: '',
                 is_async: false
             });
         }

@@ -45,6 +45,7 @@ class NodeTypeOut(BaseModel):
     input_schema: dict
     output_schema: dict
     parameters: list
+    category: str | None = None
     is_async: bool
 
     class Config:

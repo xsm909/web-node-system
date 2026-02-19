@@ -7,5 +7,6 @@ export interface NodeType {
     input_schema: any;
     output_schema: any;
     parameters?: any[];
+    category?: string;
     is_async: boolean;
 }

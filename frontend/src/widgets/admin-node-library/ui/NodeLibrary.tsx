@@ -34,7 +34,10 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ nodeTypes, o
                     <div key={n.id} className={styles.nodeCard}>
                         <div>
                             <h3>{n.name}</h3>
-                            <span className={styles.version}>v{n.version}</span>
+                            <div className={styles.meta}>
+                                <span className={styles.version}>v{n.version}</span>
+                                {n.category && <span className={styles.categoryBadge}>{n.category}</span>}
+                            </div>
                             <p>{n.description}</p>
                         </div>
                         <div className={styles.actions}>
