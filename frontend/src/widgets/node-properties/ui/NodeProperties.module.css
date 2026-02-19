@@ -29,11 +29,13 @@
 
 @media (max-width: 768px) {
     .properties {
+        position: fixed;
         left: 20px;
         right: 20px;
         bottom: 20px;
         width: auto;
-        max-height: 50vh;
+        max-height: 45vh;
+        max-height: 45dvh;
     }
 }
 

@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../features/auth/store';
 import styles from './LoginPage.module.css';
@@ -6,7 +6,7 @@ import styles from './LoginPage.module.css';
 export default function LoginPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const { login, isLoading, error, user } = useAuthStore();
+    const { login, isLoading, error } = useAuthStore();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: FormEvent) => {

@@ -72,6 +72,11 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
                                             onChange={(e) => handleChange(param.name, param.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
                                             placeholder={`Enter ${param.label.toLowerCase()}...`}
                                             className={styles.input}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    (e.target as HTMLInputElement).blur();
+                                                }
+                                            }}
                                         />
                                     )}
                                 </div>
