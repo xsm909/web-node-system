@@ -1,100 +1,158 @@
-.content {
+.container {
     flex: 1;
-    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 32px;
+    height: 100%;
+    overflow: hidden;
+}
+
+.toolbar {
+    display: none;
+}
+
+.iconBtn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.iconBtn:hover {
+    background: rgba(124, 58, 237, 0.15);
+    color: #a78bfa;
+    transform: scale(1.1);
+}
+
+.deleteIconBtn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.rowActions {
+    display: flex;
+    gap: 8px;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+.row:hover .rowActions,
+.selectedRow .rowActions {
+    opacity: 1;
+}
+
+.actionsHeader {
+    width: 100px;
+    text-align: right !important;
+}
+
+.actionsCell {
+    text-align: right;
+}
+
+.rowActions {
+    justify-content: flex-end;
+}
+
+.listContainer {
+    flex: 1;
     overflow-y: auto;
 }
 
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
+.categorySection {
+    margin-bottom: 32px;
 }
 
-.nodeCard {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 20px;
-    transition: border-color 0.2s;
+.categoryHeader {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #a78bfa;
+    margin-bottom: 12px;
+    padding-left: 8px;
 }
 
-.nodeCard:hover {
-    border-color: rgba(124, 58, 237, 0.4);
+.table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
-.nodeCard h3 {
-    margin: 0 0 4px;
-    font-size: 1rem;
+.table th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 500;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.nodeCard p {
+.row {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.row:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.selectedRow {
+    background: rgba(124, 58, 237, 0.1) !important;
+}
+
+.selectedRow td {
+    border-top: 1px solid rgba(124, 58, 237, 0.2);
+    border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.selectedRow td:first-child {
+    border-left: 2px solid #a78bfa;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+.table td {
+    padding: 16px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.nodeName {
+    font-weight: 600;
+    color: #fff;
+}
+
+.versionCell {
+    color: #a78bfa;
+    font-weight: 500;
+    width: 80px;
+}
+
+.descCell {
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.85rem;
-    margin: 8px 0 0;
 }
 
-.meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
+.icon {
+    width: 18px;
+    height: 18px;
+    filter: invert(1) brightness(0.6);
+    transition: filter 0.2s;
 }
 
-.version {
-    color: #a78bfa;
-    font-size: 0.8rem;
-    font-weight: 500;
+.iconBtn:hover .icon {
+    filter: invert(53%) sepia(85%) saturate(1450%) hue-rotate(224deg) brightness(98%) contrast(98%);
 }
 
-.categoryBadge {
-    background: rgba(124, 58, 237, 0.2);
-    color: #a78bfa;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.editBtn {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.editBtn:hover {
-    background: rgba(124, 58, 237, 0.2);
-    border-color: #a78bfa;
-    color: #a78bfa;
-}
-
-.deleteBtn {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.6);
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.deleteBtn:hover {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.4);
-    color: #ef4444;
+.deleteIconBtn:hover .icon {
+    filter: invert(41%) sepia(85%) saturate(2360%) hue-rotate(338deg) brightness(96%) contrast(92%);
 }

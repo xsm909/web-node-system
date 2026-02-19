@@ -1,4 +1,6 @@
 import type { Workflow } from '../../../entities/workflow/model/types';
+import taskIcon from '../../../assets/task.svg';
+import deleteIcon from '../../../assets/delete.svg';
 import styles from './WorkflowList.module.css';
 
 interface WorkflowListProps {
@@ -18,7 +20,10 @@ export function WorkflowList({ workflows, activeWorkflowId, onSelect, onDelete }
                     className={activeWorkflowId === wf.id ? styles.activeItem : styles.item}
                     onClick={() => onSelect(wf)}
                 >
-                    <span className={styles.name}>📋 {wf.name}</span>
+                    <span className={styles.name}>
+                        <img src={taskIcon} alt="" className={styles.wfIcon} />
+                        {wf.name}
+                    </span>
                     <button
                         type="button"
                         className={styles.deleteBtn}
@@ -29,7 +34,7 @@ export function WorkflowList({ workflows, activeWorkflowId, onSelect, onDelete }
                         }}
                         aria-label="Delete"
                     >
-                        🗑️
+                        <img src={deleteIcon} alt="Delete" />
                     </button>
                 </div>
             ))}

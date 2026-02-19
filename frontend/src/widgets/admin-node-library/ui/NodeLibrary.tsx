@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
+import editIcon from '../../../assets/edit.svg';
+import deleteIcon from '../../../assets/delete.svg';
 import styles from './NodeLibrary.module.css';
 
 interface AdminNodeLibraryProps {
@@ -10,16 +12,24 @@ interface AdminNodeLibraryProps {
 }
 
 export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ nodeTypes, onEditNode, onDeleteNode }) => {
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [nodeToDelete, setNodeToDelete] = useState<NodeType | null>(null);
 
-    const handleDeleteClick = (node: NodeType) => {
-        setNodeToDelete(node);
-    };
+    const groupedNodes = useMemo(() => {
+        const groups: Record<string, NodeType[]> = {};
+        nodeTypes.forEach(node => {
+            const cat = node.category || 'Uncategorized';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(node);
+        });
+        return groups;
+    }, [nodeTypes]);
 
     const handleConfirmDelete = () => {
         if (nodeToDelete) {
             onDeleteNode(nodeToDelete);
             setNodeToDelete(null);
+            setSelectedNodeId(null);
         }
     };
 
@@ -28,26 +38,54 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ nodeTypes, o
     };
 
     return (
-        <div className={styles.content}>
-            <div className={styles.grid}>
-                {nodeTypes.map((n: NodeType) => (
-                    <div key={n.id} className={styles.nodeCard}>
-                        <div>
-                            <h3>{n.name}</h3>
-                            <div className={styles.meta}>
-                                <span className={styles.version}>v{n.version}</span>
-                                {n.category && <span className={styles.categoryBadge}>{n.category}</span>}
-                            </div>
-                            <p>{n.description}</p>
-                        </div>
-                        <div className={styles.actions}>
-                            <button className={styles.editBtn} onClick={() => onEditNode(n)}>
-                                Edit Node
-                            </button>
-                            <button className={styles.deleteBtn} onClick={() => handleDeleteClick(n)}>
-                                Delete
-                            </button>
-                        </div>
+        <div className={styles.container}>
+            <div className={styles.listContainer}>
+                {Object.entries(groupedNodes).map(([category, nodes]) => (
+                    <div key={category} className={styles.categorySection}>
+                        <div className={styles.categoryHeader}>{category}</div>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Version</th>
+                                    <th>Description</th>
+                                    <th className={styles.actionsHeader}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {nodes.map((n) => (
+                                    <tr
+                                        key={n.id}
+                                        className={`${styles.row} ${selectedNodeId === n.id ? styles.selectedRow : ''}`}
+                                        onClick={() => setSelectedNodeId(n.id)}
+                                    >
+                                        <td className={styles.nameCell}>
+                                            <div className={styles.nodeName}>{n.name}</div>
+                                        </td>
+                                        <td className={styles.versionCell}>v{n.version}</td>
+                                        <td className={styles.descCell}>{n.description}</td>
+                                        <td className={styles.actionsCell}>
+                                            <div className={styles.rowActions}>
+                                                <button
+                                                    className={styles.iconBtn}
+                                                    onClick={(e) => { e.stopPropagation(); onEditNode(n); }}
+                                                    title="Edit"
+                                                >
+                                                    <img src={editIcon} alt="Edit" className={styles.icon} />
+                                                </button>
+                                                <button
+                                                    className={`${styles.iconBtn} ${styles.deleteIconBtn}`}
+                                                    onClick={(e) => { e.stopPropagation(); setNodeToDelete(n); }}
+                                                    title="Delete"
+                                                >
+                                                    <img src={deleteIcon} alt="Delete" className={styles.icon} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 ))}
             </div>
