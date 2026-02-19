@@ -47,6 +47,15 @@ export default function AdminPage() {
         setIsModalOpen(true);
     };
 
+    const handleDeleteNode = async (node: NodeType) => {
+        try {
+            await apiClient.delete(`/admin/node-types/${node.id}`);
+            fetchData();
+        } catch (error) {
+            alert('Failed to delete node type');
+        }
+    };
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -87,6 +96,7 @@ export default function AdminPage() {
                     <AdminNodeLibrary
                         nodeTypes={nodeTypes}
                         onEditNode={handleOpenModal}
+                        onDeleteNode={handleDeleteNode}
                     />
                 )}
             </main>
