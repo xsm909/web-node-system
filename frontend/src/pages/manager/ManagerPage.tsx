@@ -41,6 +41,9 @@ export default function ManagerPage() {
     const [nodes, setNodes, onNodesChangeRaw] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
     const onNodesChange = useCallback((changes: any) => {
         const filteredChanges = changes.filter((change: any) => {
@@ -77,6 +80,7 @@ export default function ManagerPage() {
         setSelectedUser(user);
         setSelectedNodeId(null);
         loadWorkflows(user.id);
+        if (window.innerWidth <= 1024) setIsSidebarOpen(false);
     };
 
     const loadWorkflow = (wf: Workflow) => {
@@ -86,6 +90,7 @@ export default function ManagerPage() {
             const graph = r.data.graph || { nodes: [], edges: [] };
             setNodes(graph.nodes || []);
             setEdges(graph.edges || []);
+            if (window.innerWidth <= 1024) setIsSidebarOpen(false);
         }).catch(() => { });
     };
 
@@ -239,8 +244,11 @@ export default function ManagerPage() {
     const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
     return (
-        <div className={styles.layout}>
+        <div className={`${styles.layout} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
+            {isSidebarOpen && <div className={styles.sidebarOverlay} onClick={() => setIsSidebarOpen(false)} />}
+
             <aside className={styles.sidebar}>
+                <button className={styles.sidebarClose} onClick={() => setIsSidebarOpen(false)} aria-label="Close menu">×</button>
                 <div className={styles.logo}>⚡ Workflow Engine</div>
 
                 <UserList
@@ -275,17 +283,55 @@ export default function ManagerPage() {
 
             <main className={styles.main}>
                 <header className={styles.header}>
+                    <button className={styles.hamburger} onClick={toggleSidebar} aria-label="Toggle menu">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
                     <h1>{activeWorkflow ? activeWorkflow.name : 'Select a workflow'}</h1>
                     <div className={styles.actions}>
-                        <button className={styles.saveBtn} onClick={saveWorkflow} disabled={!activeWorkflow}>Save</button>
-                        <button className={styles.runBtn} onClick={runWorkflow} disabled={!activeWorkflow || isRunning}>
-                            {isRunning ? '⏳ Running...' : '▶ Play'}
+                        <button
+                            className={styles.saveBtn}
+                            onClick={saveWorkflow}
+                            disabled={!activeWorkflow}
+                            title="Save Workflow"
+                            aria-label="Save"
+                        >
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                        </button>
+                        <button
+                            className={styles.runBtn}
+                            onClick={runWorkflow}
+                            disabled={!activeWorkflow || isRunning}
+                            title={isRunning ? 'Running...' : 'Run Workflow'}
+                            aria-label="Run"
+                        >
+                            {isRunning ? (
+                                <svg className={styles.spinner} viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="12" y1="2" x2="12" y2="6"></line>
+                                    <line x1="12" y1="18" x2="12" y2="22"></line>
+                                    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                                    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                                    <line x1="2" y1="12" x2="6" y2="12"></line>
+                                    <line x1="18" y1="12" x2="22" y2="12"></line>
+                                    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                                    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                                </svg>
+                            ) : (
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                            )}
                         </button>
                     </div>
                 </header>
 
-                <div className={styles.canvasContainer} style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                    <div className={styles.canvas} style={{ flex: 1, position: 'relative' }}>
+                <div className={styles.canvasContainer}>
+                    <div className={styles.canvas}>
                         <ReactFlow
                             nodes={nodes}
                             edges={edges}
