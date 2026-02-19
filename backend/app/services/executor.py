@@ -7,10 +7,12 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 import ast
 import uuid
+from types import SimpleNamespace
 from RestrictedPython import compile_restricted, safe_globals, safe_builtins, Guards, RestrictingNodeTransformer
 from ..core.database import SessionLocal
 from ..models.workflow import Workflow, WorkflowExecution, NodeExecution, WorkflowStatus
 from ..models.node import NodeType
+from ..internal_libs.ask_ai import ask_ai, check_ai
 
 
 SAFE_GLOBALS = {
@@ -42,6 +44,10 @@ SAFE_GLOBALS = {
         "__build_class__": __build_class__,
     },
     "__metaclass__": type,
+    "libs": SimpleNamespace(
+        ask_ai=ask_ai,
+        check_ai=check_ai,
+    ),
 }
 
 

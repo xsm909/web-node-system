@@ -21,7 +21,12 @@ def seed():
         ]
         created_users = {}
         for u in users_data:
-            existing = db.query(User).filter(User.username == u["username"]).first()
+            try:
+                existing = db.query(User).filter(User.username == u["username"]).first()
+            except Exception as e:
+                print(f"Error querying user {u['username']}: {e}. Possibly legacy data.")
+                existing = None
+            
             if not existing:
                 user = User(username=u["username"], hashed_password=hash_password(u["password"]), role=u["role"])
                 db.add(user)
@@ -67,6 +72,32 @@ def seed():
             )
             db.add(node)
             print("Created sample node type: Print Node")
+
+        # Create Ask AI node type
+        if not db.query(NodeType).filter(NodeType.name == "Ask AI").first():
+            code = (
+                "class NodeParameters:\n"
+                "    question: str = 'What is the meaning of life?'\n\n"
+                "def run(inputs, params):\n"
+                "    # Get question from inputs or params\n"
+                "    question = inputs.get('question') or nodeParameters.question\n"
+                "    print(f'Asking AI: {question}')\n\n"
+                "    # Call internal library\n"
+                "    result = libs.ask_ai(question)\n\n"
+                "    return {'answer': result}"
+            )
+            node = NodeType(
+                name="Ask AI",
+                version="1.0",
+                description="Asks Gemini AI a question using internal library.",
+                code=code,
+                input_schema={"question": "string"},
+                output_schema={"answer": "string"},
+                parameters=[{"name": "question", "type": "string", "default": "What is the meaning of life?"}],
+                category="AI",
+            )
+            db.add(node)
+            print("Created internal library node type: Ask AI")
 
         db.commit()
         print("\nSeed completed successfully!")
