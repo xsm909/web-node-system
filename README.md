@@ -34,6 +34,15 @@ docker compose exec backend python -m app.seed
 - **Backend API**: [http://localhost:8000](http://localhost:8000)
 - **API Docs (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
+### 5. Database Connection (Beekeeper Studio / pgAdmin)
+Use these settings to connect to the database from your host machine:
+- **Type**: `PostgreSQL`
+- **Host**: `localhost`
+- **Port**: `5432`
+- **User**: `user`
+- **Password**: `password`
+- **Database**: `workflow_db`
+
 ---
 
 ## Default User Credentials
