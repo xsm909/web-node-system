@@ -24,6 +24,7 @@ import { CreateWorkflowForm } from '../../features/create-workflow/ui/CreateWork
 import { NodeContextMenu } from '../../widgets/node-context-menu/NodeContextMenu';
 import { StartNode } from '../../entities/node-type/ui/StartNode';
 import { NodeProperties } from '../../widgets/node-properties/ui/NodeProperties';
+import { WorkflowHeader } from '../../widgets/workflow-header';
 
 const nodeTypesConfig = {
     start: StartNode,
@@ -282,53 +283,15 @@ export default function ManagerPage() {
             </aside>
 
             <main className={styles.main}>
-                <header className={styles.header}>
-                    <button className={styles.hamburger} onClick={toggleSidebar} aria-label="Toggle menu">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </button>
-                    <h1>{activeWorkflow ? activeWorkflow.name : 'Select a workflow'}</h1>
-                    <div className={styles.actions}>
-                        <button
-                            className={styles.saveBtn}
-                            onClick={saveWorkflow}
-                            disabled={!activeWorkflow}
-                            title="Save Workflow"
-                            aria-label="Save"
-                        >
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                                <polyline points="7 3 7 8 15 8"></polyline>
-                            </svg>
-                        </button>
-                        <button
-                            className={styles.runBtn}
-                            onClick={runWorkflow}
-                            disabled={!activeWorkflow || isRunning}
-                            title={isRunning ? 'Running...' : 'Run Workflow'}
-                            aria-label="Run"
-                        >
-                            {isRunning ? (
-                                <svg className={styles.spinner} viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="2" x2="12" y2="6"></line>
-                                    <line x1="12" y1="18" x2="12" y2="22"></line>
-                                    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-                                    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-                                    <line x1="2" y1="12" x2="6" y2="12"></line>
-                                    <line x1="18" y1="12" x2="22" y2="12"></line>
-                                    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-                                    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
-                                </svg>
-                            ) : (
-                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                </svg>
-                            )}
-                        </button>
-                    </div>
-                </header>
+                <WorkflowHeader
+                    title={activeWorkflow ? activeWorkflow.name : 'Select a workflow'}
+                    isRunning={isRunning}
+                    isSidebarOpen={isSidebarOpen}
+                    onSave={saveWorkflow}
+                    onRun={runWorkflow}
+                    onToggleSidebar={toggleSidebar}
+                    canAction={!!activeWorkflow}
+                />
 
                 <div className={styles.canvasContainer}>
                     <div className={styles.canvas}>
