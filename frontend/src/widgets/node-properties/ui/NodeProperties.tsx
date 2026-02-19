@@ -38,10 +38,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
 
             <div className={styles.content}>
                 <div className={styles.infoGroup}>
-                    <div className={styles.infoItem}>
+                    {/* <div className={styles.infoItem}>
                         <label>ID</label>
                         <span>{node.id}</span>
-                    </div>
+                    </div> */}
                     <div className={styles.infoItem}>
                         <label>Type</label>
                         <span>{node.data.label}</span>
