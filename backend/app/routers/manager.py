@@ -143,6 +143,20 @@ def update_workflow(workflow_id: int, data: WorkflowUpdate, current_user: User =
     return wf
 
 
+@router.delete("/workflows/{workflow_id}")
+def delete_workflow(workflow_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+    wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
+    if not wf:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    client_ids = [u.id for u in current_user.assigned_clients]
+    if wf.owner_id not in client_ids:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    db.delete(wf)
+    db.commit()
+    return {"status": "success"}
+
+
 @router.post("/workflows/{workflow_id}/run")
 def run_workflow(workflow_id: int, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()

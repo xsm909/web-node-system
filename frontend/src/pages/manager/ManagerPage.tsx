@@ -25,6 +25,7 @@ import { NodeContextMenu } from '../../widgets/node-context-menu/NodeContextMenu
 import { StartNode } from '../../entities/node-type/ui/StartNode';
 import { NodeProperties } from '../../widgets/node-properties/ui/NodeProperties';
 import { WorkflowHeader } from '../../widgets/workflow-header';
+import { ConfirmModal } from '../../shared/ui/confirm-modal';
 
 const nodeTypesConfig = {
     start: StartNode,
@@ -67,6 +68,7 @@ export default function ManagerPage() {
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [currentExecutionId, setCurrentExecutionId] = useState<number | null>(null);
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
+    const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
 
     useEffect(() => {
         apiClient.get('/manager/users').then((r) => setAssignedUsers(r.data)).catch(() => { });
@@ -81,7 +83,6 @@ export default function ManagerPage() {
         setSelectedUser(user);
         setSelectedNodeId(null);
         loadWorkflows(user.id);
-        if (window.innerWidth <= 1024) setIsSidebarOpen(false);
     };
 
     const loadWorkflow = (wf: Workflow) => {
@@ -91,7 +92,6 @@ export default function ManagerPage() {
             const graph = r.data.graph || { nodes: [], edges: [] };
             setNodes(graph.nodes || []);
             setEdges(graph.edges || []);
-            if (window.innerWidth <= 1024) setIsSidebarOpen(false);
         }).catch(() => { });
     };
 
@@ -163,6 +163,26 @@ export default function ManagerPage() {
             loadWorkflow(data);
         } finally {
             setIsCreating(false);
+        }
+    };
+
+    const confirmDeleteWorkflow = async () => {
+        if (!workflowToDelete) return;
+        console.log('Confirming deletion for workflow:', workflowToDelete);
+
+        try {
+            const response = await apiClient.delete(`/manager/workflows/${workflowToDelete.id}`);
+            console.log('Delete response:', response.data);
+            setWorkflows((prev) => prev.filter(w => w.id !== workflowToDelete.id));
+            if (activeWorkflow?.id === workflowToDelete.id) {
+                setActiveWorkflow(null);
+                setNodes([]);
+                setEdges([]);
+            }
+        } catch (error) {
+            console.error('Failed to delete workflow', error);
+        } finally {
+            setWorkflowToDelete(null);
         }
     };
 
@@ -268,6 +288,10 @@ export default function ManagerPage() {
                             workflows={workflows}
                             activeWorkflowId={activeWorkflow?.id}
                             onSelect={loadWorkflow}
+                            onDelete={(wf) => {
+                                console.log('Requesting deletion for workflow:', wf);
+                                setWorkflowToDelete(wf);
+                            }}
                         />
                     </>
                 )}
@@ -340,6 +364,15 @@ export default function ManagerPage() {
                     logs={executionLogs}
                     isVisible={isConsoleVisible}
                     onClose={() => setIsConsoleVisible(false)}
+                />
+
+                <ConfirmModal
+                    isOpen={!!workflowToDelete}
+                    title="Delete Workflow"
+                    description={`Are you sure you want to delete "${workflowToDelete?.name}"? This action cannot be undone.`}
+                    confirmLabel="Delete"
+                    onConfirm={confirmDeleteWorkflow}
+                    onCancel={() => setWorkflowToDelete(null)}
                 />
             </main>
         </div>
