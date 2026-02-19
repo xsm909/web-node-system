@@ -23,6 +23,7 @@ import { Console } from '../../widgets/console/ui/Console';
 import { CreateWorkflowForm } from '../../features/create-workflow/ui/CreateWorkflowForm';
 import { NodeContextMenu } from '../../widgets/node-context-menu/NodeContextMenu';
 import { StartNode } from '../../entities/node-type/ui/StartNode';
+import { NodeProperties } from '../../widgets/node-properties/ui/NodeProperties';
 
 const nodeTypesConfig = {
     start: StartNode,
@@ -39,6 +40,7 @@ export default function ManagerPage() {
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
     const [nodes, setNodes, onNodesChangeRaw] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
     const onNodesChange = useCallback((changes: any) => {
         const filteredChanges = changes.filter((change: any) => {
@@ -47,8 +49,13 @@ export default function ManagerPage() {
             }
             return true;
         });
+
+        // Clear selection if selected node is removed
+        const isRemoved = filteredChanges.some((c: any) => c.type === 'remove' && c.id === selectedNodeId);
+        if (isRemoved) setSelectedNodeId(null);
+
         onNodesChangeRaw(filteredChanges);
-    }, [onNodesChangeRaw, nodes]);
+    }, [onNodesChangeRaw, nodes, selectedNodeId]);
 
     const [isRunning, setIsRunning] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
@@ -68,11 +75,13 @@ export default function ManagerPage() {
 
     const handleUserSelect = (user: AssignedUser) => {
         setSelectedUser(user);
+        setSelectedNodeId(null);
         loadWorkflows(user.id);
     };
 
     const loadWorkflow = (wf: Workflow) => {
         setActiveWorkflow(wf);
+        setSelectedNodeId(null);
         apiClient.get(`/manager/workflows/${wf.id}`).then((r) => {
             const graph = r.data.graph || { nodes: [], edges: [] };
             setNodes(graph.nodes || []);
@@ -87,26 +96,29 @@ export default function ManagerPage() {
 
     const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
         event.preventDefault();
+        setSelectedNodeId(node.id);
 
-        // Disable context menu for Start node
-        if (node.id === 'node_start' || node.type === 'start') {
-            setMenu(null);
-            return;
+        if (event.button === 2 || event.ctrlKey) {
+            // Disable context menu for Start node
+            if (node.id === 'node_start' || node.type === 'start') {
+                setMenu(null);
+                return;
+            }
+
+            const containerRect = (event.currentTarget as HTMLElement)
+                .closest('.react-flow')
+                ?.parentElement?.getBoundingClientRect();
+
+            if (!containerRect) return;
+
+            const nodeRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+
+            setMenu({
+                x: nodeRect.left - containerRect.left + nodeRect.width / 2,
+                y: nodeRect.bottom - containerRect.top,
+                nodeId: node.id,
+            });
         }
-
-        const containerRect = (event.currentTarget as HTMLElement)
-            .closest('.react-flow')
-            ?.parentElement?.getBoundingClientRect();
-
-        if (!containerRect) return;
-
-        const nodeRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-
-        setMenu({
-            x: nodeRect.left - containerRect.left + nodeRect.width / 2,
-            y: nodeRect.bottom - containerRect.top,
-            nodeId: node.id,
-        });
     }, []);
 
     const onNodeDragStart = useCallback(() => {
@@ -115,6 +127,7 @@ export default function ManagerPage() {
 
     const onNodesDelete = useCallback(() => {
         setMenu(null);
+        setSelectedNodeId(null);
     }, []);
 
     const onMoveStart = useCallback(() => {
@@ -129,7 +142,8 @@ export default function ManagerPage() {
         setNodes((nds) => nds.filter((node) => node.id !== nodeId));
         setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
         setMenu(null);
-    }, [setNodes, setEdges]);
+        if (selectedNodeId === nodeId) setSelectedNodeId(null);
+    }, [setNodes, setEdges, selectedNodeId]);
 
     const handleCreateWorkflow = async (name: string) => {
         if (!selectedUser) return;
@@ -151,7 +165,10 @@ export default function ManagerPage() {
             id: `node_${Date.now()}`,
             type: 'default',
             position: { x: Math.random() * 400, y: Math.random() * 400 },
-            data: { label: type.name },
+            data: {
+                label: type.name,
+                params: {}
+            },
         };
         setNodes((nds) => nds.concat(newNode));
     };
@@ -161,6 +178,18 @@ export default function ManagerPage() {
         await apiClient.put(`/manager/workflows/${activeWorkflow.id}`, {
             graph: { nodes, edges },
         });
+    };
+
+    const handleParamsChange = (nodeId: string, params: any) => {
+        setNodes((nds) => nds.map((node) => {
+            if (node.id === nodeId) {
+                return {
+                    ...node,
+                    data: { ...node.data, params }
+                };
+            }
+            return node;
+        }));
     };
 
     const pollExecution = useCallback(async (executionId: number) => {
@@ -206,6 +235,8 @@ export default function ManagerPage() {
             setIsRunning(false);
         }
     };
+
+    const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
     return (
         <div className={styles.layout}>
@@ -253,32 +284,45 @@ export default function ManagerPage() {
                     </div>
                 </header>
 
-                <div className={styles.canvas}>
-                    <ReactFlow
-                        nodes={nodes}
-                        edges={edges}
-                        onNodesChange={onNodesChange}
-                        onEdgesChange={onEdgesChange}
-                        onConnect={onConnect}
-                        onNodeClick={onNodeClick}
-                        onNodeDragStart={onNodeDragStart}
-                        onNodesDelete={onNodesDelete}
-                        onMoveStart={onMoveStart}
-                        onPaneClick={() => setMenu(null)}
-                        nodeTypes={nodeTypesConfig}
-                        fitView
-                        proOptions={{ hideAttribution: true }}
-                    >
-                        <Background color="#333" gap={16} />
-                        <Controls />
-                    </ReactFlow>
-                    {menu && (
-                        <NodeContextMenu
-                            x={menu.x}
-                            y={menu.y}
-                            nodeId={menu.nodeId}
-                            onDelete={handleDeleteNode}
-                            onClose={() => setMenu(null)}
+                <div className={styles.canvasContainer} style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                    <div className={styles.canvas} style={{ flex: 1, position: 'relative' }}>
+                        <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            onConnect={onConnect}
+                            onNodeClick={onNodeClick}
+                            onNodeDragStart={onNodeDragStart}
+                            onNodesDelete={onNodesDelete}
+                            onMoveStart={onMoveStart}
+                            onPaneClick={() => {
+                                setMenu(null);
+                                setSelectedNodeId(null);
+                            }}
+                            nodeTypes={nodeTypesConfig}
+                            fitView
+                            proOptions={{ hideAttribution: true }}
+                        >
+                            <Background color="#333" gap={16} />
+                            <Controls />
+                        </ReactFlow>
+                        {menu && (
+                            <NodeContextMenu
+                                x={menu.x}
+                                y={menu.y}
+                                nodeId={menu.nodeId}
+                                onDelete={handleDeleteNode}
+                                onClose={() => setMenu(null)}
+                            />
+                        )}
+                    </div>
+                    {selectedNode && (
+                        <NodeProperties
+                            node={selectedNode}
+                            nodeTypes={nodeTypes}
+                            onChange={handleParamsChange}
+                            onClose={() => setSelectedNodeId(null)}
                         />
                     )}
                 </div>

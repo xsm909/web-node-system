@@ -3,4 +3,5 @@ export interface NodeType {
     name: string;
     version: string;
     description: string;
+    parameters?: any[];
 }

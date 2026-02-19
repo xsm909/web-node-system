@@ -38,7 +38,9 @@ SAFE_GLOBALS = {
         "sum": sum,
         "sorted": sorted,
         "reversed": reversed,
+        "__build_class__": __build_class__,
     },
+    "__metaclass__": type,
 }
 
 
@@ -61,16 +63,19 @@ class CustomRestrictingNodeTransformer(RestrictingNodeTransformer):
 
     def visit_AnnAssign(self, node):
         """Allow AnnAssign (type annotated assignments) by converting them to regular assignments."""
-        if node.value is None:
-            # For cases like 'x: int', just visit the target to ensure it's safe
-            return self.visit(node.target)
+        value = node.value
+        if value is None:
+            # For cases like 'x: int', convert to 'x = None' to ensure it's a valid statement
+            # and that the attribute exists on the class/module.
+            value = ast.copy_location(ast.Constant(value=None), node)
         
-        # For cases like 'x: int = 1', convert to a regular assignment
-        assign_node = ast.Assign(
-            targets=[node.target],
-            value=node.value,
-            lineno=node.lineno,
-            col_offset=node.col_offset
+        # Convert to a regular assignment
+        assign_node = ast.copy_location(
+            ast.Assign(
+                targets=[node.target],
+                value=value
+            ),
+            node
         )
         # Inherit the rest of the safety checks from visit_Assign
         return self.visit_Assign(assign_node)
@@ -234,10 +239,7 @@ class WorkflowExecutor:
                     # Create context-specific globals for this node
                     node_globals = {
                         **SAFE_GLOBALS,
-                        "__builtins__": {
-                            **SAFE_GLOBALS["__builtins__"],
-                            "print": self.restricted_print
-                        },
+                        "__name__": f"<node:{node_id}>",
                         "_print_": lambda _getattr_=None: self.NodePrintCollector(self, _getattr_),
                         "_getattr_": Guards.safer_getattr,
                         "_setattr_": Guards.guarded_setattr,
@@ -252,6 +254,37 @@ class WorkflowExecutor:
                     # Execute with unified globals and locals to ensure top-level variables
                     # are accessible within defined functions (like 'run')
                     exec(byte_code, node_globals)
+
+                    # Handle NodeParameters injection
+                    node_params_class = node_globals.get("NodeParameters")
+                    if node_params_class and isinstance(node_params_class, type):
+                        # Ensure nodeParameters instance exists
+                        node_params_inst = node_globals.get("nodeParameters")
+                        if not node_params_inst or not isinstance(node_params_inst, node_params_class):
+                            node_params_inst = node_params_class()
+                            node_globals["nodeParameters"] = node_params_inst
+                        
+                        # Populate from graph params
+                        node_type_params = node_type.parameters if node_type else []
+                        param_types = {p["name"]: p["type"] for p in node_type_params if "name" in p and "type" in p}
+
+                        for key, value in params.items():
+                            if hasattr(node_params_inst, key):
+                                # Try to convert type based on schema from database
+                                try:
+                                    ptype = param_types.get(key)
+                                    if ptype == "number":
+                                        value = float(value) if "." in str(value) else int(value)
+                                    elif ptype == "boolean":
+                                        if isinstance(value, str):
+                                            value = value.lower() in ("true", "1", "yes")
+                                        else:
+                                            value = bool(value)
+                                except (ValueError, TypeError):
+                                    pass # Keep original value if conversion fails
+                                
+                                setattr(node_params_inst, key, value)
+
                     run_fn = node_globals.get("run")
                     
                     if not run_fn:

@@ -4,11 +4,59 @@ from typing import List
 from pydantic import BaseModel
 from ..core.database import get_db
 from ..core.security import require_role, hash_password
+import ast
 from ..models.user import User, RoleEnum
 from ..models.node import NodeType
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 admin_only = Depends(require_role("admin"))
+
+
+def extract_node_parameters(code: str) -> list:
+    """Extract parameters from class NodeParameters in the code."""
+    try:
+        tree = ast.parse(code)
+        params = []
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef) and node.name == "NodeParameters":
+                for item in node.body:
+                    name = None
+                    ptype = "string"
+                    
+                    if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+                        name = item.target.id
+                        # Map Python types to frontend field types
+                        if isinstance(item.annotation, ast.Name):
+                            tid = item.annotation.id
+                            if tid in ("int", "float", "number"):
+                                ptype = "number"
+                            elif tid in ("bool", "boolean"):
+                                ptype = "boolean"
+                    
+                    elif isinstance(item, ast.Assign) and len(item.targets) == 1 and isinstance(item.targets[0], ast.Name):
+                        name = item.targets[0].id
+                        # Infer type from default value
+                        if isinstance(item.value, ast.Constant):
+                            if isinstance(item.value.value, (int, float)):
+                                ptype = "number"
+                            elif isinstance(item.value.value, bool):
+                                ptype = "boolean"
+                        elif isinstance(item.value, ast.Num): # Legacy compatibility
+                            ptype = "number"
+                        elif isinstance(item.value, ast.NameConstant): # Legacy compatibility
+                            if isinstance(item.value.value, bool):
+                                ptype = "boolean"
+
+                    if name:
+                        params.append({
+                            "name": name,
+                            "type": ptype,
+                            "label": name.replace("_", " ").title()
+                        })
+                return params
+    except Exception:
+        pass
+    return []
 
 
 class UserCreate(BaseModel):
@@ -87,7 +135,9 @@ def list_node_types(db: Session = Depends(get_db), _=admin_only):
 
 @router.post("/node-types", response_model=NodeTypeOut)
 def create_node_type(data: NodeTypeCreate, db: Session = Depends(get_db), _=admin_only):
-    node = NodeType(**data.model_dump())
+    node_data = data.model_dump()
+    node_data["parameters"] = extract_node_parameters(node_data["code"])
+    node = NodeType(**node_data)
     db.add(node)
     db.commit()
     db.refresh(node)
@@ -101,6 +151,8 @@ def update_node_type(node_id: int, data: NodeTypeCreate, db: Session = Depends(g
         raise HTTPException(status_code=404, detail="Node type not found")
     
     update_data = data.model_dump()
+    update_data["parameters"] = extract_node_parameters(update_data["code"])
+    
     for k, v in update_data.items():
         setattr(node, k, v)
         
