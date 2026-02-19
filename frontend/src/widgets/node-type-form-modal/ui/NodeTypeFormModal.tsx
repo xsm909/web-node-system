@@ -121,12 +121,11 @@ export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
                                 </div>
                             </div>
                         ) : (
-                            <div className={styles.tabPanel}>
-                                <div className={styles.formGroup}>
-                                    <label>Python Code</label>
+                            <div className={`${styles.tabPanel} ${styles.codeTabPanel}`}>
+                                <div className={`${styles.formGroup} ${styles.flexGrow}`}>
                                     <CodeMirror
                                         value={formData.code || ''}
-                                        height="400px"
+                                        height="100%"
                                         theme="dark"
                                         extensions={codeMirrorExtensions}
                                         onChange={(value) => setFormData({ ...formData, code: value })}

@@ -70,15 +70,23 @@
 
 .formContent {
     flex: 1;
-    overflow-y: auto;
+    overflow: hidden;
     padding: 32px;
+    display: flex;
+    flex-direction: column;
 }
 
 .tabPanel {
     display: flex;
     flex-direction: column;
     gap: 24px;
-    height: 100%;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.codeTabPanel {
+    overflow: hidden;
 }
 
 .formRow {
@@ -95,6 +103,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    min-height: 0;
 }
 
 .formGroup label {
