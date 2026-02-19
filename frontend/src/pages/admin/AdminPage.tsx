@@ -1,25 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../features/auth/store';
 import { apiClient } from '../../shared/api/client';
+import type { User } from '../../entities/user/model/types';
+import type { NodeType } from '../../entities/node-type/model/types';
+import { AdminSidebar } from '../../widgets/admin-sidebar';
+import { UserManagement } from '../../widgets/user-management';
+import { AdminNodeLibrary } from '../../widgets/admin-node-library';
+import { NodeTypeFormModal } from '../../widgets/node-type-form-modal';
 import styles from './AdminPage.module.css';
-
-interface User {
-    id: number;
-    username: string;
-    role: string;
-}
-
-interface NodeType {
-    id: number;
-    name: string;
-    version: string;
-    description: string;
-    code: string;
-    input_schema: any;
-    output_schema: any;
-    parameters: any[];
-    is_async: boolean;
-}
 
 export default function AdminPage() {
     const { logout } = useAuthStore();
@@ -76,123 +64,32 @@ export default function AdminPage() {
 
     return (
         <div className={styles.layout}>
-            <aside className={styles.sidebar}>
-                <div className={styles.logo}>⚡ Workflow Engine</div>
-                <nav className={styles.nav}>
-                    <button className={activeTab === 'users' ? styles.activeNav : styles.navItem} onClick={() => setActiveTab('users')}>
-                        👥 Users
-                    </button>
-                    <button className={activeTab === 'nodes' ? styles.activeNav : styles.navItem} onClick={() => setActiveTab('nodes')}>
-                        🔧 Node Types
-                    </button>
-                </nav>
-                <button className={styles.logout} onClick={logout}>Sign Out</button>
-            </aside>
+            <AdminSidebar
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                onLogout={logout}
+            />
 
             <main className={styles.main}>
-                <header className={styles.header}>
-                    <h1>{activeTab === 'users' ? 'User Management' : 'Node Library'}</h1>
-                    <span className={styles.badge}>Admin</span>
-                    {activeTab === 'nodes' && (
-                        <button className={styles.addBtn} onClick={() => handleOpenModal()}>
-                            + Add New Node
-                        </button>
-                    )}
-                </header>
-
-                {activeTab === 'users' && (
-                    <div className={styles.content}>
-                        <table className={styles.table}>
-                            <thead>
-                                <tr><th>ID</th><th>Username</th><th>Role</th></tr>
-                            </thead>
-                            <tbody>
-                                {users.map((u) => (
-                                    <tr key={u.id}>
-                                        <td>{u.id}</td>
-                                        <td>{u.username}</td>
-                                        <td><span className={styles.roleBadge}>{u.role}</span></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-
-                {activeTab === 'nodes' && (
-                    <div className={styles.content}>
-                        <div className={styles.grid}>
-                            {nodeTypes.map((n) => (
-                                <div key={n.id} className={styles.nodeCard}>
-                                    <div>
-                                        <h3>{n.name}</h3>
-                                        <span className={styles.version}>v{n.version}</span>
-                                        <p>{n.description}</p>
-                                    </div>
-                                    <div className={styles.actions}>
-                                        <button className={styles.editBtn} onClick={() => handleOpenModal(n)}>
-                                            Edit Node
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                {activeTab === 'users' ? (
+                    <UserManagement users={users} />
+                ) : (
+                    <AdminNodeLibrary
+                        nodeTypes={nodeTypes}
+                        onAddNode={() => handleOpenModal()}
+                        onEditNode={handleOpenModal}
+                    />
                 )}
             </main>
 
-            {isModalOpen && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modal}>
-                        <h2>{editingNode ? 'Edit Node Type' : 'Add New Node Type'}</h2>
-                        <form onSubmit={handleSave} className={styles.form}>
-                            <div className={styles.formGroup}>
-                                <label>Name</label>
-                                <input
-                                    className={styles.input}
-                                    value={formData.name || ''}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Version</label>
-                                <input
-                                    className={styles.input}
-                                    value={formData.version || ''}
-                                    onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Description</label>
-                                <textarea
-                                    className={styles.textarea}
-                                    value={formData.description || ''}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Python Code</label>
-                                <textarea
-                                    className={`${styles.textarea} ${styles.codeEditor}`}
-                                    value={formData.code || ''}
-                                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className={styles.modalActions}>
-                                <button type="button" className={styles.cancelBtn} onClick={() => setIsModalOpen(false)}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className={styles.saveBtn}>
-                                    {editingNode ? 'Update Node' : 'Create Node'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <NodeTypeFormModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                editingNode={editingNode}
+                formData={formData}
+                setFormData={setFormData}
+                onSave={handleSave}
+            />
         </div>
     );
 }

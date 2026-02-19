@@ -1,31 +1,32 @@
+import React from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import styles from './NodeLibrary.module.css';
 
 interface NodeLibraryProps {
     nodeTypes: NodeType[];
-    onAddNode: (type: NodeType) => void;
+    onAddNode: (node: NodeType) => void;
 }
 
-export function NodeLibrary({ nodeTypes, onAddNode }: NodeLibraryProps) {
+export const NodeLibrary: React.FC<NodeLibraryProps> = ({ nodeTypes, onAddNode }) => {
     return (
         <div className={styles.section}>
             <h3 className={styles.sectionTitle}>Node Library</h3>
-            <div className={styles.nodeLibrary}>
-                {nodeTypes.filter(t => t.name !== 'Start').map((type) => (
+            <div className={styles.grid}>
+                {nodeTypes.map((n) => (
                     <button
-                        key={type.id}
-                        className={styles.LibraryItem}
-                        onClick={() => onAddNode(type)}
-                        title={type.description}
+                        key={n.id}
+                        className={styles.nodeItem}
+                        onClick={() => onAddNode(n)}
+                        title={n.description}
                     >
                         <span className={styles.nodeIcon}>📦</span>
                         <div className={styles.nodeInfo}>
-                            <div className={styles.nodeName}>{type.name}</div>
-                            <div className={styles.nodeVersion}>v{type.version}</div>
+                            <div className={styles.nodeName}>{n.name}</div>
+                            <div className={styles.nodeVersion}>v{n.version}</div>
                         </div>
                     </button>
                 ))}
             </div>
         </div>
     );
-}
+};
