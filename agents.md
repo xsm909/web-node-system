@@ -35,6 +35,8 @@ Key characteristics:
 - **Code style**: All comments, variable names, documentation — English only  
 - **Architecture**: Feature-Sliced Design (FSD) recommended for frontend  
 - **Development OS**: Tested on macOS (use Cmd instead of Ctrl for shortcuts)
+### 3.1 ID
+Never using regular id in table of data base using UID (UUID)
 
 ## 4. Functional Requirements
 

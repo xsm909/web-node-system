@@ -5,12 +5,13 @@ from ..core.database import get_db
 from ..core.security import verify_password, create_access_token, get_current_user, hash_password
 from ..models.user import User, RoleEnum
 from pydantic import BaseModel
+import uuid
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 class UserOut(BaseModel):
-    id: int
+    id: uuid.UUID
     username: str
     role: str
 

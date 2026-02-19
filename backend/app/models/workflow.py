@@ -1,8 +1,9 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON, Enum
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON, Enum, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..core.database import Base
 import enum
+import uuid
 
 
 class WorkflowStatus(str, enum.Enum):
@@ -16,10 +17,10 @@ class WorkflowStatus(str, enum.Enum):
 class Workflow(Base):
     __tablename__ = "workflows"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     graph = Column(JSON, nullable=False, default={"nodes": [], "edges": []})
     status = Column(Enum(WorkflowStatus), default=WorkflowStatus.draft)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -32,8 +33,8 @@ class Workflow(Base):
 class WorkflowExecution(Base):
     __tablename__ = "workflow_executions"
 
-    id = Column(Integer, primary_key=True, index=True)
-    workflow_id = Column(Integer, ForeignKey("workflows.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    workflow_id = Column(UUID(as_uuid=True), ForeignKey("workflows.id"), nullable=False)
     status = Column(Enum(WorkflowStatus), default=WorkflowStatus.pending)
     result_summary = Column(Text, nullable=True)
     logs = Column(JSON, nullable=True, default=[])
@@ -47,8 +48,8 @@ class WorkflowExecution(Base):
 class NodeExecution(Base):
     __tablename__ = "node_executions"
 
-    id = Column(Integer, primary_key=True, index=True)
-    execution_id = Column(Integer, ForeignKey("workflow_executions.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    execution_id = Column(UUID(as_uuid=True), ForeignKey("workflow_executions.id"), nullable=False)
     node_id = Column(String(100), nullable=False)
     status = Column(Enum(WorkflowStatus), default=WorkflowStatus.pending)
     output = Column(JSON, nullable=True)

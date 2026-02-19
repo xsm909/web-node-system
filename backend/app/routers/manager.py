@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 from datetime import datetime
+import uuid
 from ..core.database import get_db
 from ..core.security import require_role, get_current_user
 from ..models.user import User
@@ -16,7 +17,7 @@ manager_only = Depends(require_role("manager"))
 
 class WorkflowCreate(BaseModel):
     name: str
-    owner_id: int
+    owner_id: uuid.UUID
 
 
 class WorkflowUpdate(BaseModel):
@@ -24,10 +25,10 @@ class WorkflowUpdate(BaseModel):
 
 
 class WorkflowOut(BaseModel):
-    id: int
+    id: uuid.UUID
     name: str
     status: str
-    owner_id: int
+    owner_id: uuid.UUID
 
     class Config:
         from_attributes = True
@@ -38,7 +39,7 @@ class WorkflowDetail(WorkflowOut):
 
 
 class NodeTypeOut(BaseModel):
-    id: int
+    id: uuid.UUID
     name: str
     version: str
     description: str
@@ -53,7 +54,7 @@ class NodeTypeOut(BaseModel):
 
 
 class NodeExecutionOut(BaseModel):
-    id: int
+    id: uuid.UUID
     node_id: str
     status: str
     output: dict | None = None
@@ -64,8 +65,8 @@ class NodeExecutionOut(BaseModel):
 
 
 class ExecutionOut(BaseModel):
-    id: int
-    workflow_id: int
+    id: uuid.UUID
+    workflow_id: uuid.UUID
     status: str
     result_summary: str | None = None
     logs: list = []
@@ -83,7 +84,7 @@ def get_assigned_users(current_user: User = Depends(get_current_user), db: Sessi
 
 
 @router.get("/users/{user_id}/workflows", response_model=List[WorkflowOut])
-def get_user_workflows(user_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def get_user_workflows(user_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
     # Ensure manager has access to this user
     client_ids = [u.id for u in current_user.assigned_clients]
     if user_id not in client_ids:
@@ -120,7 +121,7 @@ def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_curre
 
 
 @router.get("/workflows/{workflow_id}", response_model=WorkflowDetail)
-def get_workflow(workflow_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def get_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -131,7 +132,7 @@ def get_workflow(workflow_id: int, current_user: User = Depends(get_current_user
 
 
 @router.put("/workflows/{workflow_id}", response_model=WorkflowDetail)
-def update_workflow(workflow_id: int, data: WorkflowUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -145,7 +146,7 @@ def update_workflow(workflow_id: int, data: WorkflowUpdate, current_user: User =
 
 
 @router.delete("/workflows/{workflow_id}")
-def delete_workflow(workflow_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def delete_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -159,7 +160,7 @@ def delete_workflow(workflow_id: int, current_user: User = Depends(get_current_u
 
 
 @router.post("/workflows/{workflow_id}/run")
-def run_workflow(workflow_id: int, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def run_workflow(workflow_id: uuid.UUID, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -182,7 +183,7 @@ def list_node_types(db: Session = Depends(get_db), _=manager_only):
 
 
 @router.get("/workflows/{workflow_id}/executions", response_model=List[ExecutionOut])
-def list_workflow_executions(workflow_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def list_workflow_executions(workflow_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -195,7 +196,7 @@ def list_workflow_executions(workflow_id: int, current_user: User = Depends(get_
 
 
 @router.get("/executions/{execution_id}", response_model=ExecutionOut)
-def get_execution_details(execution_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
     execution = db.query(WorkflowExecution).filter(WorkflowExecution.id == execution_id).first()
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")

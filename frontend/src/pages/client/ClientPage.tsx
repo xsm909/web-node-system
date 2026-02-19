@@ -4,7 +4,7 @@ import { apiClient } from '../../shared/api/client';
 import styles from './ClientPage.module.css';
 
 interface WorkflowResult {
-    id: number;
+    id: string;
     workflow_name: string;
     status: 'pending' | 'running' | 'success' | 'failed';
     created_at: string;

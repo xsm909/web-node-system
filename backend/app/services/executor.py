@@ -6,6 +6,7 @@ import traceback
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 import ast
+import uuid
 from RestrictedPython import compile_restricted, safe_globals, safe_builtins, Guards, RestrictingNodeTransformer
 from ..core.database import SessionLocal
 from ..models.workflow import Workflow, WorkflowExecution, NodeExecution, WorkflowStatus
@@ -119,7 +120,7 @@ class WorkflowExecutor:
             if data.strip():
                 self.executor.restricted_print(data)
 
-    def __init__(self, execution_id: int):
+    def __init__(self, execution_id: uuid.UUID):
         self.execution_id = execution_id
         self.db = SessionLocal()
         self.execution_logs = []
@@ -324,7 +325,7 @@ class WorkflowExecutor:
             self.db.close()
 
 
-def execute_workflow(execution_id: int):
+def execute_workflow(execution_id: uuid.UUID):
     """Entry point for background task."""
     executor = WorkflowExecutor(execution_id)
     executor.execute()

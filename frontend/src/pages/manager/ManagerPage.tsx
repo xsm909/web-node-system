@@ -66,7 +66,7 @@ export default function ManagerPage() {
     const [isCreating, setIsCreating] = useState(false);
     const [executionLogs, setExecutionLogs] = useState([]);
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
-    const [currentExecutionId, setCurrentExecutionId] = useState<number | null>(null);
+    const [currentExecutionId, setCurrentExecutionId] = useState<string | null>(null);
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
     const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
 
@@ -75,7 +75,7 @@ export default function ManagerPage() {
         apiClient.get('/manager/node-types').then((r) => setNodeTypes(r.data)).catch(() => { });
     }, []);
 
-    const loadWorkflows = (userId: number) => {
+    const loadWorkflows = (userId: string) => {
         apiClient.get(`/manager/users/${userId}/workflows`).then((r) => setWorkflows(r.data)).catch(() => { });
     };
 
@@ -218,7 +218,7 @@ export default function ManagerPage() {
         }));
     };
 
-    const pollExecution = useCallback(async (executionId: number) => {
+    const pollExecution = useCallback(async (executionId: string) => {
         try {
             const { data } = await apiClient.get(`/manager/executions/${executionId}`);
             setExecutionLogs(data.logs || []);

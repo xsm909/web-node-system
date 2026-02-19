@@ -3,7 +3,7 @@ import styles from './ManagerUserList.module.css';
 
 interface ManagerUserListProps {
     users: AssignedUser[];
-    selectedUserId?: number;
+    selectedUserId?: string;
     onSelect: (user: AssignedUser) => void;
 }
 

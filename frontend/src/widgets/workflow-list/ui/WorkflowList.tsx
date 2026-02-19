@@ -3,7 +3,7 @@ import styles from './WorkflowList.module.css';
 
 interface WorkflowListProps {
     workflows: Workflow[];
-    activeWorkflowId?: number;
+    activeWorkflowId?: string;
     onSelect: (wf: Workflow) => void;
     onDelete: (wf: Workflow) => void;
 }

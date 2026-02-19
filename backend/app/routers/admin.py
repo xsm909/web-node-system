@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
+import uuid
 from ..core.database import get_db
 from ..core.security import require_role, hash_password
 import ast
@@ -66,7 +67,7 @@ class UserCreate(BaseModel):
 
 
 class UserOut(BaseModel):
-    id: int
+    id: uuid.UUID
     username: str
     role: str
 
@@ -87,7 +88,7 @@ class NodeTypeCreate(BaseModel):
 
 
 class NodeTypeOut(BaseModel):
-    id: int
+    id: uuid.UUID
     name: str
     version: str
     description: str
@@ -119,7 +120,7 @@ def create_user(data: UserCreate, db: Session = Depends(get_db), _=admin_only):
 
 
 @router.post("/users/{manager_id}/assign/{client_id}")
-def assign_client(manager_id: int, client_id: int, db: Session = Depends(get_db), _=admin_only):
+def assign_client(manager_id: uuid.UUID, client_id: uuid.UUID, db: Session = Depends(get_db), _=admin_only):
     manager = db.query(User).filter(User.id == manager_id, User.role == "manager").first()
     client = db.query(User).filter(User.id == client_id, User.role == "client").first()
     if not manager or not client:
@@ -147,7 +148,7 @@ def create_node_type(data: NodeTypeCreate, db: Session = Depends(get_db), _=admi
 
 
 @router.put("/node-types/{node_id}", response_model=NodeTypeOut)
-def update_node_type(node_id: int, data: NodeTypeCreate, db: Session = Depends(get_db), _=admin_only):
+def update_node_type(node_id: uuid.UUID, data: NodeTypeCreate, db: Session = Depends(get_db), _=admin_only):
     node = db.query(NodeType).filter(NodeType.id == node_id).first()
     if not node:
         raise HTTPException(status_code=404, detail="Node type not found")
@@ -164,7 +165,7 @@ def update_node_type(node_id: int, data: NodeTypeCreate, db: Session = Depends(g
 
 
 @router.delete("/node-types/{node_id}")
-def delete_node_type(node_id: int, db: Session = Depends(get_db), _=admin_only):
+def delete_node_type(node_id: uuid.UUID, db: Session = Depends(get_db), _=admin_only):
     node = db.query(NodeType).filter(NodeType.id == node_id).first()
     if not node:
         raise HTTPException(status_code=404, detail="Node type not found")

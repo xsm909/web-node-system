@@ -1,5 +1,5 @@
 export interface NodeType {
-    id: number;
+    id: string;
     name: string;
     version: string;
     description: string;

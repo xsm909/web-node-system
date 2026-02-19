@@ -4,7 +4,7 @@ import { apiClient } from '../../shared/api/client';
 export type Role = 'admin' | 'manager' | 'client';
 
 interface User {
-    id: number;
+    id: string;
     username: string;
     role: Role;
 }

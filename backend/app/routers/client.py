@@ -4,6 +4,7 @@ from typing import List
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+import uuid
 from ..core.database import get_db
 from ..core.security import require_role, get_current_user
 from ..models.user import User
@@ -14,7 +15,7 @@ client_only = Depends(require_role("client"))
 
 
 class ResultOut(BaseModel):
-    id: int
+    id: uuid.UUID
     workflow_name: str
     status: str
     created_at: Optional[datetime]

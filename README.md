@@ -75,6 +75,29 @@ docker compose restart backend
 ```
 
 ### Viewing logs
-```bash
-docker compose logs -f backend
+
+---
+
+## Node Development
+
+When creating nodes in the **Admin -> Node Library**, you can define configurable parameters using a `NodeParameters` class.
+
+### Example Node with Parameters
+
+```python
+class NodeParameters:
+    # Defining fields here allows the frontend to auto-generate input fields
+    text: str = "Default value"
+    count: int = 1
+
+def run(inputs, params):
+    # Use 'nodeParameters' (lowercase) to access values set in the UI
+    print(f"Text parameter: {nodeParameters.text}")
+    print(f"Count parameter: {nodeParameters.count}")
+    
+    return {"status": "ok"}
 ```
+
+- **Class `NodeParameters`**: Scanned by the frontend to build the properties panel.
+- **Object `nodeParameters`**: Automatically instantiated and injected into the execution environment.
+- **Types**: `str` (text input), `int`/`float` (number input), `bool` (checkbox).

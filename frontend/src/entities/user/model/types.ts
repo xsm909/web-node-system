@@ -1,10 +1,10 @@
 export interface AssignedUser {
-    id: number;
+    id: string;
     username: string;
 }
 
 export interface User {
-    id: number;
+    id: string;
     username: string;
     role: string;
 }
