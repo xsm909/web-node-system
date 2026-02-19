@@ -16,7 +16,7 @@ import type { AssignedUser } from '../../entities/user/model/types';
 import type { Workflow } from '../../entities/workflow/model/types';
 import type { NodeType } from '../../entities/node-type/model/types';
 
-import { UserList } from '../../widgets/user-list/ui/UserList';
+import { ManagerUserList } from '../../widgets/manager-user-list';
 import { WorkflowList } from '../../widgets/workflow-list/ui/WorkflowList';
 import { NodeLibrary } from '../../widgets/node-library/ui/NodeLibrary';
 import { Console } from '../../widgets/console/ui/Console';
@@ -272,7 +272,7 @@ export default function ManagerPage() {
                 <button className={styles.sidebarClose} onClick={() => setIsSidebarOpen(false)} aria-label="Close menu">×</button>
                 <div className={styles.logo}>⚡ Workflow Engine</div>
 
-                <UserList
+                <ManagerUserList
                     users={assignedUsers}
                     selectedUserId={selectedUser?.id}
                     onSelect={handleUserSelect}

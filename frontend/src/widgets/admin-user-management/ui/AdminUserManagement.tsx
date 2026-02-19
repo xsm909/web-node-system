@@ -1,12 +1,12 @@
 import React from 'react';
 import type { User } from '../../../entities/user/model/types';
-import styles from './UserManagement.module.css';
+import styles from './AdminUserManagement.module.css';
 
-interface UserManagementProps {
+interface AdminUserManagementProps {
     users: User[];
 }
 
-export const UserManagement: React.FC<UserManagementProps> = ({ users }) => {
+export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users }) => {
     return (
         <div className={styles.content}>
             <table className={styles.table}>

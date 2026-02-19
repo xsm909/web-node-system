@@ -4,7 +4,7 @@ import { apiClient } from '../../shared/api/client';
 import type { User } from '../../entities/user/model/types';
 import type { NodeType } from '../../entities/node-type/model/types';
 import { AdminSidebar } from '../../widgets/admin-sidebar';
-import { UserManagement } from '../../widgets/user-management';
+import { AdminUserManagement } from '../../widgets/admin-user-management';
 import { AdminNodeLibrary } from '../../widgets/admin-node-library';
 import { NodeTypeFormModal } from '../../widgets/node-type-form-modal';
 import styles from './AdminPage.module.css';
@@ -71,12 +71,21 @@ export default function AdminPage() {
             />
 
             <main className={styles.main}>
+                <header className={styles.header}>
+                    <h1>{activeTab === 'users' ? 'User Management' : 'Node Library'}</h1>
+                    <span className={styles.badge}>Admin</span>
+                    {activeTab === 'nodes' && (
+                        <button className={styles.addBtn} onClick={() => handleOpenModal()}>
+                            + Add New Node
+                        </button>
+                    )}
+                </header>
+
                 {activeTab === 'users' ? (
-                    <UserManagement users={users} />
+                    <AdminUserManagement users={users} />
                 ) : (
                     <AdminNodeLibrary
                         nodeTypes={nodeTypes}
-                        onAddNode={() => handleOpenModal()}
                         onEditNode={handleOpenModal}
                     />
                 )}

@@ -1,13 +1,13 @@
 import type { AssignedUser } from '../../../entities/user/model/types';
-import styles from './UserList.module.css';
+import styles from './ManagerUserList.module.css';
 
-interface UserListProps {
+interface ManagerUserListProps {
     users: AssignedUser[];
     selectedUserId?: number;
     onSelect: (user: AssignedUser) => void;
 }
 
-export function UserList({ users, selectedUserId, onSelect }: UserListProps) {
+export function ManagerUserList({ users, selectedUserId, onSelect }: ManagerUserListProps) {
     return (
         <div className={styles.section}>
             <h3 className={styles.sectionTitle}>My Users</h3>
