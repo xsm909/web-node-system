@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import styles from './NodeTypeFormModal.module.css';
 
@@ -19,57 +19,94 @@ export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
     setFormData,
     onSave,
 }) => {
+    const [activeTab, setActiveTab] = useState<'info' | 'code'>('info');
+
     if (!isOpen) return null;
 
     return (
         <div className={styles.modalOverlay}>
             <div className={styles.modal}>
-                <h2>{editingNode ? 'Edit Node Type' : 'Add New Node Type'}</h2>
+                <div className={styles.modalHeader}>
+                    <h2>{editingNode ? 'Edit Node Type' : 'Add New Node Type'}</h2>
+                    <div className={styles.tabs}>
+                        <button
+                            type="button"
+                            className={`${styles.tab} ${activeTab === 'info' ? styles.tabActive : ''}`}
+                            onClick={() => setActiveTab('info')}
+                        >
+                            Node Info
+                        </button>
+                        <button
+                            type="button"
+                            className={`${styles.tab} ${activeTab === 'code' ? styles.tabActive : ''}`}
+                            onClick={() => setActiveTab('code')}
+                        >
+                            Code
+                        </button>
+                    </div>
+                </div>
+
                 <form onSubmit={onSave} className={styles.form}>
-                    <div className={styles.formGroup}>
-                        <label>Name</label>
-                        <input
-                            className={styles.input}
-                            value={formData.name || ''}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            required
-                        />
+                    <div className={styles.formContent}>
+                        {activeTab === 'info' ? (
+                            <div className={styles.tabPanel}>
+                                <div className={styles.formRow}>
+                                    <div className={`${styles.formGroup} ${styles.flexGrow}`}>
+                                        <label>Name</label>
+                                        <input
+                                            className={styles.input}
+                                            value={formData.name || ''}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            required
+                                            placeholder="Enter node name"
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup} style={{ width: '120px' }}>
+                                        <label>Version</label>
+                                        <input
+                                            className={styles.input}
+                                            value={formData.version || ''}
+                                            onChange={(e) => setFormData({ ...formData, version: e.target.value })}
+                                            required
+                                            placeholder="1.0.0"
+                                        />
+                                    </div>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Category</label>
+                                    <input
+                                        className={styles.input}
+                                        value={formData.category || ''}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                        placeholder="e.g. Utility, Data, Logic"
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Description</label>
+                                    <textarea
+                                        className={styles.textarea}
+                                        value={formData.description || ''}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        placeholder="Explain what this node does..."
+                                    />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className={styles.tabPanel}>
+                                <div className={styles.formGroup}>
+                                    <label>Python Code</label>
+                                    <textarea
+                                        className={`${styles.textarea} ${styles.codeEditor}`}
+                                        value={formData.code || ''}
+                                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                                        required
+                                        placeholder="# Write your node logic here..."
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    <div className={styles.formGroup}>
-                        <label>Version</label>
-                        <input
-                            className={styles.input}
-                            value={formData.version || ''}
-                            onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div className={styles.formGroup}>
-                        <label>Category</label>
-                        <input
-                            className={styles.input}
-                            value={formData.category || ''}
-                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                            placeholder="e.g. Utility, Data, Logic"
-                        />
-                    </div>
-                    <div className={styles.formGroup}>
-                        <label>Description</label>
-                        <textarea
-                            className={styles.textarea}
-                            value={formData.description || ''}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        />
-                    </div>
-                    <div className={styles.formGroup}>
-                        <label>Python Code</label>
-                        <textarea
-                            className={`${styles.textarea} ${styles.codeEditor}`}
-                            value={formData.code || ''}
-                            onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                            required
-                        />
-                    </div>
+
                     <div className={styles.modalActions}>
                         <button type="button" className={styles.cancelBtn} onClick={onClose}>
                             Cancel
