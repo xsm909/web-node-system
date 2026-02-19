@@ -1,6 +1,13 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  const { hostname, protocol } = window.location;
+  // If we are on mobile (accessing via IP or custom domain), use that same host for API
+  return `${protocol}//${hostname}:8000`;
+};
+
+const API_BASE_URL = getBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
