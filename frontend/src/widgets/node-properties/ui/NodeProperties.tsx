@@ -21,6 +21,8 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
     const nodeTypeData = nodeTypes.find(t => t.name === node.data.label);
     const parameters = nodeTypeData?.parameters || [];
 
+    if (parameters.length === 0) return null;
+
     const handleChange = (name: string, value: any) => {
         const currentParams = node.data.params || {};
         const newParams = { ...currentParams, [name]: value };
