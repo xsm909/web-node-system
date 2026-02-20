@@ -8,6 +8,7 @@ from ..core.security import require_role, hash_password
 import ast
 from ..models.user import User, RoleEnum
 from ..models.node import NodeType
+from ..models.credential import Credential
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 admin_only = Depends(require_role("admin"))
@@ -103,6 +104,24 @@ class NodeTypeOut(BaseModel):
         from_attributes = True
 
 
+class CredentialCreate(BaseModel):
+    key: str
+    value: str
+    type: str
+    description: str | None = None
+
+
+class CredentialOut(BaseModel):
+    id: uuid.UUID
+    key: str
+    value: str
+    type: str
+    description: str | None = None
+
+    class Config:
+        from_attributes = True
+
+
 @router.get("/users", response_model=List[UserOut])
 def list_users(db: Session = Depends(get_db), _=admin_only):
     return db.query(User).all()
@@ -170,5 +189,45 @@ def delete_node_type(node_id: uuid.UUID, db: Session = Depends(get_db), _=admin_
     if not node:
         raise HTTPException(status_code=404, detail="Node type not found")
     db.delete(node)
+    db.commit()
+    return {"status": "deleted"}
+
+
+@router.get("/credentials", response_model=List[CredentialOut])
+def list_credentials(db: Session = Depends(get_db), _=admin_only):
+    return db.query(Credential).all()
+
+
+@router.post("/credentials", response_model=CredentialOut)
+def create_credential(data: CredentialCreate, db: Session = Depends(get_db), _=admin_only):
+    if db.query(Credential).filter(Credential.key == data.key).first():
+        raise HTTPException(status_code=400, detail="Credential key already exists")
+    credential = Credential(**data.model_dump())
+    db.add(credential)
+    db.commit()
+    db.refresh(credential)
+    return credential
+
+
+@router.put("/credentials/{credential_id}", response_model=CredentialOut)
+def update_credential(credential_id: uuid.UUID, data: CredentialCreate, db: Session = Depends(get_db), _=admin_only):
+    credential = db.query(Credential).filter(Credential.id == credential_id).first()
+    if not credential:
+        raise HTTPException(status_code=404, detail="Credential not found")
+    
+    for k, v in data.model_dump().items():
+        setattr(credential, k, v)
+    
+    db.commit()
+    db.refresh(credential)
+    return credential
+
+
+@router.delete("/credentials/{credential_id}")
+def delete_credential(credential_id: uuid.UUID, db: Session = Depends(get_db), _=admin_only):
+    credential = db.query(Credential).filter(Credential.id == credential_id).first()
+    if not credential:
+        raise HTTPException(status_code=404, detail="Credential not found")
+    db.delete(credential)
     db.commit()
     return {"status": "deleted"}

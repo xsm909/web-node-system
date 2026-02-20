@@ -1,7 +1,7 @@
-# Import all models here so SQLAlchemy can resolve relationships
 from .user import User, RoleEnum, manager_client
 from .workflow import Workflow, WorkflowExecution, NodeExecution, WorkflowStatus
 from .node import NodeType
+from .credential import Credential
 
 __all__ = [
     "User",
@@ -12,4 +12,5 @@ __all__ = [
     "NodeExecution",
     "WorkflowStatus",
     "NodeType",
+    "Credential",
 ]
