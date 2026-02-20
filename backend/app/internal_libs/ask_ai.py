@@ -3,9 +3,10 @@ import google.generativeai as genai
 from typing import Optional
 
 def check_ai () -> str:
-    return f"Ok. It's work"
+    return f"Ok. It's work!!!!"
 
-def ask_ai(prompt: str, model: str = "gemini-1.5-flash") -> str:
+def ask_ai(prompt: str, model: str = "gemini-2.0-flash") -> str:
+    
     """
     Internal function to ask Gemini AI a question.
     Requires GEMINI_API_KEY in environment variables.

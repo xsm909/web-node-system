@@ -101,3 +101,48 @@ def run(inputs, params):
 - **Class `NodeParameters`**: Scanned by the frontend to build the properties panel.
 - **Object `nodeParameters`**: Automatically instantiated and injected into the execution environment.
 - **Types**: `str` (text input), `int`/`float` (number input), `bool` (checkbox).
+
+---
+
+## Extending Internal Libraries
+
+You can expose trusted Python functions to the node sandbox through the `internal_libs` system.
+
+### 1. Add Library Code
+Create a new file or add a function in `backend/app/internal_libs/`.
+
+```python
+# backend/app/internal_libs/my_lib.py
+def my_custom_function(data: str):
+    return f"Processed: {data}"
+```
+
+### 2. Register in Executor
+Edit `backend/app/services/executor.py` to import and register the function in `SAFE_GLOBALS['libs']`.
+
+```python
+# backend/app/services/executor.py
+from ..internal_libs.my_lib import my_custom_function
+
+SAFE_GLOBALS = {
+    ...
+    "libs": SimpleNamespace(
+        ask_ai=ask_ai,
+        my_func=my_custom_function, # Exposed as libs.my_func()
+    ),
+}
+```
+
+### 3. Update Dependencies (Optional)
+If your library uses external packages, add them to `backend/requirements.txt` and rebuild the backend:
+```bash
+docker compose build backend
+docker compose restart backend
+```
+
+### 4. Use in Node
+```python
+def run(inputs, params):
+    result = libs.my_func("hello")
+    return {"output": result}
+```
