@@ -15,9 +15,6 @@ def ask_ai(prompt: str, model: str = "gemini-2.0-flash") -> str:
     if not api_key:
         # Fallback to env var for backward compatibility during transition
         return "Error api key not found"
-        
-    if not api_key:
-        return "Error: GEMINI_API_KEY not found in database or environment variables."
     
     try:
         genai.configure(api_key=api_key)
