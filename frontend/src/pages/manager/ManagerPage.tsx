@@ -187,13 +187,22 @@ export default function ManagerPage() {
     };
 
     const addNode = (type: NodeType) => {
+        const initialParams: Record<string, any> = {};
+        if (type.parameters) {
+            type.parameters.forEach((param: any) => {
+                if (param.default !== undefined && param.default !== null) {
+                    initialParams[param.name] = param.default;
+                }
+            });
+        }
+
         const newNode: Node = {
             id: `node_${Date.now()}`,
             type: 'default',
             position: { x: Math.random() * 400, y: Math.random() * 400 },
             data: {
                 label: type.name,
-                params: {}
+                params: initialParams
             },
         };
         setNodes((nds) => nds.concat(newNode));

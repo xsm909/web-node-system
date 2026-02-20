@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 import uuid
 from ..core.database import get_db
@@ -24,6 +24,7 @@ def extract_node_parameters(code: str) -> list:
                 for item in node.body:
                     name = None
                     ptype = "string"
+                    default = None
                     
                     if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
                         name = item.target.id
@@ -34,26 +35,43 @@ def extract_node_parameters(code: str) -> list:
                                 ptype = "number"
                             elif tid in ("bool", "boolean"):
                                 ptype = "boolean"
+                        
+                        # Extract default value from AnnAssign
+                        if item.value:
+                            if isinstance(item.value, ast.Constant):
+                                default = item.value.value
+                            elif isinstance(item.value, ast.Num): # Legacy
+                                default = item.value.n
+                            elif isinstance(item.value, ast.Str): # Legacy
+                                default = item.value.s
+                            elif isinstance(item.value, ast.NameConstant): # Legacy
+                                default = item.value.value
                     
                     elif isinstance(item, ast.Assign) and len(item.targets) == 1 and isinstance(item.targets[0], ast.Name):
                         name = item.targets[0].id
                         # Infer type from default value
                         if isinstance(item.value, ast.Constant):
-                            if isinstance(item.value.value, (int, float)):
+                            default = item.value.value
+                            if isinstance(default, (int, float)):
                                 ptype = "number"
-                            elif isinstance(item.value.value, bool):
+                            elif isinstance(default, bool):
                                 ptype = "boolean"
                         elif isinstance(item.value, ast.Num): # Legacy compatibility
+                            default = item.value.n
                             ptype = "number"
+                        elif isinstance(item.value, ast.Str): # Legacy compatibility
+                            default = item.value.s
                         elif isinstance(item.value, ast.NameConstant): # Legacy compatibility
-                            if isinstance(item.value.value, bool):
+                            default = item.value.value
+                            if isinstance(default, bool):
                                 ptype = "boolean"
 
                     if name:
                         params.append({
                             "name": name,
                             "type": ptype,
-                            "label": name.replace("_", " ").title()
+                            "label": name.replace("_", " ").title(),
+                            "default": default
                         })
                 return params
     except Exception:
@@ -84,7 +102,7 @@ class NodeTypeCreate(BaseModel):
     input_schema: dict = {}
     output_schema: dict = {}
     parameters: list = []
-    category: str | None = ""
+    category: Optional[str] = ""
     is_async: bool = False
 
 
@@ -97,7 +115,7 @@ class NodeTypeOut(BaseModel):
     input_schema: dict
     output_schema: dict
     parameters: list
-    category: str | None = None
+    category: Optional[str] = None
     is_async: bool
 
     class Config:
@@ -108,7 +126,7 @@ class CredentialCreate(BaseModel):
     key: str
     value: str
     type: str
-    description: str | None = None
+    description: Optional[str] = None
 
 
 class CredentialOut(BaseModel):
@@ -116,7 +134,7 @@ class CredentialOut(BaseModel):
     key: str
     value: str
     type: str
-    description: str | None = None
+    description: Optional[str] = None
 
     class Config:
         from_attributes = True
