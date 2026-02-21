@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Node, Edge } from 'reactflow';
 
 import { useAuthStore } from '../../features/auth/store';
@@ -7,6 +7,7 @@ import { Console } from '../../widgets/console/ui/Console';
 import { WorkflowHeader } from '../../widgets/workflow-header';
 import { ConfirmModal } from '../../shared/ui/confirm-modal';
 import { WorkflowGraph } from '../../widgets/workflow-graph';
+import { DataEditorTabs } from '../../widgets/data-editor';
 import { useWorkflowOperations } from '../../features/workflow-operations';
 import { useWorkflowManagement } from '../../features/workflow-management';
 
@@ -18,8 +19,10 @@ export default function ManagerPage() {
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
+    const [editMode, setEditMode] = useState<'graph' | 'workflow' | 'runtime'>('graph');
 
-    // References to current graph nodes and edges to avoid heavy rerenders
+    const EMPTY_OBJ = useRef({});
+
     const nodesRef = useRef<Node[]>([]);
     const edgesRef = useRef<Edge[]>([]);
 
@@ -34,14 +37,26 @@ export default function ManagerPage() {
         setWorkflowToDelete,
         loadWorkflow,
         handleCreateWorkflow,
-        confirmDeleteWorkflow
+        confirmDeleteWorkflow,
+        setActiveWorkflow
     } = useWorkflowManagement();
 
-    const { saveWorkflow, runWorkflow, isRunning, executionLogs } = useWorkflowOperations({
+    const { saveWorkflow, runWorkflow, isRunning, executionLogs, liveRuntimeData } = useWorkflowOperations({
         activeWorkflow,
         nodesRef,
-        edgesRef
+        edgesRef,
+        onUpdateLocalWorkflow: setActiveWorkflow,
+        onExecutionComplete: () => {
+            if (activeWorkflow) loadWorkflow(activeWorkflow);
+        }
     });
+
+    useEffect(() => {
+        if (activeWorkflow?.graph) {
+            nodesRef.current = activeWorkflow.graph.nodes || [];
+            edgesRef.current = activeWorkflow.graph.edges || [];
+        }
+    }, [activeWorkflow?.id]);
 
     const handleNodesChange = useCallback((nodes: Node[]) => {
         nodesRef.current = nodes;
@@ -133,20 +148,80 @@ export default function ManagerPage() {
                     onToggleSidebar={toggleSidebar}
                     canAction={!!activeWorkflow}
                     isCreating={isCreating}
+                    editMode={editMode}
+                    onEditModeChange={setEditMode}
                 />
 
-                <WorkflowGraph
-                    workflow={activeWorkflow}
-                    nodeTypes={nodeTypes}
-                    isReadOnly={false}
-                    onNodesChangeCallback={handleNodesChange}
-                    onEdgesChangeCallback={handleEdgesChange}
-                />
+                {activeWorkflow && (
+                    <WorkflowGraph
+                        workflow={activeWorkflow}
+                        nodeTypes={nodeTypes}
+                        isReadOnly={false}
+                        onNodesChangeCallback={handleNodesChange}
+                        onEdgesChangeCallback={handleEdgesChange}
+                    />
+                )}
+
+                {editMode === 'workflow' && activeWorkflow && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
+                            <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
+                                <h2 className="text-sm font-bold truncate">Edit Workflow Data Structure</h2>
+                                <button
+                                    className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
+                                    onClick={() => setEditMode('graph')}
+                                >
+                                    <Icon name="close" size={20} />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                                <DataEditorTabs
+                                    key={`workflow-${activeWorkflow.id}`}
+                                    schemaTitle="Edit Workflow Schema"
+                                    dataTitle="Edit Workflow Data"
+                                    schema={activeWorkflow.workflow_data_schema ?? EMPTY_OBJ.current}
+                                    data={activeWorkflow.workflow_data ?? EMPTY_OBJ.current}
+                                    onSchemaChange={(s) => setActiveWorkflow({ ...activeWorkflow, workflow_data_schema: s })}
+                                    onDataChange={(d) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
+                                    readOnlyData={false}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {editMode === 'runtime' && activeWorkflow && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
+                            <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
+                                <h2 className="text-sm font-bold truncate">Edit Runtime Schema</h2>
+                                <button
+                                    className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
+                                    onClick={() => setEditMode('graph')}
+                                >
+                                    <Icon name="close" size={20} />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                                <DataEditorTabs
+                                    key={`runtime-schema-${activeWorkflow.id}`}
+                                    schemaTitle="Runtime Schema"
+                                    schema={activeWorkflow.runtime_data_schema ?? EMPTY_OBJ.current}
+                                    data={{}}
+                                    onSchemaChange={(s) => setActiveWorkflow({ ...activeWorkflow, runtime_data_schema: s })}
+                                    onDataChange={() => { }}
+                                    hideDataTab={true}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <Console
                     logs={executionLogs}
                     isVisible={isConsoleVisible}
                     onClose={() => setIsConsoleVisible(false)}
+                    runtimeData={liveRuntimeData}
                 />
 
                 <ConfirmModal

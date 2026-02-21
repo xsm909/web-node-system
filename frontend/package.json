@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.0",
+    "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-python": "^6.2.1",
     "@codemirror/language": "^6.12.1",
     "@codemirror/state": "^6.5.4",
     "@codemirror/view": "^6.39.14",
+    "@json-editor/json-editor": "^2.16.0",
     "@reactflow/core": "^11.11.4",
     "@tailwindcss/vite": "^4.2.0",
     "@uiw/react-codemirror": "^4.25.4",

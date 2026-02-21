@@ -23,6 +23,10 @@ class Workflow(Base):
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     graph = Column(JSON, nullable=False, default={"nodes": [], "edges": []})
     status = Column(Enum(WorkflowStatus), default=WorkflowStatus.draft)
+    workflow_data_schema = Column(JSON, nullable=True, default={})
+    workflow_data = Column(JSON, nullable=True, default={})
+    runtime_data_schema = Column(JSON, nullable=True, default={})
+    runtime_data = Column(JSON, nullable=True, default={})
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -38,6 +42,7 @@ class WorkflowExecution(Base):
     status = Column(Enum(WorkflowStatus), default=WorkflowStatus.pending)
     result_summary = Column(Text, nullable=True)
     logs = Column(JSON, nullable=True, default=[])
+    runtime_data = Column(JSON, nullable=True, default={})
     started_at = Column(DateTime(timezone=True), server_default=func.now())
     finished_at = Column(DateTime(timezone=True), nullable=True)
 

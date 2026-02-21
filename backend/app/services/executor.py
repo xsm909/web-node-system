@@ -3,8 +3,10 @@ Sandboxed Python workflow execution engine.
 Uses RestrictedPython to safely execute node code.
 """
 import traceback
+import time
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 import ast
 import uuid
 from types import SimpleNamespace
@@ -13,6 +15,8 @@ from ..core.database import SessionLocal
 from ..models.workflow import Workflow, WorkflowExecution, NodeExecution, WorkflowStatus
 from ..models.node import NodeType
 from ..internal_libs.ask_ai import ask_ai, check_ai
+from ..internal_libs.struct_func import get_workflow_data, get_runtime_data, update_runtime_data, get_runtime_schema
+
 
 
 SAFE_GLOBALS = {
@@ -41,9 +45,15 @@ SAFE_GLOBALS = {
         "sum": sum,
         "sorted": sorted,
         "reversed": reversed,
+        "isinstance": isinstance,
         "__build_class__": __build_class__,
+        "_iter_unpack_sequence_": Guards.guarded_iter_unpack_sequence,
+        "_getiter_": iter,
+        "_getitem_": lambda obj, key: obj[key],
+        "_write_": Guards.full_write_guard,
     },
     "__metaclass__": type,
+    "time": time,  # available without import
     "libs": SimpleNamespace(
         ask_ai=ask_ai,
         check_ai=check_ai,
@@ -162,6 +172,27 @@ class WorkflowExecutor:
             self.execution.status = WorkflowStatus.running
             self.db.commit()
 
+            # Initialize runtime data with empty/default values based on schema
+            runtime_schema = workflow.runtime_data_schema or {}
+            
+            def _generate_defaults(schema):
+                if not isinstance(schema, dict): return None
+                stype = schema.get("type", "object")
+                if stype == "object":
+                    return {k: _generate_defaults(v) for k, v in schema.get("properties", {}).items()}
+                elif stype == "array": return []
+                elif stype == "string": return schema.get("default", "")
+                elif stype in ("integer", "number"): return schema.get("default", 0)
+                elif stype == "boolean": return schema.get("default", False)
+                return schema.get("default", None)
+
+            new_runtime = _generate_defaults(runtime_schema) if runtime_schema else {}
+            self.execution.runtime_data = new_runtime
+            flag_modified(self.execution, "runtime_data")
+            self.db.commit()
+            self.db.refresh(self.execution)
+            self.log(f"Runtime data initialized: {new_runtime}")
+
             graph = workflow.graph or {"nodes": [], "edges": []}
             nodes = graph.get("nodes", [])
             edges = graph.get("edges", [])
@@ -260,6 +291,15 @@ class WorkflowExecutor:
                     
                     # Execute with unified globals and locals to ensure top-level variables
                     # are accessible within defined functions (like 'run')
+                    
+                    # Add current execution context wrapper functions to libs
+                    current_execution_id = str(self.execution_id)
+                    
+                    node_globals["libs"].get_workflow_data = lambda: get_workflow_data(current_execution_id)
+                    node_globals["libs"].get_runtime_data = lambda: get_runtime_data(current_execution_id)
+                    node_globals["libs"].get_runtime_schema = lambda: get_runtime_schema(current_execution_id)
+                    node_globals["libs"].update_runtime_data = lambda data: update_runtime_data(current_execution_id, data)
+
                     exec(byte_code, node_globals)
 
                     # Handle NodeParameters injection

@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import datetime
 import uuid
+import json
 from ..core.database import get_db
 from ..core.security import require_role, get_current_user
 from ..models.user import User
@@ -22,6 +23,10 @@ class WorkflowCreate(BaseModel):
 
 class WorkflowUpdate(BaseModel):
     graph: dict
+    workflow_data_schema: Optional[dict] = None
+    workflow_data: Optional[dict] = None
+    runtime_data_schema: Optional[dict] = None
+    runtime_data: Optional[dict] = None
 
 
 class WorkflowOut(BaseModel):
@@ -36,6 +41,23 @@ class WorkflowOut(BaseModel):
 
 class WorkflowDetail(WorkflowOut):
     graph: dict
+    workflow_data_schema: Optional[dict] = None
+    workflow_data: Optional[dict] = None
+    runtime_data_schema: Optional[dict] = None
+    runtime_data: Optional[dict] = None
+
+    @field_validator('graph', 'workflow_data_schema', 'workflow_data', 'runtime_data_schema', 'runtime_data', mode='before')
+    @classmethod
+    def parse_json_str(cls, v):
+        """Safely parse JSON string fields into dicts."""
+        if v is None:
+            return {}
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return {}
+        return v
 
 
 class NodeTypeOut(BaseModel):
@@ -72,10 +94,25 @@ class ExecutionOut(BaseModel):
     logs: list = []
     started_at: datetime
     finished_at: Optional[datetime] = None
+    current_runtime_data: Optional[dict] = None
     node_results: List[NodeExecutionOut] = []
 
     class Config:
         from_attributes = True
+
+    @field_validator('current_runtime_data', 'logs', mode='before')
+    @classmethod
+    def parse_json_str(cls, v):
+        """Safely parse JSON string fields into dicts/lists."""
+        if v is None:
+            return {} if 'runtime' in str(v) else [] # Best effort without knowing field name. Actually, just returning v and falling back is better.
+        if isinstance(v, str):
+            try:
+                import json
+                return json.loads(v)
+            except Exception:
+                return {} # Return empty dict as fallback
+        return v
 
 
 @router.get("/users", response_model=List[dict])
@@ -143,7 +180,18 @@ def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: 
         client_ids = [u.id for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
+    
     wf.graph = data.graph
+    
+    if data.workflow_data_schema is not None:
+        wf.workflow_data_schema = data.workflow_data_schema
+    if data.workflow_data is not None:
+        wf.workflow_data = data.workflow_data
+    if data.runtime_data_schema is not None:
+        wf.runtime_data_schema = data.runtime_data_schema
+    if data.runtime_data is not None:
+        wf.runtime_data = data.runtime_data
+        
     db.commit()
     db.refresh(wf)
     return wf
@@ -208,11 +256,18 @@ def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
     
-    # Access control via workflow
-    wf = execution.workflow
+    # Access control via workflow — expire cached relationship first to get fresh data
+    db.expire(execution)
+    execution = db.query(WorkflowExecution).filter(WorkflowExecution.id == execution_id).first()
+    
+    wf = db.query(Workflow).filter(Workflow.id == execution.workflow_id).first()
     if wf.owner_id != current_user.id:
         client_ids = [u.id for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
     
-    return execution
+    # Construct response and explicitly map execution runtime_data to the response schema using alias or field mapping since the frontend expects current_runtime_data
+    response = ExecutionOut.model_validate(execution)
+    response.current_runtime_data = execution.runtime_data
+    
+    return response

@@ -52,12 +52,14 @@ export function useWorkflowManagement() {
     }, [currentUser?.id, loadWorkflowsForUser]);
 
     const loadWorkflow = (wf: Workflow) => {
-        setActiveWorkflow(null); // Force graph unmount/remount
-        setTimeout(() => {
-            apiClient.get(`/manager/workflows/${wf.id}`).then((r) => {
-                setActiveWorkflow(r.data);
-            }).catch(() => { });
-        }, 10);
+        // Fetch new workflow data directly, bypassing the null state flash
+        apiClient.get(`/manager/workflows/${wf.id}`).then((r) => {
+            setActiveWorkflow(r.data);
+        }).catch((err) => {
+            const detail = err?.response?.data?.detail || err?.message || 'Unknown error';
+            console.error(`[loadWorkflow] Failed to load workflow "${wf.name}":`, err?.response?.data || err);
+            alert(`❌ Failed to load workflow "${wf.name}"\n\n${detail}`);
+        });
     };
 
     const handleCreateWorkflow = async (name: string, ownerId: string) => {
@@ -115,6 +117,7 @@ export function useWorkflowManagement() {
         setWorkflowToDelete,
         loadWorkflow,
         handleCreateWorkflow,
-        confirmDeleteWorkflow
+        confirmDeleteWorkflow,
+        setActiveWorkflow
     };
 }

@@ -50,11 +50,12 @@ export function WorkflowGraph({
     const [edges, setEdges, onEdgesChangeRaw] = useEdgesState([]);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const { screenToFlowPosition, setCenter } = useReactFlow();
+    const centeredWorkflowId = React.useRef<string | null>(null);
 
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
     const [addNodeMenu, setAddNodeMenu] = useState<{ x: number, y: number, clientX: number, clientY: number, connectionStart: OnConnectStartParams } | null>(null);
 
-    // Load workflow data
+    // Load workflow data — only re-center when workflow ID actually changes
     useEffect(() => {
         const wf = workflow as any;
         if (!wf || !wf.graph) {
@@ -73,13 +74,17 @@ export function WorkflowGraph({
         setNodes(loadedNodes);
         setEdges(graphEdges);
 
-        setTimeout(() => {
-            const startNode = loadedNodes.find((n: any) => n.id === 'node_start' || n.type === 'start');
-            if (startNode) {
-                setCenter(startNode.position.x + 100, startNode.position.y + 60, { zoom: 0.5, duration: 200 });
-            }
-        }, 50);
-    }, [workflow, setNodes, setEdges, setCenter]);
+        // Only center the viewport when switching to a different workflow
+        if (centeredWorkflowId.current !== wf.id) {
+            centeredWorkflowId.current = wf.id;
+            setTimeout(() => {
+                const startNode = loadedNodes.find((n: any) => n.id === 'node_start' || n.type === 'start');
+                if (startNode) {
+                    setCenter(startNode.position.x + 100, startNode.position.y + 60, { zoom: 0.5, duration: 200 });
+                }
+            }, 50);
+        }
+    }, [workflow]); // reload nodes/edges whenever workflow changes; setCenter only fires on id change
 
     // Propagate changes up
     useEffect(() => {
