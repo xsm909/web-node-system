@@ -172,3 +172,9 @@ This approach makes nodes extremely powerful and flexible, turning the platform 
 
 Prepared: ready for implementation  
 Language: English only (UI, code, docs)
+
+
+## 8 style of website
+design like  - https://protocol.tailwindui.com/pagination
+
+### 8.1 using tailwindcss
