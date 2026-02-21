@@ -5,8 +5,9 @@ import ReactFlow, {
     Controls,
     useNodesState,
     useEdgesState,
+    useReactFlow,
 } from 'reactflow';
-import type { Connection, Node } from 'reactflow';
+import type { Connection, Node, OnConnectStartParams } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { useAuthStore } from '../../features/auth/store';
@@ -18,7 +19,6 @@ import type { NodeType } from '../../entities/node-type/model/types';
 
 import { ManagerUserList } from '../../widgets/manager-user-list';
 import { WorkflowList } from '../../widgets/workflow-list/ui/WorkflowList';
-import { NodeLibrary } from '../../widgets/node-library/ui/NodeLibrary';
 import { Console } from '../../widgets/console/ui/Console';
 import { CreateWorkflowForm } from '../../features/create-workflow/ui/CreateWorkflowForm';
 import { NodeContextMenu } from '../../widgets/node-context-menu/NodeContextMenu';
@@ -26,6 +26,7 @@ import { StartNode } from '../../entities/node-type/ui/StartNode';
 import { NodeProperties } from '../../widgets/node-properties/ui/NodeProperties';
 import { WorkflowHeader } from '../../widgets/workflow-header';
 import { ConfirmModal } from '../../shared/ui/confirm-modal';
+import { AddNodeMenu } from '../../widgets/add-node-menu';
 
 const nodeTypesConfig = {
     start: StartNode,
@@ -44,6 +45,7 @@ export default function ManagerPage() {
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const { screenToFlowPosition } = useReactFlow();
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -68,6 +70,7 @@ export default function ManagerPage() {
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [currentExecutionId, setCurrentExecutionId] = useState<string | null>(null);
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
+    const [addNodeMenu, setAddNodeMenu] = useState<{ x: number, y: number, clientX: number, clientY: number, connectionStart: OnConnectStartParams } | null>(null);
     const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
 
     useEffect(() => {
@@ -96,9 +99,79 @@ export default function ManagerPage() {
     };
 
     const onConnect = useCallback(
-        (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+        (params: Connection) => {
+            setEdges((eds) => addEdge(params, eds));
+            (window as any)._connectionEstablished = true;
+        },
         [setEdges]
     );
+
+    const onConnectStart = useCallback((_: any, params: OnConnectStartParams) => {
+        setAddNodeMenu(null);
+        (window as any)._lastConnectStartParams = params;
+        (window as any)._connectionEstablished = false;
+    }, []);
+
+    const onConnectEnd = useCallback((event: any) => {
+        const targetIsPane = event.target.classList.contains('react-flow__pane');
+        const startParams = (window as any)._lastConnectStartParams;
+        const connectionEstablished = (window as any)._connectionEstablished;
+
+        if (targetIsPane && startParams && !connectionEstablished) {
+            const containerRect = event.target.closest('.react-flow').getBoundingClientRect();
+            setAddNodeMenu({
+                x: event.clientX - containerRect.left - 20,
+                y: event.clientY - containerRect.top - 20,
+                clientX: event.clientX,
+                clientY: event.clientY,
+                connectionStart: startParams,
+            });
+        }
+    }, []);
+
+    const addNodeWithConnection = (type: NodeType, position: { x: number, y: number }, connectionStart: OnConnectStartParams) => {
+        const initialParams: Record<string, any> = {};
+        if (type.parameters) {
+            type.parameters.forEach((param: any) => {
+                if (param.default !== undefined && param.default !== null) {
+                    initialParams[param.name] = param.default;
+                }
+            });
+        }
+
+        const newNodeId = `node_${Date.now()}`;
+        const sourceNode = nodes.find(n => n.id === connectionStart.nodeId);
+        const flowPos = screenToFlowPosition({ x: position.x, y: position.y });
+
+        const newNode: Node = {
+            id: newNodeId,
+            type: 'default',
+            position: {
+                x: sourceNode ? sourceNode.position.x : flowPos.x,
+                y: sourceNode ? sourceNode.position.y + 60 : flowPos.y
+            },
+            data: {
+                label: type.name,
+                params: initialParams
+            },
+        };
+
+        setNodes((nds) => nds.concat(newNode));
+
+        // Create connection
+        if (connectionStart.nodeId) {
+            const newEdge = {
+                id: `e_${connectionStart.nodeId}-${newNodeId}`,
+                source: connectionStart.nodeId,
+                sourceHandle: connectionStart.handleId,
+                target: newNodeId,
+                targetHandle: null,
+            };
+            setEdges((eds) => addEdge(newEdge, eds));
+        }
+
+        setAddNodeMenu(null);
+    };
 
     const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
         event.preventDefault();
@@ -186,27 +259,6 @@ export default function ManagerPage() {
         }
     };
 
-    const addNode = (type: NodeType) => {
-        const initialParams: Record<string, any> = {};
-        if (type.parameters) {
-            type.parameters.forEach((param: any) => {
-                if (param.default !== undefined && param.default !== null) {
-                    initialParams[param.name] = param.default;
-                }
-            });
-        }
-
-        const newNode: Node = {
-            id: `node_${Date.now()}`,
-            type: 'default',
-            position: { x: Math.random() * 400, y: Math.random() * 400 },
-            data: {
-                label: type.name,
-                params: initialParams
-            },
-        };
-        setNodes((nds) => nds.concat(newNode));
-    };
 
     const saveWorkflow = async () => {
         if (!activeWorkflow) return;
@@ -305,12 +357,6 @@ export default function ManagerPage() {
                     </>
                 )}
 
-                {activeWorkflow && (
-                    <NodeLibrary
-                        nodeTypes={nodeTypes}
-                        onAddNode={addNode}
-                    />
-                )}
 
                 <button className={styles.logout} onClick={logout}>Sign Out</button>
             </aside>
@@ -344,11 +390,22 @@ export default function ManagerPage() {
                             }}
                             nodeTypes={nodeTypesConfig}
                             fitView
+                            onConnectStart={onConnectStart}
+                            onConnectEnd={onConnectEnd}
                             proOptions={{ hideAttribution: true }}
                         >
                             <Background color="#333" gap={16} />
                             <Controls />
                         </ReactFlow>
+                        {addNodeMenu && (
+                            <AddNodeMenu
+                                x={addNodeMenu.x}
+                                y={addNodeMenu.y}
+                                nodeTypes={nodeTypes}
+                                onSelect={(type) => addNodeWithConnection(type, { x: addNodeMenu.clientX, y: addNodeMenu.clientY }, addNodeMenu.connectionStart)}
+                                onClose={() => setAddNodeMenu(null)}
+                            />
+                        )}
                         {menu && (
                             <NodeContextMenu
                                 x={menu.x}

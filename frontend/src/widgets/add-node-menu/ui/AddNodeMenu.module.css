@@ -1,0 +1,94 @@
+.menu {
+    position: absolute;
+    z-index: 1000;
+    display: flex;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    user-select: none;
+    animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.categories,
+.nodes {
+    min-width: 160px;
+    padding: 8px 0;
+}
+
+.categories {
+    border-right: 1px solid #333;
+    background: #222;
+}
+
+.nodes {
+    background: #1a1a1a;
+    animation: slideIn 0.15s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.title {
+    padding: 4px 12px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #666;
+    letter-spacing: 0.05em;
+}
+
+.item {
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #ccc;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.item:hover,
+.item.active {
+    background: #333;
+    color: #fff;
+}
+
+.item.active {
+    background: #444;
+}
+
+.arrow {
+    font-size: 16px;
+    color: #555;
+}
+
+.empty {
+    padding: 12px;
+    font-size: 13px;
+    color: #555;
+    font-style: italic;
+}
