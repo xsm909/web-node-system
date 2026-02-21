@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import styles from './NodeContextMenu.module.css';
 
 interface NodeContextMenuProps {
     x: number;
@@ -36,11 +35,11 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
     return (
         <div
             ref={menuRef}
-            className={styles.contextMenu}
+            className="absolute z-[1000] min-w-[160px] bg-surface-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-1.5 animate-in fade-in zoom-in-95 duration-100 ring-1 ring-white/5 -translate-x-1/2 translate-y-2"
             style={{ top: y, left: x }}
         >
             <button
-                className={styles.item}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-red-400 hover:text-white hover:bg-red-500 transition-all group"
                 onClick={(e) => {
                     e.stopPropagation();
                     onDelete(nodeId);
@@ -51,9 +50,10 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="3"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity"
                 >
                     <path d="M3 6h18" />
                     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
@@ -64,3 +64,4 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
         </div>
     );
 };
+

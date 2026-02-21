@@ -9,7 +9,6 @@ import { AdminUserManagement } from '../../widgets/admin-user-management';
 import { AdminNodeLibrary } from '../../widgets/admin-node-library';
 import { AdminCredentialManagement } from '../../widgets/admin-credential-management';
 import { NodeTypeFormModal } from '../../widgets/node-type-form-modal';
-import styles from './AdminPage.module.css';
 
 export default function AdminPage() {
     const { logout } = useAuthStore();
@@ -21,15 +20,15 @@ export default function AdminPage() {
     const [editingNode, setEditingNode] = useState<NodeType | null>(null);
     const [formData, setFormData] = useState<Partial<NodeType>>({});
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
     const fetchData = () => {
         apiClient.get('/admin/users').then((r: { data: User[] }) => setUsers(r.data)).catch(() => { });
         apiClient.get('/admin/node-types').then((r: { data: NodeType[] }) => setNodeTypes(r.data)).catch(() => { });
         apiClient.get('/admin/credentials').then((r: { data: Credential[] }) => setCredentials(r.data)).catch(() => { });
     };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     const handleOpenModal = (node?: NodeType) => {
         if (node) {
@@ -56,7 +55,7 @@ export default function AdminPage() {
         try {
             await apiClient.delete(`/admin/node-types/${node.id}`);
             fetchData();
-        } catch (error) {
+        } catch {
             alert('Failed to delete node type');
         }
     };
@@ -71,46 +70,54 @@ export default function AdminPage() {
             }
             setIsModalOpen(false);
             fetchData();
-        } catch (error) {
+        } catch {
             alert('Failed to save node type');
         }
     };
 
     return (
-        <div className={styles.layout}>
+        <div className="flex h-screen bg-surface-900 text-white font-sans overflow-hidden">
             <AdminSidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 onLogout={logout}
             />
 
-            <main className={styles.main}>
-                <header className={styles.header}>
-                    <h1>
+            <main className="flex-1 flex flex-col min-w-0 bg-surface-900 overflow-hidden">
+                <header className="h-16 flex items-center justify-between px-8 border-b border-white/5 bg-surface-800/50 backdrop-blur-md sticky top-0 z-10">
+                    <h1 className="text-xl font-semibold tracking-tight text-white/90">
                         {activeTab === 'users' ? 'User Management' :
                             activeTab === 'nodes' ? 'Node Library' : 'Credentials'}
                     </h1>
                     {activeTab === 'nodes' && (
-                        <button className={styles.addBtn} onClick={() => handleOpenModal()}>
-                            + Add New Node
+                        <button
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand hover:bg-brand/90 text-white text-sm font-medium shadow-lg shadow-brand/10 transition-all active:scale-[0.98]"
+                            onClick={() => handleOpenModal()}
+                        >
+                            <span className="text-lg leading-none">+</span>
+                            Add New Node
                         </button>
                     )}
                 </header>
 
-                {activeTab === 'users' ? (
-                    <AdminUserManagement users={users} />
-                ) : activeTab === 'nodes' ? (
-                    <AdminNodeLibrary
-                        nodeTypes={nodeTypes}
-                        onEditNode={handleOpenModal}
-                        onDeleteNode={handleDeleteNode}
-                    />
-                ) : (
-                    <AdminCredentialManagement
-                        credentials={credentials}
-                        onRefresh={fetchData}
-                    />
-                )}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+                    <div className="max-w-7xl mx-auto space-y-8">
+                        {activeTab === 'users' ? (
+                            <AdminUserManagement users={users} />
+                        ) : activeTab === 'nodes' ? (
+                            <AdminNodeLibrary
+                                nodeTypes={nodeTypes}
+                                onEditNode={handleOpenModal}
+                                onDeleteNode={handleDeleteNode}
+                            />
+                        ) : (
+                            <AdminCredentialManagement
+                                credentials={credentials}
+                                onRefresh={fetchData}
+                            />
+                        )}
+                    </div>
+                </div>
             </main>
 
             <NodeTypeFormModal
@@ -124,3 +131,4 @@ export default function AdminPage() {
         </div>
     );
 }
+

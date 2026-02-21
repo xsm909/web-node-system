@@ -29,8 +29,6 @@ const nodeTypesConfig = {
     start: StartNode,
 };
 
-import styles from './ManagerPage.module.css';
-
 export default function ManagerPage() {
     const { logout, user: currentUser } = useAuthStore();
     const [assignedUsers, setAssignedUsers] = useState<AssignedUser[]>([]);
@@ -319,7 +317,7 @@ export default function ManagerPage() {
                 return true; // Stop polling
             }
             return false;
-        } catch (e) {
+        } catch {
             setIsRunning(false);
             return true;
         }
@@ -348,7 +346,7 @@ export default function ManagerPage() {
         try {
             const { data } = await apiClient.post(`/manager/workflows/${activeWorkflow.id}/run`);
             setCurrentExecutionId(data.execution_id);
-        } catch (e) {
+        } catch {
             setIsRunning(false);
         }
     };
@@ -356,21 +354,58 @@ export default function ManagerPage() {
     const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
     return (
-        <div className={`${styles.layout} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
-            {isSidebarOpen && <div className={styles.sidebarOverlay} onClick={() => setIsSidebarOpen(false)} />}
+        <div className="fixed inset-0 flex bg-surface-900 text-white overflow-hidden">
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden animate-in fade-in duration-300"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
 
-            <aside className={styles.sidebar}>
-                <button className={styles.sidebarClose} onClick={() => setIsSidebarOpen(false)} aria-label="Close menu">×</button>
-                <div className={styles.logo}>⚡ Workflow Engine</div>
-
-                <div className={styles.sidebarComingSoon}>
-                    {/* Sidebar content will be added in future updates */}
+            <aside className={`
+                fixed inset-y-0 left-0 z-50 w-72 bg-surface-800 border-r border-white/5 flex flex-col p-6 
+                transition-transform duration-300 ease-in-out lg:static lg:translate-x-0
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}>
+                <div className="flex items-center justify-between mb-8">
+                    <div className="text-xl font-bold bg-gradient-to-r from-brand to-brand/60 bg-clip-text text-transparent">
+                        Antigravity
+                    </div>
+                    <button
+                        className="p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 lg:hidden"
+                        onClick={() => setIsSidebarOpen(false)}
+                    >
+                        ✕
+                    </button>
                 </div>
 
-                <button className={styles.logout} onClick={logout}>Sign Out</button>
+                <nav className="flex-1 space-y-1">
+                    <div className="px-3 py-2 text-[10px] font-bold text-white/20 uppercase tracking-widest">Workspace</div>
+                    <div className="flex flex-col gap-4 items-center justify-center p-8 rounded-2xl border border-white/5 bg-white/[0.02] text-center">
+                        <div className="text-white/20 italic text-sm">Workspace tools coming soon</div>
+                    </div>
+                </nav>
+
+                <div className="pt-6 border-t border-white/5 space-y-4">
+                    <div className="flex items-center gap-3 px-3">
+                        <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand font-bold text-xs">
+                            {currentUser?.username?.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold text-white/90 truncate">{currentUser?.username}</div>
+                            <div className="text-[10px] text-white/40 truncate">{currentUser?.role}</div>
+                        </div>
+                    </div>
+                    <button
+                        className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-white/40 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all flex items-center gap-2"
+                        onClick={logout}
+                    >
+                        <span>Sign Out</span>
+                    </button>
+                </div>
             </aside>
 
-            <main className={styles.main}>
+            <main className="flex-1 flex flex-col min-w-0 relative">
                 <WorkflowHeader
                     title={activeWorkflow ? activeWorkflow.name : 'Select a workflow'}
                     activeWorkflowId={activeWorkflow?.id}
@@ -388,8 +423,8 @@ export default function ManagerPage() {
                     isCreating={isCreating}
                 />
 
-                <div className={styles.canvasContainer}>
-                    <div className={styles.canvas}>
+                <div className="flex-1 flex overflow-hidden relative">
+                    <section className="flex-1 bg-[#0d0d17] relative">
                         <ReactFlow
                             nodes={nodes}
                             edges={edges}
@@ -410,9 +445,10 @@ export default function ManagerPage() {
                             onConnectEnd={onConnectEnd}
                             proOptions={{ hideAttribution: true }}
                         >
-                            <Background color="#333" gap={16} />
-                            <Controls />
+                            <Background color="#ffffff" gap={24} size={1} style={{ opacity: 0.03 }} />
+                            <Controls className="!bg-surface-800 !border-white/10 !rounded-xl !shadow-2xl !overflow-hidden [&_button]:!border-white/5 [&_button]:!bg-transparent [&_button:hover]:!bg-white/5 [&_svg]:!fill-white/60" />
                         </ReactFlow>
+
                         {addNodeMenu && (
                             <AddNodeMenu
                                 x={addNodeMenu.x}
@@ -431,7 +467,8 @@ export default function ManagerPage() {
                                 onClose={() => setMenu(null)}
                             />
                         )}
-                    </div>
+                    </section>
+
                     {selectedNode && (
                         <NodeProperties
                             node={selectedNode}
@@ -460,3 +497,4 @@ export default function ManagerPage() {
         </div>
     );
 }
+

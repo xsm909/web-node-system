@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { WorkflowTree } from '../../workflow-tree';
 import type { Workflow } from '../../../entities/workflow/model/types';
 import type { AssignedUser } from '../../../entities/user/model/types';
-import styles from './WorkflowHeader.module.css';
 
 interface WorkflowHeaderProps {
     title: string;
@@ -61,82 +60,98 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     };
 
     return (
-        <header className={`${styles.header} ${isSidebarOpen ? styles.sidebarOpenActive : ''}`}>
-            <button
-                className={styles.hamburger}
-                onClick={onToggleSidebar}
-                aria-label="Toggle menu"
-            >
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <div className={styles.titleContainer} ref={dropdownRef}>
+        <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-surface-900/80 backdrop-blur-md border-b border-white/5 h-16">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
                 <button
-                    className={`${styles.titleToggle} ${isDropdownOpen ? styles.active : ''}`}
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 lg:hidden transition-colors"
+                    onClick={onToggleSidebar}
+                    aria-label="Toggle menu"
                 >
-                    <h1 className={styles.title}>{title}</h1>
-                    <span className={`${styles.chevron} ${isDropdownOpen ? styles.expanded : ''}`}>
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </span>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        {isSidebarOpen ? (
+                            <path d="M18 6L6 18M6 6l12 12" />
+                        ) : (
+                            <path d="M3 12h18M3 6h18M3 18h18" />
+                        )}
+                    </svg>
                 </button>
 
-                {isDropdownOpen && (
-                    <div className={styles.dropdown}>
-                        <WorkflowTree
-                            users={users}
-                            workflowsByOwner={workflowsByOwner}
-                            activeWorkflowId={activeWorkflowId}
-                            onSelect={handleSelect}
-                            onDelete={onDelete}
-                            onCreate={onCreate}
-                            isCreating={isCreating}
-                        />
-                    </div>
-                )}
+                <div className="relative flex-1 max-w-xl" ref={dropdownRef}>
+                    <button
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all max-w-full ${isDropdownOpen ? 'bg-white/10 text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'
+                            }`}
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    >
+                        <h1 className="text-sm font-semibold truncate tracking-tight">{title}</h1>
+                        <svg
+                            viewBox="0 0 24 24"
+                            width="14" height="14"
+                            fill="none" stroke="currentColor" strokeWidth="3"
+                            strokeLinecap="round" strokeLinejoin="round"
+                            className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                        >
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+
+                    {isDropdownOpen && (
+                        <div className="absolute top-full left-0 mt-3 w-80 bg-surface-800 border border-white/10 rounded-2xl shadow-2xl p-2 ring-1 ring-white/5 animate-in fade-in zoom-in-95 duration-200">
+                            <WorkflowTree
+                                users={users}
+                                workflowsByOwner={workflowsByOwner}
+                                activeWorkflowId={activeWorkflowId}
+                                onSelect={handleSelect}
+                                onDelete={onDelete}
+                                onCreate={onCreate}
+                                isCreating={isCreating}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
-            <div className={styles.actions}>
+
+            <div className="flex items-center gap-2">
                 <button
-                    className={styles.saveBtn}
+                    className="p-2.5 rounded-xl border border-white/5 bg-white/[0.03] text-white/60 hover:text-white hover:bg-white/10 hover:border-white/10 transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
                     onClick={onSave}
                     disabled={!canAction}
                     title="Save Workflow"
-                    aria-label="Save"
                 >
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-active:scale-95 transition-transform">
                         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                         <polyline points="17 21 17 13 7 13 7 21"></polyline>
                         <polyline points="7 3 7 8 15 8"></polyline>
                     </svg>
                 </button>
                 <button
-                    className={styles.runBtn}
+                    className={`
+                        h-9 px-5 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
+                        ${isRunning
+                            ? 'bg-brand/10 text-brand ring-1 ring-inset ring-brand/30 cursor-default'
+                            : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/20'
+                        }
+                    `}
                     onClick={onRun}
                     disabled={!canAction || isRunning}
-                    title={isRunning ? 'Running...' : 'Run Workflow'}
-                    aria-label="Run"
                 >
                     {isRunning ? (
-                        <svg className={styles.spinner} viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="12" y1="2" x2="12" y2="6"></line>
-                            <line x1="12" y1="18" x2="12" y2="22"></line>
-                            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-                            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-                            <line x1="2" y1="12" x2="6" y2="12"></line>
-                            <line x1="18" y1="12" x2="22" y2="12"></line>
-                            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-                            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
-                        </svg>
+                        <>
+                            <svg className="animate-spin" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                            </svg>
+                            <span>Running...</span>
+                        </>
                     ) : (
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                        </svg>
+                        <>
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            <span>Run</span>
+                        </>
                     )}
                 </button>
             </div>
         </header>
     );
 };
+

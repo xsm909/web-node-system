@@ -1,56 +1,30 @@
+@import "tailwindcss";
+
 :root {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
   color-scheme: dark;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@theme {
+  --color-brand: #3b82f6;
+  --color-surface-900: #0f0f1a;
+  --color-surface-800: #1a1a2e;
+  --color-surface-700: #2a2a40;
 }
 
-html,
-body {
-  background: #0f0f1a;
-  color: #e2e8f0;
-  width: 100%;
-  height: 100%;
-  height: 100dvh;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  -webkit-overflow-scrolling: touch;
+@layer base {
+
+  html,
+  body {
+    @apply bg-[#0f0f1a] text-[#e2e8f0] w-full h-full overflow-hidden fixed top-0 left-0;
+  }
+
+  #root {
+    @apply w-full h-full;
+  }
 }
 
-#root {
-  width: 100%;
-  height: 100%;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  font-family: inherit;
-}
-
-input,
-textarea,
-select {
-  font-family: inherit;
-}
-
+/* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
