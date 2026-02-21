@@ -41,7 +41,14 @@ export default function ManagerPage() {
         setActiveWorkflow
     } = useWorkflowManagement();
 
-    const { saveWorkflow, runWorkflow, isRunning, executionLogs, liveRuntimeData } = useWorkflowOperations({
+    const {
+        saveWorkflow,
+        runWorkflow,
+        isRunning,
+        executionLogs,
+        liveRuntimeData,
+        activeNodeIds
+    } = useWorkflowOperations({
         activeWorkflow,
         nodesRef,
         edgesRef,
@@ -159,6 +166,7 @@ export default function ManagerPage() {
                         isReadOnly={false}
                         onNodesChangeCallback={handleNodesChange}
                         onEdgesChangeCallback={handleEdgesChange}
+                        activeNodeIds={activeNodeIds}
                     />
                 )}
 

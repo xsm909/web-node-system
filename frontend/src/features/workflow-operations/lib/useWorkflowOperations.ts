@@ -22,12 +22,14 @@ export function useWorkflowOperations({
     const [executionLogs, setExecutionLogs] = useState([]);
     const [currentExecutionId, setCurrentExecutionId] = useState<string | null>(null);
     const [liveRuntimeData, setLiveRuntimeData] = useState<Record<string, any>>({});
+    const [activeNodeIds, setActiveNodeIds] = useState<string[]>([]);
 
     useEffect(() => {
         setIsRunning(false);
         setCurrentExecutionId(null);
         setExecutionLogs([]);
         setLiveRuntimeData({});
+        setActiveNodeIds([]);
     }, [activeWorkflow?.id]);
 
     const onExecutionCompleteRef = useRef(onExecutionComplete);
@@ -59,15 +61,23 @@ export function useWorkflowOperations({
             if (data.current_runtime_data) {
                 setLiveRuntimeData(data.current_runtime_data);
             }
+            if (data.node_results) {
+                const runningNodes = data.node_results
+                    .filter((n: any) => n.status === 'running')
+                    .map((n: any) => n.node_id);
+                setActiveNodeIds(runningNodes);
+            }
 
             if (data.status === 'success' || data.status === 'failed') {
                 setIsRunning(false);
+                setActiveNodeIds([]);
                 if (onExecutionCompleteRef.current) onExecutionCompleteRef.current();
                 return true; // Stop polling
             }
             return false;
         } catch {
             setIsRunning(false);
+            setActiveNodeIds([]);
             return true;
         }
     }, []);
@@ -98,6 +108,7 @@ export function useWorkflowOperations({
         setIsRunning(true);
         setExecutionLogs([]);
         setLiveRuntimeData({});
+        setActiveNodeIds([]);
         onConsoleOpen();
 
         try {
@@ -114,6 +125,7 @@ export function useWorkflowOperations({
         isRunning,
         executionLogs,
         liveRuntimeData,
-        setLiveRuntimeData
+        setLiveRuntimeData,
+        activeNodeIds
     };
 }

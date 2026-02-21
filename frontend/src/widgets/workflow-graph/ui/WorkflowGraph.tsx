@@ -37,6 +37,7 @@ interface WorkflowGraphProps {
     isReadOnly?: boolean;
     onNodesChangeCallback?: (nodes: Node[]) => void;
     onEdgesChangeCallback?: (edges: Edge[]) => void;
+    activeNodeIds?: string[];
 }
 
 export function WorkflowGraph({
@@ -44,7 +45,8 @@ export function WorkflowGraph({
     nodeTypes,
     isReadOnly = false,
     onNodesChangeCallback,
-    onEdgesChangeCallback
+    onEdgesChangeCallback,
+    activeNodeIds = []
 }: WorkflowGraphProps) {
     const [nodes, setNodes, onNodesChangeRaw] = useNodesState([]);
     const [edges, setEdges, onEdgesChangeRaw] = useEdgesState([]);
@@ -253,11 +255,20 @@ export function WorkflowGraph({
 
     const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
+    // We can inject `isActive` directly into node.data during render ReactFlow mapping
+    const renderedNodes = nodes.map(node => ({
+        ...node,
+        data: {
+            ...node.data,
+            isActive: activeNodeIds.includes(node.id)
+        }
+    }));
+
     return (
         <div className="flex-1 flex overflow-hidden relative">
             <section className="flex-1 bg-[var(--bg-app)] relative">
                 <ReactFlow
-                    nodes={nodes}
+                    nodes={renderedNodes}
                     edges={edges}
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
