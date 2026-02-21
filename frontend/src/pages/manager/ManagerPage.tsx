@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import ReactFlow, {
     addEdge,
     Background,
+    BackgroundVariant,
     Controls,
     useNodesState,
     useEdgesState,
@@ -20,6 +21,7 @@ import type { NodeType } from '../../entities/node-type/model/types';
 import { Console } from '../../widgets/console/ui/Console';
 import { NodeContextMenu } from '../../widgets/node-context-menu/NodeContextMenu';
 import { StartNode } from '../../entities/node-type/ui/StartNode';
+import { DefaultNode } from '../../entities/node-type/ui/DefaultNode';
 import { NodeProperties } from '../../widgets/node-properties/ui/NodeProperties';
 import { WorkflowHeader } from '../../widgets/workflow-header';
 import { ConfirmModal } from '../../shared/ui/confirm-modal';
@@ -27,6 +29,8 @@ import { AddNodeMenu } from '../../widgets/add-node-menu';
 
 const nodeTypesConfig = {
     start: StartNode,
+    action: DefaultNode,
+    default: DefaultNode, // For backward compatibility with already saved nodes
 };
 
 import { Icon } from '../../shared/ui/icon';
@@ -41,7 +45,7 @@ export default function ManagerPage() {
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const { screenToFlowPosition } = useReactFlow();
+    const { screenToFlowPosition, setCenter } = useReactFlow();
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -112,8 +116,21 @@ export default function ManagerPage() {
         setSelectedNodeId(null);
         apiClient.get(`/manager/workflows/${wf.id}`).then((r) => {
             const graph = r.data.graph || { nodes: [], edges: [] };
-            setNodes(graph.nodes || []);
+
+            // Map any existing "default" nodes to "action" to fix their visual borders
+            const loadedNodes = (graph.nodes || []).map((n: Node) =>
+                n.type === 'default' ? { ...n, type: 'action' } : n
+            );
+
+            setNodes(loadedNodes);
             setEdges(graph.edges || []);
+
+            setTimeout(() => {
+                const startNode = (graph.nodes || []).find((n: Node) => n.id === 'node_start' || n.type === 'start');
+                if (startNode) {
+                    setCenter(startNode.position.x + 100, startNode.position.y + 60, { zoom: 0.5, duration: 200 });
+                }
+            }, 50);
         }).catch(() => { });
     };
 
@@ -162,12 +179,20 @@ export default function ManagerPage() {
         const sourceNode = nodes.find(n => n.id === connectionStart.nodeId);
         const flowPos = screenToFlowPosition({ x: position.x, y: position.y });
 
+        const sourceWidth = sourceNode?.width ?? 250;
+        const sourceHeight = sourceNode?.height ?? 100;
+        const targetWidth = 250;
+
         const newNode: Node = {
             id: newNodeId,
-            type: 'default',
+            type: 'action',
             position: {
-                x: sourceNode ? sourceNode.position.x : flowPos.x,
-                y: sourceNode ? sourceNode.position.y + 60 : flowPos.y
+                x: sourceNode
+                    ? Math.round((sourceNode.position.x + sourceWidth / 2 - targetWidth / 2) / 10) * 10
+                    : Math.round(flowPos.x / 10) * 10,
+                y: sourceNode
+                    ? Math.round((sourceNode.position.y + sourceHeight + 40) / 10) * 10
+                    : Math.round(flowPos.y / 10) * 10
             },
             data: {
                 label: type.name,
@@ -456,16 +481,18 @@ export default function ManagerPage() {
                                 setSelectedNodeId(null);
                             }}
                             nodeTypes={nodeTypesConfig}
-                            fitView
                             onConnectStart={onConnectStart}
                             onConnectEnd={onConnectEnd}
                             proOptions={{ hideAttribution: true }}
+                            snapToGrid={true}
+                            snapGrid={[10, 10]}
                         >
                             <Background
+                                variant={BackgroundVariant.Dots}
                                 color="currentColor"
-                                gap={24}
-                                size={1}
-                                className="text-[var(--text-muted)] opacity-[0.03] dark:opacity-[0.05]"
+                                gap={20}
+                                size={1.5}
+                                className="text-[var(--text-muted)] opacity-20 dark:opacity-30"
                             />
                             <Controls className="!bg-surface-800 !border-[var(--border-base)] !rounded-2xl !shadow-2xl !overflow-hidden [&_button]:!border-[var(--border-base)] [&_button]:!bg-transparent [&_button:hover]:!bg-brand/10 [&_svg]:!fill-[var(--text-main)] [&_svg]:!opacity-60" />
                         </ReactFlow>

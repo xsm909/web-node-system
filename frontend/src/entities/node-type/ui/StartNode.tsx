@@ -1,9 +1,13 @@
 import { Handle, Position } from 'reactflow';
 
-export function StartNode() {
+export function StartNode({ selected }: any) {
     return (
-        <div className="group relative min-w-[200px] bg-surface-800 border-2 border-emerald-500/40 rounded-[1.5rem] p-5 shadow-2xl shadow-emerald-500/5 transition-all hover:border-emerald-500 hover:shadow-emerald-500/20 animate-in fade-in duration-300">
-            <div className="flex items-center gap-4 mb-3">
+        <div
+            style={{ width: 250, height: 130 }}
+            className={`group relative bg-surface-800 border-2 rounded-[1.5rem] p-5 shadow-2xl transition-all hover:border-emerald-500 hover:shadow-emerald-500/20 animate-in fade-in duration-300 ${selected ? 'border-emerald-500 shadow-emerald-500/20' : 'border-emerald-500/40 shadow-emerald-500/5'
+                }`}
+        >
+            <div className="flex items-center gap-4 mb-2">
                 <div className="w-10 h-10 rounded-[1rem] bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-all shadow-inner">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" className="animate-pulse">
                         <path d="M5 3l14 9-14 9V3z" />
