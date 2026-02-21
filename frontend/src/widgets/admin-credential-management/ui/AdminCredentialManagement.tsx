@@ -1,15 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../../shared/api/client';
 import type { Credential } from '../../../entities/credential/model/types';
 
-interface AdminCredentialManagementProps {
-    credentials: Credential[];
-    onRefresh: () => void;
-}
 
 import { Icon } from '../../../shared/ui/icon';
 
-export const AdminCredentialManagement: React.FC<AdminCredentialManagementProps> = ({ credentials, onRefresh }) => {
+export const AdminCredentialManagement: React.FC = () => {
+    const [credentials, setCredentials] = useState<Credential[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const { data } = await apiClient.get('/admin/credentials');
+            setCredentials(data);
+        } catch {
+            // handle error
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<Partial<Credential>>({
         key: '',
@@ -40,7 +55,7 @@ export const AdminCredentialManagement: React.FC<AdminCredentialManagementProps>
                 await apiClient.post('/admin/credentials', formData);
             }
             setIsEditing(false);
-            onRefresh();
+            fetchData();
         } catch {
             alert('Failed to save credential');
         }
@@ -50,11 +65,19 @@ export const AdminCredentialManagement: React.FC<AdminCredentialManagementProps>
         if (!confirm('Are you sure you want to delete this credential?')) return;
         try {
             await apiClient.delete(`/admin/credentials/${id}`);
-            onRefresh();
+            fetchData();
         } catch {
             alert('Failed to delete credential');
         }
     };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5">
+                <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
+            </div>
+        );
+    }
 
     if (isEditing) {
         return (

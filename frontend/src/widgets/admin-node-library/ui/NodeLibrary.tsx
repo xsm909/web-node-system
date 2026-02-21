@@ -1,18 +1,35 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { apiClient } from '../../../shared/api/client';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
 
 interface AdminNodeLibraryProps {
-    nodeTypes: NodeType[];
     onEditNode: (node: NodeType) => void;
-    onDeleteNode: (node: NodeType) => void;
 }
 
 import { Icon } from '../../../shared/ui/icon';
 
-export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ nodeTypes, onEditNode, onDeleteNode }) => {
+export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode }) => {
+    const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [nodeToDelete, setNodeToDelete] = useState<NodeType | null>(null);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const { data } = await apiClient.get('/admin/node-types');
+            setNodeTypes(data);
+        } catch {
+            // Error handling
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     const groupedNodes = useMemo(() => {
         const groups: Record<string, NodeType[]> = {};
@@ -24,13 +41,26 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ nodeTypes, o
         return groups;
     }, [nodeTypes]);
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = async () => {
         if (nodeToDelete) {
-            onDeleteNode(nodeToDelete);
-            setNodeToDelete(null);
-            setSelectedNodeId(null);
+            try {
+                await apiClient.delete(`/admin/node-types/${nodeToDelete.id}`);
+                setNodeToDelete(null);
+                setSelectedNodeId(null);
+                fetchData();
+            } catch {
+                alert('Failed to delete node type');
+            }
         }
     };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5">
+                <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-12">

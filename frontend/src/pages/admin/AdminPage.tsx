@@ -1,82 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuthStore } from '../../features/auth/store';
-import { apiClient } from '../../shared/api/client';
-import type { User } from '../../entities/user/model/types';
-import type { NodeType } from '../../entities/node-type/model/types';
-import type { Credential } from '../../entities/credential/model/types';
 import { AdminSidebar } from '../../widgets/admin-sidebar';
 import { AdminUserManagement } from '../../widgets/admin-user-management';
 import { AdminNodeLibrary } from '../../widgets/admin-node-library';
 import { AdminCredentialManagement } from '../../widgets/admin-credential-management';
 import { NodeTypeFormModal } from '../../widgets/node-type-form-modal';
+import { useNodeTypeManagement } from '../../features/node-type-management';
 import { ThemeToggle } from '../../shared/ui/theme-toggle/ThemeToggle';
 
 import { Icon } from '../../shared/ui/icon';
 
 export default function AdminPage() {
     const { logout } = useAuthStore();
-    const [users, setUsers] = useState<User[]>([]);
-    const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
-    const [credentials, setCredentials] = useState<Credential[]>([]);
     const [activeTab, setActiveTab] = useState<'users' | 'nodes' | 'credentials'>('users');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingNode, setEditingNode] = useState<NodeType | null>(null);
-    const [formData, setFormData] = useState<Partial<NodeType>>({});
-
-    const fetchData = () => {
-        apiClient.get('/admin/users').then((r: { data: User[] }) => setUsers(r.data)).catch(() => { });
-        apiClient.get('/admin/node-types').then((r: { data: NodeType[] }) => setNodeTypes(r.data)).catch(() => { });
-        apiClient.get('/admin/credentials').then((r: { data: Credential[] }) => setCredentials(r.data)).catch(() => { });
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const handleOpenModal = (node?: NodeType) => {
-        if (node) {
-            setEditingNode(node);
-            setFormData(node);
-        } else {
-            setEditingNode(null);
-            setFormData({
-                name: '',
-                version: '1.0',
-                description: '',
-                code: 'def run(inputs, params):\n    return {}',
-                input_schema: {},
-                output_schema: {},
-                parameters: [],
-                category: '',
-                is_async: false
-            });
-        }
-        setIsModalOpen(true);
-    };
-
-    const handleDeleteNode = async (node: NodeType) => {
-        try {
-            await apiClient.delete(`/admin/node-types/${node.id}`);
-            fetchData();
-        } catch {
-            alert('Failed to delete node type');
-        }
-    };
-
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            if (editingNode) {
-                await apiClient.put(`/admin/node-types/${editingNode.id}`, formData);
-            } else {
-                await apiClient.post('/admin/node-types', formData);
-            }
-            setIsModalOpen(false);
-            fetchData();
-        } catch {
-            alert('Failed to save node type');
-        }
-    };
+    const {
+        isModalOpen,
+        setIsModalOpen,
+        editingNode,
+        formData,
+        setFormData,
+        handleOpenModal,
+        handleSave
+    } = useNodeTypeManagement();
 
     return (
         <div className="flex h-screen bg-surface-900 text-[var(--text-main)] font-sans overflow-hidden">
@@ -112,18 +57,13 @@ export default function AdminPage() {
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
                     <div className="max-w-7xl mx-auto space-y-8">
                         {activeTab === 'users' ? (
-                            <AdminUserManagement users={users} />
+                            <AdminUserManagement />
                         ) : activeTab === 'nodes' ? (
                             <AdminNodeLibrary
-                                nodeTypes={nodeTypes}
                                 onEditNode={handleOpenModal}
-                                onDeleteNode={handleDeleteNode}
                             />
                         ) : (
-                            <AdminCredentialManagement
-                                credentials={credentials}
-                                onRefresh={fetchData}
-                            />
+                            <AdminCredentialManagement />
                         )}
                     </div>
                 </div>

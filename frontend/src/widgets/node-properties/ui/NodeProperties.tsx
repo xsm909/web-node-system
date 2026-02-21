@@ -7,6 +7,7 @@ interface NodePropertiesProps {
     nodeTypes: NodeType[];
     onChange: (nodeId: string, params: any) => void;
     onClose: () => void;
+    isReadOnly?: boolean;
 }
 
 export const NodeProperties: React.FC<NodePropertiesProps> = ({
@@ -14,6 +15,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
     nodeTypes,
     onChange,
     onClose,
+    isReadOnly = false,
 }) => {
     if (!node) return null;
 
@@ -64,21 +66,22 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
                                         </label>
                                         {param.type === 'boolean' && (
                                             <div
-                                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2 ${node.data.params?.[param.name] ? 'bg-brand' : 'bg-[var(--border-base)]'}`}
-                                                onClick={() => handleChange(param.name, !(node.data.params?.[param.name] ?? false))}
+                                                className={`relative inline-flex h-5 w-9 shrink-0 ${isReadOnly ? 'cursor-default opacity-50' : 'cursor-pointer'} items-center rounded-full transition-colors focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2 ${node.data.params?.[param.name] ? 'bg-brand' : 'bg-[var(--border-base)]'}`}
+                                                onClick={() => !isReadOnly && handleChange(param.name, !(node.data.params?.[param.name] ?? false))}
                                             >
                                                 <input
                                                     id={`param-${param.name}`}
                                                     type="checkbox"
                                                     checked={node.data.params?.[param.name] ?? false}
-                                                    onChange={(e) => handleChange(param.name, e.target.checked)}
+                                                    onChange={(e) => !isReadOnly && handleChange(param.name, e.target.checked)}
                                                     className="sr-only"
+                                                    disabled={isReadOnly}
                                                 />
                                                 <div
                                                     className={`
-                                                        pointer-events-none block h-3.5 w-3.5 rounded-full bg-white shadow ring-0 transition-transform
-                                                        ${node.data.params?.[param.name] ? 'translate-x-4.5' : 'translate-x-1'}
-                                                    `}
+                                            pointer-events-none block h-3.5 w-3.5 rounded-full bg-white shadow ring-0 transition-transform
+                                            ${node.data.params?.[param.name] ? 'translate-x-4.5' : 'translate-x-1'}
+                                        `}
                                                 />
                                             </div>
                                         )}
@@ -91,12 +94,13 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
                                             value={node.data.params?.[param.name] ?? ''}
                                             onChange={(e) => handleChange(param.name, param.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
                                             placeholder={`Enter ${param.label.toLowerCase()}...`}
-                                            className="w-full px-3 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-xs text-[var(--text-main)] placeholder:text-[var(--text-muted)] opacity-80 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-all font-medium"
+                                            className="w-full px-3 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-xs text-[var(--text-main)] placeholder:text-[var(--text-muted)] opacity-80 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {
                                                     (e.target as HTMLInputElement).blur();
                                                 }
                                             }}
+                                            disabled={isReadOnly}
                                         />
                                     )}
                                 </div>
@@ -111,14 +115,16 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
             </div>
 
             <footer className="px-6 py-4 bg-[var(--border-muted)] border-t border-[var(--border-base)]">
-                <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
-                    <span>Changes are saved automatically</span>
-                </div>
+                {!isReadOnly && (
+                    <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <span>Changes are saved automatically</span>
+                    </div>
+                )}
             </footer>
         </aside>
     );

@@ -1,11 +1,30 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { apiClient } from '../../../shared/api/client';
 import type { User } from '../../../entities/user/model/types';
 
-interface AdminUserManagementProps {
-    users: User[];
-}
+export const AdminUserManagement: React.FC = () => {
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
 
-export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users }) => {
+    useEffect(() => {
+        apiClient.get('/admin/users')
+            .then((r: { data: User[] }) => {
+                setUsers(r.data);
+                setLoading(false);
+            })
+            .catch(() => {
+                setLoading(false);
+            });
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5">
+                <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
+            </div>
+        );
+    }
+
     return (
         <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5">
             <div className="overflow-x-auto">
