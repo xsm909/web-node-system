@@ -21,6 +21,8 @@ interface WorkflowHeaderProps {
     isCreating?: boolean;
 }
 
+import { Icon } from '../../../shared/ui/icon';
+
 export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     title,
     activeWorkflowId,
@@ -68,13 +70,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                     onClick={onToggleSidebar}
                     aria-label="Toggle menu"
                 >
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        {isSidebarOpen ? (
-                            <path d="M18 6L6 18M6 6l12 12" />
-                        ) : (
-                            <path d="M3 12h18M3 6h18M3 18h18" />
-                        )}
-                    </svg>
+                    <Icon name={isSidebarOpen ? "close" : "menu"} size={20} />
                 </button>
 
                 <div className="relative flex-1 max-w-xl" ref={dropdownRef}>
@@ -84,15 +80,11 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     >
                         <h1 className="text-sm font-semibold truncate tracking-tight">{title}</h1>
-                        <svg
-                            viewBox="0 0 24 24"
-                            width="14" height="14"
-                            fill="none" stroke="currentColor" strokeWidth="3"
-                            strokeLinecap="round" strokeLinejoin="round"
+                        <Icon
+                            name="chevron_down"
+                            size={14}
                             className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
-                        >
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
+                        />
                     </button>
 
                     {isDropdownOpen && (
@@ -120,11 +112,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                     disabled={!canAction}
                     title="Save Workflow"
                 >
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-active:scale-95 transition-transform">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
+                    <Icon name="save" size={18} className="group-active:scale-95 transition-transform" />
                 </button>
                 <button
                     className={`
@@ -139,16 +127,12 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                 >
                     {isRunning ? (
                         <>
-                            <svg className="animate-spin" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                            </svg>
+                            <Icon name="bolt" size={14} className="animate-pulse" />
                             <span>Running...</span>
                         </>
                     ) : (
                         <>
-                            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
-                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                            </svg>
+                            <Icon name="play" size={12} />
                             <span>Run</span>
                         </>
                     )}

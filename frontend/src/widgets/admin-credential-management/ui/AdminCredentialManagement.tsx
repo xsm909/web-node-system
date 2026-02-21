@@ -7,6 +7,8 @@ interface AdminCredentialManagementProps {
     onRefresh: () => void;
 }
 
+import { Icon } from '../../../shared/ui/icon';
+
 export const AdminCredentialManagement: React.FC<AdminCredentialManagementProps> = ({ credentials, onRefresh }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<Partial<Credential>>({
@@ -99,9 +101,7 @@ export const AdminCredentialManagement: React.FC<AdminCredentialManagementProps>
                                     <option value="api">Generic API Endpoint</option>
                                 </select>
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="6 9 12 15 18 9"></polyline>
-                                    </svg>
+                                    <Icon name="chevron_down" size={16} />
                                 </div>
                             </div>
                         </div>
@@ -148,7 +148,7 @@ export const AdminCredentialManagement: React.FC<AdminCredentialManagementProps>
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-sm font-bold shadow-lg shadow-brand/20 hover:brightness-110 active:scale-[0.98] transition-all"
                     onClick={handleOpenCreate}
                 >
-                    <span className="text-lg leading-none">+</span>
+                    <Icon name="add" size={18} />
                     Add Access Key
                 </button>
             </header>
@@ -188,22 +188,14 @@ export const AdminCredentialManagement: React.FC<AdminCredentialManagementProps>
                                             className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
                                             title="Edit Credential"
                                         >
-                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                            </svg>
+                                            <Icon name="edit" size={14} />
                                         </button>
                                         <button
                                             onClick={() => handleDelete(c.id)}
                                             className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
                                             title="Delete Credential"
                                         >
-                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="3 6 5 6 21 6"></polyline>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                <line x1="10" y1="11" x2="10" y2="17"></line>
-                                                <line x1="14" y1="11" x2="14" y2="17"></line>
-                                            </svg>
+                                            <Icon name="delete" size={14} />
                                         </button>
                                     </div>
                                 </td>

@@ -178,3 +178,7 @@ Language: English only (UI, code, docs)
 design like  - https://protocol.tailwindui.com/pagination
 
 ### 8.1 using tailwindcss
+
+## 9 icons
+
+### 9.1 using icons from https://fonts.google.com/icons and download them as svg to assets/icons folder

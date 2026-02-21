@@ -11,6 +11,8 @@ import { AdminCredentialManagement } from '../../widgets/admin-credential-manage
 import { NodeTypeFormModal } from '../../widgets/node-type-form-modal';
 import { ThemeToggle } from '../../shared/ui/theme-toggle/ThemeToggle';
 
+import { Icon } from '../../shared/ui/icon';
+
 export default function AdminPage() {
     const { logout } = useAuthStore();
     const [users, setUsers] = useState<User[]>([]);
@@ -99,7 +101,7 @@ export default function AdminPage() {
                                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand hover:brightness-110 text-white text-sm font-bold shadow-lg shadow-brand/20 transition-all active:scale-[0.98]"
                                 onClick={() => handleOpenModal()}
                             >
-                                <span className="text-lg leading-none">+</span>
+                                <Icon name="add" size={18} />
                                 Add New Node
                             </button>
                         )}

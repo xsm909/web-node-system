@@ -29,6 +29,8 @@ const nodeTypesConfig = {
     start: StartNode,
 };
 
+import { Icon } from '../../shared/ui/icon';
+
 export default function ManagerPage() {
     const { logout, user: currentUser } = useAuthStore();
     const [assignedUsers, setAssignedUsers] = useState<AssignedUser[]>([]);
@@ -370,7 +372,7 @@ export default function ManagerPage() {
                 <div className="flex items-center justify-between mb-10">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-brand/10 flex items-center justify-center border border-brand/20 shadow-lg shadow-brand/5">
-                            <span className="text-xl">⚡</span>
+                            <Icon name="bolt" size={20} className="text-brand" />
                         </div>
                         <div className="text-xl font-black tracking-tight bg-gradient-to-r from-brand to-brand/60 bg-clip-text text-transparent">
                             Antigravity
@@ -380,7 +382,7 @@ export default function ManagerPage() {
                         className="p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 lg:hidden"
                         onClick={() => setIsSidebarOpen(false)}
                     >
-                        ✕
+                        <Icon name="close" size={20} />
                     </button>
                 </div>
 
@@ -412,6 +414,7 @@ export default function ManagerPage() {
                         className="w-full px-4 py-3 rounded-2xl text-xs font-bold text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 border border-[var(--border-base)] hover:border-red-500/20 transition-all flex items-center justify-center gap-2 active:scale-95"
                         onClick={logout}
                     >
+                        <Icon name="logout" size={16} />
                         <span>Sign Out</span>
                     </button>
                 </div>
@@ -470,11 +473,11 @@ export default function ManagerPage() {
 
                         {addNodeMenu && (
                             <AddNodeMenu
-                                x={addNodeMenu.x}
-                                y={addNodeMenu.y}
+                                clientX={addNodeMenu.clientX}
+                                clientY={addNodeMenu.clientY}
                                 nodeTypes={nodeTypes}
-                                onSelect={(type) => addNodeWithConnection(type, { x: addNodeMenu.clientX, y: addNodeMenu.clientY }, addNodeMenu.connectionStart)}
-                                onClose={() => setAddNodeMenu(null)}
+                                onAddNode={(type) => addNodeWithConnection(type, { x: addNodeMenu.x, y: addNodeMenu.y }, addNodeMenu.connectionStart)}
+                                onCancel={() => setAddNodeMenu(null)}
                             />
                         )}
                         {menu && (

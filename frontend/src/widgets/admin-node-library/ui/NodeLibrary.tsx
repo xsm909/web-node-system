@@ -8,6 +8,8 @@ interface AdminNodeLibraryProps {
     onDeleteNode: (node: NodeType) => void;
 }
 
+import { Icon } from '../../../shared/ui/icon';
+
 export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ nodeTypes, onEditNode, onDeleteNode }) => {
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [nodeToDelete, setNodeToDelete] = useState<NodeType | null>(null);
@@ -75,22 +77,14 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ nodeTypes, o
                                                     onClick={(e) => { e.stopPropagation(); onEditNode(n); }}
                                                     title="Edit"
                                                 >
-                                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                                    </svg>
+                                                    <Icon name="edit" size={14} />
                                                 </button>
                                                 <button
                                                     className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
                                                     onClick={(e) => { e.stopPropagation(); setNodeToDelete(n); }}
                                                     title="Delete"
                                                 >
-                                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                                                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                                                    </svg>
+                                                    <Icon name="delete" size={14} />
                                                 </button>
                                             </div>
                                         </td>

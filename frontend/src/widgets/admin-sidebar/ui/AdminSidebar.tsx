@@ -1,4 +1,4 @@
-import React from 'react';
+import { Icon } from '../../../shared/ui/icon';
 
 interface AdminSidebarProps {
     activeTab: 'users' | 'nodes' | 'credentials';
@@ -10,8 +10,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
     return (
         <aside className="w-64 bg-surface-800 border-r border-[var(--border-base)] flex flex-col h-full ring-1 ring-black/5 dark:ring-white/5">
             <div className="p-6">
-                <div className="text-xl font-bold bg-gradient-to-r from-brand to-emerald-400 bg-clip-text text-transparent">
-                    ⚡ Workflow Engine
+                <div className="flex items-center gap-3 text-xl font-bold bg-gradient-to-r from-brand to-emerald-400 bg-clip-text text-transparent">
+                    <Icon name="bolt" size={24} className="text-brand" />
+                    Workflow Engine
                 </div>
             </div>
 
@@ -23,8 +24,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
                         : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]'
                         }`}
                 >
-                    <span className={`text-lg transition-transform group-hover:scale-110 ${activeTab === 'users' ? 'scale-110' : ''}`}>👥</span>
-                    <span className="text-sm">Users</span>
+                    <Icon
+                        name="people"
+                        size={20}
+                        className={`transition-transform group-hover:scale-110 ${activeTab === 'users' ? 'scale-110' : 'opacity-60'}`}
+                    />
+                    <span className="text-sm font-bold">Users</span>
                 </button>
 
                 <button
@@ -34,8 +39,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
                         : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]'
                         }`}
                 >
-                    <span className={`text-lg transition-transform group-hover:scale-110 ${activeTab === 'nodes' ? 'scale-110' : ''}`}>🔧</span>
-                    <span className="text-sm">Node Types</span>
+                    <Icon
+                        name="build"
+                        size={20}
+                        className={`transition-transform group-hover:scale-110 ${activeTab === 'nodes' ? 'scale-110' : 'opacity-60'}`}
+                    />
+                    <span className="text-sm font-bold">Node Types</span>
                 </button>
 
                 <button
@@ -45,17 +54,21 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
                         : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]'
                         }`}
                 >
-                    <span className={`text-lg transition-transform group-hover:scale-110 ${activeTab === 'credentials' ? 'scale-110' : ''}`}>🔑</span>
-                    <span className="text-sm">Credentials</span>
+                    <Icon
+                        name="key"
+                        size={20}
+                        className={`transition-transform group-hover:scale-110 ${activeTab === 'credentials' ? 'scale-110' : 'opacity-60'}`}
+                    />
+                    <span className="text-sm font-bold">Credentials</span>
                 </button>
             </nav>
 
             <div className="p-4 border-t border-[var(--border-base)]">
                 <button
                     onClick={onLogout}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--text-muted)] border border-[var(--border-base)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all active:scale-[0.98]"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold text-[var(--text-muted)] border border-[var(--border-base)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all active:scale-[0.98]"
                 >
-                    <span>🚪</span>
+                    <Icon name="logout" size={18} />
                     Sign Out
                 </button>
             </div>

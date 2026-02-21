@@ -24,6 +24,18 @@ function ProtectedRoute({
     return children;
 }
 
+function HomeRedirect() {
+    const { user, token } = useAuthStore();
+    if (!token || !user) return <Navigate to="/login" replace />;
+
+    switch (user.role) {
+        case 'admin': return <Navigate to="/admin" replace />;
+        case 'manager': return <Navigate to="/manager" replace />;
+        case 'client': return <Navigate to="/client" replace />;
+        default: return <Navigate to="/login" replace />;
+    }
+}
+
 export default function Router() {
     const { restoreSession } = useAuthStore();
 
@@ -34,6 +46,7 @@ export default function Router() {
     return (
         <BrowserRouter>
             <Routes>
+                <Route path="/" element={<HomeRedirect />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route
                     path="/admin/*"
