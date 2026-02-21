@@ -85,18 +85,20 @@ def get_assigned_users(current_user: User = Depends(get_current_user), db: Sessi
 
 @router.get("/users/{user_id}/workflows", response_model=List[WorkflowOut])
 def get_user_workflows(user_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
-    # Ensure manager has access to this user
-    client_ids = [u.id for u in current_user.assigned_clients]
-    if user_id not in client_ids:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Ensure manager has access to this user or it's themselves
+    if user_id != current_user.id:
+        client_ids = [u.id for u in current_user.assigned_clients]
+        if user_id not in client_ids:
+            raise HTTPException(status_code=403, detail="Access denied")
     return db.query(Workflow).filter(Workflow.owner_id == user_id).all()
 
 
 @router.post("/workflows", response_model=WorkflowOut)
 def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
-    client_ids = [u.id for u in current_user.assigned_clients]
-    if data.owner_id not in client_ids:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if data.owner_id != current_user.id:
+        client_ids = [u.id for u in current_user.assigned_clients]
+        if data.owner_id not in client_ids:
+            raise HTTPException(status_code=403, detail="Access denied")
     wf = Workflow(
         name=data.name, 
         owner_id=data.owner_id, 
@@ -125,9 +127,10 @@ def get_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_curren
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    client_ids = [u.id for u in current_user.assigned_clients]
-    if wf.owner_id not in client_ids:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if wf.owner_id != current_user.id:
+        client_ids = [u.id for u in current_user.assigned_clients]
+        if wf.owner_id not in client_ids:
+            raise HTTPException(status_code=403, detail="Access denied")
     return wf
 
 
@@ -136,9 +139,10 @@ def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: 
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    client_ids = [u.id for u in current_user.assigned_clients]
-    if wf.owner_id not in client_ids:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if wf.owner_id != current_user.id:
+        client_ids = [u.id for u in current_user.assigned_clients]
+        if wf.owner_id not in client_ids:
+            raise HTTPException(status_code=403, detail="Access denied")
     wf.graph = data.graph
     db.commit()
     db.refresh(wf)
@@ -150,9 +154,10 @@ def delete_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_cur
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    client_ids = [u.id for u in current_user.assigned_clients]
-    if wf.owner_id not in client_ids:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if wf.owner_id != current_user.id:
+        client_ids = [u.id for u in current_user.assigned_clients]
+        if wf.owner_id not in client_ids:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     db.delete(wf)
     db.commit()
@@ -164,9 +169,10 @@ def run_workflow(workflow_id: uuid.UUID, background_tasks: BackgroundTasks, curr
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    client_ids = [u.id for u in current_user.assigned_clients]
-    if wf.owner_id not in client_ids:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if wf.owner_id != current_user.id:
+        client_ids = [u.id for u in current_user.assigned_clients]
+        if wf.owner_id not in client_ids:
+            raise HTTPException(status_code=403, detail="Access denied")
 
     execution = WorkflowExecution(workflow_id=wf.id, status=WorkflowStatus.pending)
     db.add(execution)
@@ -188,9 +194,10 @@ def list_workflow_executions(workflow_id: uuid.UUID, current_user: User = Depend
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
     # Access control
-    client_ids = [u.id for u in current_user.assigned_clients]
-    if wf.owner_id not in client_ids:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if wf.owner_id != current_user.id:
+        client_ids = [u.id for u in current_user.assigned_clients]
+        if wf.owner_id not in client_ids:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     return db.query(WorkflowExecution).filter(WorkflowExecution.workflow_id == workflow_id).order_by(WorkflowExecution.started_at.desc()).limit(10).all()
 
@@ -203,8 +210,9 @@ def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(
     
     # Access control via workflow
     wf = execution.workflow
-    client_ids = [u.id for u in current_user.assigned_clients]
-    if wf.owner_id not in client_ids:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if wf.owner_id != current_user.id:
+        client_ids = [u.id for u in current_user.assigned_clients]
+        if wf.owner_id not in client_ids:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     return execution

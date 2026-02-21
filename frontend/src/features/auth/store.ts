@@ -15,6 +15,7 @@ interface AuthState {
     isLoading: boolean;
     error: string | null;
     login: (username: string, password: string) => Promise<void>;
+    restoreSession: () => Promise<void>;
     logout: () => void;
 }
 
@@ -44,6 +45,20 @@ export const useAuthStore = create<AuthState>((set) => ({
             set({ token: data.access_token, user: me, isLoading: false });
         } catch (err: any) {
             set({ error: err.response?.data?.detail || 'Login failed', isLoading: false });
+        }
+    },
+
+    restoreSession: async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        set({ isLoading: true });
+        try {
+            const { data: me } = await apiClient.get('/auth/me');
+            set({ user: me, token, isLoading: false });
+        } catch (err) {
+            localStorage.removeItem('access_token');
+            set({ user: null, token: null, isLoading: false });
         }
     },
 

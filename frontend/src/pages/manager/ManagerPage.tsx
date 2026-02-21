@@ -17,10 +17,8 @@ import type { AssignedUser } from '../../entities/user/model/types';
 import type { Workflow } from '../../entities/workflow/model/types';
 import type { NodeType } from '../../entities/node-type/model/types';
 
-import { ManagerUserList } from '../../widgets/manager-user-list';
-import { WorkflowList } from '../../widgets/workflow-list/ui/WorkflowList';
+import { WorkflowTree } from '../../widgets/workflow-tree';
 import { Console } from '../../widgets/console/ui/Console';
-import { CreateWorkflowForm } from '../../features/create-workflow/ui/CreateWorkflowForm';
 import { NodeContextMenu } from '../../widgets/node-context-menu/NodeContextMenu';
 import { StartNode } from '../../entities/node-type/ui/StartNode';
 import { NodeProperties } from '../../widgets/node-properties/ui/NodeProperties';
@@ -35,10 +33,9 @@ const nodeTypesConfig = {
 import styles from './ManagerPage.module.css';
 
 export default function ManagerPage() {
-    const { logout } = useAuthStore();
+    const { logout, user: currentUser } = useAuthStore();
     const [assignedUsers, setAssignedUsers] = useState<AssignedUser[]>([]);
-    const [selectedUser, setSelectedUser] = useState<AssignedUser | null>(null);
-    const [workflows, setWorkflows] = useState<Workflow[]>([]);
+    const [workflowsByOwner, setWorkflowsByOwner] = useState<Record<string, Workflow[]>>({});
     const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
     const [nodes, setNodes, onNodesChangeRaw] = useNodesState([]);
@@ -73,20 +70,43 @@ export default function ManagerPage() {
     const [addNodeMenu, setAddNodeMenu] = useState<{ x: number, y: number, clientX: number, clientY: number, connectionStart: OnConnectStartParams } | null>(null);
     const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
 
-    useEffect(() => {
-        apiClient.get('/manager/users').then((r) => setAssignedUsers(r.data)).catch(() => { });
-        apiClient.get('/manager/node-types').then((r) => setNodeTypes(r.data)).catch(() => { });
+    const loadWorkflowsForUser = useCallback(async (userId: string, isPersonal = false) => {
+        try {
+            const { data } = await apiClient.get(`/manager/users/${userId}/workflows`);
+            setWorkflowsByOwner(prev => ({
+                ...prev,
+                [isPersonal ? 'personal' : userId]: data
+            }));
+        } catch (e) {
+            console.error(`Failed to load workflows for user ${userId}`, e);
+        }
     }, []);
 
-    const loadWorkflows = (userId: string) => {
-        apiClient.get(`/manager/users/${userId}/workflows`).then((r) => setWorkflows(r.data)).catch(() => { });
-    };
+    useEffect(() => {
+        const init = async () => {
+            try {
+                const nodeTypesRes = await apiClient.get('/manager/node-types');
+                setNodeTypes(nodeTypesRes.data);
 
-    const handleUserSelect = (user: AssignedUser) => {
-        setSelectedUser(user);
-        setSelectedNodeId(null);
-        loadWorkflows(user.id);
-    };
+                const usersRes = await apiClient.get('/manager/users');
+                const users = usersRes.data;
+                setAssignedUsers(users);
+
+                // Load personal workflows
+                if (currentUser?.id) {
+                    await loadWorkflowsForUser(currentUser.id, true);
+                }
+
+                // Load workflows for each client
+                for (const user of users) {
+                    await loadWorkflowsForUser(user.id);
+                }
+            } catch (e) {
+                console.error("Initialization failed", e);
+            }
+        };
+        init();
+    }, [currentUser?.id, loadWorkflowsForUser]);
 
     const loadWorkflow = (wf: Workflow) => {
         setActiveWorkflow(wf);
@@ -224,15 +244,20 @@ export default function ManagerPage() {
         if (selectedNodeId === nodeId) setSelectedNodeId(null);
     }, [setNodes, setEdges, selectedNodeId]);
 
-    const handleCreateWorkflow = async (name: string) => {
-        if (!selectedUser) return;
+    const handleCreateWorkflow = async (name: string, ownerId: string) => {
+        const effectiveOwnerId = ownerId === 'personal' ? currentUser?.id : ownerId;
+        if (!effectiveOwnerId) return;
+
         setIsCreating(true);
         try {
             const { data } = await apiClient.post('/manager/workflows', {
                 name,
-                owner_id: selectedUser.id,
+                owner_id: effectiveOwnerId,
             });
-            setWorkflows((prev) => [...prev, data]);
+            setWorkflowsByOwner((prev) => ({
+                ...prev,
+                [ownerId]: [...(prev[ownerId] || []), data]
+            }));
             loadWorkflow(data);
         } finally {
             setIsCreating(false);
@@ -241,12 +266,18 @@ export default function ManagerPage() {
 
     const confirmDeleteWorkflow = async () => {
         if (!workflowToDelete) return;
-        console.log('Confirming deletion for workflow:', workflowToDelete);
 
         try {
-            const response = await apiClient.delete(`/manager/workflows/${workflowToDelete.id}`);
-            console.log('Delete response:', response.data);
-            setWorkflows((prev) => prev.filter(w => w.id !== workflowToDelete.id));
+            await apiClient.delete(`/manager/workflows/${workflowToDelete.id}`);
+
+            setWorkflowsByOwner((prev) => {
+                const newWorkflows = { ...prev };
+                for (const ownerId in newWorkflows) {
+                    newWorkflows[ownerId] = newWorkflows[ownerId].filter(w => w.id !== workflowToDelete.id);
+                }
+                return newWorkflows;
+            });
+
             if (activeWorkflow?.id === workflowToDelete.id) {
                 setActiveWorkflow(null);
                 setNodes([]);
@@ -333,30 +364,15 @@ export default function ManagerPage() {
                 <button className={styles.sidebarClose} onClick={() => setIsSidebarOpen(false)} aria-label="Close menu">×</button>
                 <div className={styles.logo}>⚡ Workflow Engine</div>
 
-                <ManagerUserList
+                <WorkflowTree
                     users={assignedUsers}
-                    selectedUserId={selectedUser?.id}
-                    onSelect={handleUserSelect}
+                    workflowsByOwner={workflowsByOwner}
+                    activeWorkflowId={activeWorkflow?.id}
+                    onSelect={loadWorkflow}
+                    onDelete={(wf) => setWorkflowToDelete(wf)}
+                    onCreate={handleCreateWorkflow}
+                    isCreating={isCreating}
                 />
-
-                {selectedUser && (
-                    <>
-                        <CreateWorkflowForm
-                            onCreate={handleCreateWorkflow}
-                            isCreating={isCreating}
-                        />
-                        <WorkflowList
-                            workflows={workflows}
-                            activeWorkflowId={activeWorkflow?.id}
-                            onSelect={loadWorkflow}
-                            onDelete={(wf) => {
-                                console.log('Requesting deletion for workflow:', wf);
-                                setWorkflowToDelete(wf);
-                            }}
-                        />
-                    </>
-                )}
-
 
                 <button className={styles.logout} onClick={logout}>Sign Out</button>
             </aside>

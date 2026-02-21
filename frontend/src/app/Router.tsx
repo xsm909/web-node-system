@@ -25,6 +25,12 @@ function ProtectedRoute({
 }
 
 export default function Router() {
+    const { restoreSession } = useAuthStore();
+
+    React.useEffect(() => {
+        restoreSession();
+    }, [restoreSession]);
+
     return (
         <BrowserRouter>
             <Routes>
