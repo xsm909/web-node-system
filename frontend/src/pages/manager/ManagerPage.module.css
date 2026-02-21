@@ -179,27 +179,19 @@
     }
 }
 
-.createForm {
-    display: flex;
-    gap: 8px;
-    padding: 0 8px 12px;
-    margin-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.createInput {
+.sidebarComingSoon {
     flex: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    color: #fff;
-    padding: 6px 10px;
-    font-size: 0.8rem;
-    outline: none;
-}
-
-.createInput:focus {
-    border-color: #a78bfa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 0.85rem;
+    font-style: italic;
+    padding: 20px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    margin: 20px 0;
 }
 
 .createBtn {

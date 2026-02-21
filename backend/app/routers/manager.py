@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 import uuid
@@ -46,7 +46,7 @@ class NodeTypeOut(BaseModel):
     input_schema: dict
     output_schema: dict
     parameters: list
-    category: str | None = None
+    category: Optional[str] = None
     is_async: bool
 
     class Config:
@@ -57,8 +57,8 @@ class NodeExecutionOut(BaseModel):
     id: uuid.UUID
     node_id: str
     status: str
-    output: dict | None = None
-    error: str | None = None
+    output: Optional[dict] = None
+    error: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -68,10 +68,10 @@ class ExecutionOut(BaseModel):
     id: uuid.UUID
     workflow_id: uuid.UUID
     status: str
-    result_summary: str | None = None
+    result_summary: Optional[str] = None
     logs: list = []
     started_at: datetime
-    finished_at: datetime | None = None
+    finished_at: Optional[datetime] = None
     node_results: List[NodeExecutionOut] = []
 
     class Config:

@@ -1,7 +1,8 @@
+from typing import Optional
 from ..core.database import SessionLocal
 from ..models.credential import Credential
 
-def get_credential_by_key(key: str) -> str | None:
+def get_credential_by_key(key: str) -> Optional[str]:
     """
     Retrieve a credential value by its key from the database.
     Used by internal libraries and nodes.
@@ -15,6 +16,6 @@ def get_credential_by_key(key: str) -> str | None:
     finally:
         db.close()
 
-def GetAPIFromCredetionalByKey(key: str) -> str | None:
+def GetAPIFromCredetionalByKey(key: str) -> Optional[str]:
     """Alias as requested by user."""
     return get_credential_by_key(key)

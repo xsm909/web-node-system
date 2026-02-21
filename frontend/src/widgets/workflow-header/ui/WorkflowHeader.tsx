@@ -1,25 +1,65 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { WorkflowTree } from '../../workflow-tree';
+import type { Workflow } from '../../../entities/workflow/model/types';
+import type { AssignedUser } from '../../../entities/user/model/types';
 import styles from './WorkflowHeader.module.css';
 
 interface WorkflowHeaderProps {
     title: string;
+    activeWorkflowId?: string;
+    users: AssignedUser[];
+    workflowsByOwner: Record<string, Workflow[]>;
     isRunning: boolean;
     isSidebarOpen: boolean;
+    onSelect: (wf: Workflow) => void;
+    onDelete: (wf: Workflow) => void;
+    onCreate: (name: string, ownerId: string) => Promise<void>;
     onSave: () => void;
     onRun: () => void;
     onToggleSidebar: () => void;
     canAction: boolean;
+    isCreating?: boolean;
 }
 
 export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     title,
+    activeWorkflowId,
+    users,
+    workflowsByOwner,
     isRunning,
     isSidebarOpen,
+    onSelect,
+    onDelete,
+    onCreate,
     onSave,
     onRun,
     onToggleSidebar,
     canAction,
+    isCreating,
 }) => {
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+
+        if (isDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isDropdownOpen]);
+
+    const handleSelect = (wf: Workflow) => {
+        onSelect(wf);
+        setIsDropdownOpen(false);
+    };
+
     return (
         <header className={`${styles.header} ${isSidebarOpen ? styles.sidebarOpenActive : ''}`}>
             <button
@@ -31,7 +71,33 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                 <span></span>
                 <span></span>
             </button>
-            <h1 className={styles.title}>{title}</h1>
+            <div className={styles.titleContainer} ref={dropdownRef}>
+                <button
+                    className={`${styles.titleToggle} ${isDropdownOpen ? styles.active : ''}`}
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                >
+                    <h1 className={styles.title}>{title}</h1>
+                    <span className={`${styles.chevron} ${isDropdownOpen ? styles.expanded : ''}`}>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </span>
+                </button>
+
+                {isDropdownOpen && (
+                    <div className={styles.dropdown}>
+                        <WorkflowTree
+                            users={users}
+                            workflowsByOwner={workflowsByOwner}
+                            activeWorkflowId={activeWorkflowId}
+                            onSelect={handleSelect}
+                            onDelete={onDelete}
+                            onCreate={onCreate}
+                            isCreating={isCreating}
+                        />
+                    </div>
+                )}
+            </div>
             <div className={styles.actions}>
                 <button
                     className={styles.saveBtn}

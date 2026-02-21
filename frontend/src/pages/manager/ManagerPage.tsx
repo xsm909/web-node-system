@@ -17,7 +17,6 @@ import type { AssignedUser } from '../../entities/user/model/types';
 import type { Workflow } from '../../entities/workflow/model/types';
 import type { NodeType } from '../../entities/node-type/model/types';
 
-import { WorkflowTree } from '../../widgets/workflow-tree';
 import { Console } from '../../widgets/console/ui/Console';
 import { NodeContextMenu } from '../../widgets/node-context-menu/NodeContextMenu';
 import { StartNode } from '../../entities/node-type/ui/StartNode';
@@ -364,15 +363,9 @@ export default function ManagerPage() {
                 <button className={styles.sidebarClose} onClick={() => setIsSidebarOpen(false)} aria-label="Close menu">×</button>
                 <div className={styles.logo}>⚡ Workflow Engine</div>
 
-                <WorkflowTree
-                    users={assignedUsers}
-                    workflowsByOwner={workflowsByOwner}
-                    activeWorkflowId={activeWorkflow?.id}
-                    onSelect={loadWorkflow}
-                    onDelete={(wf) => setWorkflowToDelete(wf)}
-                    onCreate={handleCreateWorkflow}
-                    isCreating={isCreating}
-                />
+                <div className={styles.sidebarComingSoon}>
+                    {/* Sidebar content will be added in future updates */}
+                </div>
 
                 <button className={styles.logout} onClick={logout}>Sign Out</button>
             </aside>
@@ -380,12 +373,19 @@ export default function ManagerPage() {
             <main className={styles.main}>
                 <WorkflowHeader
                     title={activeWorkflow ? activeWorkflow.name : 'Select a workflow'}
+                    activeWorkflowId={activeWorkflow?.id}
+                    users={assignedUsers}
+                    workflowsByOwner={workflowsByOwner}
                     isRunning={isRunning}
                     isSidebarOpen={isSidebarOpen}
+                    onSelect={loadWorkflow}
+                    onDelete={(wf) => setWorkflowToDelete(wf)}
+                    onCreate={handleCreateWorkflow}
                     onSave={saveWorkflow}
                     onRun={runWorkflow}
                     onToggleSidebar={toggleSidebar}
                     canAction={!!activeWorkflow}
+                    isCreating={isCreating}
                 />
 
                 <div className={styles.canvasContainer}>

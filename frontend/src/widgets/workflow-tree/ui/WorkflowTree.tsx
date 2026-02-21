@@ -27,6 +27,7 @@ export function WorkflowTree({
     const [creatingFor, setCreatingFor] = useState<string | null>(null);
     const [newName, setNewName] = useState('');
     const [expandedOwners, setExpandedOwners] = useState<Set<string>>(new Set());
+    const [searchQuery, setSearchQuery] = useState('');
 
     const toggleExpand = (ownerId: string) => {
         setExpandedOwners(prev => {
@@ -55,14 +56,28 @@ export function WorkflowTree({
 
     const renderOwnerSection = (ownerId: string, label: string, icon: string) => {
         const workflows = workflowsByOwner[ownerId] || [];
+
+        // Filtering logic
+        const filteredWorkflows = searchQuery
+            ? workflows.filter(wf => wf.name.toLowerCase().includes(searchQuery.toLowerCase()))
+            : workflows;
+
+        const isLabelMatch = label.toLowerCase().includes(searchQuery.toLowerCase());
+
+        // Skip if searching and no match in either label OR workflows
+        if (searchQuery && !isLabelMatch && filteredWorkflows.length === 0) {
+            return null;
+        }
+
         const isAdding = creatingFor === ownerId;
-        const isExpanded = expandedOwners.has(ownerId);
+        // If searching and there's a match, force expanded
+        const isExpanded = searchQuery ? true : expandedOwners.has(ownerId);
 
         return (
             <div key={ownerId} className={styles.section}>
                 <div className={styles.userRow}>
-                    <div className={styles.titleWrapper} onClick={() => toggleExpand(ownerId)}>
-                        <span className={`${styles.chevron} ${isExpanded ? styles.expanded : ''}`}>
+                    <div className={styles.titleWrapper} onClick={() => !searchQuery && toggleExpand(ownerId)}>
+                        <span className={`${styles.chevron} ${isExpanded ? styles.expanded : ''} ${searchQuery ? styles.searchActive : ''}`}>
                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
@@ -100,7 +115,7 @@ export function WorkflowTree({
                     </div>
                 )}
 
-                {isExpanded && workflows.map((wf) => (
+                {isExpanded && filteredWorkflows.map((wf) => (
                     <div
                         key={wf.id}
                         className={`${styles.workflowItem} ${activeWorkflowId === wf.id ? styles.activeWorkflow : ''}`}
@@ -130,9 +145,30 @@ export function WorkflowTree({
 
     return (
         <div className={styles.tree}>
-            {renderOwnerSection('personal', 'Personal', '⭐')}
-            <div className={styles.divider} />
-            {users.map((u) => renderOwnerSection(u.id, u.username, '👤'))}
+            <div className={styles.searchContainer}>
+                <div className={styles.searchIcon}>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </div>
+                <input
+                    type="text"
+                    className={styles.searchInput}
+                    placeholder="Search workflows or clients..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                    <button className={styles.clearSearch} onClick={() => setSearchQuery('')}>×</button>
+                )}
+            </div>
+
+            <div className={styles.treeContent}>
+                {renderOwnerSection('personal', 'Personal', '⭐')}
+                <div className={styles.divider} />
+                {users.map((u) => renderOwnerSection(u.id, u.username, '👤'))}
+            </div>
         </div>
     );
 }

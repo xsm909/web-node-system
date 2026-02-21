@@ -58,16 +58,86 @@
     transform: rotate(-45deg) translate(7px, -6px);
 }
 
+.titleContainer {
+    flex: 1;
+    margin-left: 12px;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.titleToggle {
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    margin-left: -12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 100%;
+}
+
+.titleToggle:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.titleToggle.active {
+    background: rgba(255, 255, 255, 0.08);
+}
+
 .title {
     font-size: 1.1rem;
     font-weight: 700;
     margin: 0;
-    flex: 1;
-    margin-left: 12px;
-    color: rgba(255, 255, 255, 0.9);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: left;
+}
+
+.chevron {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.5;
+}
+
+.chevron.expanded {
+    transform: rotate(180deg);
+    opacity: 1;
+}
+
+.dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    left: 0;
+    width: 320px;
+    background: rgba(20, 20, 35, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    z-index: 100;
+    overflow: hidden;
+    animation: slideDown 0.2s cubic-bezier(0, 0, 0.2, 1);
+    transform-origin: top left;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .actions {
