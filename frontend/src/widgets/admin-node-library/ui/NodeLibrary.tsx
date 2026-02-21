@@ -5,11 +5,12 @@ import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
 
 interface AdminNodeLibraryProps {
     onEditNode: (node: NodeType) => void;
+    refreshTrigger?: number;
 }
 
 import { Icon } from '../../../shared/ui/icon';
 
-export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode }) => {
+export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, refreshTrigger = 0 }) => {
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -29,7 +30,7 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode }
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [refreshTrigger]);
 
     const groupedNodes = useMemo(() => {
         const groups: Record<string, NodeType[]> = {};

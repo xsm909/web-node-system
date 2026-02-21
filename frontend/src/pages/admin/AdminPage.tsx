@@ -13,6 +13,8 @@ import { Icon } from '../../shared/ui/icon';
 export default function AdminPage() {
     const { logout } = useAuthStore();
     const [activeTab, setActiveTab] = useState<'users' | 'nodes' | 'credentials'>('users');
+    const [refreshCount, setRefreshCount] = useState(0);
+
     const {
         isModalOpen,
         setIsModalOpen,
@@ -61,6 +63,7 @@ export default function AdminPage() {
                         ) : activeTab === 'nodes' ? (
                             <AdminNodeLibrary
                                 onEditNode={handleOpenModal}
+                                refreshTrigger={refreshCount}
                             />
                         ) : (
                             <AdminCredentialManagement />
@@ -75,7 +78,7 @@ export default function AdminPage() {
                 editingNode={editingNode}
                 formData={formData}
                 setFormData={setFormData}
-                onSave={handleSave}
+                onSave={(e) => handleSave(e, () => setRefreshCount(r => r + 1))}
             />
         </div>
     );
