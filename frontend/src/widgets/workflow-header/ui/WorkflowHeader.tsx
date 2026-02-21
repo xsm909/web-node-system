@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { WorkflowTree } from '../../workflow-tree';
 import type { Workflow } from '../../../entities/workflow/model/types';
 import type { AssignedUser } from '../../../entities/user/model/types';
+import { ThemeToggle } from '../../../shared/ui/theme-toggle/ThemeToggle';
 
 interface WorkflowHeaderProps {
     title: string;
@@ -60,10 +61,10 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     };
 
     return (
-        <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-surface-900/80 backdrop-blur-md border-b border-white/5 h-16">
+        <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-surface-900/80 backdrop-blur-md border-b border-[var(--border-base)] h-16">
             <div className="flex items-center gap-4 flex-1 min-w-0">
                 <button
-                    className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 lg:hidden transition-colors"
+                    className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] lg:hidden transition-colors"
                     onClick={onToggleSidebar}
                     aria-label="Toggle menu"
                 >
@@ -78,7 +79,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
 
                 <div className="relative flex-1 max-w-xl" ref={dropdownRef}>
                     <button
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all max-w-full ${isDropdownOpen ? 'bg-white/10 text-white' : 'text-white/80 hover:bg-white/5 hover:text-white'
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all max-w-full ${isDropdownOpen ? 'bg-[var(--border-base)] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
                             }`}
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     >
@@ -95,7 +96,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                     </button>
 
                     {isDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-3 w-80 bg-surface-800 border border-white/10 rounded-2xl shadow-2xl p-2 ring-1 ring-white/5 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="absolute top-full left-0 mt-3 w-80 bg-surface-800 border border-[var(--border-base)] rounded-2xl shadow-2xl p-2 ring-1 ring-black/5 dark:ring-white/5 animate-in fade-in zoom-in-95 duration-200">
                             <WorkflowTree
                                 users={users}
                                 workflowsByOwner={workflowsByOwner}
@@ -111,8 +112,10 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <div className="w-px h-6 bg-[var(--border-base)] mx-1" />
                 <button
-                    className="p-2.5 rounded-xl border border-white/5 bg-white/[0.03] text-white/60 hover:text-white hover:bg-white/10 hover:border-white/10 transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
+                    className="p-2.5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] hover:border-[var(--border-base)] transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
                     onClick={onSave}
                     disabled={!canAction}
                     title="Save Workflow"
@@ -125,10 +128,10 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                 </button>
                 <button
                     className={`
-                        h-9 px-5 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
+                        h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
                         ${isRunning
                             ? 'bg-brand/10 text-brand ring-1 ring-inset ring-brand/30 cursor-default'
-                            : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/20'
+                            : 'bg-brand hover:brightness-110 text-white shadow-lg shadow-brand/20'
                         }
                     `}
                     onClick={onRun}
@@ -154,4 +157,5 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
         </header>
     );
 };
+
 

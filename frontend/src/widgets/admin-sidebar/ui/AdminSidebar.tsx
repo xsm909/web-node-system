@@ -8,9 +8,9 @@ interface AdminSidebarProps {
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActiveTab, onLogout }) => {
     return (
-        <aside className="w-64 bg-surface-800 border-r border-white/5 flex flex-col h-full ring-1 ring-white/5">
+        <aside className="w-64 bg-surface-800 border-r border-[var(--border-base)] flex flex-col h-full ring-1 ring-black/5 dark:ring-white/5">
             <div className="p-6">
-                <div className="text-xl font-bold bg-gradient-to-r from-brand to-purple-400 bg-clip-text text-transparent">
+                <div className="text-xl font-bold bg-gradient-to-r from-brand to-emerald-400 bg-clip-text text-transparent">
                     ⚡ Workflow Engine
                 </div>
             </div>
@@ -19,8 +19,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
                 <button
                     onClick={() => setActiveTab('users')}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${activeTab === 'users'
-                            ? 'bg-brand/10 text-brand font-semibold shadow-sm ring-1 ring-brand/20'
-                            : 'text-white/50 hover:text-white hover:bg-white/5'
+                        ? 'bg-brand/10 text-brand font-semibold shadow-sm ring-1 ring-brand/20'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]'
                         }`}
                 >
                     <span className={`text-lg transition-transform group-hover:scale-110 ${activeTab === 'users' ? 'scale-110' : ''}`}>👥</span>
@@ -30,8 +30,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
                 <button
                     onClick={() => setActiveTab('nodes')}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${activeTab === 'nodes'
-                            ? 'bg-brand/10 text-brand font-semibold shadow-sm ring-1 ring-brand/20'
-                            : 'text-white/50 hover:text-white hover:bg-white/5'
+                        ? 'bg-brand/10 text-brand font-semibold shadow-sm ring-1 ring-brand/20'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]'
                         }`}
                 >
                     <span className={`text-lg transition-transform group-hover:scale-110 ${activeTab === 'nodes' ? 'scale-110' : ''}`}>🔧</span>
@@ -41,8 +41,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
                 <button
                     onClick={() => setActiveTab('credentials')}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${activeTab === 'credentials'
-                            ? 'bg-brand/10 text-brand font-semibold shadow-sm ring-1 ring-brand/20'
-                            : 'text-white/50 hover:text-white hover:bg-white/5'
+                        ? 'bg-brand/10 text-brand font-semibold shadow-sm ring-1 ring-brand/20'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]'
                         }`}
                 >
                     <span className={`text-lg transition-transform group-hover:scale-110 ${activeTab === 'credentials' ? 'scale-110' : ''}`}>🔑</span>
@@ -50,10 +50,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
                 </button>
             </nav>
 
-            <div className="p-4 border-t border-white/5">
+            <div className="p-4 border-t border-[var(--border-base)]">
                 <button
                     onClick={onLogout}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-white/40 border border-white/5 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all active:scale-[0.98]"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-[var(--text-muted)] border border-[var(--border-base)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all active:scale-[0.98]"
                 >
                     <span>🚪</span>
                     Sign Out
@@ -62,4 +62,5 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
         </aside>
     );
 };
+
 

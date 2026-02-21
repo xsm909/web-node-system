@@ -354,7 +354,7 @@ export default function ManagerPage() {
     const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
     return (
-        <div className="fixed inset-0 flex bg-surface-900 text-white overflow-hidden">
+        <div className="fixed inset-0 flex bg-[var(--bg-app)] text-[var(--text-main)] overflow-hidden font-sans">
             {isSidebarOpen && (
                 <div
                     className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden animate-in fade-in duration-300"
@@ -363,13 +363,18 @@ export default function ManagerPage() {
             )}
 
             <aside className={`
-                fixed inset-y-0 left-0 z-50 w-72 bg-surface-800 border-r border-white/5 flex flex-col p-6 
+                fixed inset-y-0 left-0 z-50 w-72 bg-surface-900 border-r border-[var(--border-base)] flex flex-col p-6 
                 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
-                <div className="flex items-center justify-between mb-8">
-                    <div className="text-xl font-bold bg-gradient-to-r from-brand to-brand/60 bg-clip-text text-transparent">
-                        Antigravity
+                <div className="flex items-center justify-between mb-10">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-brand/10 flex items-center justify-center border border-brand/20 shadow-lg shadow-brand/5">
+                            <span className="text-xl">⚡</span>
+                        </div>
+                        <div className="text-xl font-black tracking-tight bg-gradient-to-r from-brand to-brand/60 bg-clip-text text-transparent">
+                            Antigravity
+                        </div>
                     </div>
                     <button
                         className="p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 lg:hidden"
@@ -380,30 +385,38 @@ export default function ManagerPage() {
                 </div>
 
                 <nav className="flex-1 space-y-1">
-                    <div className="px-3 py-2 text-[10px] font-bold text-white/20 uppercase tracking-widest">Workspace</div>
-                    <div className="flex flex-col gap-4 items-center justify-center p-8 rounded-2xl border border-white/5 bg-white/[0.02] text-center">
-                        <div className="text-white/20 italic text-sm">Workspace tools coming soon</div>
+                    <div className="px-3 py-2 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest opacity-50">Workspace Resources</div>
+                    <div className="flex flex-col gap-4 items-center justify-center p-8 rounded-3xl border border-[var(--border-base)] bg-[var(--border-muted)]/30 text-center border-dashed">
+                        <div className="w-12 h-12 rounded-2xl bg-[var(--border-base)]/50 flex items-center justify-center mb-2">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)] opacity-30">
+                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                            </svg>
+                        </div>
+                        <p className="text-[var(--text-muted)] opacity-60 text-xs font-bold leading-relaxed px-4">Workspace tools and assets coming soon</p>
                     </div>
                 </nav>
 
-                <div className="pt-6 border-t border-white/5 space-y-4">
+                <div className="pt-6 border-t border-[var(--border-base)] space-y-4">
                     <div className="flex items-center gap-3 px-3">
-                        <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand font-bold text-xs">
+                        <div className="w-10 h-10 rounded-2xl bg-brand/10 flex items-center justify-center text-brand font-black text-xs border border-brand/20">
                             {currentUser?.username?.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold text-white/90 truncate">{currentUser?.username}</div>
-                            <div className="text-[10px] text-white/40 truncate">{currentUser?.role}</div>
+                            <div className="text-xs font-bold text-[var(--text-main)] truncate">{currentUser?.username}</div>
+                            <div className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider truncate opacity-60">{currentUser?.role}</div>
                         </div>
                     </div>
                     <button
-                        className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-white/40 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all flex items-center gap-2"
+                        className="w-full px-4 py-3 rounded-2xl text-xs font-bold text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 border border-[var(--border-base)] hover:border-red-500/20 transition-all flex items-center justify-center gap-2 active:scale-95"
                         onClick={logout}
                     >
                         <span>Sign Out</span>
                     </button>
                 </div>
             </aside>
+
 
             <main className="flex-1 flex flex-col min-w-0 relative">
                 <WorkflowHeader
@@ -424,7 +437,7 @@ export default function ManagerPage() {
                 />
 
                 <div className="flex-1 flex overflow-hidden relative">
-                    <section className="flex-1 bg-[#0d0d17] relative">
+                    <section className="flex-1 bg-[var(--bg-app)] relative">
                         <ReactFlow
                             nodes={nodes}
                             edges={edges}
@@ -445,9 +458,15 @@ export default function ManagerPage() {
                             onConnectEnd={onConnectEnd}
                             proOptions={{ hideAttribution: true }}
                         >
-                            <Background color="#ffffff" gap={24} size={1} style={{ opacity: 0.03 }} />
-                            <Controls className="!bg-surface-800 !border-white/10 !rounded-xl !shadow-2xl !overflow-hidden [&_button]:!border-white/5 [&_button]:!bg-transparent [&_button:hover]:!bg-white/5 [&_svg]:!fill-white/60" />
+                            <Background
+                                color="currentColor"
+                                gap={24}
+                                size={1}
+                                className="text-[var(--text-muted)] opacity-[0.03] dark:opacity-[0.05]"
+                            />
+                            <Controls className="!bg-surface-800 !border-[var(--border-base)] !rounded-2xl !shadow-2xl !overflow-hidden [&_button]:!border-[var(--border-base)] [&_button]:!bg-transparent [&_button:hover]:!bg-brand/10 [&_svg]:!fill-[var(--text-main)] [&_svg]:!opacity-60" />
                         </ReactFlow>
+
 
                         {addNodeMenu && (
                             <AddNodeMenu

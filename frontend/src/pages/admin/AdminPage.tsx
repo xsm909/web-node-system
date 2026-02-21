@@ -9,6 +9,7 @@ import { AdminUserManagement } from '../../widgets/admin-user-management';
 import { AdminNodeLibrary } from '../../widgets/admin-node-library';
 import { AdminCredentialManagement } from '../../widgets/admin-credential-management';
 import { NodeTypeFormModal } from '../../widgets/node-type-form-modal';
+import { ThemeToggle } from '../../shared/ui/theme-toggle/ThemeToggle';
 
 export default function AdminPage() {
     const { logout } = useAuthStore();
@@ -76,29 +77,35 @@ export default function AdminPage() {
     };
 
     return (
-        <div className="flex h-screen bg-surface-900 text-white font-sans overflow-hidden">
+        <div className="flex h-screen bg-surface-900 text-[var(--text-main)] font-sans overflow-hidden">
             <AdminSidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 onLogout={logout}
             />
 
-            <main className="flex-1 flex flex-col min-w-0 bg-surface-900 overflow-hidden">
-                <header className="h-16 flex items-center justify-between px-8 border-b border-white/5 bg-surface-800/50 backdrop-blur-md sticky top-0 z-10">
-                    <h1 className="text-xl font-semibold tracking-tight text-white/90">
+            <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                <header className="h-16 flex items-center justify-between px-8 border-b border-[var(--border-base)] bg-surface-900/80 backdrop-blur-md sticky top-0 z-10">
+                    <h1 className="text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
                         {activeTab === 'users' ? 'User Management' :
                             activeTab === 'nodes' ? 'Node Library' : 'Credentials'}
                     </h1>
-                    {activeTab === 'nodes' && (
-                        <button
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand hover:bg-brand/90 text-white text-sm font-medium shadow-lg shadow-brand/10 transition-all active:scale-[0.98]"
-                            onClick={() => handleOpenModal()}
-                        >
-                            <span className="text-lg leading-none">+</span>
-                            Add New Node
-                        </button>
-                    )}
+
+                    <div className="flex items-center gap-4">
+                        <ThemeToggle />
+                        <div className="w-px h-6 bg-[var(--border-base)] mx-1" />
+                        {activeTab === 'nodes' && (
+                            <button
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand hover:brightness-110 text-white text-sm font-bold shadow-lg shadow-brand/20 transition-all active:scale-[0.98]"
+                                onClick={() => handleOpenModal()}
+                            >
+                                <span className="text-lg leading-none">+</span>
+                                Add New Node
+                            </button>
+                        )}
+                    </div>
                 </header>
+
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
                     <div className="max-w-7xl mx-auto space-y-8">

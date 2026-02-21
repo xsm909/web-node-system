@@ -2,21 +2,53 @@
 
 :root {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color-scheme: dark;
+  color-scheme: light dark;
+
+  /* Protocol Theme - Light Mode Defaults */
+  --bg-app: #ffffff;
+  --bg-sidebar: #f8fafc;
+  --bg-surface: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-base: #e2e8f0;
+  --border-muted: #f1f5f9;
+  --brand: #10b981;
+  /* Emerald 500 */
+  --brand-hover: #059669;
+  /* Emerald 600 */
+}
+
+.dark {
+  /* Protocol Theme - Dark Mode */
+  --bg-app: #020617;
+  --bg-sidebar: #020617;
+  --bg-surface: #0f172a;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-base: #1e293b;
+  --border-muted: #334155;
+  --brand: #10b981;
+  --brand-hover: #34d399;
 }
 
 @theme {
-  --color-brand: #3b82f6;
-  --color-surface-900: #0f0f1a;
-  --color-surface-800: #1a1a2e;
-  --color-surface-700: #2a2a40;
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-surface-900: var(--bg-app);
+  --color-surface-800: var(--bg-sidebar);
+  --color-surface-700: var(--bg-surface);
+
+  /* Semantic spacing and radius */
+  --radius-xl: 0.75rem;
+  --radius-xxl: 1rem;
+  --radius-3xl: 1.5rem;
 }
 
 @layer base {
 
   html,
   body {
-    @apply bg-[#0f0f1a] text-[#e2e8f0] w-full h-full overflow-hidden fixed top-0 left-0;
+    @apply bg-surface-900 text-[var(--text-main)] w-full h-full overflow-hidden fixed top-0 left-0 transition-colors duration-300;
   }
 
   #root {
@@ -35,10 +67,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--border-base);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--text-muted);
 }

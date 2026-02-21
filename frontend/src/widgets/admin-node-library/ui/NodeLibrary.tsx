@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
-import editIcon from '../../../assets/edit.svg';
-import deleteIcon from '../../../assets/delete.svg';
 
 interface AdminNodeLibraryProps {
     nodeTypes: NodeType[];
@@ -38,53 +36,61 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ nodeTypes, o
                 <div key={category} className="space-y-4">
                     <div className="flex items-center gap-4 px-2">
                         <h2 className="text-[11px] font-bold text-brand uppercase tracking-[0.2em]">{category}</h2>
-                        <div className="h-px flex-1 bg-white/5"></div>
+                        <div className="h-px flex-1 bg-[var(--border-base)] opacity-50"></div>
                     </div>
 
-                    <div className="bg-surface-800 rounded-2xl border border-white/5 overflow-hidden shadow-sm ring-1 ring-white/5">
+                    <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-white/5 bg-white/[0.02]">
-                                    <th className="px-6 py-4 text-[11px] font-semibold text-white/40 uppercase tracking-wider">Name</th>
-                                    <th className="px-6 py-4 text-[11px] font-semibold text-white/40 uppercase tracking-wider">Version</th>
-                                    <th className="px-6 py-4 text-[11px] font-semibold text-white/40 uppercase tracking-wider">Description</th>
-                                    <th className="px-6 py-4 text-[11px] font-semibold text-white/40 uppercase tracking-wider text-right">Actions</th>
+                                <tr className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
+                                    <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Name</th>
+                                    <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Version</th>
+                                    <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Description</th>
+                                    <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider text-right opacity-60">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody className="divide-y divide-[var(--border-base)]">
                                 {nodes.map((n) => (
                                     <tr
                                         key={n.id}
-                                        className={`hover:bg-white/[0.02] transition-colors group cursor-pointer ${selectedNodeId === n.id ? 'bg-brand/5' : ''
+                                        className={`hover:bg-[var(--border-muted)]/50 transition-colors group cursor-pointer ${selectedNodeId === n.id ? 'bg-brand/5' : ''
                                             }`}
                                         onClick={() => setSelectedNodeId(n.id)}
                                     >
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-semibold text-white/90 group-hover:text-white transition-colors">{n.name}</div>
+                                            <div className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors">{n.name}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="text-xs font-mono text-brand/70 group-hover:text-brand transition-colors">v{n.version}</span>
+                                            <span className="text-xs font-mono text-brand/70 group-hover:text-brand transition-colors font-bold">v{n.version}</span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm text-white/40 group-hover:text-white/60 transition-colors line-clamp-1 max-w-md">
-                                                {n.description || <span className="italic text-white/20">No description</span>}
+                                            <div className="text-sm text-[var(--text-muted)] opacity-60 group-hover:opacity-100 transition-opacity line-clamp-1 max-w-md">
+                                                {n.description || <span className="italic opacity-30">No description provided</span>}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-30 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
-                                                    className="p-2 rounded-lg bg-white/5 hover:bg-brand/20 text-white/60 hover:text-brand border border-white/5 transition-all"
+                                                    className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
                                                     onClick={(e) => { e.stopPropagation(); onEditNode(n); }}
                                                     title="Edit"
                                                 >
-                                                    <img src={editIcon} alt="Edit" className="w-4 h-4 brightness-200" />
+                                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                    </svg>
                                                 </button>
                                                 <button
-                                                    className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-400 border border-white/5 transition-all"
+                                                    className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
                                                     onClick={(e) => { e.stopPropagation(); setNodeToDelete(n); }}
                                                     title="Delete"
                                                 >
-                                                    <img src={deleteIcon} alt="Delete" className="w-4 h-4 brightness-200" />
+                                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                                                    </svg>
                                                 </button>
                                             </div>
                                         </td>
@@ -107,4 +113,5 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ nodeTypes, o
         </div>
     );
 };
+
 
