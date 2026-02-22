@@ -19,8 +19,7 @@ interface WorkflowHeaderProps {
     onToggleSidebar: () => void;
     canAction: boolean;
     isCreating?: boolean;
-    editMode: 'graph' | 'workflow' | 'runtime';
-    onEditModeChange: (mode: 'graph' | 'workflow' | 'runtime') => void;
+    onOpenEditModal: () => void;
 }
 
 import { Icon } from '../../../shared/ui/icon';
@@ -40,8 +39,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     onToggleSidebar,
     canAction,
     isCreating,
-    editMode,
-    onEditModeChange,
+    onOpenEditModal,
 }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -109,86 +107,46 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
 
             <div className="flex items-center gap-2">
                 {activeWorkflowId && (
-                    <>
-                        <button
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${editMode === 'workflow'
-                                ? 'bg-brand/10 text-brand ring-1 ring-inset ring-brand/30'
-                                : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] border border-[var(--border-base)] hover:border-brand/50'
-                                }`}
-                            onClick={() => onEditModeChange('workflow')}
-                        >
-                            Workflow Data
-                        </button>
-                        <button
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${editMode === 'runtime'
-                                ? 'bg-brand/10 text-brand ring-1 ring-inset ring-brand/30'
-                                : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] border border-[var(--border-base)] hover:border-brand/50'
-                                }`}
-                            onClick={() => onEditModeChange('runtime')}
-                        >
-                            Runtime Data
-                        </button>
-                    </>
+                    <button
+                        className="p-2.5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] hover:border-[var(--border-base)] transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
+                        onClick={onOpenEditModal}
+                    >
+                        <Icon name="data_object" size={18} className="group-active:scale-95 transition-transform" />
+                    </button>
                 )}
 
                 <div className="w-px h-6 bg-[var(--border-base)] mx-1" />
-
-                <ThemeToggle />
-                {editMode === 'graph' ? (
-                    <>
-                        <div className="w-px h-6 bg-[var(--border-base)] mx-1" />
-                        <button
-                            className="p-2.5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] hover:border-[var(--border-base)] transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
-                            onClick={onSave}
-                            disabled={!canAction}
-                            title="Save Workflow"
-                        >
-                            <Icon name="save" size={18} className="group-active:scale-95 transition-transform" />
-                        </button>
-                        <button
-                            className={`
-                                h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
-                                ${isRunning
-                                    ? 'bg-brand/10 text-brand ring-1 ring-inset ring-brand/30 cursor-default'
-                                    : 'bg-brand hover:brightness-110 text-white shadow-lg shadow-brand/20'
-                                }
-                            `}
-                            onClick={onRun}
-                            disabled={!canAction || isRunning}
-                        >
-                            {isRunning ? (
-                                <>
-                                    <Icon name="bolt" size={14} className="animate-pulse" />
-                                    <span>Running...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Icon name="play" size={12} />
-                                    <span>Run</span>
-                                </>
-                            )}
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        <div className="w-px h-6 bg-[var(--border-base)] mx-1" />
-                        <button
-                            className="p-2.5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] hover:border-[var(--border-base)] transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
-                            onClick={onSave}
-                            disabled={!canAction}
-                            title="Save Data"
-                        >
-                            <Icon name="save" size={18} className="group-active:scale-95 transition-transform" />
-                        </button>
-                        <button
-                            className="h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] bg-surface-800 hover:bg-surface-700 text-[var(--text-main)] border border-[var(--border-base)]"
-                            onClick={() => onEditModeChange('graph')}
-                        >
-                            <Icon name="arrow_back" size={14} />
-                            <span>Return to Graph</span>
-                        </button>
-                    </>
-                )}
+                <button
+                    className="p-2.5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] hover:border-[var(--border-base)] transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
+                    onClick={onSave}
+                    disabled={!canAction}
+                    title="Save Workflow"
+                >
+                    <Icon name="save" size={18} className="group-active:scale-95 transition-transform" />
+                </button>
+                <button
+                    className={`
+                        h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
+                        ${isRunning
+                            ? 'bg-brand/10 text-brand ring-1 ring-inset ring-brand/30 cursor-default'
+                            : 'bg-brand hover:brightness-110 text-white shadow-lg shadow-brand/20'
+                        }
+                    `}
+                    onClick={onRun}
+                    disabled={!canAction || isRunning}
+                >
+                    {isRunning ? (
+                        <>
+                            <Icon name="bolt" size={14} className="animate-pulse" />
+                            <span>Running...</span>
+                        </>
+                    ) : (
+                        <>
+                            <Icon name="play" size={12} />
+                            <span>Run</span>
+                        </>
+                    )}
+                </button>
             </div>
         </header>
     );

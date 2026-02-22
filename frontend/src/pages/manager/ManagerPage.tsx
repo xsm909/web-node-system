@@ -7,7 +7,7 @@ import { Console } from '../../widgets/console/ui/Console';
 import { WorkflowHeader } from '../../widgets/workflow-header';
 import { ConfirmModal } from '../../shared/ui/confirm-modal';
 import { WorkflowGraph } from '../../widgets/workflow-graph';
-import { DataEditorTabs } from '../../widgets/data-editor';
+import { WorkflowDataEditorTabs } from '../../widgets/workflow-data-editor';
 import { useWorkflowOperations } from '../../features/workflow-operations';
 import { useWorkflowManagement } from '../../features/workflow-management';
 
@@ -19,7 +19,7 @@ export default function ManagerPage() {
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
-    const [editMode, setEditMode] = useState<'graph' | 'workflow' | 'runtime'>('graph');
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     const EMPTY_OBJ = useRef({});
 
@@ -155,8 +155,7 @@ export default function ManagerPage() {
                     onToggleSidebar={toggleSidebar}
                     canAction={!!activeWorkflow}
                     isCreating={isCreating}
-                    editMode={editMode}
-                    onEditModeChange={setEditMode}
+                    onOpenEditModal={() => setIsEditModalOpen(true)}
                 />
 
                 {activeWorkflow && (
@@ -170,55 +169,27 @@ export default function ManagerPage() {
                     />
                 )}
 
-                {editMode === 'workflow' && activeWorkflow && (
+                {isEditModalOpen && activeWorkflow && (
                     <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
                         <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
                             <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
-                                <h2 className="text-sm font-bold truncate">Edit Workflow Data Structure</h2>
+                                <h2 className="text-sm font-bold truncate">Edit Workflow Data</h2>
                                 <button
                                     className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
-                                    onClick={() => setEditMode('graph')}
+                                    onClick={() => setIsEditModalOpen(false)}
                                 >
                                     <Icon name="close" size={20} />
                                 </button>
                             </div>
                             <div className="flex-1 overflow-hidden">
-                                <DataEditorTabs
-                                    key={`workflow-${activeWorkflow.id}`}
-                                    schemaTitle="Edit Workflow Schema"
-                                    dataTitle="Edit Workflow Data"
-                                    schema={activeWorkflow.workflow_data_schema ?? EMPTY_OBJ.current}
-                                    data={activeWorkflow.workflow_data ?? EMPTY_OBJ.current}
-                                    onSchemaChange={(s) => setActiveWorkflow({ ...activeWorkflow, workflow_data_schema: s })}
-                                    onDataChange={(d) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
-                                    readOnlyData={false}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {editMode === 'runtime' && activeWorkflow && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
-                            <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
-                                <h2 className="text-sm font-bold truncate">Edit Runtime Schema</h2>
-                                <button
-                                    className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
-                                    onClick={() => setEditMode('graph')}
-                                >
-                                    <Icon name="close" size={20} />
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                                <DataEditorTabs
-                                    key={`runtime-schema-${activeWorkflow.id}`}
-                                    schemaTitle="Runtime Schema"
-                                    schema={activeWorkflow.runtime_data_schema ?? EMPTY_OBJ.current}
-                                    data={{}}
-                                    onSchemaChange={(s) => setActiveWorkflow({ ...activeWorkflow, runtime_data_schema: s })}
-                                    onDataChange={() => { }}
-                                    hideDataTab={true}
+                                <WorkflowDataEditorTabs
+                                    key={activeWorkflow.id}
+                                    workflowSchema={activeWorkflow.workflow_data_schema ?? EMPTY_OBJ.current}
+                                    runtimeSchema={activeWorkflow.runtime_data_schema ?? EMPTY_OBJ.current}
+                                    workflowData={activeWorkflow.workflow_data ?? EMPTY_OBJ.current}
+                                    onWorkflowSchemaChange={(s) => setActiveWorkflow({ ...activeWorkflow, workflow_data_schema: s })}
+                                    onRuntimeSchemaChange={(s) => setActiveWorkflow({ ...activeWorkflow, runtime_data_schema: s })}
+                                    onWorkflowDataChange={(d) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
                                 />
                             </div>
                         </div>
