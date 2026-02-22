@@ -3,6 +3,8 @@ import type { NodeType } from '../../../entities/node-type/model/types';
 import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
 import { autocompletion, snippetCompletion } from '@codemirror/autocomplete';
+import { indentUnit } from '@codemirror/language';
+import { EditorState } from '@codemirror/state';
 
 interface NodeTypeFormModalProps {
     isOpen: boolean;
@@ -25,6 +27,8 @@ export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
 
     const codeMirrorExtensions = useMemo(() => [
         python(),
+        indentUnit.of('    '),
+        EditorState.tabSize.of(4),
         autocompletion({
             override: [
                 (context) => {

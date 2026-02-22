@@ -50,7 +50,7 @@ SAFE_GLOBALS = {
         "_iter_unpack_sequence_": Guards.guarded_iter_unpack_sequence,
         "_getiter_": iter,
         "_getitem_": lambda obj, key: obj[key],
-        "_write_": Guards.full_write_guard,
+        "_write_": lambda obj: obj,  # Allow attribute writes inside sandbox
     },
     "__metaclass__": type,
     "time": time,  # available without import
@@ -228,12 +228,29 @@ class WorkflowExecutor:
             else:
                 self.log("No 'Start' node found. Executing all nodes in topological order.", level="warning")
 
-            order = _topological_sort(nodes, edges)
+            # --- BFS-based dynamic execution (respects than/MAX_THAN branching) ---
+            # Start from the Start node (or all zero-in-degree nodes if no Start)
+            if start_node:
+                queue = [start_node["id"]]
+            else:
+                # Fall back: enqueue all nodes with no incoming edges
+                in_deg = {n["id"]: 0 for n in nodes}
+                for edge in edges:
+                    t = edge.get("target")
+                    if t in in_deg:
+                        in_deg[t] += 1
+                queue = [nid for nid, d in in_deg.items() if d == 0]
 
+            visited: set = set()
             outputs: dict = {}
             all_success = True
 
-            for node_id in order:
+            while queue:
+                node_id = queue.pop(0)
+                if node_id in visited:
+                    continue
+                visited.add(node_id)
+
                 self.current_node_id = node_id
                 node_data = node_map.get(node_id)
                 if not node_data:
@@ -249,6 +266,10 @@ class WorkflowExecutor:
                 self.db.refresh(node_exec)
 
                 self.log(f"Starting node: {node_id}")
+
+                # Track which downstream nodes to enqueue after this node
+                next_node_ids: list = []
+                node_params_inst = None
 
                 try:
                     # Get node type code
@@ -289,9 +310,6 @@ class WorkflowExecutor:
                         },
                     }
                     
-                    # Execute with unified globals and locals to ensure top-level variables
-                    # are accessible within defined functions (like 'run')
-                    
                     # Add current execution context wrapper functions to libs
                     current_execution_id = str(self.execution_id)
                     
@@ -305,7 +323,6 @@ class WorkflowExecutor:
                     # Handle NodeParameters injection
                     node_params_class = node_globals.get("NodeParameters")
                     if node_params_class and isinstance(node_params_class, type):
-                        # Ensure nodeParameters instance exists
                         node_params_inst = node_globals.get("nodeParameters")
                         if not node_params_inst or not isinstance(node_params_inst, node_params_class):
                             node_params_inst = node_params_class()
@@ -317,7 +334,6 @@ class WorkflowExecutor:
 
                         for key, value in params.items():
                             if hasattr(node_params_inst, key):
-                                # Try to convert type based on schema from database
                                 try:
                                     ptype = param_types.get(key)
                                     if ptype == "number":
@@ -328,8 +344,7 @@ class WorkflowExecutor:
                                         else:
                                             value = bool(value)
                                 except (ValueError, TypeError):
-                                    pass # Keep original value if conversion fails
-                                
+                                    pass
                                 setattr(node_params_inst, key, value)
 
                     run_fn = node_globals.get("run")
@@ -346,14 +361,49 @@ class WorkflowExecutor:
                     node_exec.output = result
                     self.log(f"Node success: {node_id}")
 
+                    # --- Determine which downstream nodes to enqueue ---
+                    # Read than / MAX_THAN from the NodeParameters instance (if any)
+                    than_val = None
+                    max_than = None
+                    if node_params_inst is not None:
+                        than_val = getattr(node_params_inst, "than", None)
+                        max_than = getattr(node_params_inst, "MAX_THAN", None)
+
+                    for edge in edges:
+                        if edge.get("source") != node_id:
+                            continue
+                        source_handle = edge.get("sourceHandle")  # e.g. "than_1" or None
+                        target_id = edge.get("target")
+
+                        # If this node uses branching (MAX_THAN is defined and > 0)
+                        if max_than is not None and isinstance(max_than, int) and max_than > 0:
+                            if than_val == 0:
+                                # Explicitly stopped — follow no branch
+                                self.log(f"Node {node_id}: than=0, blocking all outputs")
+                                continue
+                            expected_handle = f"than_{than_val}"
+                            if source_handle and source_handle != expected_handle:
+                                # Wrong branch — skip
+                                continue
+                            # Correct branch (or edge has no sourceHandle — legacy compat)
+                        # else: non-branching node, always follow all outgoing edges
+
+                        if target_id and target_id not in visited:
+                            next_node_ids.append(target_id)
+
                 except Exception as e:
                     error_msg = traceback.format_exc()
                     node_exec.status = WorkflowStatus.failed
                     node_exec.error = error_msg
                     self.log(f"Node failed: {node_id}\n{str(e)}", level="error")
                     all_success = False
+                    # On failure, do NOT enqueue downstream nodes of this path
+                    next_node_ids = []
 
                 self.db.commit()
+
+                # Enqueue next nodes determined during this node's execution
+                queue.extend(next_node_ids)
 
             self.execution.status = WorkflowStatus.success if all_success else WorkflowStatus.failed
             self.execution.result_summary = "Completed successfully" if all_success else "One or more nodes failed"

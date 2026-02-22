@@ -69,9 +69,21 @@ export function WorkflowGraph({
         const graphNodes = wf.graph.nodes || [];
         const graphEdges = wf.graph.edges || [];
 
-        const loadedNodes = graphNodes.map((n: any) =>
-            n.type === 'default' ? { ...n, type: 'action' } : n
-        );
+        const loadedNodes = graphNodes.map((n: any) => {
+            const base = n.type === 'default' ? { ...n, type: 'action' } : { ...n };
+            // Merge default params from nodeType so existing nodes get any newly added parameters
+            const ntDef = nodeTypes.find((t: NodeType) => t.name === (base.data?.nodeType || base.data?.label));
+            if (ntDef?.parameters) {
+                const merged = { ...(base.data?.params || {}) };
+                ntDef.parameters.forEach((p: any) => {
+                    if (merged[p.name] === undefined && p.default !== undefined && p.default !== null) {
+                        merged[p.name] = p.default;
+                    }
+                });
+                base.data = { ...base.data, params: merged };
+            }
+            return base;
+        });
 
         setNodes(loadedNodes);
         setEdges(graphEdges);
@@ -255,14 +267,21 @@ export function WorkflowGraph({
 
     const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
-    // We can inject `isActive` directly into node.data during render ReactFlow mapping
-    const renderedNodes = nodes.map(node => ({
-        ...node,
-        data: {
-            ...node.data,
-            isActive: activeNodeIds.includes(node.id)
-        }
-    }));
+    // Inject isActive + maxThan (from nodeType definition) into each node's data
+    const renderedNodes = nodes.map(node => {
+        const ntDef = nodeTypes.find((t: NodeType) => t.name === (node.data?.nodeType || node.data?.label));
+        // Determine MAX_THAN from nodeType parameters definition
+        const maxThanParam = ntDef?.parameters?.find((p: any) => p.name === 'MAX_THAN');
+        const maxThan = node.data?.params?.MAX_THAN ?? maxThanParam?.default ?? 0;
+        return {
+            ...node,
+            data: {
+                ...node.data,
+                isActive: activeNodeIds.includes(node.id),
+                maxThan: Number(maxThan),
+            }
+        };
+    });
 
     return (
         <div className="flex-1 flex overflow-hidden relative">

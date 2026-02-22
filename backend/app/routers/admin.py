@@ -16,8 +16,9 @@ admin_only = Depends(require_role("admin"))
 
 def extract_node_parameters(code: str) -> list:
     """Extract parameters from class NodeParameters in the code."""
-    try:
-        tree = ast.parse(code)
+    import re
+
+    def _parse_class_body(tree) -> list:
         params = []
         for node in tree.body:
             if isinstance(node, ast.ClassDef) and node.name == "NodeParameters":
@@ -28,7 +29,6 @@ def extract_node_parameters(code: str) -> list:
                     
                     if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
                         name = item.target.id
-                        # Map Python types to frontend field types
                         if isinstance(item.annotation, ast.Name):
                             tid = item.annotation.id
                             if tid in ("int", "float", "number"):
@@ -36,32 +36,30 @@ def extract_node_parameters(code: str) -> list:
                             elif tid in ("bool", "boolean"):
                                 ptype = "boolean"
                         
-                        # Extract default value from AnnAssign
                         if item.value:
                             if isinstance(item.value, ast.Constant):
                                 default = item.value.value
-                            elif isinstance(item.value, ast.Num): # Legacy
+                            elif isinstance(item.value, ast.Num):
                                 default = item.value.n
-                            elif isinstance(item.value, ast.Str): # Legacy
+                            elif isinstance(item.value, ast.Str):
                                 default = item.value.s
-                            elif isinstance(item.value, ast.NameConstant): # Legacy
+                            elif isinstance(item.value, ast.NameConstant):
                                 default = item.value.value
                     
                     elif isinstance(item, ast.Assign) and len(item.targets) == 1 and isinstance(item.targets[0], ast.Name):
                         name = item.targets[0].id
-                        # Infer type from default value
                         if isinstance(item.value, ast.Constant):
                             default = item.value.value
                             if isinstance(default, (int, float)):
                                 ptype = "number"
                             elif isinstance(default, bool):
                                 ptype = "boolean"
-                        elif isinstance(item.value, ast.Num): # Legacy compatibility
+                        elif isinstance(item.value, ast.Num):
                             default = item.value.n
                             ptype = "number"
-                        elif isinstance(item.value, ast.Str): # Legacy compatibility
+                        elif isinstance(item.value, ast.Str):
                             default = item.value.s
-                        elif isinstance(item.value, ast.NameConstant): # Legacy compatibility
+                        elif isinstance(item.value, ast.NameConstant):
                             default = item.value.value
                             if isinstance(default, bool):
                                 ptype = "boolean"
@@ -74,6 +72,22 @@ def extract_node_parameters(code: str) -> list:
                             "default": default
                         })
                 return params
+        return []
+
+    # Try full parse first
+    try:
+        tree = ast.parse(code)
+        return _parse_class_body(tree)
+    except SyntaxError:
+        pass
+
+    # Fallback: extract only the NodeParameters class block via regex
+    try:
+        match = re.search(r'(class\s+NodeParameters\s*:.*?)(?=\n(?:class\s|def\s)|\Z)', code, re.DOTALL)
+        if match:
+            class_code = match.group(1)
+            tree = ast.parse(class_code)
+            return _parse_class_body(tree)
     except Exception:
         pass
     return []

@@ -20,7 +20,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
     if (!node) return null;
 
     const nodeTypeData = nodeTypes.find(t => t.name === node.data.label);
-    const parameters = nodeTypeData?.parameters || [];
+    const allParameters = nodeTypeData?.parameters || [];
+    // Hide internal branching params — set by code at runtime, not user-editable
+    const INTERNAL_PARAMS = ['than', 'MAX_THAN'];
+    const parameters = allParameters.filter((p: any) => !INTERNAL_PARAMS.includes(p.name));
 
     if (parameters.length === 0) return null;
 
