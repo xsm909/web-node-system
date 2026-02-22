@@ -81,7 +81,7 @@ export const DefaultNode = memo(({ data, selected }: any) => {
             {hasBranching ? (
                 Array.from({ length: maxThan }, (_, i) => {
                     const idx = i + 1; // 1-based
-                    const color = BRANCH_COLORS[(i) % BRANCH_COLORS.length];
+                    //const color = BRANCH_COLORS[(i) % BRANCH_COLORS.length];
                     // Distribute handles evenly: left-offset as percentage of node width
                     const totalHandles = maxThan;
                     const leftPct = ((i + 1) / (totalHandles + 1)) * 100;
@@ -89,14 +89,10 @@ export const DefaultNode = memo(({ data, selected }: any) => {
                     return (
                         <div
                             key={`than_${idx}`}
-                            style={{ position: 'absolute', bottom: -22, left: `${leftPct}%`, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}
+                            style={{ position: 'absolute', bottom: -20, left: `${leftPct}%`, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}
                         >
                             {/* Branch label */}
-                            <span
-                                style={{ fontSize: 9, fontWeight: 900, color, opacity: 0.9, letterSpacing: '0.1em', userSelect: 'none' }}
-                            >
-                                {idx}
-                            </span>
+
                             <Handle
                                 type="source"
                                 position={Position.Bottom}
@@ -106,8 +102,8 @@ export const DefaultNode = memo(({ data, selected }: any) => {
                                     transform: 'none',
                                     width: 14,
                                     height: 14,
-                                    background: color,
-                                    border: '3px solid var(--surface-800, #1e1e2e)',
+                                    background: 'rgba(33, 33, 33, 0.4)',
+                                    border: '3px solid var(--surface-800, #ffffffff)',
                                     boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                                     cursor: 'crosshair',
                                     borderRadius: '50%',
