@@ -288,11 +288,21 @@ class WorkflowExecutor:
 
                     # Collect inputs from upstream nodes
                     inputs = {}
+                    prior_output_value = None
                     for edge in edges:
                         if edge.get("target") == node_id:
                             src_id = edge.get("source")
                             if src_id in outputs:
-                                inputs.update(outputs[src_id])
+                                src_out = outputs[src_id]
+                                inputs.update(src_out)
+                                
+                                # Extract the prior output for generic Input injection
+                                if len(src_out) == 1:
+                                    prior_output_value = list(src_out.values())[0]
+                                elif len(src_out) > 1:
+                                    prior_output_value = src_out
+
+
 
                     # Execute in restricted environment using custom transformer to support AnnAssign
                     byte_code = compile_restricted(
@@ -335,9 +345,14 @@ class WorkflowExecutor:
                             node_params_inst = node_params_class()
                             node_globals["nodeParameters"] = node_params_inst
                         
+                        # Populate sequential Input if passed from previous node
+                        if prior_output_value is not None and hasattr(node_params_inst, "Input"):
+                            setattr(node_params_inst, "Input", prior_output_value)
+
                         # Populate from graph params
                         node_type_params = node_type.parameters if node_type else []
                         param_types = {p["name"]: p["type"] for p in node_type_params if "name" in p and "type" in p}
+
 
                         for key, value in params.items():
                             if hasattr(node_params_inst, key):
