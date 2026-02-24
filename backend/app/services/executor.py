@@ -16,6 +16,7 @@ from ..models.workflow import Workflow, WorkflowExecution, NodeExecution, Workfl
 from ..models.node import NodeType
 from ..internal_libs.ask_ai import ask_ai, check_ai
 from ..internal_libs.struct_func import get_workflow_data, get_runtime_data, update_runtime_data, get_runtime_schema
+from ..internal_libs.openai_lib import create_new_conversation, set_prompt, ask_ai as openai_ask_ai, ask_AI as openai_ask_AI
 
 
 
@@ -57,6 +58,12 @@ SAFE_GLOBALS = {
     "libs": SimpleNamespace(
         ask_ai=ask_ai,
         check_ai=check_ai,
+    ),
+    "openai": SimpleNamespace(
+        create_new_conversation=create_new_conversation,
+        set_prompt=set_prompt,
+        ask_ai=openai_ask_ai,
+        ask_AI=openai_ask_AI,
     ),
 }
 
