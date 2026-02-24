@@ -198,7 +198,7 @@ class WorkflowExecutor:
             flag_modified(self.execution, "runtime_data")
             self.db.commit()
             self.db.refresh(self.execution)
-            self.log(f"Runtime data initialized: {new_runtime}")
+            self.log(f"Runtime data initialized: {new_runtime}", level="system")
 
             graph = workflow.graph or {"nodes": [], "edges": []}
             nodes = graph.get("nodes", [])
@@ -210,7 +210,7 @@ class WorkflowExecutor:
             start_node = next((n for n in nodes if n.get("data", {}).get("label") == "Start"), None)
             
             if start_node:
-                self.log(f"Found Start node: {start_node['id']}")
+                self.log(f"Found Start node: {start_node['id']}", level="system")
                 # Only execute nodes reachable from Start
                 reachable = {start_node["id"]}
                 stack = [start_node["id"]]
@@ -231,7 +231,7 @@ class WorkflowExecutor:
                 # Filter nodes and edges
                 nodes = [n for n in nodes if n["id"] in reachable]
                 edges = [e for e in edges if e.get("source") in reachable and e.get("target") in reachable]
-                self.log(f"Reachable nodes from Start: {len(nodes)}")
+                self.log(f"Reachable nodes from Start: {len(nodes)}", level="system")
             else:
                 self.log("No 'Start' node found. Executing all nodes in topological order.", level="warning")
 
@@ -272,7 +272,8 @@ class WorkflowExecutor:
                 self.db.commit()
                 self.db.refresh(node_exec)
 
-                self.log(f"Starting node: {node_id}")
+                node_name = node_data.get("data", {}).get("label") or node_id
+                self.log(f"Start: {node_name}", level="system")
 
                 # Track which downstream nodes to enqueue after this node
                 next_node_ids: list = []
@@ -381,7 +382,7 @@ class WorkflowExecutor:
                     outputs[node_id] = result
                     node_exec.status = WorkflowStatus.success
                     node_exec.output = result
-                    self.log(f"Node success: {node_id}")
+                    self.log(f"Success: {node_name}", level="system")
 
                     # --- Determine which downstream nodes to enqueue ---
                     # Read than / MAX_THAN from the NodeParameters instance (if any)
@@ -401,7 +402,7 @@ class WorkflowExecutor:
                         if max_than is not None and isinstance(max_than, int) and max_than > 0:
                             if than_val == 0:
                                 # Explicitly stopped — follow no branch
-                                self.log(f"Node {node_id}: than=0, blocking all outputs")
+                                self.log(f"{node_name}: than=0, блокируем все выходы", level="system")
                                 continue
                             expected_handle = f"than_{than_val}"
                             if source_handle and source_handle != expected_handle:
@@ -417,8 +418,9 @@ class WorkflowExecutor:
                     error_msg = traceback.format_exc()
                     node_exec.status = WorkflowStatus.failed
                     node_exec.error = error_msg
-                    self.log(f"Node failed: {node_id}\n{str(e)}", level="error")
+                    self.log(f"Ошибка {node_name}:\n{str(e)}", level="error")
                     all_success = False
+
                     # On failure, do NOT enqueue downstream nodes of this path
                     next_node_ids = []
 
