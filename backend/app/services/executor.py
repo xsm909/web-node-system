@@ -211,52 +211,99 @@ class WorkflowExecutor:
             
             if start_node:
                 self.log(f"Found Start node: {start_node['id']}", level="system")
-                # Only execute nodes reachable from Start
-                reachable = {start_node["id"]}
-                stack = [start_node["id"]]
-                adj = {n["id"]: [] for n in nodes}
-                for edge in edges:
-                    src = edge.get("source")
-                    tgt = edge.get("target")
-                    if src in adj:
-                        adj[src].append(tgt)
+                # Expanded Reachability: Sequential successors + Side-dependency providers
+                reachable: set = {start_node["id"]}
+                reach_stack: list = [start_node["id"]]
                 
-                while stack:
-                    curr = stack.pop()
-                    for neighbor in adj.get(curr, []):
+                # Pre-map all edges for efficient lookup
+                fwd_adj = {n["id"]: [] for n in nodes}
+                bwd_adj = {n["id"]: [] for n in nodes}
+                for edge in edges:
+                    s = edge.get("source")
+                    t = edge.get("target")
+                    if s in fwd_adj: fwd_adj[s].append(t)
+                    if t in bwd_adj: bwd_adj[t].append(s)
+
+                while reach_stack:
+                    curr = reach_stack.pop()
+                    # 1. Forward sequential successors
+                    for neighbor in fwd_adj.get(curr, []):
                         if neighbor not in reachable:
                             reachable.add(neighbor)
-                            stack.append(neighbor)
+                            reach_stack.append(neighbor)
+                    # 2. Backward side-dependency providers
+                    # If this node is reachable, its providers MUST be reachable
+                    for neighbor in bwd_adj.get(curr, []):
+                        if neighbor not in reachable:
+                            reachable.add(neighbor)
+                            reach_stack.append(neighbor)
                 
-                # Filter nodes and edges
+                # Filter nodes and edges to the expanded reachable set
                 nodes = [n for n in nodes if n["id"] in reachable]
                 edges = [e for e in edges if e.get("source") in reachable and e.get("target") in reachable]
-                self.log(f"Reachable nodes from Start: {len(nodes)}", level="system")
+                self.log(f"Expanded reachable set size: {len(nodes)}", level="system")
             else:
                 self.log("No 'Start' node found. Executing all nodes in topological order.", level="warning")
 
-            # --- BFS-based dynamic execution (respects than/MAX_THAN branching) ---
-            # Start from the Start node (or all zero-in-degree nodes if no Start)
-            if start_node:
-                queue = [start_node["id"]]
-            else:
-                # Fall back: enqueue all nodes with no incoming edges
-                in_deg = {n["id"]: 0 for n in nodes}
-                for edge in edges:
-                    t = edge.get("target")
-                    if t in in_deg:
-                        in_deg[t] += 1
-                queue = [nid for nid, d in in_deg.items() if d == 0]
+            # --- Dependency-Aware Execution Loop ---
+            # Initial queue: Nodes in reachable set that have 0 incoming edges (sequential or side)
+            # OR Start node itself.
+            # Initial queue: Nodes in reachable set that have 0 SEQUENTIAL incoming edges
+            # (targetHandle is None, "", or "top")
+            initial_queue = []
+            for n in nodes:
+                nid = n["id"]
+                # A node is a sequential root if it has no sequential incoming edges
+                # within the current reachable context
+                has_seq_incoming = any(
+                    e.get("target") == nid and 
+                    e.get("targetHandle") in (None, "", "top") 
+                    for e in edges
+                )
+                if not has_seq_incoming or nid == (start_node["id"] if start_node else None):
+                    if nid not in initial_queue:
+                        initial_queue.append(nid)
 
-            visited: set = set()
+            queue = list(initial_queue)
+            triggered = set(initial_queue)
+            waiting = set()
             outputs: dict = {}
             all_success = True
 
-            while queue:
-                node_id = queue.pop(0)
-                if node_id in visited:
+            while queue or waiting:
+                if not queue:
+                    # If queue is empty but nodes are waiting, check if any are now ready
+                    # This happens when side-providers finish
+                    ready_nids = []
+                    for wid in list(waiting):
+                        node_edges = [e for e in edges if e.get("target") == wid]
+                        side_deps = [e.get("source") for e in node_edges if e.get("targetHandle") and e.get("targetHandle") not in (None, "", "top")]
+                        if all(s in outputs for s in side_deps):
+                            ready_nids.append(wid)
+                    
+                    if not ready_nids:
+                        self.log(f"Stall detected: Nodes {list(waiting)} waiting for unresolved dependencies.", level="critical")
+                        all_success = False
+                        break
+                    
+                    for r in ready_nids:
+                        waiting.remove(r)
+                        queue.append(r)
                     continue
-                visited.add(node_id)
+
+                node_id = queue.pop(0)
+                if node_id in outputs: # Already executed
+                    continue
+
+                # Check side dependencies BEFORE execution
+                node_edges = [e for e in edges if e.get("target") == node_id]
+                # Side dependencies are those hooked into NAMED handles (not 'top')
+                side_deps = [e.get("source") for e in node_edges if e.get("targetHandle") and e.get("targetHandle") not in (None, "", "top")]
+                
+                missing_deps = [s for s in side_deps if s not in outputs]
+                if missing_deps:
+                    waiting.add(node_id)
+                    continue
 
                 self.current_node_id = node_id
                 node_data = node_map.get(node_id)
@@ -290,18 +337,35 @@ class WorkflowExecutor:
                     # Collect inputs from upstream nodes
                     inputs = {}
                     prior_output_value = None
+                    # We will also track which inputs were provided for specific target handles
+                    handle_inputs = {}
+
                     for edge in edges:
                         if edge.get("target") == node_id:
                             src_id = edge.get("source")
+                            tgt_handle = edge.get("targetHandle")
+                            
                             if src_id in outputs:
                                 src_out = outputs[src_id]
+                                
+                                # ALWAYS update inputs dict for backward compatibility
+                                # Nodes often expect all incoming data in the first argument
                                 inputs.update(src_out)
                                 
-                                # Extract the prior output for generic Input injection
+                                # Extract the prior output for generic Input injection AND named handle injection
+                                extracted_val = None
                                 if len(src_out) == 1:
-                                    prior_output_value = list(src_out.values())[0]
+                                    extracted_val = list(src_out.values())[0]
                                 elif len(src_out) > 1:
-                                    prior_output_value = src_out
+                                    extracted_val = src_out
+                                
+                                # If it's a generic connection (Top input), set prior_output_value for NodeParameters.Input
+                                if not tgt_handle or tgt_handle in (None, "", "top"):
+                                    prior_output_value = extracted_val
+                                
+                                # Record named handles for inputParameters mapping
+                                if tgt_handle:
+                                    handle_inputs[tgt_handle] = extracted_val
 
 
 
@@ -350,10 +414,25 @@ class WorkflowExecutor:
                         if prior_output_value is not None and hasattr(node_params_inst, "Input"):
                             setattr(node_params_inst, "Input", prior_output_value)
 
-                        # Populate from graph params
+                    # Handle InputParameters injection
+                    input_params_class = node_globals.get("InputParameters")
+                    if input_params_class and isinstance(input_params_class, type):
+                        input_params_inst = node_globals.get("inputParameters")
+                        if not input_params_inst or not isinstance(input_params_inst, input_params_class):
+                            input_params_inst = input_params_class()
+                            node_globals["inputParameters"] = input_params_inst
+                            
+                        # Populate specific handles based on edges
+                        for handle_name, val in handle_inputs.items():
+                            if val is None:
+                                self.log(f"Warning: Input handle '{handle_name}' received a null value", level="warning")
+                            if hasattr(input_params_inst, handle_name):
+                                setattr(input_params_inst, handle_name, val)
+
+                    # Populate from graph params (e.g. settings from UI)
+                    if node_params_inst:
                         node_type_params = node_type.parameters if node_type else []
                         param_types = {p["name"]: p["type"] for p in node_type_params if "name" in p and "type" in p}
-
 
                         for key, value in params.items():
                             if hasattr(node_params_inst, key):
@@ -395,8 +474,18 @@ class WorkflowExecutor:
                     for edge in edges:
                         if edge.get("source") != node_id:
                             continue
-                        source_handle = edge.get("sourceHandle")  # e.g. "than_1" or None
+                        
                         target_id = edge.get("target")
+                        tgt_handle = edge.get("targetHandle")
+                        
+                        # DATA DEPENDENCIES (not sequential triggers)
+                        # If the edge goes into a named handle, it does NOT trigger the target node.
+                        # It only provides data that will be used when the target is triggered sequentially.
+                        if tgt_handle and tgt_handle not in (None, "", "top"):
+                            # This is a side-provider edge, do NOT trigger successor
+                            continue
+
+                        source_handle = edge.get("sourceHandle")  # e.g. "than_1" or None
 
                         # If this node uses branching (MAX_THAN is defined and > 0)
                         if max_than is not None and isinstance(max_than, int) and max_than > 0:
@@ -411,8 +500,22 @@ class WorkflowExecutor:
                             # Correct branch (or edge has no sourceHandle — legacy compat)
                         # else: non-branching node, always follow all outgoing edges
 
-                        if target_id and target_id not in visited:
-                            next_node_ids.append(target_id)
+                        if target_id and target_id not in outputs:
+                            if target_id not in triggered:
+                                triggered.add(target_id)
+                                queue.append(target_id)
+
+                    # Check if any WAITING node is now ready because this node finished
+                    ready_now = []
+                    for wid in list(waiting):
+                        w_edges = [e for e in edges if e.get("target") == wid]
+                        w_side_deps = [e.get("source") for e in w_edges if e.get("targetHandle") and e.get("targetHandle") not in (None, "", "top")]
+                        if all(s in outputs for s in w_side_deps):
+                            ready_now.append(wid)
+                    
+                    for r in ready_now:
+                        waiting.remove(r)
+                        queue.append(r)
 
                 except Exception as e:
                     error_msg = traceback.format_exc()
@@ -422,12 +525,9 @@ class WorkflowExecutor:
                     all_success = False
 
                     # On failure, do NOT enqueue downstream nodes of this path
-                    next_node_ids = []
-
+                    # We continue with other branches if possible
+                
                 self.db.commit()
-
-                # Enqueue next nodes determined during this node's execution
-                queue.extend(next_node_ids)
 
             self.execution.status = WorkflowStatus.success if all_success else WorkflowStatus.failed
             self.execution.result_summary = "Completed successfully" if all_success else "One or more nodes failed"

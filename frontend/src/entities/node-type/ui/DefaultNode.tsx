@@ -1,20 +1,19 @@
-import { memo } from 'react';
-import { Handle, Position } from 'reactflow';
+import { memo, useEffect } from 'react';
+import { Handle, Position, useUpdateNodeInternals } from 'reactflow';
 import { Icon } from '../../../shared/ui/icon';
 
 /** Branch handle colors cycling through a small palette */
-const BRANCH_COLORS = [
-    '#f59e0b', // amber
-    '#3b82f6', // blue
-    '#a855f7', // purple
-    '#10b981', // emerald
-    '#ef4444', // red
-    '#06b6d4', // cyan
-];
 
-export const DefaultNode = memo(({ data, selected }: any) => {
+export const DefaultNode = memo(({ id, data, selected }: any) => {
+    const updateNodeInternals = useUpdateNodeInternals();
     const maxThan: number = Number(data?.maxThan ?? 0);
     const hasBranching = maxThan >= 2;
+
+    // Force React Flow to recalculate handle bounds when geometry/provider logic changes
+    const inputsLength = data.inputs?.length || 0;
+    useEffect(() => {
+        updateNodeInternals(id);
+    }, [data.isRightInputProvider, inputsLength, maxThan, id, updateNodeInternals]);
 
     return (
         <div
@@ -69,13 +68,43 @@ export const DefaultNode = memo(({ data, selected }: any) => {
                 </div>
             )}
 
-            {/* Input handle (top) */}
-            <Handle
-                type="target"
-                position={Position.Top}
-                className={`!w-4 !h-4 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair ${selected ? '!bg-brand' : '!bg-[var(--text-muted)]'
-                    }`}
-            />
+            {/* Input handles (right edge) dynamically based on input_schema.inputs */}
+            {data.inputs && Array.isArray(data.inputs) && data.inputs.length > 0 && (
+                <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center items-end pointer-events-none">
+                    {data.inputs.map((input: any) => {
+                        return (
+                            <div key={input.name} className="relative flex items-center mb-6 last:mb-0 pointer-events-auto" style={{ right: -8 }}>
+                                <span className="mr-1 text-[10px] font-bold text-[var(--text-muted)] bg-surface-900 px-1 py-0.5 rounded shadow-sm opacity-80 whitespace-nowrap">
+                                    {input.label || input.name}
+                                </span>
+                                <Handle
+                                    type="target"
+                                    position={Position.Right}
+                                    id={input.name}
+                                    style={{
+                                        position: 'relative',
+                                        transform: 'none',
+                                    }}
+                                    className={`!w-4 !h-4 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair ${selected ? '!bg-brand' : '!bg-[var(--text-muted)]'
+                                        }`}
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Input handle (top) ALWAYS present unless provider */}
+            {!data.isRightInputProvider && (
+                <Handle
+                    key="top-input"
+                    type="target"
+                    position={Position.Top}
+                    id="top"
+                    className={`!w-4 !h-4 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair ${selected ? '!bg-brand' : '!bg-[var(--text-muted)]'
+                        }`}
+                />
+            )}
 
             {/* Output handle(s) — single for normal nodes, N for branching nodes */}
             {hasBranching ? (
@@ -115,8 +144,10 @@ export const DefaultNode = memo(({ data, selected }: any) => {
                 })
             ) : (
                 <Handle
+                    key={data.isRightInputProvider ? 'left-output' : 'bottom-output'}
                     type="source"
-                    position={Position.Bottom}
+                    id="output"
+                    position={data.isRightInputProvider ? Position.Left : Position.Bottom}
                     className={`!w-4 !h-4 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair ${selected ? '!bg-brand' : '!bg-[var(--text-muted)]'
                         }`}
                 />

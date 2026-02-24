@@ -87,7 +87,7 @@ Never using regular id in table of data base using UID (UUID)
 
 ### 4.3 Workflow & Node Model
 
-**Node**
+**Node Properties**
 
 - Unique name + version (for future updates/compatibility)  
 - Typed inputs and outputs (supported: primitives, arrays, objects, JSON, file paths/URLs, binary data)  
@@ -182,3 +182,23 @@ design like  - https://protocol.tailwindui.com/pagination
 ## 9 icons
 
 ### 9.1 using icons from https://fonts.google.com/icons and download them as svg to assets/icons folder
+
+## 10. Types of Nodes
+
+The system supports 4 static node types and 1 dynamic behavior based on graph context:
+
+1. **Start Node**: The mandatory entry point of the workflow.
+   - *Inputs*: None
+   - *Outputs*: 1 (Bottom)
+2. **Regular Node**: Standard execution step.
+   - *Inputs*: 1 (Top)
+   - *Outputs*: 1 (Bottom)
+3. **Conditional Node**: Branching logic node.
+   - *Inputs*: 1 (Top)
+   - *Outputs*: 2 or more (Bottom)
+4. **Special Node**: Agent/Complex node that accepts dependencies.
+   - *Inputs*: 1 (Top) + N named inputs (Right edge) defined via `InputParameters`.
+   - *Outputs*: 1 (Bottom)
+5. **Dynamic Provider Node (Right-Connected)**: When a Regular node is connected to the right-side input of a Special node, it dynamically adapts its UI:
+   - *Inputs*: Hidden (it acts purely as a data provider).
+   - *Outputs*: Moved to the Left edge to naturally wire into the Special node's right edge.

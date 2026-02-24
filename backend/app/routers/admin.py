@@ -93,6 +93,49 @@ def extract_node_parameters(code: str) -> list:
     return []
 
 
+def extract_input_parameters(code: str) -> list:
+    """Extract parameters from class InputParameters in the code."""
+    import re
+    
+    def _parse_class_body(tree) -> list:
+        inputs = []
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef) and node.name == "InputParameters":
+                for item in node.body:
+                    name = None
+                    
+                    if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+                        name = item.target.id
+                    elif isinstance(item, ast.Assign) and len(item.targets) == 1 and isinstance(item.targets[0], ast.Name):
+                        name = item.targets[0].id
+                        
+                    if name:
+                        inputs.append({
+                            "name": name,
+                            "label": name.replace("_", " ").title()
+                        })
+                return inputs
+        return []
+
+    # Try full parse first
+    try:
+        tree = ast.parse(code)
+        return _parse_class_body(tree)
+    except SyntaxError:
+        pass
+
+    # Fallback: extract only the InputParameters class block via regex
+    try:
+        match = re.search(r'(class\s+InputParameters\s*:.*?)(?=\n(?:class\s|def\s)|\Z)', code, re.DOTALL)
+        if match:
+            class_code = match.group(1)
+            tree = ast.parse(class_code)
+            return _parse_class_body(tree)
+    except Exception:
+        pass
+    return []
+
+
 class UserCreate(BaseModel):
     username: str
     password: str
@@ -191,6 +234,13 @@ def list_node_types(db: Session = Depends(get_db), _=admin_only):
 def create_node_type(data: NodeTypeCreate, db: Session = Depends(get_db), _=admin_only):
     node_data = data.model_dump()
     node_data["parameters"] = extract_node_parameters(node_data["code"])
+    
+    extracted_inputs = extract_input_parameters(node_data["code"])
+    if extracted_inputs:
+        schema = node_data.get("input_schema") or {}
+        schema["inputs"] = extracted_inputs
+        node_data["input_schema"] = schema
+        
     node = NodeType(**node_data)
     db.add(node)
     db.commit()
@@ -206,6 +256,17 @@ def update_node_type(node_id: uuid.UUID, data: NodeTypeCreate, db: Session = Dep
     
     update_data = data.model_dump()
     update_data["parameters"] = extract_node_parameters(update_data["code"])
+    
+    extracted_inputs = extract_input_parameters(update_data["code"])
+    if extracted_inputs:
+        schema = update_data.get("input_schema") or {}
+        schema["inputs"] = extracted_inputs
+        update_data["input_schema"] = schema
+    elif "input_schema" in update_data and isinstance(update_data["input_schema"], dict) and "inputs" in update_data["input_schema"]:
+        # Remove inputs array if the class was removed
+        schema = update_data["input_schema"]
+        del schema["inputs"]
+        update_data["input_schema"] = schema
     
     for k, v in update_data.items():
         setattr(node, k, v)

@@ -132,7 +132,20 @@ export function WorkflowGraph({
     const onConnect = useCallback(
         (params: Connection) => {
             if (isReadOnly) return;
-            setEdges((eds) => addEdge(params, eds));
+            // Prevent same node connecting to itself
+            if (params.source === params.target) return;
+
+            // Ensure if targetHandle is not set or empty, it defaults to 'top'
+            // Unless the source is dropping explicitly onto a named targetHandle
+            const newEdgeParams: Edge = {
+                ...params,
+                source: params.source || '',
+                target: params.target || '',
+                id: `e_${params.source}-${params.target}-${Date.now()}`,
+                targetHandle: params.targetHandle || 'top',
+                sourceHandle: params.sourceHandle || 'output'
+            };
+            setEdges((eds) => addEdge(newEdgeParams, eds));
             (window as any)._connectionEstablished = true;
         },
         [setEdges, isReadOnly]
@@ -175,23 +188,14 @@ export function WorkflowGraph({
         }
 
         const newNodeId = `node_${Date.now()}`;
-        const sourceNode = nodes.find(n => n.id === connectionStart.nodeId);
         const flowPos = screenToFlowPosition({ x: position.x, y: position.y });
-
-        const sourceWidth = sourceNode?.width ?? 250;
-        const sourceHeight = sourceNode?.height ?? 100;
-        const targetWidth = 250;
 
         const newNode: Node = {
             id: newNodeId,
             type: 'action',
             position: {
-                x: sourceNode
-                    ? Math.round((sourceNode.position.x + sourceWidth / 2 - targetWidth / 2) / 10) * 10
-                    : Math.round(flowPos.x / 10) * 10,
-                y: sourceNode
-                    ? Math.round((sourceNode.position.y + sourceHeight + 40) / 10) * 10
-                    : Math.round(flowPos.y / 10) * 10
+                x: Math.round(flowPos.x / 10) * 10,
+                y: Math.round(flowPos.y / 10) * 10
             },
             data: {
                 label: type.name,
@@ -202,13 +206,27 @@ export function WorkflowGraph({
         setNodes((nds) => nds.concat(newNode));
 
         if (connectionStart.nodeId) {
-            const newEdge = {
-                id: `e_${connectionStart.nodeId}-${newNodeId}`,
-                source: connectionStart.nodeId,
-                sourceHandle: connectionStart.handleId,
-                target: newNodeId,
-                targetHandle: null,
-            };
+            let newEdge: any;
+            if (connectionStart.handleType === 'target') {
+                // Dragged from an input (target) handle, so the new node provides the data (source)
+                newEdge = {
+                    id: `e_${newNodeId}-${connectionStart.nodeId}`,
+                    source: newNodeId,
+                    sourceHandle: 'output',
+                    target: connectionStart.nodeId,
+                    targetHandle: connectionStart.handleId,
+                };
+            } else {
+                // Dragged from an output (source) handle, so the new node receives the data (target)
+                // We force targetHandle: 'top' so it points to the explicit top input, not a specialized Right input.
+                newEdge = {
+                    id: `e_${connectionStart.nodeId}-${newNodeId}`,
+                    source: connectionStart.nodeId,
+                    sourceHandle: connectionStart.handleId,
+                    target: newNodeId,
+                    targetHandle: 'top',
+                };
+            }
             setEdges((eds) => addEdge(newEdge, eds));
         }
 
@@ -267,18 +285,29 @@ export function WorkflowGraph({
 
     const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
+    const rightConnectedSources = new Set(
+        edges.filter(e => e.targetHandle && e.targetHandle !== 'null' && e.targetHandle !== 'top')
+            .map(e => e.source)
+    );
+
     // Inject isActive + maxThan (from nodeType definition) into each node's data
     const renderedNodes = nodes.map(node => {
         const ntDef = nodeTypes.find((t: NodeType) => t.name === (node.data?.nodeType || node.data?.label));
         // Determine MAX_THAN from nodeType parameters definition
         const maxThanParam = ntDef?.parameters?.find((p: any) => p.name === 'MAX_THAN');
         const maxThan = node.data?.params?.MAX_THAN ?? maxThanParam?.default ?? 0;
+
+        // Extract inputs from input_schema
+        const inputs = ntDef?.input_schema?.inputs || [];
+
         return {
             ...node,
             data: {
                 ...node.data,
                 isActive: activeNodeIds.includes(node.id),
                 maxThan: Number(maxThan),
+                inputs: inputs,
+                isRightInputProvider: rightConnectedSources.has(node.id)
             }
         };
     });
