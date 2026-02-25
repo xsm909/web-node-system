@@ -42,7 +42,7 @@ def database_query(query: str) -> str:
         ALLOWED_TABLES = {
             "example_table_read": "R",
             "example_table_write": "W",
-            "example_table_read_write": "RW"
+            "ai_results": "RW"
         }
         
         # Determine the type of operation
