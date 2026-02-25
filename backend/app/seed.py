@@ -62,8 +62,8 @@ def seed():
                 "version": "1.0",
                 "description": "Prints input value and passes it through",
                 "code": "def run(inputs, params):\n    value = inputs.get('value', params.get('message', 'Hello!'))\n    print(f'Node output: {value}')\n    return {'value': value}",
-                "input_schema": {"value": "string"},
-                "output_schema": {"value": "string"},
+                "input_schema": {"value": "string", "inputs": [{"name": "value", "label": "Value"}]},
+                "output_schema": {"value": "string", "outputs": [{"name": "value", "label": "Value"}]},
                 "parameters": [{"name": "message", "type": "string", "default": "Hello!"}],
                 "category": "Utility",
                 "icon": "print",
@@ -88,8 +88,17 @@ def seed():
                     "    result = libs.agent_run(model, memory, tools, prompt, inputs)\n"
                     "    return {'output': result}"
                 ),
-                "input_schema": {"model": "object", "memory": "object", "tools": "array"},
-                "output_schema": {"output": "string"},
+                "input_schema": {
+                    "model": "object", 
+                    "memory": "object", 
+                    "tools": "array",
+                    "inputs": [
+                        {"name": "model", "label": "Model"},
+                        {"name": "memory", "label": "Memory"},
+                        {"name": "tools", "label": "Tools"}
+                    ]
+                },
+                "output_schema": {"output": "string", "outputs": [{"name": "output", "label": "Output"}]},
                 "parameters": [{"name": "prompt", "type": "string", "default": "Help me with my task"}],
                 "category": "AI",
                 "icon": "smart_toy",
@@ -105,7 +114,7 @@ def seed():
                     "    return {'model': nodeParameters.model, 'provider': 'openai'}"
                 ),
                 "input_schema": {},
-                "output_schema": {"model": "object"},
+                "output_schema": {"model": "object", "outputs": [{"name": "model", "label": "Model"}]},
                 "parameters": [{"name": "model", "type": "string", "default": "gpt-4o-mini"}],
                 "category": "AI",
                 "icon": "settings_suggest",
@@ -121,7 +130,7 @@ def seed():
                     "    return {'type': 'window', 'size': nodeParameters.window_size}"
                 ),
                 "input_schema": {},
-                "output_schema": {"memory": "object"},
+                "output_schema": {"memory": "object", "outputs": [{"name": "memory", "label": "Memory"}]},
                 "parameters": [{"name": "window_size", "type": "number", "default": 5}],
                 "category": "AI",
                 "icon": "memory",
@@ -144,8 +153,8 @@ def seed():
                     "        'execute': libs.calculator\n"
                     "    }"
                 ),
-                "input_schema": {},
-                "output_schema": {"tool": "object"},
+                "input_schema": {"inputs": []},
+                "output_schema": {"tool": "object", "outputs": [{"name": "tool", "label": "Tool"}]},
                 "parameters": [],
                 "category": "AI Tools",
                 "icon": "calculate",
@@ -168,8 +177,8 @@ def seed():
                     "        'execute': libs.database_query\n"
                     "    }"
                 ),
-                "input_schema": {},
-                "output_schema": {"tool": "object"},
+                "input_schema": {"inputs": []},
+                "output_schema": {"tool": "object", "outputs": [{"name": "tool", "label": "Tool"}]},
                 "parameters": [],
                 "category": "AI Tools",
                 "icon": "database",
@@ -194,8 +203,8 @@ def seed():
                     "        'execute': libs.http_request\n"
                     "    }"
                 ),
-                "input_schema": {},
-                "output_schema": {"tool": "object"},
+                "input_schema": {"inputs": []},
+                "output_schema": {"tool": "object", "outputs": [{"name": "tool", "label": "Tool"}]},
                 "parameters": [],
                 "category": "AI Tools",
                 "icon": "http",
@@ -208,21 +217,45 @@ def seed():
                     "def run(inputs, params):\n"
                     "    return {\n"
                     "        'name': 'google_search',\n"
-                    "        'description': 'Searches the web for information',\n"
+                    "        'description': 'Searches the web for information using smart provider-aware tools',\n"
                     "        'parameters': {\n"
                     "            'type': 'object',\n"
                     "            'properties': {\n"
                     "                'query': {'type': 'string'}\n"
                     "            }\n"
                     "        },\n"
-                    "        'execute': libs.http_search\n"
+                    "        'execute': libs.smart_search\n"
                     "    }"
                 ),
-                "input_schema": {},
-                "output_schema": {"tool": "object"},
+                "input_schema": {"inputs": []},
+                "output_schema": {"tool": "object", "outputs": [{"name": "tool", "label": "Tool"}]},
                 "parameters": [],
                 "category": "AI Tools",
                 "icon": "search",
+            },
+            {
+                "name": "Tool: Smart Search",
+                "version": "1.0",
+                "description": "Provider-aware search tool that automatically uses the best available search for the active model (OpenAI, Gemini, Perplexity).",
+                "code": (
+                    "def run(inputs, params):\n"
+                    "    return {\n"
+                    "        'name': 'smart_search',\n"
+                    "        'description': 'Intelligent web search that adapts to the chosen AI model',\n"
+                    "        'parameters': {\n"
+                    "            'type': 'object',\n"
+                    "            'properties': {\n"
+                    "                'query': {'type': 'string'}\n"
+                    "            }\n"
+                    "        },\n"
+                    "        'execute': libs.smart_search\n"
+                    "    }"
+                ),
+                "input_schema": {"inputs": []},
+                "output_schema": {"tool": "object", "outputs": [{"name": "tool", "label": "Tool"}]},
+                "parameters": [],
+                "category": "AI Tools",
+                "icon": "travel_explore",
             },
         ]
 

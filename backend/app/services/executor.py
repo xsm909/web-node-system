@@ -20,7 +20,8 @@ from ..internal_libs.ask_ai import ask_ai, check_ai
 from ..internal_libs.struct_func import get_workflow_data, get_runtime_data, update_runtime_data, get_runtime_schema
 from ..internal_libs.openai_lib import create_new_conversation, set_prompt, ask_ai as openai_ask_ai, ask_AI as openai_ask_AI
 from ..internal_libs.agent_lib import agent_run
-from ..internal_libs.tools_lib import calculator, database_query, http_request, http_search
+from ..internal_libs.tools_lib import calculator, database_query, http_request, http_search, smart_search, save_ai_result
+from ..internal_libs.logger_lib import executor_logger
 
 
 def json_sanitize(obj):
@@ -77,6 +78,8 @@ SAFE_GLOBALS = {
         database_query=database_query,
         http_request=http_request,
         http_search=http_search,
+        smart_search=smart_search,
+        save_ai_result=save_ai_result,
     ),
     "openai": SimpleNamespace(
         create_new_conversation=create_new_conversation,
@@ -197,6 +200,9 @@ class WorkflowExecutor:
             workflow = self.db.query(Workflow).filter(Workflow.id == self.execution.workflow_id).first()
             if not workflow:
                 return
+
+            # Set the logger context for this execution thread
+            token = executor_logger.set(self.log)
 
             self.execution.status = WorkflowStatus.running
             self.db.commit()
@@ -527,6 +533,9 @@ class WorkflowExecutor:
                 self.log(f"Workflow execution failed: {str(e)}", level="critical")
                 self.db.commit()
         finally:
+            # Clear the logger context
+            if 'token' in locals():
+                executor_logger.reset(token)
             self.db.close()
 
 
