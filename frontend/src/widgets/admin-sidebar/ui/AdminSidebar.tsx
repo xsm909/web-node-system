@@ -1,4 +1,5 @@
 import { Icon } from '../../../shared/ui/icon';
+import { ThemeToggle } from '../../../shared/ui/theme-toggle/ThemeToggle';
 
 interface AdminSidebarProps {
     activeTab: 'users' | 'nodes' | 'credentials';
@@ -63,14 +64,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
                 </button>
             </nav>
 
-            <div className="p-4 border-t border-[var(--border-base)]">
+            <div className="p-4 border-t border-[var(--border-base)] flex gap-2">
                 <button
                     onClick={onLogout}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold text-[var(--text-muted)] border border-[var(--border-base)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all active:scale-[0.98]"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold text-[var(--text-muted)] border border-[var(--border-base)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all active:scale-[0.98]"
                 >
                     <Icon name="logout" size={18} />
                     Sign Out
                 </button>
+                <ThemeToggle />
             </div>
         </aside>
     );

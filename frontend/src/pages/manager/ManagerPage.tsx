@@ -12,6 +12,7 @@ import { useWorkflowOperations } from '../../features/workflow-operations';
 import { useWorkflowManagement } from '../../features/workflow-management';
 
 import { Icon } from '../../shared/ui/icon';
+import { ThemeToggle } from '../../shared/ui/theme-toggle/ThemeToggle';
 
 export default function ManagerPage() {
     const { logout } = useAuthStore();
@@ -128,15 +129,18 @@ export default function ManagerPage() {
                             <div className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-wider truncate opacity-60">{currentUser?.role}</div>
                         </div>
                     </div>
-                    <button
-                        className="w-full px-4 py-3 rounded-2xl text-xs font-bold text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 border border-[var(--border-base)] hover:border-red-500/20 transition-all flex items-center justify-center gap-2 active:scale-95"
-                        onClick={logout}
-                    >
-                        <Icon name="logout" size={16} />
-                        <span>Sign Out</span>
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            className="flex-1 px-4 py-3 rounded-2xl text-xs font-bold text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 border border-[var(--border-base)] hover:border-red-500/20 transition-all flex items-center justify-center gap-2 active:scale-95"
+                            onClick={logout}
+                        >
+                            <Icon name="logout" size={16} />
+                            <span>Sign Out</span>
+                        </button>
+                        <ThemeToggle />
+                    </div>
                 </div>
-            </aside>
+            </aside >
 
 
             <main className="flex-1 flex flex-col min-w-0 relative">
@@ -212,7 +216,7 @@ export default function ManagerPage() {
                     onCancel={() => setWorkflowToDelete(null)}
                 />
             </main>
-        </div>
+        </div >
     );
 }
 

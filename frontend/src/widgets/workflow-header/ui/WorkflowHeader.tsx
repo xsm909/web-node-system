@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { WorkflowTree } from '../../workflow-tree';
 import type { Workflow } from '../../../entities/workflow/model/types';
 import type { AssignedUser } from '../../../entities/user/model/types';
-import { ThemeToggle } from '../../../shared/ui/theme-toggle/ThemeToggle';
 
 interface WorkflowHeaderProps {
     title: string;

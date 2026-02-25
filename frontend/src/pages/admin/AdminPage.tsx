@@ -6,7 +6,6 @@ import { AdminNodeLibrary } from '../../widgets/admin-node-library';
 import { AdminCredentialManagement } from '../../widgets/admin-credential-management';
 import { NodeTypeFormModal } from '../../widgets/node-type-form-modal';
 import { useNodeTypeManagement } from '../../features/node-type-management';
-import { ThemeToggle } from '../../shared/ui/theme-toggle/ThemeToggle';
 
 import { Icon } from '../../shared/ui/icon';
 
@@ -41,8 +40,6 @@ export default function AdminPage() {
                     </h1>
 
                     <div className="flex items-center gap-4">
-                        <ThemeToggle />
-                        <div className="w-px h-6 bg-[var(--border-base)] mx-1" />
                         {activeTab === 'nodes' && (
                             <button
                                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand hover:brightness-110 text-white text-sm font-bold shadow-lg shadow-brand/20 transition-all active:scale-[0.98]"
