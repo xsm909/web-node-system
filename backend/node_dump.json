@@ -1,0 +1,99 @@
+[
+  {
+    "id": "4f18493ef5c346e0aaa2f954ef54e9ff",
+    "name": "Start",
+    "version": "1.0",
+    "description": "Entry point of the workflow execution system.",
+    "code": "def run(inputs, params):\n    print('Workflow started')\n    return {}",
+    "input_schema": {},
+    "output_schema": {},
+    "parameters": [],
+    "category": "System",
+    "is_async": 0,
+    "icon": "task"
+  },
+  {
+    "id": "a922f70d48384d7f9476cc473e04b8b4",
+    "name": "Print Node",
+    "version": "1.0",
+    "description": "Prints input value and passes it through",
+    "code": "def run(inputs, params):\n    value = inputs.get('value', params.get('message', 'Hello!'))\n    print(f'Node output: {value}')\n    return {'value': value}",
+    "input_schema": {
+      "value": "string"
+    },
+    "output_schema": {
+      "value": "string"
+    },
+    "parameters": [
+      {
+        "name": "message",
+        "type": "string",
+        "default": "Hello!"
+      }
+    ],
+    "category": "Utility",
+    "is_async": 0,
+    "icon": "task"
+  },
+  {
+    "id": "19c5d33839e34aabbe9a445660e73b65",
+    "name": "Ask AI",
+    "version": "1.0",
+    "description": "Asks Gemini AI a question using internal library.",
+    "code": "class NodeParameters:\n    question: str = 'What is the meaning of life?'\n\ndef run(inputs, params):\n    # Get question from inputs or params\n    question = inputs.get('question') or nodeParameters.question\n    print(f'Asking AI: {question}')\n\n    # Call internal library\n    result = libs.ask_ai(question)\n\n    return {'answer': result}",
+    "input_schema": {
+      "question": "string"
+    },
+    "output_schema": {
+      "answer": "string"
+    },
+    "parameters": [
+      {
+        "name": "question",
+        "type": "string",
+        "default": "What is the meaning of life?"
+      }
+    ],
+    "category": "AI",
+    "is_async": 0,
+    "icon": "task"
+  },
+  {
+    "id": "2a2c76b0face4efbb2ab430ffec73257",
+    "name": "Condition",
+    "version": "1.0",
+    "description": "If/else branching node. Compares A and B, routes to branch 1 (equal) or branch 2 (not equal).",
+    "code": "class NodeParameters:\n    A: int = 1\n    B: int = 1\n    than: int = 0\n    MAX_THAN: int = 2\n\ndef run(inputs, params):\n    if nodeParameters.A == nodeParameters.B:\n        nodeParameters.than = 1\n    else:\n        nodeParameters.than = 2\n    return {\"response\": \"ok\"}\n",
+    "input_schema": {},
+    "output_schema": {},
+    "parameters": [
+      {
+        "name": "A",
+        "type": "number",
+        "label": "A",
+        "default": 1
+      },
+      {
+        "name": "B",
+        "type": "number",
+        "label": "B",
+        "default": 1
+      },
+      {
+        "name": "than",
+        "type": "number",
+        "label": "Than",
+        "default": 0
+      },
+      {
+        "name": "MAX_THAN",
+        "type": "number",
+        "label": "Max Than",
+        "default": 2
+      }
+    ],
+    "category": "Logic",
+    "is_async": 0,
+    "icon": "task"
+  }
+]
