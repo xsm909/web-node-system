@@ -8,5 +8,6 @@ export interface NodeType {
     output_schema: any;
     parameters?: any[];
     category?: string;
+    icon?: string;
     is_async: boolean;
 }

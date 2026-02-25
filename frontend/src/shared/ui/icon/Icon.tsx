@@ -2,14 +2,16 @@ import React, { useEffect, useState } from 'react';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
     name: string;
+    dir?: 'icons' | 'node_icons';
     size?: number | string;
 }
 
-export const Icon: React.FC<IconProps> = ({ name, size = 20, className = '', ...props }) => {
+export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, className = '', ...props }) => {
     const [svgContent, setSvgContent] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch(`/src/assets/icons/${name}.svg`)
+        const path = dir === 'icons' ? `/src/assets/icons/${name}.svg` : `/src/assets/node_icons/${name}.svg`;
+        fetch(path)
             .then(res => res.text())
             .then(text => {
                 // Extract only the path or inner content if needed, 

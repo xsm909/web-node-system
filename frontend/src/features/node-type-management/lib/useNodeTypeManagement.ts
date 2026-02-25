@@ -22,6 +22,7 @@ export function useNodeTypeManagement() {
                 output_schema: {},
                 parameters: [],
                 category: '',
+                icon: 'task',
                 is_async: false
             });
         }

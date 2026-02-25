@@ -72,15 +72,19 @@ export function WorkflowGraph({
         const loadedNodes = graphNodes.map((n: any) => {
             const base = n.type === 'default' ? { ...n, type: 'action' } : { ...n };
             // Merge default params from nodeType so existing nodes get any newly added parameters
-            const ntDef = nodeTypes.find((t: NodeType) => t.name === (base.data?.nodeType || base.data?.label));
-            if (ntDef?.parameters) {
+            const ntDef = nodeTypes.find((t: NodeType) =>
+                t.name.toLowerCase() === (base.data?.nodeType || base.data?.label || '').toLowerCase()
+            );
+            if (ntDef) {
                 const merged = { ...(base.data?.params || {}) };
-                ntDef.parameters.forEach((p: any) => {
-                    if (merged[p.name] === undefined && p.default !== undefined && p.default !== null) {
-                        merged[p.name] = p.default;
-                    }
-                });
-                base.data = { ...base.data, params: merged };
+                if (ntDef.parameters) {
+                    ntDef.parameters.forEach((p: any) => {
+                        if (merged[p.name] === undefined && p.default !== undefined && p.default !== null) {
+                            merged[p.name] = p.default;
+                        }
+                    });
+                }
+                base.data = { ...base.data, params: merged, icon: ntDef.icon || base.data?.icon };
             }
             return base;
         });
@@ -98,7 +102,7 @@ export function WorkflowGraph({
                 }
             }, 50);
         }
-    }, [workflow]); // reload nodes/edges whenever workflow changes; setCenter only fires on id change
+    }, [workflow, nodeTypes]); // reload nodes/edges whenever workflow or node types change
 
     // Propagate changes up
     useEffect(() => {
@@ -199,7 +203,8 @@ export function WorkflowGraph({
             },
             data: {
                 label: type.name,
-                params: initialParams
+                params: initialParams,
+                icon: type.icon
             },
         };
 
@@ -292,7 +297,9 @@ export function WorkflowGraph({
 
     // Inject isActive + maxThan (from nodeType definition) into each node's data
     const renderedNodes = nodes.map(node => {
-        const ntDef = nodeTypes.find((t: NodeType) => t.name === (node.data?.nodeType || node.data?.label));
+        const ntDef = nodeTypes.find((t: NodeType) =>
+            t.name.toLowerCase() === (node.data?.nodeType || node.data?.label || '').toLowerCase()
+        );
         // Determine MAX_THAN from nodeType parameters definition
         const maxThanParam = ntDef?.parameters?.find((p: any) => p.name === 'MAX_THAN');
         const maxThan = node.data?.params?.MAX_THAN ?? maxThanParam?.default ?? 0;
@@ -307,6 +314,7 @@ export function WorkflowGraph({
                 isActive: activeNodeIds.includes(node.id),
                 maxThan: Number(maxThan),
                 inputs: inputs,
+                icon: ntDef?.icon || node.data?.icon,
                 isRightInputProvider: rightConnectedSources.has(node.id)
             }
         };

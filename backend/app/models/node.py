@@ -15,4 +15,5 @@ class NodeType(Base):
     output_schema = Column(JSON, nullable=False, default={})
     parameters = Column(JSON, nullable=False, default=[])
     category = Column(String(50), nullable=True)
+    icon = Column(String(100), nullable=True, default="task")
     is_async = Column(Boolean, default=False)

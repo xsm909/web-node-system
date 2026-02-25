@@ -160,6 +160,7 @@ class NodeTypeCreate(BaseModel):
     output_schema: dict = {}
     parameters: list = []
     category: Optional[str] = ""
+    icon: Optional[str] = "task"
     is_async: bool = False
 
 
@@ -173,6 +174,7 @@ class NodeTypeOut(BaseModel):
     output_schema: dict
     parameters: list
     category: Optional[str] = None
+    icon: Optional[str] = "task"
     is_async: bool
 
     class Config:
