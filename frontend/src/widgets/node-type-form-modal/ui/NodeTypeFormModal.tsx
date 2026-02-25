@@ -5,7 +5,7 @@ import { python } from '@codemirror/lang-python';
 import { autocompletion, snippetCompletion } from '@codemirror/autocomplete';
 import { indentUnit } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
-import { Icon } from '../../../shared/ui/icon';
+import { IconPicker } from '../../../shared/ui/icon';
 
 interface NodeTypeFormModalProps {
     isOpen: boolean;
@@ -149,25 +149,10 @@ export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
                                     </div>
                                     <div className="space-y-3">
                                         <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Node Icon</label>
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] flex items-center justify-center text-[var(--text-main)] shadow-inner">
-                                                <Icon name={formData.icon || 'task'} dir="node_icons" size={24} />
-                                            </div>
-                                            <select
-                                                className="flex-1 px-5 py-4 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold appearance-none"
-                                                value={formData.icon || 'task'}
-                                                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                                            >
-                                                {Object.keys(import.meta.glob('../../../assets/node_icons/*.svg')).map((path) => {
-                                                    const name = path.split('/').pop()?.replace('.svg', '') || '';
-                                                    return (
-                                                        <option key={name} value={name}>
-                                                            {name.charAt(0).toUpperCase() + name.slice(1)}
-                                                        </option>
-                                                    );
-                                                })}
-                                            </select>
-                                        </div>
+                                        <IconPicker
+                                            value={formData.icon || 'task'}
+                                            onChange={(val) => setFormData({ ...formData, icon: val })}
+                                        />
                                     </div>
                                 </div>
 
