@@ -11,6 +11,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
 
     // Force React Flow to recalculate handle bounds when geometry/provider logic changes
     const inputsLength = data.inputs?.length || 0;
+    const nodeIcon = data.icon || 'task';
     useEffect(() => {
         updateNodeInternals(id);
     }, [data.isRightInputProvider, inputsLength, maxThan, id, updateNodeInternals]);
@@ -49,7 +50,12 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
             {data.isRightInputProvider ? (
                 <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center transition-all shadow-inner ${data.isActive || selected ? 'bg-brand/20 text-brand border-brand/30' : 'bg-surface-700 text-[var(--text-muted)] border-[var(--border-base)] group-hover:bg-brand/10 group-hover:text-brand'
                     }`}>
-                    <Icon name={data.isActive ? "clock" : "bolt"} size={24} className={selected ? 'text-brand' : 'text-[var(--text-muted)] group-hover:text-brand'} />
+                    <Icon
+                        name={data.isActive ? "clock" : nodeIcon}
+                        dir={data.isActive ? 'icons' : 'node_icons'}
+                        size={24}
+                        className={selected ? 'text-brand' : 'text-[var(--text-muted)] group-hover:text-brand'}
+                    />
                 </div>
             ) : (
                 <>
