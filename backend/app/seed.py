@@ -1,5 +1,5 @@
 """
-Seed script: creates default admin, manager, and client users.
+Seed script: creates default admin, manager, and client users and default node types.
 Run once after `docker compose up`:
   docker compose exec backend python -m app.seed
 """
@@ -69,53 +69,160 @@ def seed():
                 "icon": "print",
             },
             {
-                "name": "Ask AI",
+                "name": "AI Agent",
                 "version": "1.0",
-                "description": "Asks Gemini AI a question using internal library.",
+                "description": "Modular AI Agent that uses tools, memory, and a chat model.",
                 "code": (
+                    "class InputParameters:\n"
+                    "    model: dict = None\n"
+                    "    memory: dict = None\n"
+                    "    tools: list = []\n\n"
                     "class NodeParameters:\n"
-                    "    question: str = 'What is the meaning of life?'\n\n"
+                    "    prompt: str = 'Help me with my task'\n\n"
                     "def run(inputs, params):\n"
-                    "    # Get question from inputs or params\n"
-                    "    question = inputs.get('question') or nodeParameters.question\n"
-                    "    print(f'Asking AI: {question}')\n\n"
-                    "    # Call internal library\n"
-                    "    result = libs.ask_ai(question)\n\n"
-                    "    return {'answer': result}"
+                    "    model = inputParameters.model\n"
+                    "    memory = inputParameters.memory\n"
+                    "    tools = inputParameters.tools\n"
+                    "    prompt = nodeParameters.prompt\n\n"
+                    "    print(f'Agent running with model: {model}, tools: {len(tools) if tools else 0}')\n"
+                    "    result = libs.agent_run(model, memory, tools, prompt, inputs)\n"
+                    "    return {'output': result}"
                 ),
-                "input_schema": {"question": "string"},
-                "output_schema": {"answer": "string"},
-                "parameters": [{"name": "question", "type": "string", "default": "What is the meaning of life?"}],
+                "input_schema": {"model": "object", "memory": "object", "tools": "array"},
+                "output_schema": {"output": "string"},
+                "parameters": [{"name": "prompt", "type": "string", "default": "Help me with my task"}],
                 "category": "AI",
                 "icon": "smart_toy",
             },
             {
-                "name": "Condition",
+                "name": "OpenAI Chat Model",
                 "version": "1.0",
-                "description": "If/else branching node. Compares A and B, routes to branch 1 (equal) or branch 2 (not equal).",
+                "description": "Configuration for OpenAI Chat Model.",
                 "code": (
                     "class NodeParameters:\n"
-                    "    A: int = 1\n"
-                    "    B: int = 1\n"
-                    "    than: int = 0\n"
-                    "    MAX_THAN: int = 2\n\n"
+                    "    model: str = 'gpt-4o-mini'\n\n"
                     "def run(inputs, params):\n"
-                    "    if nodeParameters.A == nodeParameters.B:\n"
-                    "        nodeParameters.than = 1\n"
-                    "    else:\n"
-                    "        nodeParameters.than = 2\n"
-                    "    return {'response': 'ok'}\n"
+                    "    return {'model': nodeParameters.model, 'provider': 'openai'}"
                 ),
                 "input_schema": {},
-                "output_schema": {},
-                "parameters": [
-                    {"name": "A", "type": "number", "label": "A", "default": 1},
-                    {"name": "B", "type": "number", "label": "B", "default": 1},
-                    {"name": "than", "type": "number", "label": "Than", "default": 0},
-                    {"name": "MAX_THAN", "type": "number", "label": "Max Than", "default": 2},
-                ],
-                "category": "Logic",
-                "icon": "call_split",
+                "output_schema": {"model": "object"},
+                "parameters": [{"name": "model", "type": "string", "default": "gpt-4o-mini"}],
+                "category": "AI",
+                "icon": "settings_suggest",
+            },
+            {
+                "name": "Window Memory",
+                "version": "1.0",
+                "description": "Chat memory with a fixed window size.",
+                "code": (
+                    "class NodeParameters:\n"
+                    "    window_size: int = 5\n\n"
+                    "def run(inputs, params):\n"
+                    "    return {'type': 'window', 'size': nodeParameters.window_size}"
+                ),
+                "input_schema": {},
+                "output_schema": {"memory": "object"},
+                "parameters": [{"name": "window_size", "type": "number", "default": 5}],
+                "category": "AI",
+                "icon": "memory",
+            },
+            {
+                "name": "Tool: Calculator",
+                "version": "1.0",
+                "description": "Mathematical calculation tool for AI Agent.",
+                "code": (
+                    "def run(inputs, params):\n"
+                    "    return {\n"
+                    "        'name': 'calculator',\n"
+                    "        'description': 'Calculates mathematical expressions',\n"
+                    "        'parameters': {\n"
+                    "            'type': 'object',\n"
+                    "            'properties': {\n"
+                    "                'expression': {'type': 'string'}\n"
+                    "            }\n"
+                    "        },\n"
+                    "        'execute': libs.calculator\n"
+                    "    }"
+                ),
+                "input_schema": {},
+                "output_schema": {"tool": "object"},
+                "parameters": [],
+                "category": "AI Tools",
+                "icon": "calculate",
+            },
+            {
+                "name": "Tool: Database",
+                "version": "1.0",
+                "description": "Database query tool for AI Agent.",
+                "code": (
+                    "def run(inputs, params):\n"
+                    "    return {\n"
+                    "        'name': 'database',\n"
+                    "        'description': 'Queries the primary database',\n"
+                    "        'parameters': {\n"
+                    "            'type': 'object',\n"
+                    "            'properties': {\n"
+                    "                'query': {'type': 'string'}\n"
+                    "            }\n"
+                    "        },\n"
+                    "        'execute': libs.database_query\n"
+                    "    }"
+                ),
+                "input_schema": {},
+                "output_schema": {"tool": "object"},
+                "parameters": [],
+                "category": "AI Tools",
+                "icon": "database",
+            },
+            {
+                "name": "Tool: HTTP Request",
+                "version": "1.0",
+                "description": "Generic HTTP Request tool for AI Agent.",
+                "code": (
+                    "def run(inputs, params):\n"
+                    "    return {\n"
+                    "        'name': 'http_request',\n"
+                    "        'description': 'Performs an HTTP request to any URL',\n"
+                    "        'parameters': {\n"
+                    "            'type': 'object',\n"
+                    "            'properties': {\n"
+                    "                'url': {'type': 'string'},\n"
+                    "                'method': {'type': 'string', 'default': 'GET'},\n"
+                    "                'data': {'type': 'string', 'blank': True}\n"
+                    "            }\n"
+                    "        },\n"
+                    "        'execute': libs.http_request\n"
+                    "    }"
+                ),
+                "input_schema": {},
+                "output_schema": {"tool": "object"},
+                "parameters": [],
+                "category": "AI Tools",
+                "icon": "http",
+            },
+            {
+                "name": "Tool: Google Search",
+                "version": "1.0",
+                "description": "Web search tool for AI Agent.",
+                "code": (
+                    "def run(inputs, params):\n"
+                    "    return {\n"
+                    "        'name': 'google_search',\n"
+                    "        'description': 'Searches the web for information',\n"
+                    "        'parameters': {\n"
+                    "            'type': 'object',\n"
+                    "            'properties': {\n"
+                    "                'query': {'type': 'string'}\n"
+                    "            }\n"
+                    "        },\n"
+                    "        'execute': libs.http_search\n"
+                    "    }"
+                ),
+                "input_schema": {},
+                "output_schema": {"tool": "object"},
+                "parameters": [],
+                "category": "AI Tools",
+                "icon": "search",
             },
         ]
 
@@ -133,10 +240,6 @@ def seed():
 
         db.commit()
         print("\nSeed completed successfully!")
-        print("\nDefault credentials:")
-        print("  Admin:   admin / admin123")
-        print("  Manager: manager1 / manager123")
-        print("  Client:  client1 / client123")
 
     finally:
         db.close()

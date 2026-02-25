@@ -4,6 +4,7 @@ Uses RestrictedPython to safely execute node code.
 """
 import traceback
 import time
+import json
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
@@ -11,13 +12,26 @@ import ast
 import uuid
 from types import SimpleNamespace
 from RestrictedPython import compile_restricted, safe_globals, safe_builtins, Guards, RestrictingNodeTransformer
+
 from ..core.database import SessionLocal
 from ..models.workflow import Workflow, WorkflowExecution, NodeExecution, WorkflowStatus
 from ..models.node import NodeType
 from ..internal_libs.ask_ai import ask_ai, check_ai
 from ..internal_libs.struct_func import get_workflow_data, get_runtime_data, update_runtime_data, get_runtime_schema
 from ..internal_libs.openai_lib import create_new_conversation, set_prompt, ask_ai as openai_ask_ai, ask_AI as openai_ask_AI
+from ..internal_libs.agent_lib import agent_run
+from ..internal_libs.tools_lib import calculator, database_query, http_request, http_search
 
+
+def json_sanitize(obj):
+    """Recursively converts non-serializable objects (like functions) into strings."""
+    if isinstance(obj, dict):
+        return {k: json_sanitize(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [json_sanitize(i) for i in obj]
+    elif callable(obj):
+        return str(obj)
+    return obj
 
 
 SAFE_GLOBALS = {
@@ -58,6 +72,11 @@ SAFE_GLOBALS = {
     "libs": SimpleNamespace(
         ask_ai=ask_ai,
         check_ai=check_ai,
+        agent_run=agent_run,
+        calculator=calculator,
+        database_query=database_query,
+        http_request=http_request,
+        http_search=http_search,
     ),
     "openai": SimpleNamespace(
         create_new_conversation=create_new_conversation,
@@ -160,7 +179,10 @@ class WorkflowExecutor:
         self.execution_logs.append(entry)
         if self.execution:
             self.execution.logs = list(self.execution_logs)
-            self.db.commit()
+            try:
+                self.db.commit()
+            except:
+                self.db.rollback()
 
     def restricted_print(self, *args, **kwargs):
         message = " ".join(map(str, args))
@@ -246,15 +268,9 @@ class WorkflowExecutor:
                 self.log("No 'Start' node found. Executing all nodes in topological order.", level="warning")
 
             # --- Dependency-Aware Execution Loop ---
-            # Initial queue: Nodes in reachable set that have 0 incoming edges (sequential or side)
-            # OR Start node itself.
-            # Initial queue: Nodes in reachable set that have 0 SEQUENTIAL incoming edges
-            # (targetHandle is None, "", or "top")
             initial_queue = []
             for n in nodes:
                 nid = n["id"]
-                # A node is a sequential root if it has no sequential incoming edges
-                # within the current reachable context
                 has_seq_incoming = any(
                     e.get("target") == nid and 
                     e.get("targetHandle") in (None, "", "top") 
@@ -272,8 +288,6 @@ class WorkflowExecutor:
 
             while queue or waiting:
                 if not queue:
-                    # If queue is empty but nodes are waiting, check if any are now ready
-                    # This happens when side-providers finish
                     ready_nids = []
                     for wid in list(waiting):
                         node_edges = [e for e in edges if e.get("target") == wid]
@@ -292,12 +306,10 @@ class WorkflowExecutor:
                     continue
 
                 node_id = queue.pop(0)
-                if node_id in outputs: # Already executed
+                if node_id in outputs: 
                     continue
 
-                # Check side dependencies BEFORE execution
                 node_edges = [e for e in edges if e.get("target") == node_id]
-                # Side dependencies are those hooked into NAMED handles (not 'top')
                 side_deps = [e.get("source") for e in node_edges if e.get("targetHandle") and e.get("targetHandle") not in (None, "", "top")]
                 
                 missing_deps = [s for s in side_deps if s not in outputs]
@@ -322,22 +334,18 @@ class WorkflowExecutor:
                 node_name = node_data.get("data", {}).get("label") or node_id
                 self.log(f"Start: {node_name}", level="system")
 
-                # Track which downstream nodes to enqueue after this node
                 next_node_ids: list = []
                 node_params_inst = None
 
                 try:
-                    # Get node type code
                     data = node_data.get("data", {})
                     node_type_name = data.get("nodeType") or data.get("label")
                     node_type = self.db.query(NodeType).filter(NodeType.name == node_type_name).first()
                     code = node_type.code if node_type else "def run(inputs, params):\n    return {}"
                     params = data.get("params", {})
 
-                    # Collect inputs from upstream nodes
                     inputs = {}
                     prior_output_value = None
-                    # We will also track which inputs were provided for specific target handles
                     handle_inputs = {}
 
                     for edge in edges:
@@ -347,29 +355,27 @@ class WorkflowExecutor:
                             
                             if src_id in outputs:
                                 src_out = outputs[src_id]
-                                
-                                # ALWAYS update inputs dict for backward compatibility
-                                # Nodes often expect all incoming data in the first argument
                                 inputs.update(src_out)
                                 
-                                # Extract the prior output for generic Input injection AND named handle injection
                                 extracted_val = None
                                 if len(src_out) == 1:
                                     extracted_val = list(src_out.values())[0]
                                 elif len(src_out) > 1:
                                     extracted_val = src_out
                                 
-                                # If it's a generic connection (Top input), set prior_output_value for NodeParameters.Input
                                 if not tgt_handle or tgt_handle in (None, "", "top"):
                                     prior_output_value = extracted_val
                                 
-                                # Record named handles for inputParameters mapping
                                 if tgt_handle:
-                                    handle_inputs[tgt_handle] = extracted_val
+                                    if tgt_handle not in handle_inputs:
+                                        handle_inputs[tgt_handle] = extracted_val
+                                    else:
+                                        existing = handle_inputs[tgt_handle]
+                                        if isinstance(existing, list):
+                                            existing.append(extracted_val)
+                                        else:
+                                            handle_inputs[tgt_handle] = [existing, extracted_val]
 
-
-
-                    # Execute in restricted environment using custom transformer to support AnnAssign
                     byte_code = compile_restricted(
                         code, 
                         f"<node:{node_id}>", 
@@ -377,7 +383,6 @@ class WorkflowExecutor:
                         policy=CustomRestrictingNodeTransformer
                     )
                     
-                    # Create context-specific globals for this node
                     node_globals = {
                         **SAFE_GLOBALS,
                         "__name__": f"<node:{node_id}>",
@@ -392,9 +397,7 @@ class WorkflowExecutor:
                         },
                     }
                     
-                    # Add current execution context wrapper functions to libs
                     current_execution_id = str(self.execution_id)
-                    
                     node_globals["libs"].get_workflow_data = lambda: get_workflow_data(current_execution_id)
                     node_globals["libs"].get_runtime_data = lambda: get_runtime_data(current_execution_id)
                     node_globals["libs"].get_runtime_schema = lambda: get_runtime_schema(current_execution_id)
@@ -402,7 +405,6 @@ class WorkflowExecutor:
 
                     exec(byte_code, node_globals)
 
-                    # Handle NodeParameters injection
                     node_params_class = node_globals.get("NodeParameters")
                     if node_params_class and isinstance(node_params_class, type):
                         node_params_inst = node_globals.get("nodeParameters")
@@ -410,11 +412,9 @@ class WorkflowExecutor:
                             node_params_inst = node_params_class()
                             node_globals["nodeParameters"] = node_params_inst
                         
-                        # Populate sequential Input if passed from previous node
                         if prior_output_value is not None and hasattr(node_params_inst, "Input"):
                             setattr(node_params_inst, "Input", prior_output_value)
 
-                    # Handle InputParameters injection
                     input_params_class = node_globals.get("InputParameters")
                     if input_params_class and isinstance(input_params_class, type):
                         input_params_inst = node_globals.get("inputParameters")
@@ -422,14 +422,14 @@ class WorkflowExecutor:
                             input_params_inst = input_params_class()
                             node_globals["inputParameters"] = input_params_inst
                             
-                        # Populate specific handles based on edges
                         for handle_name, val in handle_inputs.items():
                             if val is None:
                                 self.log(f"Warning: Input handle '{handle_name}' received a null value", level="warning")
                             if hasattr(input_params_inst, handle_name):
                                 setattr(input_params_inst, handle_name, val)
+                            elif handle_name.endswith('s') and hasattr(input_params_inst, handle_name[:-1]):
+                                setattr(input_params_inst, handle_name[:-1], val)
 
-                    # Populate from graph params (e.g. settings from UI)
                     if node_params_inst:
                         node_type_params = node_type.parameters if node_type else []
                         param_types = {p["name"]: p["type"] for p in node_type_params if "name" in p and "type" in p}
@@ -450,7 +450,6 @@ class WorkflowExecutor:
                                 setattr(node_params_inst, key, value)
 
                     run_fn = node_globals.get("run")
-                    
                     if not run_fn:
                         raise ValueError("Node code must define a 'run(inputs, params)' function")
                     
@@ -460,11 +459,10 @@ class WorkflowExecutor:
 
                     outputs[node_id] = result
                     node_exec.status = WorkflowStatus.success
-                    node_exec.output = result
+                    # Sanitize before JSON serialization
+                    node_exec.output = json_sanitize(result)
                     self.log(f"Success: {node_name}", level="system")
 
-                    # --- Determine which downstream nodes to enqueue ---
-                    # Read than / MAX_THAN from the NodeParameters instance (if any)
                     than_val = None
                     max_than = None
                     if node_params_inst is not None:
@@ -478,34 +476,24 @@ class WorkflowExecutor:
                         target_id = edge.get("target")
                         tgt_handle = edge.get("targetHandle")
                         
-                        # DATA DEPENDENCIES (not sequential triggers)
-                        # If the edge goes into a named handle, it does NOT trigger the target node.
-                        # It only provides data that will be used when the target is triggered sequentially.
                         if tgt_handle and tgt_handle not in (None, "", "top"):
-                            # This is a side-provider edge, do NOT trigger successor
                             continue
 
-                        source_handle = edge.get("sourceHandle")  # e.g. "than_1" or None
+                        source_handle = edge.get("sourceHandle")
 
-                        # If this node uses branching (MAX_THAN is defined and > 0)
                         if max_than is not None and isinstance(max_than, int) and max_than > 0:
                             if than_val == 0:
-                                # Explicitly stopped — follow no branch
                                 self.log(f"{node_name}: than=0, блокируем все выходы", level="system")
                                 continue
                             expected_handle = f"than_{than_val}"
                             if source_handle and source_handle != expected_handle:
-                                # Wrong branch — skip
                                 continue
-                            # Correct branch (or edge has no sourceHandle — legacy compat)
-                        # else: non-branching node, always follow all outgoing edges
 
                         if target_id and target_id not in outputs:
                             if target_id not in triggered:
                                 triggered.add(target_id)
                                 queue.append(target_id)
 
-                    # Check if any WAITING node is now ready because this node finished
                     ready_now = []
                     for wid in list(waiting):
                         w_edges = [e for e in edges if e.get("target") == wid]
@@ -523,9 +511,6 @@ class WorkflowExecutor:
                     node_exec.error = error_msg
                     self.log(f"Ошибка {node_name}:\n{str(e)}", level="error")
                     all_success = False
-
-                    # On failure, do NOT enqueue downstream nodes of this path
-                    # We continue with other branches if possible
                 
                 self.db.commit()
 
