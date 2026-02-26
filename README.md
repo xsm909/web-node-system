@@ -34,7 +34,14 @@ docker compose exec backend python -m app.seed
 - **Backend API**: [http://localhost:8000](http://localhost:8000)
 - **API Docs (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-### 5. Database Connection (Beekeeper Studio / pgAdmin)
+### 5. Update Seed File (Optional)
+If you have added or modified nodes in the Database (via Admin Panel) and want to save them to the `seed.py` file to keep them in the source code:
+```bash
+docker compose exec backend python -m app.sync_seed
+```
+This script will pull the current node types from the database and overwrite the `nodes_data` in `app/seed.py`.
+
+### 6. Database Connection (Beekeeper Studio / pgAdmin)
 Use these settings to connect to the database from your host machine:
 - **Type**: `PostgreSQL`
 - **Host**: `localhost`

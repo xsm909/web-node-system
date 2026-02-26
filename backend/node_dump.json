@@ -1,0 +1,427 @@
+[
+  {
+    "id": "4f18493ef5c346e0aaa2f954ef54e9ff",
+    "name": "Start",
+    "version": "1.0",
+    "description": "Entry point of the workflow execution system.",
+    "code": "def run(inputs, params):\n    print('Workflow started')\n    return {}",
+    "input_schema": {},
+    "output_schema": {},
+    "parameters": [],
+    "category": "System",
+    "is_async": 0,
+    "icon": "play"
+  },
+  {
+    "id": "a922f70d48384d7f9476cc473e04b8b4",
+    "name": "Print Node",
+    "version": "1.0",
+    "description": "Prints input value and passes it through",
+    "code": "def run(inputs, params):\n    value = inputs.get('value', params.get('message', 'Hello!'))\n    print(f'Node output: {value}')\n    return {'value': value}",
+    "input_schema": {
+      "value": "string",
+      "inputs": [
+        {
+          "name": "value",
+          "label": "Value"
+        }
+      ]
+    },
+    "output_schema": {
+      "value": "string",
+      "outputs": [
+        {
+          "name": "value",
+          "label": "Value"
+        }
+      ]
+    },
+    "parameters": [
+      {
+        "name": "message",
+        "type": "string",
+        "default": "Hello!"
+      }
+    ],
+    "category": "Utility",
+    "is_async": 0,
+    "icon": "print"
+  },
+  {
+    "id": "19c5d33839e34aabbe9a445660e73b65",
+    "name": "Ask AI",
+    "version": "1.0",
+    "description": "Asks Gemini AI a question using internal library.",
+    "code": "class NodeParameters:\n    question: str = 'What is the meaning of life?'\n\ndef run(inputs, params):\n    # Get question from inputs or params\n    question = inputs.get('question') or nodeParameters.question\n    print(f'Asking AI: {question}')\n\n    # Call internal library\n    result = libs.ask_ai(question)\n\n    return {'answer': result}",
+    "input_schema": {
+      "question": "string"
+    },
+    "output_schema": {
+      "answer": "string"
+    },
+    "parameters": [
+      {
+        "name": "question",
+        "type": "string",
+        "default": "What is the meaning of life?"
+      }
+    ],
+    "category": "AI",
+    "is_async": 0,
+    "icon": "smart_toy"
+  },
+  {
+    "id": "2a2c76b0face4efbb2ab430ffec73257",
+    "name": "Condition",
+    "version": "1.0",
+    "description": "If/else branching node. Compares A and B, routes to branch 1 (equal) or branch 2 (not equal).",
+    "code": "class NodeParameters:\n    A: int = 1\n    B: int = 1\n    than: int = 0\n    MAX_THAN: int = 2\n\ndef run(inputs, params):\n    if nodeParameters.A == nodeParameters.B:\n        nodeParameters.than = 1\n    else:\n        nodeParameters.than = 2\n    return {'response': 'ok'}\n",
+    "input_schema": {},
+    "output_schema": {},
+    "parameters": [
+      {
+        "name": "A",
+        "type": "number",
+        "label": "A",
+        "default": 1
+      },
+      {
+        "name": "B",
+        "type": "number",
+        "label": "B",
+        "default": 1
+      },
+      {
+        "name": "than",
+        "type": "number",
+        "label": "Than",
+        "default": 0
+      },
+      {
+        "name": "MAX_THAN",
+        "type": "number",
+        "label": "Max Than",
+        "default": 2
+      }
+    ],
+    "category": "Logic",
+    "is_async": 0,
+    "icon": "call_split"
+  },
+  {
+    "id": "4f2fe578b0724a20a2d3209b3cff1396",
+    "name": "AI Agent",
+    "version": "1.0",
+    "description": "Modular AI Agent that uses tools, memory, and a chat model.",
+    "code": "class InputParameters:\n    model: dict = None\n    memory: dict = None\n    tools: list = []\n\nclass NodeParameters:\n    prompt: str = 'Help me with my task'\n\ndef run(inputs, params):\n    model = inputParameters.model\n    memory = inputParameters.memory\n    tools = inputParameters.tools\n    prompt = nodeParameters.prompt\n\n    print(f'Agent running with model: {model}, tools: {len(tools) if tools else 0}')\n    result = libs.agent_run(model, memory, tools, prompt, inputs)\n    return {'output': result}",
+    "input_schema": {
+      "model": "object",
+      "memory": "object",
+      "tools": "array",
+      "inputs": [
+        {
+          "name": "model",
+          "label": "Model"
+        },
+        {
+          "name": "memory",
+          "label": "Memory"
+        },
+        {
+          "name": "tools",
+          "label": "Tools"
+        }
+      ]
+    },
+    "output_schema": {
+      "output": "string",
+      "outputs": [
+        {
+          "name": "output",
+          "label": "Output"
+        }
+      ]
+    },
+    "parameters": [
+      {
+        "name": "prompt",
+        "type": "string",
+        "default": "Help me with my task"
+      }
+    ],
+    "category": "AI",
+    "is_async": 0,
+    "icon": "smart_toy"
+  },
+  {
+    "id": "5169866cad0a48139fd74e9854b6fc16",
+    "name": "OpenAI Chat Model",
+    "version": "1.0",
+    "description": "Configuration for OpenAI Chat Model.",
+    "code": "class NodeParameters:\n    model: str = 'gpt-4o-mini'\n\ndef run(inputs, params):\n    return {'model': nodeParameters.model, 'provider': 'openai'}",
+    "input_schema": {},
+    "output_schema": {
+      "model": "object",
+      "outputs": [
+        {
+          "name": "model",
+          "label": "Model"
+        }
+      ]
+    },
+    "parameters": [
+      {
+        "name": "model",
+        "type": "string",
+        "default": "gpt-4o-mini"
+      }
+    ],
+    "category": "AI",
+    "is_async": 0,
+    "icon": "settings_suggest"
+  },
+  {
+    "id": "923d3959ec654728b8fd1dd2097b6300",
+    "name": "Window Memory",
+    "version": "1.0",
+    "description": "Chat memory with a fixed window size.",
+    "code": "class NodeParameters:\n    window_size: int = 5\n\ndef run(inputs, params):\n    return {'type': 'window', 'size': nodeParameters.window_size}",
+    "input_schema": {},
+    "output_schema": {
+      "memory": "object",
+      "outputs": [
+        {
+          "name": "memory",
+          "label": "Memory"
+        }
+      ]
+    },
+    "parameters": [
+      {
+        "name": "window_size",
+        "type": "number",
+        "default": 5
+      }
+    ],
+    "category": "AI",
+    "is_async": 0,
+    "icon": "memory"
+  },
+  {
+    "id": "69ddf8c359dd41dda421e37f9ce7e958",
+    "name": "Tool: Calculator",
+    "version": "1.0",
+    "description": "Mathematical calculation tool for AI Agent.",
+    "code": "def run(inputs, params):\n    return {\n        'name': 'calculator',\n        'description': 'Calculates mathematical expressions',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'expression': {'type': 'string'}\n            }\n        },\n        'execute': libs.calculator\n    }",
+    "input_schema": {
+      "inputs": []
+    },
+    "output_schema": {
+      "tool": "object",
+      "outputs": [
+        {
+          "name": "tool",
+          "label": "Tool"
+        }
+      ]
+    },
+    "parameters": [],
+    "category": "AI Tools",
+    "is_async": 0,
+    "icon": "calculate"
+  },
+  {
+    "id": "93a812d414e744f28caf12bee3628891",
+    "name": "Tool: Database",
+    "version": "1.0",
+    "description": "Database query tool for AI Agent.",
+    "code": "def run(inputs, params):\n    return {\n        'name': 'database',\n        'description': 'Queries the primary database',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'query': {'type': 'string'}\n            }\n        },\n        'execute': libs.database_query\n    }",
+    "input_schema": {
+      "inputs": []
+    },
+    "output_schema": {
+      "tool": "object",
+      "outputs": [
+        {
+          "name": "tool",
+          "label": "Tool"
+        }
+      ]
+    },
+    "parameters": [],
+    "category": "AI Tools",
+    "is_async": 0,
+    "icon": "database"
+  },
+  {
+    "id": "51d6b1e62fee4a5dbb9f593985c91c36",
+    "name": "Tool: HTTP Request",
+    "version": "1.0",
+    "description": "Generic HTTP Request tool for AI Agent.",
+    "code": "def run(inputs, params):\n    return {\n        'name': 'http_request',\n        'description': 'Performs an HTTP request to any URL',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'url': {'type': 'string'},\n                'method': {'type': 'string', 'default': 'GET'},\n                'data': {'type': 'string', 'blank': True}\n            }\n        },\n        'execute': libs.http_request\n    }",
+    "input_schema": {
+      "inputs": []
+    },
+    "output_schema": {
+      "tool": "object",
+      "outputs": [
+        {
+          "name": "tool",
+          "label": "Tool"
+        }
+      ]
+    },
+    "parameters": [],
+    "category": "AI Tools",
+    "is_async": 0,
+    "icon": "http"
+  },
+  {
+    "id": "b867d12654904f24a8ac3a2e29479fa6",
+    "name": "Tool: Google Search",
+    "version": "1.0",
+    "description": "Web search tool for AI Agent.",
+    "code": "def run(inputs, params):\n    return {\n        'name': 'google_search',\n        'description': 'Searches the web for information using smart provider-aware tools',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'query': {'type': 'string'}\n            }\n        },\n        'execute': libs.smart_search\n    }",
+    "input_schema": {
+      "inputs": []
+    },
+    "output_schema": {
+      "tool": "object",
+      "outputs": [
+        {
+          "name": "tool",
+          "label": "Tool"
+        }
+      ]
+    },
+    "parameters": [],
+    "category": "AI Tools",
+    "is_async": 0,
+    "icon": "search"
+  },
+  {
+    "id": "f39ea9f18c3e48ea8edc2306d47de0ad",
+    "name": "Tool: Smart Search",
+    "version": "1.0",
+    "description": "Provider-aware search tool that automatically uses the best available search for the active model (OpenAI, Gemini, Perplexity).",
+    "code": "def run(inputs, params):\n    return {\n        'name': 'smart_search',\n        'description': 'Intelligent web search that adapts to the chosen AI model',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'query': {'type': 'string'}\n            }\n        },\n        'execute': libs.smart_search\n    }",
+    "input_schema": {
+      "inputs": []
+    },
+    "output_schema": {
+      "tool": "object",
+      "outputs": [
+        {
+          "name": "tool",
+          "label": "Tool"
+        }
+      ]
+    },
+    "parameters": [],
+    "category": "AI Tools",
+    "is_async": 0,
+    "icon": "travel_explore"
+  },
+  {
+    "id": "375f680b5095408cb463d2cb97e73c54",
+    "name": "Workflow Data Read",
+    "version": "1.0",
+    "description": "Returns the workflow data as a JSON object.",
+    "code": "def run(inputs, params):\n    data = libs.get_workflow_data()\n    print(f'Workflow Data: {data}')\n    return {'data': data}",
+    "input_schema": {},
+    "output_schema": {
+      "data": "object",
+      "outputs": [
+        {
+          "name": "data",
+          "label": "Data"
+        }
+      ]
+    },
+    "parameters": [],
+    "category": "Data",
+    "is_async": 0,
+    "icon": "source"
+  },
+  {
+    "id": "54f4b6fec5054eec8a1d762380eed36b",
+    "name": "Runtime Data Write",
+    "version": "1.0",
+    "description": "Writes data to the runtime state of the execution.",
+    "code": "class NodeParameters:\n    merge: bool = True\n\ndef run(inputs, params):\n    new_data = inputs.get('data', {})\n    if nodeParameters.merge:\n        current = libs.get_runtime_data() or {}\n        current.update(new_data)\n        new_data = current\n    libs.update_runtime_data(new_data)\n    print(f'Runtime Data Updated: {new_data}')\n    return {'success': True}",
+    "input_schema": {
+      "data": "object",
+      "inputs": [
+        {
+          "name": "data",
+          "label": "Data"
+        }
+      ]
+    },
+    "output_schema": {
+      "success": "boolean",
+      "outputs": [
+        {
+          "name": "success",
+          "label": "Success"
+        }
+      ]
+    },
+    "parameters": [
+      {
+        "name": "merge",
+        "type": "boolean",
+        "default": true
+      }
+    ],
+    "category": "Data",
+    "is_async": 0,
+    "icon": "save"
+  },
+  {
+    "id": "5304cb6842284928973bdc0d7e9bf962",
+    "name": "Tool: Workflow Data",
+    "version": "1.0",
+    "description": "Allows AI Agent to read static workflow configuration.",
+    "code": "def run(inputs, params):\n    return {\n        'name': 'read_workflow_data',\n        'description': 'Reads static workflow configuration JSON (environment variables, flow setup)',\n        'parameters': {'type': 'object', 'properties': {}},\n        'execute': libs.read_workflow_data\n    }",
+    "input_schema": {
+      "inputs": []
+    },
+    "output_schema": {
+      "tool": "object",
+      "outputs": [
+        {
+          "name": "tool",
+          "label": "Tool"
+        }
+      ]
+    },
+    "parameters": [],
+    "category": "AI Tools",
+    "is_async": 0,
+    "icon": "settings_system_daydream"
+  },
+  {
+    "id": "50ea5bac789449f7ba3ea112e52a4300",
+    "name": "Tool: Runtime Data",
+    "version": "1.0",
+    "description": "Allows AI Agent to read dynamic runtime state.",
+    "code": "def run(inputs, params):\n    return {\n        'name': 'read_runtime_data',\n        'description': 'Reads dynamic runtime state JSON (shared data between nodes)',\n        'parameters': {'type': 'object', 'properties': {}},\n        'execute': libs.read_runtime_data\n    }",
+    "input_schema": {
+      "inputs": []
+    },
+    "output_schema": {
+      "tool": "object",
+      "outputs": [
+        {
+          "name": "tool",
+          "label": "Tool"
+        }
+      ]
+    },
+    "parameters": [],
+    "category": "AI Tools",
+    "is_async": 0,
+    "icon": "database"
+  }
+]
