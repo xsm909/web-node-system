@@ -29,53 +29,85 @@ def agent_run(model_config, memory_config, tools, prompt, inputs=None, execution
         "write_runtime_data": tools_lib.write_runtime_data,
     }
     
-    # Construct tool descriptions for the system prompt
+    # Flatten and Construct tool descriptions for the system prompt
+    allowed_tool_names = set()
     tools_desc = ""
     tool_map = {}
+    
+    def flatten(items):
+        res = []
+        if isinstance(items, list):
+            for i in items: res.extend(flatten(i))
+        elif isinstance(items, dict):
+            res.append(items)
+        return res
+
     if tools:
-        # If it's a single tool, convert to list
-        if isinstance(tools, dict) and "name" in tools:
-            tools = [tools]
-        
-        if isinstance(tools, list):
-            for tool in tools:
-                if not isinstance(tool, dict): continue
-                name = tool.get('name')
-                tools_desc += f"- {name}: {tool.get('description')}\n"
-                tool_map[name] = tool
+        flat_tools = flatten(tools)
+        for tool in flat_tools:
+            if not isinstance(tool, dict): continue
+            name = tool.get('name')
+            if not name: continue
+            allowed_tool_names.add(name.lower())
+            tools_desc += f"- {name}: {tool.get('description', 'No description provided')}\n"
+            tool_map[name] = tool
 
-    system_prompt = f"""You are an autonomous AI Agent with access to specialized tools.
-Goal: {prompt}
+    # Internal Registry Fallback (System-wide tools) - FILTERED
+    from . import tools_lib
+    ALL_INTERNAL = {
+        "calculator": tools_lib.calculator,
+        "database": tools_lib.database_query,
+        "database_query": tools_lib.database_query,
+        "http_request": tools_lib.http_request,
+        "http_search": tools_lib.http_search,
+        "smart_search": tools_lib.smart_search,
+        "google_search": tools_lib.smart_search,
+        "web_search": tools_lib.smart_search,
+        "read_workflow_data": tools_lib.read_workflow_data,
+        "read_runtime_data": tools_lib.read_runtime_data,
+        "write_runtime_data": tools_lib.write_runtime_data,
+    }
+    
+    # Only expose internal tools that are explicitly in the allowed list
+    INTERNAL_TOOLS = {k: v for k, v in ALL_INTERNAL.items() if k.lower() in allowed_tool_names}
 
-CRITICAL RULES:
-1. NEVER simulate or hallucinate tool results. You MUST call the real tool and wait for the "Tool result:" message.
-2. If you need to search, use 'smart_search'.
-3. Provide a final natural language answer ONLY after you have received all tool results.
-4. Use 'read_workflow_data' to see the static configuration of the current workflow.
-5. Use 'read_runtime_data' to see dynamic data shared during this execution.
-6. Use 'write_runtime_data' to save or update shared dynamic data for other nodes or future iterations.
+    # Conditional instructions for the prompt
+    search_rule = f"- Use 'smart_search' for any information lookup.\n" if "smart_search" in allowed_tool_names else ""
+    wf_data_desc = f"- Use 'read_workflow_data' to see static configuration.\n" if "read_workflow_data" in allowed_tool_names else ""
+    rt_data_desc = f"- Use 'read_runtime_data' to see shared dynamic state.\n" if "read_runtime_data" in allowed_tool_names else ""
+    wr_data_desc = f"- Use 'write_runtime_data' to update shared dynamic state.\n" if "write_runtime_data" in allowed_tool_names else ""
 
-Available Tools:
-{tools_desc}
-- read_workflow_data: Reads static workflow configuration JSON.
-- read_runtime_data: Reads dynamic runtime state JSON.
-- write_runtime_data: Writes or updates dynamic runtime state JSON.
+    system_prompt = f"""You are an autonomous AI Agent.
+Objective: {prompt}
 
-Action Format:
+RESPONSE FORMAT:
+If you need to use a tool, you MUST output ONLY a JSON object in this format:
 {{"tool": "tool_name", "parameters": {{"param1": "value1"}}}}
+
+RULES:
+1. NEVER narrate your thoughts or explain what you are about to do. 
+2. NEVER simulate or hallucinate tool results.
+3. If a tool is needed, your response MUST be the JSON tool call and NOTHING ELSE.
+4. Only provide a natural language final answer AFTER all necessary tool results have been received.
+{search_rule}{wf_data_desc}{rt_data_desc}{wr_data_desc}
+Available Tools:
+{tools_desc if tools_desc else "No specific tools provided."}
 """
     
-    # Handle conversation history if memory is provided
     messages = []
     session_id = None
     if memory_config:
-        # In this simple implementation, we'll use a fixed session ID for the execution
-        # In a real n8n-like system, this would come from the workflow state
-        session_id = "workflow-execution-session" 
+        # Isolated memory per execution to avoid state leakage
+        if execution_id:
+            session_id = f"exec-{execution_id}"
+        else:
+            session_id = "default-session"
+            
         if session_id not in _conversations:
              _conversations[session_id] = []
         
         history = _conversations[session_id]
+
         # Limit history if it's a window memory
         if memory_config.get("type") == "window":
             size = memory_config.get("size", 5)
@@ -86,7 +118,7 @@ Action Format:
     messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": str(inputs) if inputs else "Start execution"})
 
-    max_iterations = 5
+    max_iterations = 20
     last_response = "Agent failed to provide a response."
     
     for i in range(max_iterations):
@@ -175,41 +207,69 @@ Action Format:
 
             if execute_fn and callable(execute_fn):
                 try:
+                    import inspect
+                    # Get the parameters the function expects
+                    try:
+                        sig = inspect.signature(execute_fn)
+                        has_execution_id = "execution_id" in sig.parameters
+                        has_model_config = "model_config" in sig.parameters
+                    except:
+                        # Fallback if signature inspection fails (e.g. built-ins)
+                        has_execution_id = False
+                        has_model_config = False
+
                     # Unified Dispatcher
                     if tool_name in ["calculator", "calculate"]:
                         q = params.get("expression") or params.get("query")
                         if not q and not isinstance(params, dict): q = str(params)
                         result = execute_fn(q) if q else "Error: Missing expression"
+                    
                     elif tool_name in ["database", "database_query"]:
                         q = params.get("query") or params.get("sql")
                         if not q and not isinstance(params, dict): q = str(params)
                         result = execute_fn(q) if q else "Error: Missing SQL query"
+                    
                     elif tool_name in ["google_search", "smart_search", "web_search", "search", "http_search"]:
                         q = params.get("query") or params.get("q") or params.get("parameters")
                         if not q and not isinstance(params, dict): q = str(params)
                         
-                        import inspect
-                        try:
-                            sig = inspect.signature(execute_fn)
-                            if "model_config" in sig.parameters:
-                                result = execute_fn(q, model_config=model_config)
-                            else:
-                                result = execute_fn(q)
-                        except:
-                            result = execute_fn(q)
+                        kwargs = {}
+                        if has_model_config: kwargs["model_config"] = model_config
+                        result = execute_fn(q, **kwargs)
+                        
                     elif tool_name in ["read_workflow_data", "read_runtime_data"]:
-                        result = execute_fn(execution_id=execution_id)
+                        kwargs = {}
+                        if has_execution_id: kwargs["execution_id"] = execution_id
+                        result = execute_fn(**kwargs)
+                        
                     elif tool_name == "write_runtime_data":
                         q = params.get("data") or params.get("json")
-                        if not q and not isinstance(params, dict): q = str(params)
-                        result = execute_fn(q, execution_id=execution_id)
+                        if not q:
+                            if isinstance(params, dict) and params:
+                                q = params
+                            else:
+                                q = str(params)
+                        
+                        kwargs = {}
+                        if has_execution_id: kwargs["execution_id"] = execution_id
+                        result = execute_fn(q, **kwargs)
                     else:
-                        try: result = execute_fn(**params)
-                        except: result = execute_fn(str(params))
+                        # Generic tool call
+                        kwargs = dict(params) if isinstance(params, dict) else {}
+                        if has_execution_id and "execution_id" not in kwargs:
+                            kwargs["execution_id"] = execution_id
+                        
+                        try:
+                            # Try calling with expanded params first
+                            result = execute_fn(**kwargs)
+                        except:
+                            # Fallback to single string param
+                            result = execute_fn(str(params))
                 except Exception as e:
                     result = f"Execution error: {str(e)}"
             else:
                 result = f"Error: Tool '{tool_name}' not found or lacks execution function."
+
             
             system_log(f"[AGENT] Tool Result: {result[:500]}{'...' if len(str(result)) > 500 else ''}", level="system")
             messages.append({"role": "user", "content": f"Tool result: {result}"})

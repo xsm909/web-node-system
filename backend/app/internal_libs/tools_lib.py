@@ -281,25 +281,44 @@ def write_runtime_data(data: str, execution_id: str = None) -> str:
         return res
     
     try:
-        new_data = json.loads(data)
+        new_data = data
+        if isinstance(data, str):
+            try:
+                new_data = json.loads(data)
+            except Exception as e:
+                # If it's a string but NOT JSON, we might want to store it as a value or error
+                # For now, let's keep the error if it was forced to be JSON
+                res = f"Error: Invalid JSON string: {str(e)}"
+                system_log(f"[TOOL] Error: write_runtime_data -> {res}", level="error")
+                return res
+        
+        if new_data is None:
+             res = "Error: Data is None"
+             system_log(f"[TOOL] Error: write_runtime_data -> {res}", level="error")
+             return res
+
+        from .struct_func import get_runtime_data, update_runtime_data
+        current = get_runtime_data(execution_id) or {}
+        
+        if isinstance(new_data, dict) and isinstance(current, dict):
+            # Special handling for lists to allow "appending" behavior if requested via specific structure
+            # or just standard dict update which replaces keys.
+            # To be safe and predictable, we'll keep the update() but log it.
+            current.update(new_data)
+            success = update_runtime_data(execution_id, current)
+        else:
+            success = update_runtime_data(execution_id, new_data)
+
+        if success:
+            res = "Runtime data updated successfully."
+            system_log(f"[TOOL] Success: write_runtime_data", level="system")
+            return res
+        else:
+            res = "Error: Failed to update runtime data."
+            system_log(f"[TOOL] Error: write_runtime_data -> {res}", level="error")
+            return res
     except Exception as e:
-        res = f"Error: Invalid JSON format: {str(e)}"
+        res = f"Error: {str(e)}"
         system_log(f"[TOOL] Error: write_runtime_data -> {res}", level="error")
         return res
 
-    from .struct_func import get_runtime_data, update_runtime_data
-    current = get_runtime_data(execution_id) or {}
-    if isinstance(new_data, dict) and isinstance(current, dict):
-        current.update(new_data)
-        success = update_runtime_data(execution_id, current)
-    else:
-        success = update_runtime_data(execution_id, new_data)
-
-    if success:
-        res = "Runtime data updated successfully."
-        system_log(f"[TOOL] Success: write_runtime_data", level="system")
-        return res
-    else:
-        res = "Error: Failed to update runtime data."
-        system_log(f"[TOOL] Error: write_runtime_data -> {res}", level="error")
-        return res
