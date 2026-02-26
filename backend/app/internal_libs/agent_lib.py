@@ -2,7 +2,7 @@ import json
 from .openai_lib import _get_api_key, _make_request, _conversations, _system_prompts
 from .logger_lib import system_log
 
-def agent_run(model_config, memory_config, tools, prompt, inputs=None):
+def agent_run(model_config, memory_config, tools, prompt, inputs=None, execution_id=None):
     """
     Executes an AI Agent run with model, memory, and tools.
     Supports a loop for tool execution and basic memory persistence.
@@ -24,8 +24,9 @@ def agent_run(model_config, memory_config, tools, prompt, inputs=None):
         "smart_search": tools_lib.smart_search,
         "google_search": tools_lib.smart_search,
         "web_search": tools_lib.smart_search,
-        "save_ai_result": tools_lib.save_ai_result,
-        "database_save": tools_lib.save_ai_result,
+        "read_workflow_data": tools_lib.read_workflow_data,
+        "read_runtime_data": tools_lib.read_runtime_data,
+        "write_runtime_data": tools_lib.write_runtime_data,
     }
     
     # Construct tool descriptions for the system prompt
@@ -49,13 +50,16 @@ Goal: {prompt}
 CRITICAL RULES:
 1. NEVER simulate or hallucinate tool results. You MUST call the real tool and wait for the "Tool result:" message.
 2. If you need to search, use 'smart_search'.
-3. If you need to save to a database, use 'save_ai_result' with the information you found.
-4. If you are taking an action, your response MUST be ONLY a JSON object. No conversational filler.
-5. Provide a final natural language answer ONLY after you have received all tool results.
+3. Provide a final natural language answer ONLY after you have received all tool results.
+4. Use 'read_workflow_data' to see the static configuration of the current workflow.
+5. Use 'read_runtime_data' to see dynamic data shared during this execution.
+6. Use 'write_runtime_data' to save or update shared dynamic data for other nodes or future iterations.
 
 Available Tools:
 {tools_desc}
-- save_ai_result: Saves search results or data to the database.
+- read_workflow_data: Reads static workflow configuration JSON.
+- read_runtime_data: Reads dynamic runtime state JSON.
+- write_runtime_data: Writes or updates dynamic runtime state JSON.
 
 Action Format:
 {{"tool": "tool_name", "parameters": {{"param1": "value1"}}}}
@@ -193,6 +197,12 @@ Action Format:
                                 result = execute_fn(q)
                         except:
                             result = execute_fn(q)
+                    elif tool_name in ["read_workflow_data", "read_runtime_data"]:
+                        result = execute_fn(execution_id=execution_id)
+                    elif tool_name == "write_runtime_data":
+                        q = params.get("data") or params.get("json")
+                        if not q and not isinstance(params, dict): q = str(params)
+                        result = execute_fn(q, execution_id=execution_id)
                     else:
                         try: result = execute_fn(**params)
                         except: result = execute_fn(str(params))

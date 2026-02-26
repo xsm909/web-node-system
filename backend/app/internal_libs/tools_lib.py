@@ -200,24 +200,6 @@ def perform_gemini_search(query: str) -> str:
         system_log(f"[TOOL] Error: perform_gemini_search -> {res}", level="error")
         return res
 
-def save_ai_result(result_text: str) -> str:
-    """Convenience tool to save any text result to the ai_results table."""
-    system_log(f"[TOOL] Start: save_ai_result(result_text='{result_text[:100]}{'...' if len(str(result_text)) > 100 else ''}')", level="system")
-    try:
-        import uuid
-        from datetime import datetime
-        # We'll use the existing database_query tool to perform the insert
-        uid = str(uuid.uuid4())
-        # Escape single quotes for SQL
-        safe_text = str(result_text).replace("'", "''")
-        sql = f"INSERT INTO ai_results (uid, result, timestamp) VALUES ('{uid}', '{safe_text}', NOW());"
-        res = database_query(sql)
-        system_log(f"[TOOL] End: save_ai_result (delegated to database_query)", level="system")
-        return res
-    except Exception as e:
-        res = f"Save Error: {str(e)}"
-        system_log(f"[TOOL] Error: save_ai_result -> {res}", level="error")
-        return res
 
 def smart_search(query: str, model_config: dict = None) -> str:
     """
@@ -251,3 +233,73 @@ def smart_search(query: str, model_config: dict = None) -> str:
     system_log(f"[TOOL] Error: smart_search -> {res}", level="error")
     return res
 
+
+def read_workflow_data(execution_id: str = None) -> str:
+    """Fetches workflow data from the database."""
+    system_log(f"[TOOL] Start: read_workflow_data(execution_id='{execution_id}')", level="system")
+    if not execution_id:
+        res = "Error: Missing execution_id"
+        system_log(f"[TOOL] Error: read_workflow_data -> {res}", level="error")
+        return res
+    
+    from .struct_func import get_workflow_data
+    data = get_workflow_data(execution_id)
+    if data is None:
+        res = "Error: Workflow data not found."
+        system_log(f"[TOOL] Error: read_workflow_data -> {res}", level="error")
+        return res
+    
+    res = json.dumps(data, default=str)
+    system_log(f"[TOOL] Success: read_workflow_data -> {res[:100]}...", level="system")
+    return res
+
+def read_runtime_data(execution_id: str = None) -> str:
+    """Fetches runtime data from the current execution."""
+    system_log(f"[TOOL] Start: read_runtime_data(execution_id='{execution_id}')", level="system")
+    if not execution_id:
+        res = "Error: Missing execution_id"
+        system_log(f"[TOOL] Error: read_runtime_data -> {res}", level="error")
+        return res
+    
+    from .struct_func import get_runtime_data
+    data = get_runtime_data(execution_id)
+    if data is None:
+        res = "Error: Runtime data not found."
+        system_log(f"[TOOL] Error: read_runtime_data -> {res}", level="error")
+        return res
+    
+    res = json.dumps(data, default=str)
+    system_log(f"[TOOL] Success: read_runtime_data -> {res[:100]}...", level="system")
+    return res
+
+def write_runtime_data(data: str, execution_id: str = None) -> str:
+    """Writes or merges data into the dynamic runtime state."""
+    system_log(f"[TOOL] Start: write_runtime_data(execution_id='{execution_id}')", level="system")
+    if not execution_id:
+        res = "Error: Missing execution_id"
+        system_log(f"[TOOL] Error: write_runtime_data -> {res}", level="error")
+        return res
+    
+    try:
+        new_data = json.loads(data)
+    except Exception as e:
+        res = f"Error: Invalid JSON format: {str(e)}"
+        system_log(f"[TOOL] Error: write_runtime_data -> {res}", level="error")
+        return res
+
+    from .struct_func import get_runtime_data, update_runtime_data
+    current = get_runtime_data(execution_id) or {}
+    if isinstance(new_data, dict) and isinstance(current, dict):
+        current.update(new_data)
+        success = update_runtime_data(execution_id, current)
+    else:
+        success = update_runtime_data(execution_id, new_data)
+
+    if success:
+        res = "Runtime data updated successfully."
+        system_log(f"[TOOL] Success: write_runtime_data", level="system")
+        return res
+    else:
+        res = "Error: Failed to update runtime data."
+        system_log(f"[TOOL] Error: write_runtime_data -> {res}", level="error")
+        return res

@@ -20,7 +20,10 @@ from ..internal_libs.ask_ai import ask_ai, check_ai
 from ..internal_libs.struct_func import get_workflow_data, get_runtime_data, update_runtime_data, get_runtime_schema
 from ..internal_libs.openai_lib import create_new_conversation, set_prompt, ask_ai as openai_ask_ai, ask_AI as openai_ask_AI
 from ..internal_libs.agent_lib import agent_run
-from ..internal_libs.tools_lib import calculator, database_query, http_request, http_search, smart_search, save_ai_result
+from ..internal_libs.tools_lib import (
+    calculator, database_query, http_request, http_search, 
+    smart_search, read_workflow_data, read_runtime_data, write_runtime_data
+)
 from ..internal_libs.logger_lib import executor_logger
 
 
@@ -79,7 +82,9 @@ SAFE_GLOBALS = {
         http_request=http_request,
         http_search=http_search,
         smart_search=smart_search,
-        save_ai_result=save_ai_result,
+        read_workflow_data=read_workflow_data,
+        read_runtime_data=read_runtime_data,
+        write_runtime_data=write_runtime_data,
     ),
     "openai": SimpleNamespace(
         create_new_conversation=create_new_conversation,
@@ -408,6 +413,10 @@ class WorkflowExecutor:
                     node_globals["libs"].get_runtime_data = lambda: get_runtime_data(current_execution_id)
                     node_globals["libs"].get_runtime_schema = lambda: get_runtime_schema(current_execution_id)
                     node_globals["libs"].update_runtime_data = lambda data: update_runtime_data(current_execution_id, data)
+                    node_globals["libs"].read_workflow_data = lambda: read_workflow_data(current_execution_id)
+                    node_globals["libs"].read_runtime_data = lambda: read_runtime_data(current_execution_id)
+                    node_globals["libs"].write_runtime_data = lambda data: write_runtime_data(data, current_execution_id)
+                    node_globals["libs"].agent_run = lambda *args, **kwargs: agent_run(*args, **kwargs, execution_id=current_execution_id)
 
                     exec(byte_code, node_globals)
 

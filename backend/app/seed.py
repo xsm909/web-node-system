@@ -257,6 +257,92 @@ def seed():
                 "category": "AI Tools",
                 "icon": "travel_explore",
             },
+            {
+                "name": "Workflow Data Read",
+                "version": "1.0",
+                "description": "Returns the workflow data as a JSON object.",
+                "code": "def run(inputs, params):\n    data = libs.get_workflow_data()\n    print(f'Workflow Data: {data}')\n    return {'data': data}",
+                "input_schema": {},
+                "output_schema": {"data": "object", "outputs": [{"name": "data", "label": "Data"}]},
+                "parameters": [],
+                "category": "Data",
+                "icon": "source",
+            },
+            {
+                "name": "Runtime Data Write",
+                "version": "1.0",
+                "description": "Writes data to the runtime state of the execution.",
+                "code": (
+                    "class NodeParameters:\n"
+                    "    merge: bool = True\n\n"
+                    "def run(inputs, params):\n"
+                    "    new_data = inputs.get('data', {})\n"
+                    "    if nodeParameters.merge:\n"
+                    "        current = libs.get_runtime_data() or {}\n"
+                    "        current.update(new_data)\n"
+                    "        new_data = current\n"
+                    "    libs.update_runtime_data(new_data)\n"
+                    "    print(f'Runtime Data Updated: {new_data}')\n"
+                    "    return {'success': True}"
+                ),
+                "input_schema": {"data": "object", "inputs": [{"name": "data", "label": "Data"}]},
+                "output_schema": {"success": "boolean", "outputs": [{"name": "success", "label": "Success"}]},
+                "parameters": [{"name": "merge", "type": "boolean", "default": True}],
+                "category": "Data",
+                "icon": "save",
+            },
+            {
+                "name": "Tool: Workflow Data",
+                "version": "1.0",
+                "description": "Allows AI Agent to read static workflow configuration.",
+                "code": (
+                    "def run(inputs, params):\n"
+                    "    return {\n"
+                    "        'name': 'read_workflow_data',\n"
+                    "        'description': 'Reads static workflow configuration JSON (environment variables, flow setup)',\n"
+                    "        'parameters': {'type': 'object', 'properties': {}},\n"
+                    "        'execute': libs.read_workflow_data\n"
+                    "    }"
+                ),
+                "input_schema": {"inputs": []},
+                "output_schema": {"tool": "object", "outputs": [{"name": "tool", "label": "Tool"}]},
+                "parameters": [],
+                "category": "AI Tools",
+                "icon": "settings_system_daydream",
+            },
+            {
+                "name": "Tool: Runtime Data",
+                "version": "1.0",
+                "description": "Allows AI Agent to read and write dynamic runtime state.",
+                "code": (
+                    "def run(inputs, params):\n"
+                    "    return [\n"
+                    "        {\n"
+                    "            'name': 'read_runtime_data',\n"
+                    "            'description': 'Reads dynamic runtime state JSON (shared data between nodes)',\n"
+                    "            'parameters': {'type': 'object', 'properties': {}},\n"
+                    "            'execute': libs.read_runtime_data\n"
+                    "        },\n"
+                    "        {\n"
+                    "            'name': 'write_runtime_data',\n"
+                    "            'description': 'Writes or updates dynamic runtime state JSON',\n"
+                    "            'parameters': {\n"
+                    "                'type': 'object',\n"
+                    "                'properties': {\n"
+                    "                    'data': {'type': 'string', 'description': 'JSON string to write or merge'}\n"
+                    "                },\n"
+                    "                'required': ['data']\n"
+                    "            },\n"
+                    "            'execute': libs.write_runtime_data\n"
+                    "        }\n"
+                    "    ]"
+                ),
+                "input_schema": {"inputs": []},
+                "output_schema": {"tool": "object", "outputs": [{"name": "tool", "label": "Tool"}]},
+                "parameters": [],
+                "category": "AI Tools",
+                "icon": "database",
+            },
         ]
 
         for node_data in nodes_data:
