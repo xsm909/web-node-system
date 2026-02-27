@@ -65,7 +65,7 @@ def set_prompt(conversation_id: str, prompt: str) -> bool:
     _system_prompts[conversation_id] = prompt
     return True
 
-def ask_ai(conversation_id: str, text: str, model: str = "gpt-4o-mini") -> str:
+def ask_ai(conversation_id: str, text: str, model: str = "gpt-5.2") -> str:
     """
     Sends a message to the conversation and returns the AI's response.
     """

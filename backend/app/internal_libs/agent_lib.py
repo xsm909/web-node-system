@@ -1,5 +1,6 @@
 import json
-from .openai_lib import _get_api_key, _make_request, _conversations, _system_prompts
+from .openai_lib import _conversations, _system_prompts
+from . import openai_lib, gemini_lib, perplexity_lib
 from .logger_lib import system_log
 
 def agent_run(model_config, memory_config, tools, prompt, inputs=None, execution_id=None):
@@ -7,11 +8,22 @@ def agent_run(model_config, memory_config, tools, prompt, inputs=None, execution
     Executes an AI Agent run with model, memory, and tools.
     Supports a loop for tool execution and basic memory persistence.
     """
-    api_key = _get_api_key()
-    if not api_key:
-        return "Error: OPENAI_API_KEY not found."
-
+    provider = model_config.get("provider", "openai").lower() if model_config else "openai"
     model = model_config.get("model", "gpt-4o-mini") if model_config else "gpt-4o-mini"
+
+    # Select the appropriate library based on provider
+    if provider == "gemini":
+        lib = gemini_lib
+        api_key = lib._get_api_key()
+    elif provider == "perplexity":
+        lib = perplexity_lib
+        api_key = lib._get_api_key()
+    else:
+        lib = openai_lib
+        api_key = lib._get_api_key()
+
+    if not api_key:
+        return f"Error: API Key for {provider} not found."
     
     # Internal Registry Fallback (System-wide tools)
     from . import tools_lib
@@ -123,7 +135,19 @@ Available Tools:
     
     for i in range(max_iterations):
         system_log(f"[AGENT] Iteration {i} starting...", level="system")
-        response = _make_request(api_key, messages, model)
+        
+        if provider == "gemini":
+            # Gemini handles history internally if we use chat.send_message
+            # but for the loop we might want more control. 
+            # For now, let's use the library's ask_ai pattern or similar request.
+            response = lib.ask_ai(session_id or "tmp", inputs if i==0 else messages[-1]["content"], model)
+        elif provider == "perplexity":
+            # Perplexity is OpenAI-compatible
+            response = lib._make_request(api_key, messages, model)
+        else:
+            # OpenAI
+            response = lib._make_request(api_key, messages, model)
+
         system_log(f"[AGENT] RAW AI Response:\n{response[:500]}{'...' if len(response) > 500 else ''}", level="system")
         messages.append({"role": "assistant", "content": response})
         last_response = response
