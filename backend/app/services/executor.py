@@ -212,16 +212,12 @@ class WorkflowExecutor:
             self.execution.status = WorkflowStatus.running
             self.db.commit()
 
-            # Initialize runtime data from workflow_data if it's empty or the default {}.
-            # Note: We check if it's empty because the model default is {}.
-            if not self.execution.runtime_data:
-                self.execution.runtime_data = dict(workflow.workflow_data) if workflow.workflow_data else {}
-                flag_modified(self.execution, "runtime_data")
-                self.db.commit()
-                self.db.refresh(self.execution)
-                self.log(f"Runtime data initialized from workflow configuration: {self.execution.runtime_data}", level="system")
-            else:
+            # runtime_data should stay empty at the start of a new execution.
+            # It is no longer initialized from workflow_data.
+            if self.execution.runtime_data:
                 self.log(f"Resuming execution with existing runtime data: {self.execution.runtime_data}", level="system")
+            else:
+                self.log("Starting execution with empty runtime data", level="system")
 
             graph = workflow.graph or {"nodes": [], "edges": []}
             nodes = graph.get("nodes", [])
