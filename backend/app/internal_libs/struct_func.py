@@ -23,22 +23,6 @@ def get_workflow_data(execution_id: str) -> Optional[Dict[str, Any]]:
     finally:
         db.close()
 
-def get_runtime_schema(execution_id: str) -> Optional[Dict[str, Any]]:
-    """
-    Get the runtime data schema.
-    """
-    db = SessionLocal()
-    try:
-        execution = _get_execution(db, execution_id)
-        if execution and execution.workflow:
-            return execution.workflow.runtime_data_schema
-        return None
-    except Exception as e:
-        print(f"Error getting runtime schema: {e}")
-        return None
-    finally:
-        db.close()
-
 def get_runtime_data(execution_id: str) -> Optional[Dict[str, Any]]:
     """
     Get the runtime data structure from execution.

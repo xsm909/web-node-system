@@ -188,12 +188,8 @@ export default function ManagerPage() {
                             <div className="flex-1 overflow-hidden">
                                 <WorkflowDataEditorTabs
                                     key={activeWorkflow.id}
-                                    workflowSchema={activeWorkflow.workflow_data_schema ?? EMPTY_OBJ.current}
-                                    runtimeSchema={activeWorkflow.runtime_data_schema ?? EMPTY_OBJ.current}
-                                    workflowData={activeWorkflow.workflow_data ?? EMPTY_OBJ.current}
-                                    onWorkflowSchemaChange={(s) => setActiveWorkflow({ ...activeWorkflow, workflow_data_schema: s })}
-                                    onRuntimeSchemaChange={(s) => setActiveWorkflow({ ...activeWorkflow, runtime_data_schema: s })}
-                                    onWorkflowDataChange={(d) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
+                                    data={activeWorkflow.workflow_data ?? EMPTY_OBJ.current}
+                                    onChange={(d) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
                                 />
                             </div>
                         </div>

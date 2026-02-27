@@ -41,9 +41,7 @@ export function useWorkflowOperations({
         if (!activeWorkflow) return;
         await apiClient.put(`/manager/workflows/${activeWorkflow.id}`, {
             graph: { nodes: nodesRef.current, edges: edgesRef.current },
-            workflow_data_schema: activeWorkflow.workflow_data_schema,
             workflow_data: activeWorkflow.workflow_data,
-            runtime_data_schema: activeWorkflow.runtime_data_schema,
             runtime_data: activeWorkflow.runtime_data,
         });
         if (onUpdateLocalWorkflow) {

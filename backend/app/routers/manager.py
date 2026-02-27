@@ -23,10 +23,7 @@ class WorkflowCreate(BaseModel):
 
 class WorkflowUpdate(BaseModel):
     graph: dict
-    workflow_data_schema: Optional[dict] = None
     workflow_data: Optional[dict] = None
-    runtime_data_schema: Optional[dict] = None
-    runtime_data: Optional[dict] = None
 
 
 class WorkflowOut(BaseModel):
@@ -41,12 +38,9 @@ class WorkflowOut(BaseModel):
 
 class WorkflowDetail(WorkflowOut):
     graph: dict
-    workflow_data_schema: Optional[dict] = None
     workflow_data: Optional[dict] = None
-    runtime_data_schema: Optional[dict] = None
-    runtime_data: Optional[dict] = None
 
-    @field_validator('graph', 'workflow_data_schema', 'workflow_data', 'runtime_data_schema', 'runtime_data', mode='before')
+    @field_validator('graph', 'workflow_data', mode='before')
     @classmethod
     def parse_json_str(cls, v):
         """Safely parse JSON string fields into dicts."""
@@ -184,14 +178,8 @@ def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: 
     
     wf.graph = data.graph
     
-    if data.workflow_data_schema is not None:
-        wf.workflow_data_schema = data.workflow_data_schema
     if data.workflow_data is not None:
         wf.workflow_data = data.workflow_data
-    if data.runtime_data_schema is not None:
-        wf.runtime_data_schema = data.runtime_data_schema
-    if data.runtime_data is not None:
-        wf.runtime_data = data.runtime_data
         
     db.commit()
     db.refresh(wf)

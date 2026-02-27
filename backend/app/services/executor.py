@@ -17,7 +17,7 @@ from ..core.database import SessionLocal
 from ..models.workflow import Workflow, WorkflowExecution, NodeExecution, WorkflowStatus
 from ..models.node import NodeType
 from ..internal_libs.ask_ai import ask_ai, check_ai
-from ..internal_libs.struct_func import get_workflow_data, get_runtime_data, update_runtime_data, get_runtime_schema
+from ..internal_libs.struct_func import get_workflow_data, get_runtime_data, update_runtime_data
 from ..internal_libs.openai_lib import create_new_conversation, set_prompt, ask_ai as openai_ask_ai, ask_AI as openai_ask_AI
 from ..internal_libs.agent_lib import agent_run
 from ..internal_libs.tools_lib import (
@@ -212,26 +212,16 @@ class WorkflowExecutor:
             self.execution.status = WorkflowStatus.running
             self.db.commit()
 
-            # Initialize runtime data with empty/default values based on schema
-            runtime_schema = workflow.runtime_data_schema or {}
-            
-            def _generate_defaults(schema):
-                if not isinstance(schema, dict): return None
-                stype = schema.get("type", "object")
-                if stype == "object":
-                    return {k: _generate_defaults(v) for k, v in schema.get("properties", {}).items()}
-                elif stype == "array": return []
-                elif stype == "string": return schema.get("default", "")
-                elif stype in ("integer", "number"): return schema.get("default", 0)
-                elif stype == "boolean": return schema.get("default", False)
-                return schema.get("default", None)
-
-            new_runtime = _generate_defaults(runtime_schema) if runtime_schema else {}
-            self.execution.runtime_data = new_runtime
-            flag_modified(self.execution, "runtime_data")
-            self.db.commit()
-            self.db.refresh(self.execution)
-            self.log(f"Runtime data initialized: {new_runtime}", level="system")
+            # Initialize runtime data from workflow_data if it's empty or the default {}.
+            # Note: We check if it's empty because the model default is {}.
+            if not self.execution.runtime_data:
+                self.execution.runtime_data = dict(workflow.workflow_data) if workflow.workflow_data else {}
+                flag_modified(self.execution, "runtime_data")
+                self.db.commit()
+                self.db.refresh(self.execution)
+                self.log(f"Runtime data initialized from workflow configuration: {self.execution.runtime_data}", level="system")
+            else:
+                self.log(f"Resuming execution with existing runtime data: {self.execution.runtime_data}", level="system")
 
             graph = workflow.graph or {"nodes": [], "edges": []}
             nodes = graph.get("nodes", [])
@@ -394,6 +384,11 @@ class WorkflowExecutor:
                         policy=CustomRestrictingNodeTransformer
                     )
                     
+                    # Create a FRESH libs namespace for this execution to avoid data leakage
+                    from copy import copy
+                    execution_libs = copy(SAFE_GLOBALS["libs"])
+                    execution_openai = copy(SAFE_GLOBALS["openai"])
+
                     node_globals = {
                         **SAFE_GLOBALS,
                         "__name__": f"<node:{node_id}>",
@@ -406,17 +401,19 @@ class WorkflowExecutor:
                             "print": self.restricted_print,
                             "__import__": restricted_import
                         },
+                        "libs": execution_libs,
+                        "openai": execution_openai,
                     }
                     
                     current_execution_id = str(self.execution_id)
-                    node_globals["libs"].get_workflow_data = lambda: get_workflow_data(current_execution_id)
-                    node_globals["libs"].get_runtime_data = lambda: get_runtime_data(current_execution_id)
-                    node_globals["libs"].get_runtime_schema = lambda: get_runtime_schema(current_execution_id)
-                    node_globals["libs"].update_runtime_data = lambda data: update_runtime_data(current_execution_id, data)
-                    node_globals["libs"].read_workflow_data = lambda: read_workflow_data(current_execution_id)
-                    node_globals["libs"].read_runtime_data = lambda: read_runtime_data(current_execution_id)
-                    node_globals["libs"].write_runtime_data = lambda data: write_runtime_data(data, current_execution_id)
-                    node_globals["libs"].agent_run = lambda *args, **kwargs: agent_run(*args, **kwargs, execution_id=current_execution_id)
+                    execution_libs.get_workflow_data = lambda: get_workflow_data(current_execution_id)
+                    execution_libs.get_runtime_data = lambda: get_runtime_data(current_execution_id)
+                    execution_libs.get_runtime_schema = lambda: {} # Return empty dict as schema is removed
+                    execution_libs.update_runtime_data = lambda data: update_runtime_data(current_execution_id, data)
+                    execution_libs.read_workflow_data = lambda: read_workflow_data(current_execution_id)
+                    execution_libs.read_runtime_data = lambda: read_runtime_data(current_execution_id)
+                    execution_libs.write_runtime_data = lambda data: write_runtime_data(data, current_execution_id)
+                    execution_libs.agent_run = lambda *args, **kwargs: agent_run(*args, **kwargs, execution_id=current_execution_id)
 
                     exec(byte_code, node_globals)
 
