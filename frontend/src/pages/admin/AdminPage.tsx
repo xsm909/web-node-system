@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuthStore } from '../../features/auth/store';
-import { AdminSidebar } from '../../widgets/admin-sidebar';
+import { AppSidebar } from '../../widgets/app-sidebar';
 import { AdminUserManagement } from '../../widgets/admin-user-management';
 import { AdminNodeLibrary } from '../../widgets/admin-node-library';
 import { AdminCredentialManagement } from '../../widgets/admin-credential-management';
@@ -9,9 +8,10 @@ import { useNodeTypeManagement } from '../../features/node-type-management';
 import { apiClient } from '../../shared/api/client';
 import type { NodeType } from '../../entities/node-type/model/types';
 import { Icon } from '../../shared/ui/icon';
+import { AppHeader } from '../../widgets/app-header';
 
 export default function AdminPage() {
-    const { logout } = useAuthStore();
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'users' | 'nodes' | 'credentials'>('users');
     const [refreshCount, setRefreshCount] = useState(0);
     const [allNodes, setAllNodes] = useState<NodeType[]>([]);
@@ -33,21 +33,48 @@ export default function AdminPage() {
 
     return (
         <div className="flex h-screen bg-surface-900 text-[var(--text-main)] font-sans overflow-hidden">
-            <AdminSidebar
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                onLogout={logout}
+            <AppSidebar
+                title="Workflow Engine"
+                headerIcon="bolt"
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
+                navItems={[
+                    {
+                        id: 'users',
+                        label: 'Users',
+                        icon: 'people',
+                        isActive: activeTab === 'users',
+                        onClick: () => setActiveTab('users'),
+                    },
+                    {
+                        id: 'nodes',
+                        label: 'Node Types',
+                        icon: 'build',
+                        isActive: activeTab === 'nodes',
+                        onClick: () => setActiveTab('nodes'),
+                    },
+                    {
+                        id: 'credentials',
+                        label: 'Credentials',
+                        icon: 'key',
+                        isActive: activeTab === 'credentials',
+                        onClick: () => setActiveTab('credentials'),
+                    },
+                ]}
             />
 
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                <header className="h-16 flex items-center justify-between px-8 border-b border-[var(--border-base)] bg-surface-900/80 backdrop-blur-md sticky top-0 z-10">
-                    <h1 className="text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
-                        {activeTab === 'users' ? 'User Management' :
-                            activeTab === 'nodes' ? 'Node Library' : 'Credentials'}
-                    </h1>
-
-                    <div className="flex items-center gap-4">
-                        {activeTab === 'nodes' && (
+                <AppHeader
+                    onToggleSidebar={() => setIsSidebarOpen(true)}
+                    isSidebarOpen={isSidebarOpen}
+                    leftContent={
+                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
+                            {activeTab === 'users' ? 'User Management' :
+                                activeTab === 'nodes' ? 'Node Library' : 'Credentials'}
+                        </h1>
+                    }
+                    rightContent={
+                        activeTab === 'nodes' && (
                             <button
                                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand hover:brightness-110 text-white text-sm font-bold shadow-lg shadow-brand/20 transition-all active:scale-[0.98]"
                                 onClick={() => handleOpenModal()}
@@ -55,9 +82,9 @@ export default function AdminPage() {
                                 <Icon name="add" size={18} />
                                 Add New Node
                             </button>
-                        )}
-                    </div>
-                </header>
+                        )
+                    }
+                />
 
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-8">

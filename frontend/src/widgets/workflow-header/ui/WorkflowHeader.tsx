@@ -22,6 +22,7 @@ interface WorkflowHeaderProps {
 }
 
 import { Icon } from '../../../shared/ui/icon';
+import { AppHeader } from '../../app-header';
 
 export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     title,
@@ -64,16 +65,10 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     };
 
     return (
-        <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-surface-900/80 backdrop-blur-md border-b border-[var(--border-base)] h-16">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-                <button
-                    className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] lg:hidden transition-colors"
-                    onClick={onToggleSidebar}
-                    aria-label="Toggle menu"
-                >
-                    <Icon name={isSidebarOpen ? "close" : "menu"} size={20} />
-                </button>
-
+        <AppHeader
+            onToggleSidebar={onToggleSidebar}
+            isSidebarOpen={isSidebarOpen}
+            leftContent={
                 <div className="relative flex-1 max-w-xl" ref={dropdownRef}>
                     <button
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all max-w-full ${isDropdownOpen ? 'bg-[var(--border-base)] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
@@ -102,52 +97,53 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                         </div>
                     )}
                 </div>
-            </div>
+            }
+            rightContent={
+                <>
+                    {activeWorkflowId && (
+                        <button
+                            className="p-2.5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] hover:border-[var(--border-base)] transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
+                            onClick={onOpenEditModal}
+                        >
+                            <Icon name="data_object" size={18} className="group-active:scale-95 transition-transform" />
+                        </button>
+                    )}
 
-            <div className="flex items-center gap-2">
-                {activeWorkflowId && (
+                    <div className="w-px h-6 bg-[var(--border-base)] mx-1" />
                     <button
                         className="p-2.5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] hover:border-[var(--border-base)] transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
-                        onClick={onOpenEditModal}
+                        onClick={onSave}
+                        disabled={!canAction}
+                        title="Save Workflow"
                     >
-                        <Icon name="data_object" size={18} className="group-active:scale-95 transition-transform" />
+                        <Icon name="save" size={18} className="group-active:scale-95 transition-transform" />
                     </button>
-                )}
-
-                <div className="w-px h-6 bg-[var(--border-base)] mx-1" />
-                <button
-                    className="p-2.5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] hover:border-[var(--border-base)] transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
-                    onClick={onSave}
-                    disabled={!canAction}
-                    title="Save Workflow"
-                >
-                    <Icon name="save" size={18} className="group-active:scale-95 transition-transform" />
-                </button>
-                <button
-                    className={`
-                        h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
-                        ${isRunning
-                            ? 'bg-brand/10 text-brand ring-1 ring-inset ring-brand/30 cursor-default'
-                            : 'bg-brand hover:brightness-110 text-white shadow-lg shadow-brand/20'
-                        }
-                    `}
-                    onClick={onRun}
-                    disabled={!canAction || isRunning}
-                >
-                    {isRunning ? (
-                        <>
-                            <Icon name="bolt" size={14} className="animate-pulse" />
-                            <span>Running...</span>
-                        </>
-                    ) : (
-                        <>
-                            <Icon name="play" size={12} />
-                            <span>Run</span>
-                        </>
-                    )}
-                </button>
-            </div>
-        </header>
+                    <button
+                        className={`
+                            h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
+                            ${isRunning
+                                ? 'bg-brand/10 text-brand ring-1 ring-inset ring-brand/30 cursor-default'
+                                : 'bg-brand hover:brightness-110 text-white shadow-lg shadow-brand/20'
+                            }
+                        `}
+                        onClick={onRun}
+                        disabled={!canAction || isRunning}
+                    >
+                        {isRunning ? (
+                            <>
+                                <Icon name="bolt" size={14} className="animate-pulse" />
+                                <span>Running...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Icon name="play" size={12} />
+                                <span>Run</span>
+                            </>
+                        )}
+                    </button>
+                </>
+            }
+        />
     );
 };
 
