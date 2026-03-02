@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../features/auth/store';
 import { AdminSidebar } from '../../widgets/admin-sidebar';
 import { AdminUserManagement } from '../../widgets/admin-user-management';
@@ -6,13 +6,19 @@ import { AdminNodeLibrary } from '../../widgets/admin-node-library';
 import { AdminCredentialManagement } from '../../widgets/admin-credential-management';
 import { NodeTypeFormModal } from '../../widgets/node-type-form-modal';
 import { useNodeTypeManagement } from '../../features/node-type-management';
-
+import { apiClient } from '../../shared/api/client';
+import type { NodeType } from '../../entities/node-type/model/types';
 import { Icon } from '../../shared/ui/icon';
 
 export default function AdminPage() {
     const { logout } = useAuthStore();
     const [activeTab, setActiveTab] = useState<'users' | 'nodes' | 'credentials'>('users');
     const [refreshCount, setRefreshCount] = useState(0);
+    const [allNodes, setAllNodes] = useState<NodeType[]>([]);
+
+    useEffect(() => {
+        apiClient.get('/admin/node-types').then(({ data }) => setAllNodes(data)).catch(() => { });
+    }, [refreshCount]);
 
     const {
         isModalOpen,
@@ -76,6 +82,7 @@ export default function AdminPage() {
                 formData={formData}
                 setFormData={setFormData}
                 onSave={(e) => handleSave(e, () => setRefreshCount(r => r + 1))}
+                allNodes={allNodes}
             />
         </div>
     );

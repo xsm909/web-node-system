@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
@@ -6,6 +6,8 @@ import { autocompletion, snippetCompletion } from '@codemirror/autocomplete';
 import { indentUnit } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
 import { IconPicker } from '../../../shared/ui/icon';
+import { Icon } from '../../../shared/ui/icon';
+import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 
 interface NodeTypeFormModalProps {
     isOpen: boolean;
@@ -14,7 +16,106 @@ interface NodeTypeFormModalProps {
     formData: Partial<NodeType>;
     setFormData: (data: Partial<NodeType>) => void;
     onSave: (e: React.FormEvent) => void;
+    allNodes?: NodeType[];
 }
+
+// ─── Category Combo-box ───────────────────────────────────────────────────────
+
+interface CategoryComboBoxProps {
+    value: string;
+    onChange: (v: string) => void;
+    allNodes: NodeType[];
+}
+
+const CategoryComboBox: React.FC<CategoryComboBoxProps> = ({ value, onChange, allNodes }) => {
+    const [open, setOpen] = useState(false);
+    const [inputValue, setInputValue] = useState(value);
+    const ref = useRef<HTMLDivElement>(null);
+
+    // Sync external value → input
+    useEffect(() => { setInputValue(value); }, [value]);
+
+    // Close on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const allPaths = useMemo(() => getUniqueCategoryPaths(allNodes), [allNodes]);
+
+    const filtered = useMemo(() => {
+        const q = inputValue.toLowerCase();
+        return q ? allPaths.filter(p => p.toLowerCase().includes(q)) : allPaths;
+    }, [allPaths, inputValue]);
+
+    const handleSelect = (path: string) => {
+        setInputValue(path);
+        onChange(path);
+        setOpen(false);
+    };
+
+    const handleInputChange = (v: string) => {
+        setInputValue(v);
+        onChange(v);
+        setOpen(true);
+    };
+
+    return (
+        <div ref={ref} className="relative">
+            <div className="relative">
+                <input
+                    className="w-full px-5 py-4 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold"
+                    value={inputValue}
+                    onChange={e => handleInputChange(e.target.value)}
+                    onFocus={() => setOpen(true)}
+                    placeholder="e.g. AI|Chat|Gemini"
+                />
+                <button
+                    type="button"
+                    tabIndex={-1}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 opacity-40 hover:opacity-80 transition-opacity text-[var(--text-main)]"
+                    onClick={() => setOpen(o => !o)}
+                >
+                    <Icon name={open ? 'expand_less' : 'expand_more'} size={16} />
+                </button>
+            </div>
+
+            {open && filtered.length > 0 && (
+                <div className="absolute z-50 top-full mt-2 left-0 right-0 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-150">
+                    {filtered.map(path => {
+                        const parts = path.split('|');
+                        const depth = parts.length - 1;
+                        const isLeaf = !allPaths.some(p => p.startsWith(path + '|'));
+                        return (
+                            <button
+                                key={path}
+                                type="button"
+                                className={`w-full text-left px-5 py-2.5 text-sm transition-colors hover:bg-brand/10 hover:text-brand flex items-center gap-2 ${value === path ? 'bg-brand/10 text-brand' : 'text-[var(--text-muted)]'}`}
+                                style={{ paddingLeft: `${20 + depth * 16}px` }}
+                                onClick={() => handleSelect(path)}
+                            >
+                                <span className={`text-[10px] mr-1 opacity-40 ${isLeaf ? '' : 'text-brand'}`}>
+                                    {isLeaf ? '●' : '▶'}
+                                </span>
+                                <span className="font-bold">{parts[parts.length - 1]}</span>
+                                {depth > 0 && (
+                                    <span className="text-[10px] opacity-40 ml-auto font-mono">
+                                        {parts.slice(0, -1).join(' › ')}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ─── Main Modal ───────────────────────────────────────────────────────────────
 
 export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
     isOpen,
@@ -23,6 +124,7 @@ export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
     formData,
     setFormData,
     onSave,
+    allNodes = [],
 }) => {
     const [activeTab, setActiveTab] = useState<'info' | 'code'>('info');
 
@@ -87,26 +189,19 @@ export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
                     </div>
 
                     <div className="flex gap-2">
-                        <button
-                            type="button"
-                            className={`px-8 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-4 rounded-t-xl ${activeTab === 'info'
-                                ? 'text-brand border-brand bg-brand/5'
-                                : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] opacity-60 hover:opacity-100'
-                                }`}
-                            onClick={() => setActiveTab('info')}
-                        >
-                            Configuration
-                        </button>
-                        <button
-                            type="button"
-                            className={`px-8 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-4 rounded-t-xl ${activeTab === 'code'
-                                ? 'text-brand border-brand bg-brand/5'
-                                : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] opacity-60 hover:opacity-100'
-                                }`}
-                            onClick={() => setActiveTab('code')}
-                        >
-                            Python Engine
-                        </button>
+                        {(['info', 'code'] as const).map(tab => (
+                            <button
+                                key={tab}
+                                type="button"
+                                className={`px-8 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-4 rounded-t-xl ${activeTab === tab
+                                    ? 'text-brand border-brand bg-brand/5'
+                                    : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] opacity-60 hover:opacity-100'
+                                    }`}
+                                onClick={() => setActiveTab(tab)}
+                            >
+                                {tab === 'info' ? 'Configuration' : 'Python Engine'}
+                            </button>
+                        ))}
                     </div>
                 </header>
 
@@ -139,12 +234,14 @@ export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
 
                                 <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-3">
-                                        <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Architectural Category</label>
-                                        <input
-                                            className="w-full px-5 py-4 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold"
+                                        <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">
+                                            Category Path
+                                            <span className="normal-case font-medium ml-2 opacity-50">pipe-separated (AI|Chat|Gemini)</span>
+                                        </label>
+                                        <CategoryComboBox
                                             value={formData.category || ''}
-                                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                            placeholder="e.g. UTILITY, AI, DATA"
+                                            onChange={(v) => setFormData({ ...formData, category: v })}
+                                            allNodes={allNodes}
                                         />
                                     </div>
                                     <div className="space-y-3">
@@ -213,5 +310,3 @@ export const NodeTypeFormModal: React.FC<NodeTypeFormModalProps> = ({
         </div>
     );
 };
-
-

@@ -65,7 +65,7 @@ def seed():
                                                  "default": "What is the meaning of life?"
                                     }
                         ],
-                        "category": "AI",
+                        "category": "AI|Chat|Gemini",
                         "icon": "graph_2",
                         "is_async": False
             },
@@ -88,7 +88,7 @@ def seed():
                                                  "default": "calculate 2+2"
                                     }
                         ],
-                        "category": "AI",
+                        "category": "AI|Chat|OpenAI",
                         "icon": "graph_2",
                         "is_async": False
             },
@@ -102,7 +102,7 @@ def seed():
                                     "tool": "object"
                         },
                         "parameters": [],
-                        "category": "AI Tools",
+                        "category": "AI|Tools",
                         "icon": "text",
                         "is_async": False
             },
@@ -116,7 +116,7 @@ def seed():
                                     "tool": "object"
                         },
                         "parameters": [],
-                        "category": "AI Tools",
+                        "category": "AI|Tools",
                         "icon": "text",
                         "is_async": False
             },
@@ -130,7 +130,7 @@ def seed():
                                     "tool": "object"
                         },
                         "parameters": [],
-                        "category": "AI Tools",
+                        "category": "AI|Tools",
                         "icon": "text",
                         "is_async": False
             },
@@ -144,7 +144,7 @@ def seed():
                                     "tool": "object"
                         },
                         "parameters": [],
-                        "category": "AI Tools",
+                        "category": "AI|Tools",
                         "icon": "text",
                         "is_async": False
             },
@@ -158,7 +158,7 @@ def seed():
                                     "tool": "object"
                         },
                         "parameters": [],
-                        "category": "AI Tools",
+                        "category": "AI|Tools",
                         "icon": "text",
                         "is_async": False
             },
@@ -172,7 +172,7 @@ def seed():
                                     "tool": "object"
                         },
                         "parameters": [],
-                        "category": "AI Tools",
+                        "category": "AI|Tools",
                         "icon": "text",
                         "is_async": False
             },
@@ -197,7 +197,7 @@ def seed():
                                                  "default": "Help me with my task"
                                     }
                         ],
-                        "category": "AI",
+                        "category": "AI|Agent",
                         "icon": "graph_2",
                         "is_async": False
             },
@@ -218,7 +218,7 @@ def seed():
                                                  "default": "gpt-4o-mini"
                                     }
                         ],
-                        "category": "AI",
+                        "category": "AI|Models|OpenAI",
                         "icon": "graph_2",
                         "is_async": False
             },
@@ -239,7 +239,7 @@ def seed():
                                                  "default": "gemini-1.5-flash"
                                     }
                         ],
-                        "category": "AI",
+                        "category": "AI|Models|Gemini",
                         "icon": "graph_2",
                         "is_async": False
             },
@@ -260,7 +260,7 @@ def seed():
                                                  "default": "sonar"
                                     }
                         ],
-                        "category": "AI",
+                        "category": "AI|Models|Perplexity",
                         "icon": "graph_2",
                         "is_async": False
             },
@@ -281,7 +281,7 @@ def seed():
                                                  "default": 5
                                     }
                         ],
-                        "category": "AI",
+                        "category": "AI|Memory",
                         "icon": "text",
                         "is_async": False
             },
@@ -293,7 +293,7 @@ def seed():
                         "input_schema": {},
                         "output_schema": {},
                         "parameters": [],
-                        "category": "Misc",
+                        "category": "Utility",
                         "icon": "task",
                         "is_async": False
             },
@@ -307,7 +307,7 @@ def seed():
                                     "data": "object"
                         },
                         "parameters": [],
-                        "category": "Data",
+                        "category": "Data|Workflow",
                         "icon": "text",
                         "is_async": False
             },
@@ -321,7 +321,7 @@ def seed():
                                     "data": "object"
                         },
                         "parameters": [],
-                        "category": "Data",
+                        "category": "Data|Runtime",
                         "icon": "text",
                         "is_async": False
             },
@@ -344,7 +344,7 @@ def seed():
                                                  "default": True
                                     }
                         ],
-                        "category": "Data",
+                        "category": "Data|Runtime",
                         "icon": "text",
                         "is_async": False
             },
@@ -381,7 +381,7 @@ def seed():
                                                  "default": "Any"
                                     }
                         ],
-                        "category": "Runtime data",
+                        "category": "Data|Runtime",
                         "icon": "task",
                         "is_async": False
             },
@@ -468,7 +468,7 @@ def seed():
                                                  "default": 2
                                     }
                         ],
-                        "category": "Conditions",
+                        "category": "Logic|Conditions",
                         "icon": "graph",
                         "is_async": False
             },
