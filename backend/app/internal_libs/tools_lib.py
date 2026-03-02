@@ -166,7 +166,8 @@ def perform_gemini_search(query: str) -> str:
     """Uses Gemini 1.5 with Google Search grounding."""
     system_log(f"[TOOL] Start: perform_gemini_search(query='{query}')", level="system")
     try:
-        import google.generativeai as genai
+        from google import genai
+        from google.genai import types
         from .credentials import get_credential_by_key
         
         # Try both common spellings because of potential typos in DB
@@ -177,15 +178,23 @@ def perform_gemini_search(query: str) -> str:
             system_log(f"[TOOL] Error: perform_gemini_search -> {res}", level="error")
             return res
             
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
         
         # Using a model that supports grounding well
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        grounding_tool = types.Tool(
+            google_search=types.GoogleSearch()
+        )
+        config = types.GenerateContentConfig(
+            tools=[grounding_tool]
+        )
         
         # We'll use a specific prompt to encourage grounding if the library supports it natively
-        # Otherwise, the model will just use its knowledge (which is often better than a broken search)
         prompt = f"Find the latest information about: {query}. Provide names, phone numbers and addresses."
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.0-flash', # Use a modern model by default
+            contents=prompt,
+            config=config
+        )
         
         if not response.text:
             res = "Error: Gemini returned empty response."
@@ -221,7 +230,7 @@ def smart_search(query: str, model_config: dict = None) -> str:
         return res
         
     elif provider == "openai":
-        from .openai_lib import perform_web_search
+        from .openai.openai_lib import perform_web_search
         res = perform_web_search(query)
         if "Error" not in res and "HTTPError" not in res:
             system_log(f"[TOOL] Success: smart_search (via openai) -> {res[:200]}{'...' if len(res) > 200 else ''}", level="system")

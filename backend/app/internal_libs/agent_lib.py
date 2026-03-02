@@ -1,6 +1,8 @@
 import json
-from .openai_lib import _conversations, _system_prompts
-from . import openai_lib, gemini_lib, perplexity_lib
+from .openai.openai_lib import _conversations, _system_prompts
+from .openai import openai_lib
+from .gemini import gemini_lib
+from .perplexity import perplexity_lib
 from .logger_lib import system_log
 
 def agent_run(model_config, memory_config, tools, prompt, inputs=None, execution_id=None):

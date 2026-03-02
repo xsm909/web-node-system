@@ -18,7 +18,9 @@ from ..models.workflow import Workflow, WorkflowExecution, NodeExecution, Workfl
 from ..models.node import NodeType
 from ..internal_libs.ask_ai import ask_single, check_ai
 from ..internal_libs.struct_func import get_workflow_data, get_runtime_data, update_runtime_data
-from ..internal_libs.openai_lib import create_new_conversation, set_prompt, ask_chat as openai_ask_chat, ask_single as openai_ask_single, perform_web_search
+from ..internal_libs.openai.openai_lib import openai_create_new_conversation as openai_create_new_conversation, openai_set_prompt as openai_set_prompt, openai_ask_chat as openai_ask_chat, openai_ask_single as openai_ask_single, openai_perform_web_search as openai_perform_web_search
+from ..internal_libs.gemini.gemini_lib import gemini_create_new_conversation as gemini_create_new_conversation, gemini_set_prompt as gemini_set_prompt, gemini_ask_chat as gemini_ask_chat, gemini_ask_single as gemini_ask_single, gemini_perform_web_search as gemini_perform_web_search
+from ..internal_libs.perplexity.perplexity_lib import perplexity_create_new_conversation as perplexity_create_new_conversation, perplexity_set_prompt as perplexity_set_prompt, perplexity_ask_chat as perplexity_ask_chat, perplexity_ask_single as perplexity_ask_single, perplexity_perform_web_search as perplexity_perform_web_search
 from ..internal_libs.agent_lib import agent_run
 from ..internal_libs.tools_lib import (
     calculator, database_query, http_request, http_search, 
@@ -87,11 +89,25 @@ SAFE_GLOBALS = {
         write_runtime_data=write_runtime_data,
     ),
     "openai": SimpleNamespace(
-        create_new_conversation=create_new_conversation,
-        set_prompt=set_prompt,
+        create_new_conversation=openai_create_new_conversation,
+        set_prompt=openai_set_prompt,
         ask_chat=openai_ask_chat,
         ask_single=openai_ask_single,
-        perform_web_search=perform_web_search,
+        perform_web_search=openai_perform_web_search,
+    ),
+    "gemini": SimpleNamespace(
+        create_new_conversation=gemini_create_new_conversation,
+        set_prompt=gemini_set_prompt,
+        ask_chat=gemini_ask_chat,
+        ask_single=gemini_ask_single,
+        perform_web_search=gemini_perform_web_search,
+    ),
+    "perplexity": SimpleNamespace(
+        create_new_conversation=perplexity_create_new_conversation,
+        set_prompt=perplexity_set_prompt,
+        ask_chat=perplexity_ask_chat,
+        ask_single=perplexity_ask_single,
+        perform_web_search=perplexity_perform_web_search,
     ),
 }
 

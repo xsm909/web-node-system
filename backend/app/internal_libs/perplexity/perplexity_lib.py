@@ -3,7 +3,7 @@ import urllib.request
 import urllib.error
 import uuid
 from typing import Dict, List, Optional
-from .credentials import get_credential_by_key
+from ..credentials import get_credential_by_key
 
 # In-memory storage for conversations (shared structure with openai_lib)
 _conversations: Dict[str, List[Dict[str, str]]] = {}
@@ -39,19 +39,19 @@ def _make_request(api_key: str, messages: list, model: str) -> str:
     except Exception as e:
         return f"Error calling Perplexity API: {str(e)}"
 
-def create_new_conversation() -> str:
+def perplexity_create_new_conversation() -> str:
     conv_id = str(uuid.uuid4())
     _conversations[conv_id] = []
     _system_prompts[conv_id] = ""
     return conv_id
 
-def set_prompt(conversation_id: str, prompt: str) -> bool:
+def perplexity_set_prompt(conversation_id: str, prompt: str) -> bool:
     if conversation_id not in _conversations:
         _conversations[conversation_id] = []
     _system_prompts[conversation_id] = prompt
     return True
 
-def ask_chat(conversation_id: str, text: str, model: str = "sonar") -> str:
+def perplexity_ask_chat(conversation_id: str, text: str, model: str = "sonar") -> str:
     api_key = _get_api_key()
     if not api_key:
         return "Error: PERPLEXITY_API_KEY not found in credentials."
@@ -77,10 +77,17 @@ def ask_chat(conversation_id: str, text: str, model: str = "sonar") -> str:
         
     return answer
 
-def ask_single(text: str, model: str = "sonar") -> str:
+def perplexity_ask_single(text: str, model: str = "sonar") -> str:
     api_key = _get_api_key()
     if not api_key:
         return "Error: PERPLEXITY_API_KEY not found in credentials."
         
     messages = [{"role": "user", "content": text}]
     return _make_request(api_key, messages, model)
+
+def perplexity_perform_web_search(query: str, model: str = "sonar") -> str:
+    """
+    Performs a web search using Perplexity's 'sonar' model.
+    The 'sonar' model is optimized for online search and citations.
+    """
+    return perplexity_ask_single(query, model=model)

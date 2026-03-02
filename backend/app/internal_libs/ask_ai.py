@@ -1,5 +1,5 @@
 import os
-import google.generativeai as genai
+from google import genai
 from .credentials import get_credential_by_key
 
 def check_ai () -> str:
@@ -17,9 +17,8 @@ def ask_single(prompt: str, model: str = "gemini-2.0-flash") -> str:
         return "Error api key not found"
     
     try:
-        genai.configure(api_key=api_key)
-        model_instance = genai.GenerativeModel(model)
-        response = model_instance.generate_content(prompt)
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(model=model, contents=prompt)
         return response.text
     except Exception as e:
         return f"Error calling Gemini AI: {str(e)}"
