@@ -48,7 +48,7 @@ def seed():
         nodes_data = [
             {
                         "name": "Gemini Ask AI",
-                        "version": "1.1",
+                        "version": "1.2",
                         "description": "Asks Gemini AI a question using internal library.",
                         "code": "class NodeParameters:\n    question: str = 'What is the meaning of life?'\n\ndef run(inputs, params):\n    # Get question from inputs or params\n    question = inputs.get('question') or nodeParameters.question\n    print(f'Asking AI: {question}')\n\n    # Call internal library\n    result = libs.ask_ai(question)\n    print (f\"result: \")\n    print (result);\n    return {'answer': result}",
                         "input_schema": {
@@ -59,10 +59,33 @@ def seed():
                         },
                         "parameters": [
                                     {
-                                                "name": "question",
-                                                "type": "string",
-                                                "label": "Question",
-                                                "default": "What is the meaning of life?"
+                                                 "name": "question",
+                                                 "type": "string",
+                                                 "label": "Question",
+                                                 "default": "What is the meaning of life?"
+                                    }
+                        ],
+                        "category": "AI",
+                        "icon": "graph_2",
+                        "is_async": False
+            },
+            {
+                        "name": "Open AI: Simple quesion",
+                        "version": "1.1",
+                        "description": "Open AI Simple Question",
+                        "code": "class NodeParameters:\n    question: str = 'calculate 2+2'\n    \ndef run(inputs, params):\n    # Get question from inputs or params\n    question = inputs.get('question') or nodeParameters.question\n    print(f'Asking AI: {question}')\n    \n    simple_answer = openai.ask_single(question)\n    return {'answer': simple_answer}",
+                        "input_schema": {
+                                    "question": "string"
+                        },
+                        "output_schema": {
+                                    "answer": "string"
+                        },
+                        "parameters": [
+                                    {
+                                                 "name": "question",
+                                                 "type": "string",
+                                                 "label": "Question",
+                                                 "default": "calculate 2+2"
                                     }
                         ],
                         "category": "AI",
@@ -73,20 +96,192 @@ def seed():
                         "name": "Tool: Calculator",
                         "version": "1.0",
                         "description": "Mathematical calculation tool for AI Agent",
-                        "code": "def run(inputs, params):\n    return {\n        'name': 'calculator',\n        'description': 'Calculates mathematical expressions',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'expression': {'type': 'string'}\n            }\n        },\
-        'execute': libs.calculator\n    }",
+                        "code": "def run(inputs, params):\n    return {\n        'name': 'calculator',\n        'description': 'Calculates mathematical expressions',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'expression': {'type': 'string'}\n            }\n        },\n        'execute': libs.calculator\n    }",
                         "input_schema": {},
                         "output_schema": {
-                                    "tool": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "tool",
-                                                            "label": "Tool"
-                                                }
-                                    ]
+                                    "tool": "object"
                         },
                         "parameters": [],
                         "category": "AI Tools",
+                        "icon": "text",
+                        "is_async": False
+            },
+            {
+                        "name": "Tool: Database",
+                        "version": "1.0",
+                        "description": "Database query tool for AI Agent.",
+                        "code": "def run(inputs, params):\n    return {\n        'name': 'database',\n        'description': 'Queries the primary database',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'query': {'type': 'string'}\n            }\n        },\n        'execute': libs.database_query\n    }",
+                        "input_schema": {},
+                        "output_schema": {
+                                    "tool": "object"
+                        },
+                        "parameters": [],
+                        "category": "AI Tools",
+                        "icon": "text",
+                        "is_async": False
+            },
+            {
+                        "name": "Tool: HTTP Request",
+                        "version": "1.0",
+                        "description": "Generic HTTP Request tool for AI Agent.",
+                        "code": "def run(inputs, params):\n    return {\n        'name': 'http_request',\n        'description': 'Performs an HTTP request to any URL',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'url': {'type': 'string'},\n                'method': {'type': 'string', 'default': 'GET'},\n                'data': {'type': 'string', 'blank': True}\n            }\n        },\n        'execute': libs.http_request\n    }",
+                        "input_schema": {},
+                        "output_schema": {
+                                    "tool": "object"
+                        },
+                        "parameters": [],
+                        "category": "AI Tools",
+                        "icon": "text",
+                        "is_async": False
+            },
+            {
+                        "name": "Tool: Smart Search",
+                        "version": "1.0",
+                        "description": "Provider-aware search tool that automatically uses the best available search for the active model (OpenAI, Gemini, Perplexity).",
+                        "code": "def run(inputs, params):\n    return {\n        'name': 'smart_search',\n        'description': 'Intelligent web search that adapts to the chosen AI model',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'query': {'type': 'string'}\n            }\n        },\n        'execute': libs.smart_search\n    }",
+                        "input_schema": {},
+                        "output_schema": {
+                                    "tool": "object"
+                        },
+                        "parameters": [],
+                        "category": "AI Tools",
+                        "icon": "text",
+                        "is_async": False
+            },
+            {
+                        "name": "Tool: Runtime Data",
+                        "version": "1.0",
+                        "description": "Allows AI Agent to read and write dynamic runtime state.",
+                        "code": "def run(inputs, params):\n    return [\n        {\n            'name': 'read_runtime_data',\n            'description': 'Reads dynamic runtime state JSON (shared data between nodes)',\n            'parameters': {'type': 'object', 'properties': {}},\n            'execute': libs.read_runtime_data\n        },\n        {\n            'name': 'write_runtime_data',\n            'description': 'Writes or updates dynamic runtime state JSON',\n            'parameters': {\n                'type': 'object',\n                'properties': {\n                    'data': {'type': 'string', 'description': 'JSON string to write or merge'}\n                },\n                'required': ['data']\n            },\n            'execute': libs.write_runtime_data\n        }\n    ]",
+                        "input_schema": {},
+                        "output_schema": {
+                                    "tool": "object"
+                        },
+                        "parameters": [],
+                        "category": "AI Tools",
+                        "icon": "text",
+                        "is_async": False
+            },
+            {
+                        "name": "Tool: Workflow Data",
+                        "version": "1.0",
+                        "description": "Allows AI Agent to read static workflow configuration.",
+                        "code": "def run(inputs, params):\n    return {\n        'name': 'read_workflow_data',\n        'description': 'Reads static workflow configuration JSON (environment variables, flow setup)',\n        'parameters': {'type': 'object', 'properties': {}},\n        'execute': libs.read_workflow_data\n    }",
+                        "input_schema": {},
+                        "output_schema": {
+                                    "tool": "object"
+                        },
+                        "parameters": [],
+                        "category": "AI Tools",
+                        "icon": "text",
+                        "is_async": False
+            },
+            {
+                        "name": "AI Agent",
+                        "version": "1.1",
+                        "description": "Modular AI Agent that uses tools, memory, and a chat model.",
+                        "code": "class InputParameters:\n    model: dict = None\n    memory: dict = None\n    tools: list = []\n\nclass NodeParameters:\n    prompt: str = 'Help me with my task'\n\ndef run(inputs, params):\n    model = inputParameters.model\n    memory = inputParameters.memory\n    tools = inputParameters.tools\n    prompt = nodeParameters.prompt\n\n    print(f'Agent running with model: {model}, tools: {len(tools) if tools else 0}')\n    result = libs.agent_run(model, memory, tools, prompt, inputs)\n    return {'output': result}",
+                        "input_schema": {
+                                    "model": "object",
+                                    "memory": "object",
+                                    "tools": "array"
+                        },
+                        "output_schema": {
+                                    "output": "string"
+                        },
+                        "parameters": [
+                                    {
+                                                 "name": "prompt",
+                                                 "type": "string",
+                                                 "label": "Prompt",
+                                                 "default": "Help me with my task"
+                                    }
+                        ],
+                        "category": "AI",
+                        "icon": "graph_2",
+                        "is_async": False
+            },
+            {
+                        "name": "OpenAI Chat Model",
+                        "version": "1.0",
+                        "description": "Configuration for OpenAI Chat Model.",
+                        "code": "class NodeParameters:\n    model: str = 'gpt-4o-mini'\n\ndef run(inputs, params):\n    return {'model': nodeParameters.model, 'provider': 'openai'}",
+                        "input_schema": {},
+                        "output_schema": {
+                                    "model": "object"
+                        },
+                        "parameters": [
+                                    {
+                                                 "name": "model",
+                                                 "type": "string",
+                                                 "label": "Model",
+                                                 "default": "gpt-4o-mini"
+                                    }
+                        ],
+                        "category": "AI",
+                        "icon": "graph_2",
+                        "is_async": False
+            },
+            {
+                        "name": "Gemini Chat Model",
+                        "version": "1.0",
+                        "description": "Configuration for Gemini Chat Model.",
+                        "code": "class NodeParameters:\n    model: str = 'gemini-1.5-flash'\n\ndef run(inputs, params):\n    return {'model': nodeParameters.model, 'provider': 'gemini'}",
+                        "input_schema": {},
+                        "output_schema": {
+                                    "model": "object"
+                        },
+                        "parameters": [
+                                    {
+                                                 "name": "model",
+                                                 "type": "string",
+                                                 "label": "Model",
+                                                 "default": "gemini-1.5-flash"
+                                    }
+                        ],
+                        "category": "AI",
+                        "icon": "graph_2",
+                        "is_async": False
+            },
+            {
+                        "name": "Perplexity Chat Model",
+                        "version": "1.0",
+                        "description": "Configuration for Perplexity Chat Model.",
+                        "code": "class NodeParameters:\n    model: str = 'sonar'\n\ndef run(inputs, params):\n    return {'model': nodeParameters.model, 'provider': 'perplexity'}",
+                        "input_schema": {},
+                        "output_schema": {
+                                    "model": "object"
+                        },
+                        "parameters": [
+                                    {
+                                                 "name": "model",
+                                                 "type": "string",
+                                                 "label": "Model",
+                                                 "default": "sonar"
+                                    }
+                        ],
+                        "category": "AI",
+                        "icon": "graph_2",
+                        "is_async": False
+            },
+            {
+                        "name": "Window Memory",
+                        "version": "1.0",
+                        "description": "Chat memory with a fixed window size.",
+                        "code": "class NodeParameters:\n    window_size: int = 5\n\ndef run(inputs, params):\n    return {'type': 'window', 'size': nodeParameters.window_size}",
+                        "input_schema": {},
+                        "output_schema": {
+                                    "memory": "object"
+                        },
+                        "parameters": [
+                                    {
+                                                 "name": "window_size",
+                                                 "type": "number",
+                                                 "label": "Window Size",
+                                                 "default": 5
+                                    }
+                        ],
+                        "category": "AI",
                         "icon": "text",
                         "is_async": False
             },
@@ -103,88 +298,53 @@ def seed():
                         "is_async": False
             },
             {
-                        "name": "Window Memory",
+                        "name": "Workflow Data Read",
                         "version": "1.0",
-                        "description": "Chat memory with a fixed window size.",
-                        "code": "class NodeParameters:\n    window_size: int = 5\n\ndef run(inputs, params):\n    return {'type': 'window', 'size': nodeParameters.window_size}",
+                        "description": "Returns the workflow data as a JSON object.",
+                        "code": "def run(inputs, params):\n    data = libs.get_workflow_data()\n    print(f'Workflow Data: {data}')\n    return {'data': data}",
                         "input_schema": {},
                         "output_schema": {
-                                    "memory": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "memory",
-                                                            "label": "Memory"
-                                                }
-                                    ]
-                        },
-                        "parameters": [
-                                    {
-                                                "name": "window_size",
-                                                "type": "number",
-                                                "label": "Window Size",
-                                                "default": 5
-                                    }
-                        ],
-                        "category": "AI",
-                        "icon": "text",
-                        "is_async": False
-            },
-            {
-                        "name": "Delay",
-                        "version": "1.1",
-                        "description": "time.sleep",
-                        "code": "class NodeParameters:\n    delay: float = 1.5\n  \ndef run(inputs, params):\n    time.sleep(nodeParameters.delay)\n    return inputs",
-                        "input_schema": {},
-                        "output_schema": {},
-                        "parameters": [
-                                    {
-                                                "name": "delay",
-                                                "type": "number",
-                                                "label": "Delay",
-                                                "default": 1.5
-                                    }
-                        ],
-                        "category": "Utility",
-                        "icon": "timer",
-                        "is_async": False
-            },
-            {
-                        "name": "Echo",
-                        "version": "1.1",
-                        "description": "Echo",
-                        "code": "class NodeParameters:\n    text: str = \"Default value\"\n\ndef run(inputs, params):\n    print(f\"Echo: {nodeParameters.text}\")\n    return inputs",
-                        "input_schema": {},
-                        "output_schema": {},
-                        "parameters": [
-                                    {
-                                                "name": "text",
-                                                "type": "string",
-                                                "label": "Text",
-                                                "default": "Default value"
-                                    }
-                        ],
-                        "category": "Utility",
-                        "icon": "text",
-                        "is_async": False
-            },
-            {
-                        "name": "Tool: Database",
-                        "version": "1.0",
-                        "description": "Database query tool for AI Agent.",
-                        "code": "def run(inputs, params):\n    return {\n        'name': 'database',\n        'description': 'Queries the primary database',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'query': {'type': 'string'}\n            }\n        },\
-        'execute': libs.database_query\n    }",
-                        "input_schema": {},
-                        "output_schema": {
-                                    "tool": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "tool",
-                                                            "label": "Tool"
-                                                }
-                                    ]
+                                    "data": "object"
                         },
                         "parameters": [],
-                        "category": "AI Tools",
+                        "category": "Data",
+                        "icon": "text",
+                        "is_async": False
+            },
+            {
+                        "name": "Runtime Data Read",
+                        "version": "1.0",
+                        "description": "Returns the runtime data as a JSON object.",
+                        "code": "def run(inputs, params):\n    data = libs.get_runtime_data()\n    print(f'Runtime Data: {data}')\n    return {'data': data}",
+                        "input_schema": {},
+                        "output_schema": {
+                                    "data": "object"
+                        },
+                        "parameters": [],
+                        "category": "Data",
+                        "icon": "text",
+                        "is_async": False
+            },
+            {
+                        "name": "Runtime Data Write",
+                        "version": "1.0",
+                        "description": "Writes data to the runtime state of the execution.",
+                        "code": "class NodeParameters:\n    merge: bool = True\n\ndef run(inputs, params):\n    new_data = inputs.get('data', {})\n    if nodeParameters.merge:\n        current = libs.get_runtime_data() or {}\n        current.update(new_data)\n        new_data = current\n    libs.update_runtime_data(new_data)\n    print(f'Runtime Data Updated: {new_data}')\n    return {'success': True}",
+                        "input_schema": {
+                                    "data": "object"
+                        },
+                        "output_schema": {
+                                    "success": "boolean"
+                        },
+                        "parameters": [
+                                    {
+                                                 "name": "merge",
+                                                 "type": "boolean",
+                                                 "label": "Merge",
+                                                 "default": True
+                                    }
+                        ],
+                        "category": "Data",
                         "icon": "text",
                         "is_async": False
             },
@@ -201,84 +361,66 @@ def seed():
                         "is_async": False
             },
             {
-                        "name": "OpenAI Chat Model",
-                        "version": "1.0",
-                        "description": "Configuration for OpenAI Chat Model.",
-                        "code": "class NodeParameters:\n    model: str = 'gpt-4o-mini'\n\ndef run(inputs, params):\n    return {'model': nodeParameters.model, 'provider': 'openai'}",
+                        "name": "Set value",
+                        "version": "1.1",
+                        "description": "Set value in runtime",
+                        "code": "class NodeParameters:\n    Name: str = \"Param\"\n    NewValue = \"Any\"\n\ndef run(inputs, params):\n    data = libs.get_runtime_data ()\n    data[nodeParameters.Name] = nodeParameters.NewValue\n    libs.update_runtime_data(data)\n    \n    inputs [nodeParameters.Name] = nodeParameters.NewValue\n    return inputs",
                         "input_schema": {},
-                        "output_schema": {
-                                    "model": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "model",
-                                                            "label": "Model"
-                                                }
-                                    ]
-                        },
+                        "output_schema": {},
                         "parameters": [
                                     {
-                                                "name": "model",
-                                                "type": "string",
-                                                "label": "Model",
-                                                "default": "gpt-4o-mini"
+                                                 "name": "Name",
+                                                 "type": "string",
+                                                 "label": "Name",
+                                                 "default": "Param"
+                                    },
+                                    {
+                                                 "name": "NewValue",
+                                                 "type": "string",
+                                                 "label": "Newvalue",
+                                                 "default": "Any"
                                     }
                         ],
-                        "category": "AI",
-                        "icon": "graph_2",
+                        "category": "Runtime data",
+                        "icon": "task",
                         "is_async": False
             },
             {
-                        "name": "Gemini Chat Model",
-                        "version": "1.0",
-                        "description": "Configuration for Gemini Chat Model.",
-                        "code": "class NodeParameters:\n    model: str = 'gemini-1.5-flash'\n\ndef run(inputs, params):\n    return {'model': nodeParameters.model, 'provider': 'gemini'}",
+                        "name": "Delay",
+                        "version": "1.1",
+                        "description": "time.sleep",
+                        "code": "class NodeParameters:\n    delay: float = 1.5\n  \ndef run(inputs, params):\n    time.sleep(nodeParameters.delay)\n    return inputs",
                         "input_schema": {},
-                        "output_schema": {
-                                    "model": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "model",
-                                                            "label": "Model"
-                                                }
-                                    ]
-                        },
+                        "output_schema": {},
                         "parameters": [
                                     {
-                                                "name": "model",
-                                                "type": "string",
-                                                "label": "Model",
-                                                "default": "gemini-1.5-flash"
+                                                 "name": "delay",
+                                                 "type": "number",
+                                                 "label": "Delay",
+                                                 "default": 1.5
                                     }
                         ],
-                        "category": "AI",
-                        "icon": "graph_2",
+                        "category": "Utility",
+                        "icon": "timer",
                         "is_async": False
             },
             {
-                        "name": "Perplexity Chat Model",
-                        "version": "1.0",
-                        "description": "Configuration for Perplexity Chat Model.",
-                        "code": "class NodeParameters:\n    model: str = 'sonar'\n\ndef run(inputs, params):\n    return {'model': nodeParameters.model, 'provider': 'perplexity'}",
+                        "name": "Echo",
+                        "version": "1.1",
+                        "description": "Echo",
+                        "code": "class NodeParameters:\n    text: str = \"Default value\"\n\ndef run(inputs, params):\n    print(f\"Echo: {nodeParameters.text}\")\n    return inputs",
                         "input_schema": {},
-                        "output_schema": {
-                                    "model": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "model",
-                                                            "label": "Model"
-                                                }
-                                    ]
-                        },
+                        "output_schema": {},
                         "parameters": [
                                     {
-                                                "name": "model",
-                                                "type": "string",
-                                                "label": "Model",
-                                                "default": "sonar"
+                                                 "name": "text",
+                                                 "type": "string",
+                                                 "label": "Text",
+                                                 "default": "Default value"
                                     }
                         ],
-                        "category": "AI",
-                        "icon": "graph_2",
+                        "category": "Utility",
+                        "icon": "text",
                         "is_async": False
             },
             {
@@ -294,25 +436,6 @@ def seed():
                         "is_async": False
             },
             {
-                        "name": "Open AI: Simple quesion",
-                        "version": "1.0",
-                        "description": "Open AI",
-                        "code": "class NodeParameters:\n    question: str = 'calculate 2+2'\n    \ndef run(inputs, params):\n    simple_answer = openai.ask_single(nodeParameters.question)\n    return simple_answer",
-                        "input_schema": {},
-                        "output_schema": {},
-                        "parameters": [
-                                    {
-                                                "name": "question",
-                                                "type": "string",
-                                                "label": "Question",
-                                                "default": "calculate 2+2"
-                                    }
-                        ],
-                        "category": "AI",
-                        "icon": "graph_2",
-                        "is_async": False
-            },
-            {
                         "name": "If ... than ... else",
                         "version": "1.5",
                         "description": "Simple condition example = ",
@@ -321,255 +444,45 @@ def seed():
                         "output_schema": {},
                         "parameters": [
                                     {
-                                                "name": "Argument",
-                                                "type": "string",
-                                                "label": "Argument",
-                                                "default": "Param"
+                                                 "name": "Argument",
+                                                 "type": "string",
+                                                 "label": "Argument",
+                                                 "default": "Param"
                                     },
                                     {
-                                                "name": "Value",
-                                                "type": "string",
-                                                "label": "Value",
-                                                "default": "Any"
+                                                 "name": "Value",
+                                                 "type": "string",
+                                                 "label": "Value",
+                                                 "default": "Any"
                                     },
                                     {
-                                                "name": "than",
-                                                "type": "number",
-                                                "label": "Than",
-                                                "default": 0
+                                                 "name": "than",
+                                                 "type": "number",
+                                                 "label": "Than",
+                                                 "default": 0
                                     },
                                     {
-                                                "name": "MAX_THAN",
-                                                "type": "number",
-                                                "label": "Max Than",
-                                                "default": 2
+                                                 "name": "MAX_THAN",
+                                                 "type": "number",
+                                                 "label": "Max Than",
+                                                 "default": 2
                                     }
                         ],
                         "category": "Conditions",
                         "icon": "graph",
                         "is_async": False
             },
-            {
-                        "name": "Set value",
-                        "version": "1.1",
-                        "description": "Set value in runtime",
-                        "code": "class NodeParameters:\n    Name: str = \"Param\"\n    NewValue = \"Any\"\n\ndef run(inputs, params):\n    data = libs.get_runtime_data ()\n    data[nodeParameters.Name] = nodeParameters.NewValue\n    libs.update_runtime_data(data)\n    \n    inputs [nodeParameters.Name] = nodeParameters.NewValue\n    return inputs",
-                        "input_schema": {},
-                        "output_schema": {},
-                        "parameters": [
-                                    {
-                                                "name": "Name",
-                                                "type": "string",
-                                                "label": "Name",
-                                                "default": "Param"
-                                    },
-                                    {
-                                                "name": "NewValue",
-                                                "type": "string",
-                                                "label": "Newvalue",
-                                                "default": "Any"
-                                    }
-                        ],
-                        "category": "Runtime data",
-                        "icon": "task",
-                        "is_async": False
-            },
-            {
-                        "name": "AI Agent",
-                        "version": "1.0",
-                        "description": "Modular AI Agent that uses tools, memory, and a chat model.",
-                        "code": "class InputParameters:\n    model: dict = None\n    memory: dict = None\n    tools: list = []\n\nclass NodeParameters:\n    prompt: str = 'Help me with my task'\n\ndef run(inputs, params):\n    model = inputParameters.model\n    memory = inputParameters.memory\n    tools = inputParameters.tools\n    prompt = nodeParameters.prompt\n\n    print(f'Agent running with model: {model}, tools: {len(tools) if tools else 0}')\n    result = libs.agent_run(model, memory, tools, prompt, inputs)\n    return {'output': result}",
-                        "input_schema": {
-                                    "model": "object",
-                                    "memory": "object",
-                                    "tools": "array",
-                                    "inputs": [
-                                                {
-                                                            "name": "model",
-                                                            "label": "Model"
-                                                },
-                                                {
-                                                            "name": "memory",
-                                                            "label": "Memory"
-                                                },
-                                                {
-                                                            "name": "tools",
-                                                            "label": "Tools"
-                                                }
-                                    ]
-                        },
-                        "output_schema": {
-                                    "output": "string",
-                                    "outputs": [
-                                                {
-                                                            "name": "output",
-                                                            "label": "Output"
-                                                }
-                                    ]
-                        },
-                        "parameters": [
-                                    {
-                                                "name": "prompt",
-                                                "type": "string",
-                                                "label": "Prompt",
-                                                "default": "Help me with my task"
-                                    }
-                        ],
-                        "category": "AI",
-                        "icon": "graph_2",
-                        "is_async": False
-            },
-            {
-                        "name": "Tool: Workflow Data",
-                        "version": "1.0",
-                        "description": "Allows AI Agent to read static workflow configuration.",
-                        "code": "def run(inputs, params):\n    return {\n        'name': 'read_workflow_data',\n        'description': 'Reads static workflow configuration JSON (environment variables, flow setup)',\n        'parameters': {'type': 'object', 'properties': {}},\n        'execute': libs.read_workflow_data\n    }",
-                        "input_schema": {},
-                        "output_schema": {
-                                    "tool": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "tool",
-                                                            "label": "Tool"
-                                                }
-                                    ]
-                        },
-                        "parameters": [],
-                        "category": "AI Tools",
-                        "icon": "text",
-                        "is_async": False
-            },
-            {
-                        "name": "Tool: HTTP Request",
-                        "version": "1.0",
-                        "description": "Generic HTTP Request tool for AI Agent.",
-                        "code": "def run(inputs, params):\n    return {\n        'name': 'http_request',\n        'description': 'Performs an HTTP request to any URL',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'url': {'type': 'string'},\n                'method': {'type': 'string', 'default': 'GET'},\n                'data': {'type': 'string', 'blank': True}\n            }\n        },\n        'execute': libs.http_request\n    }",
-                        "input_schema": {},
-                        "output_schema": {
-                                    "tool": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "tool",
-                                                            "label": "Tool"
-                                                }
-                                    ]
-                        },
-                        "parameters": [],
-                        "category": "AI Tools",
-                        "icon": "text",
-                        "is_async": False
-            },
-            {
-                        "name": "Tool: Google Search",
-                        "version": "1.0",
-                        "description": "Web search tool for AI Agent.",
-                        "code": "def run(inputs, params):\n    return {\n        'name': 'google_search',\n        'description': 'Searches the web for information using smart provider-aware tools',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'query': {'type': 'string'}\n            }\n        },\n        'execute': libs.smart_search\n    }",
-                        "input_schema": {},
-                        "output_schema": {
-                                    "tool": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "tool",
-                                                            "label": "Tool"
-                                                }
-                                    ]
-                        },
-                        "parameters": [],
-                        "category": "AI Tools",
-                        "icon": "text",
-                        "is_async": False
-            },
-            {
-                        "name": "Workflow Data Read",
-                        "version": "1.0",
-                        "description": "Returns the workflow data as a JSON object.",
-                        "code": "def run(inputs, params):\n    data = libs.get_workflow_data()\n    print(f'Workflow Data: {data}')\n    return {'data': data}",
-                        "input_schema": {},
-                        "output_schema": {
-                                    "data": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "data",
-                                                            "label": "Data"
-                                                }
-                                    ]
-                        },
-                        "parameters": [],
-                        "category": "Data",
-                        "icon": "text",
-                        "is_async": False
-            },
-            {
-                        "name": "Tool: Runtime Data",
-                        "version": "1.0",
-                        "description": "Allows AI Agent to read and write dynamic runtime state.",
-                        "code": "def run(inputs, params):\n    return [\n        {\n            'name': 'read_runtime_data',\n            'description': 'Reads dynamic runtime state JSON (shared data between nodes)',\n            'parameters': {'type': 'object', 'properties': {}},\n            'execute': libs.read_runtime_data\n        },\n        {\n            'name': 'write_runtime_data',\n            'description': 'Writes or updates dynamic runtime state JSON',\n            'parameters': {\n                'type': 'object',\n                'properties': {\n                    'data': {'type': 'string', 'description': 'JSON string to write or merge'}\n                },\n                'required': ['data']\n            },\n            'execute': libs.write_runtime_data\n        }\n    ]",
-                        "input_schema": {},
-                        "output_schema": {
-                                    "tool": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "tool",
-                                                            "label": "Tool"
-                                                }
-                                    ]
-                        },
-                        "parameters": [],
-                        "category": "AI Tools",
-                        "icon": "text",
-                        "is_async": False
-            },
-            {
-                        "name": "Runtime Data Write",
-                        "version": "1.0",
-                        "description": "Writes data to the runtime state of the execution.",
-                        "code": "class NodeParameters:\n    merge: bool = True\n\ndef run(inputs, params):\n    new_data = inputs.get('data', {})\n    if nodeParameters.merge:\n        current = libs.get_runtime_data() or {}\n        current.update(new_data)\n        new_data = current\n    libs.update_runtime_data(new_data)\n    print(f'Runtime Data Updated: {new_data}')\n    return {'success': True}",
-                        "input_schema": {
-                                    "data": "object"
-                        },
-                        "output_schema": {
-                                    "success": "boolean",
-                                    "outputs": [
-                                                {
-                                                            "name": "success",
-                                                            "label": "Success"
-                                                }
-                                    ]
-                        },
-                        "parameters": [
-                                    {
-                                                "name": "merge",
-                                                "type": "boolean",
-                                                "label": "Merge",
-                                                "default": True
-                                    }
-                        ],
-                        "category": "Data",
-                        "icon": "text",
-                        "is_async": False
-            },
-            {
-                        "name": "Tool: Smart Search",
-                        "version": "1.0",
-                        "description": "Provider-aware search tool that automatically uses the best available search for the active model (OpenAI, Gemini, Perplexity).",
-                        "code": "def run(inputs, params):\n    return {\n        'name': 'smart_search',\n        'description': 'Intelligent web search that adapts to the chosen AI model',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'query': {'type': 'string'}\n            }\n        },\n        'execute': libs.smart_search\n    }",
-                        "input_schema": {},
-                        "output_schema": {
-                                    "tool": "object",
-                                    "outputs": [
-                                                {
-                                                            "name": "tool",
-                                                            "label": "Tool"
-                                                }
-                                    ]
-                        },
-                        "parameters": [],
-                        "category": "AI Tools",
-                        "icon": "text",
-                        "is_async": False
-            }
-]
+        ]
 
+        # Sync nodes: Update existing, create new, and DELETE unnecessary ones
+        seed_node_names = [n["name"] for n in nodes_data]
+        
+        # 1. DELETE nodes that are not in nodes_data
+        deleted_count = db.query(NodeType).filter(NodeType.name.notin_(seed_node_names)).delete(synchronize_session=False)
+        if deleted_count > 0:
+            print(f"Deleted {deleted_count} unnecessary node types.")
+
+        # 2. CREATE or UPDATE nodes
         for node_data in nodes_data:
             existing_node = db.query(NodeType).filter(NodeType.name == node_data["name"]).first()
             if not existing_node:
