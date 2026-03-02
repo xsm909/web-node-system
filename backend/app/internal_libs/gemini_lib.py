@@ -38,7 +38,7 @@ def set_prompt(conversation_id: str, prompt: str) -> bool:
     _system_prompts[conversation_id] = prompt
     return True
 
-def ask_ai(conversation_id: str, text: str, model_name: str = "gemini-1.5-flash") -> str:
+def ask_chat(conversation_id: str, text: str, model_name: str = "gemini-1.5-flash") -> str:
     api_key = _setup_genai()
     if not api_key:
         return "Error: GEMINI_API_KEY not found in credentials."
@@ -68,7 +68,7 @@ def ask_ai(conversation_id: str, text: str, model_name: str = "gemini-1.5-flash"
     except Exception as e:
         return f"Error calling Gemini API: {str(e)}"
 
-def ask_AI(text: str, model_name: str = "gemini-1.5-flash") -> str:
+def ask_single(text: str, model_name: str = "gemini-1.5-flash") -> str:
     api_key = _setup_genai()
     if not api_key:
         return "Error: GEMINI_API_KEY not found in credentials."

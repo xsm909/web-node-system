@@ -16,9 +16,9 @@ from RestrictedPython import compile_restricted, safe_globals, safe_builtins, Gu
 from ..core.database import SessionLocal
 from ..models.workflow import Workflow, WorkflowExecution, NodeExecution, WorkflowStatus
 from ..models.node import NodeType
-from ..internal_libs.ask_ai import ask_ai, check_ai
+from ..internal_libs.ask_ai import ask_single, check_ai
 from ..internal_libs.struct_func import get_workflow_data, get_runtime_data, update_runtime_data
-from ..internal_libs.openai_lib import create_new_conversation, set_prompt, ask_ai as openai_ask_ai, ask_AI as openai_ask_AI
+from ..internal_libs.openai_lib import create_new_conversation, set_prompt, ask_chat as openai_ask_chat, ask_single as openai_ask_single, perform_web_search
 from ..internal_libs.agent_lib import agent_run
 from ..internal_libs.tools_lib import (
     calculator, database_query, http_request, http_search, 
@@ -74,7 +74,7 @@ SAFE_GLOBALS = {
     "__metaclass__": type,
     "time": time,  # available without import
     "libs": SimpleNamespace(
-        ask_ai=ask_ai,
+        ask_ai=ask_single,
         check_ai=check_ai,
         agent_run=agent_run,
         calculator=calculator,
@@ -89,8 +89,9 @@ SAFE_GLOBALS = {
     "openai": SimpleNamespace(
         create_new_conversation=create_new_conversation,
         set_prompt=set_prompt,
-        ask_ai=openai_ask_ai,
-        ask_AI=openai_ask_AI,
+        ask_chat=openai_ask_chat,
+        ask_single=openai_ask_single,
+        perform_web_search=perform_web_search,
     ),
 }
 

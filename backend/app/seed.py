@@ -73,7 +73,8 @@ def seed():
                         "name": "Tool: Calculator",
                         "version": "1.0",
                         "description": "Mathematical calculation tool for AI Agent",
-                        "code": "def run(inputs, params):\n    return {\n        'name': 'calculator',\n        'description': 'Calculates mathematical expressions',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'expression': {'type': 'string'}\n            }\n        },\n        'execute': libs.calculator\n    }",
+                        "code": "def run(inputs, params):\n    return {\n        'name': 'calculator',\n        'description': 'Calculates mathematical expressions',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'expression': {'type': 'string'}\n            }\n        },\
+        'execute': libs.calculator\n    }",
                         "input_schema": {},
                         "output_schema": {
                                     "tool": "object",
@@ -170,7 +171,8 @@ def seed():
                         "name": "Tool: Database",
                         "version": "1.0",
                         "description": "Database query tool for AI Agent.",
-                        "code": "def run(inputs, params):\n    return {\n        'name': 'database',\n        'description': 'Queries the primary database',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'query': {'type': 'string'}\n            }\n        },\n        'execute': libs.database_query\n    }",
+                        "code": "def run(inputs, params):\n    return {\n        'name': 'database',\n        'description': 'Queries the primary database',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'query': {'type': 'string'}\n            }\n        },\
+        'execute': libs.database_query\n    }",
                         "input_schema": {},
                         "output_schema": {
                                     "tool": "object",
@@ -295,7 +297,7 @@ def seed():
                         "name": "Open AI: Simple quesion",
                         "version": "1.0",
                         "description": "Open AI",
-                        "code": "class NodeParameters:\n    question: str = 'calculate 2+2'\n    \ndef run(inputs, params):\n    simple_answer = openai.ask_AI(nodeParameters.question)\n    return simple_answer",
+                        "code": "class NodeParameters:\n    question: str = 'calculate 2+2'\n    \ndef run(inputs, params):\n    simple_answer = openai.ask_single(nodeParameters.question)\n    return simple_answer",
                         "input_schema": {},
                         "output_schema": {},
                         "parameters": [

@@ -5,7 +5,7 @@ from .credentials import get_credential_by_key
 def check_ai () -> str:
     return f"Ok. It's work!!!!"
 
-def ask_ai(prompt: str, model: str = "gemini-2.0-flash") -> str:
+def ask_single(prompt: str, model: str = "gemini-2.0-flash") -> str:
     
     """
     Internal function to ask Gemini AI a question.

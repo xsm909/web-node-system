@@ -65,7 +65,7 @@ def set_prompt(conversation_id: str, prompt: str) -> bool:
     _system_prompts[conversation_id] = prompt
     return True
 
-def ask_ai(conversation_id: str, text: str, model: str = "gpt-5.2") -> str:
+def ask_chat(conversation_id: str, text: str, model: str = "gpt-5.2") -> str:
     """
     Sends a message to the conversation and returns the AI's response.
     """
@@ -95,7 +95,7 @@ def ask_ai(conversation_id: str, text: str, model: str = "gpt-5.2") -> str:
         
     return answer
 
-def ask_AI(text: str, model: str = "gpt-4o-mini") -> str:
+def ask_single(text: str, model: str = "gpt-4o-mini") -> str:
     """
     Simple version to ask AI a single question without conversation history.
     """
@@ -106,7 +106,7 @@ def ask_AI(text: str, model: str = "gpt-4o-mini") -> str:
     messages = [{"role": "user", "content": text}]
     return _make_request(api_key, messages, model)
 
-def perform_web_search(query: str) -> str:
+def perform_web_search(query: str, model: str = "gpt-5.2") -> str:
     """
     Uses OpenAI's web_search_preview tool to search the internet.
     Note: This requires a model and API key that supports this tool.
@@ -131,7 +131,7 @@ def perform_web_search(query: str) -> str:
     ]
     
     # We use gpt-4o as it's most likely to have this tool enabled
-    result = _make_request(api_key, messages, model="gpt-4o", tools=tools)
+    result = _make_request(api_key, messages, model, tools=tools)
     
     # Handle the specific 400 error when 'web_search' is not supported
     if "invalid_value" in result and "web_search" in result:

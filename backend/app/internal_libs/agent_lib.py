@@ -140,7 +140,7 @@ Available Tools:
             # Gemini handles history internally if we use chat.send_message
             # but for the loop we might want more control. 
             # For now, let's use the library's ask_ai pattern or similar request.
-            response = lib.ask_ai(session_id or "tmp", inputs if i==0 else messages[-1]["content"], model)
+            response = lib.ask_chat(session_id or "tmp", inputs if i==0 else messages[-1]["content"], model)
         elif provider == "perplexity":
             # Perplexity is OpenAI-compatible
             response = lib._make_request(api_key, messages, model)

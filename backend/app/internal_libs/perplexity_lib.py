@@ -51,7 +51,7 @@ def set_prompt(conversation_id: str, prompt: str) -> bool:
     _system_prompts[conversation_id] = prompt
     return True
 
-def ask_ai(conversation_id: str, text: str, model: str = "sonar") -> str:
+def ask_chat(conversation_id: str, text: str, model: str = "sonar") -> str:
     api_key = _get_api_key()
     if not api_key:
         return "Error: PERPLEXITY_API_KEY not found in credentials."
@@ -77,7 +77,7 @@ def ask_ai(conversation_id: str, text: str, model: str = "sonar") -> str:
         
     return answer
 
-def ask_AI(text: str, model: str = "sonar") -> str:
+def ask_single(text: str, model: str = "sonar") -> str:
     api_key = _get_api_key()
     if not api_key:
         return "Error: PERPLEXITY_API_KEY not found in credentials."
