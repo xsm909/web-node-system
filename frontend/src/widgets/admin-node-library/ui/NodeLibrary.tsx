@@ -7,10 +7,11 @@ import { buildCategoryTree, type CategoryTreeNode } from '../../../shared/lib/ca
 
 interface AdminNodeLibraryProps {
     onEditNode: (node: NodeType) => void;
+    onDuplicateNode: (node: NodeType) => void;
     refreshTrigger?: number;
 }
 
-// ─── Recursive category section ───────────────────────────────────────────────
+// --- Recursive category section -----------------------------------------------
 
 interface CategorySectionProps {
     path: string;         // full path, e.g. "AI|Chat"
@@ -18,6 +19,7 @@ interface CategorySectionProps {
     node: CategoryTreeNode;
     depth: number;
     onEditNode: (n: NodeType) => void;
+    onDuplicateNode: (n: NodeType) => void;
     onDeleteNode: (n: NodeType) => void;
     selectedNodeId: string | null;
     onSelectNode: (id: string) => void;
@@ -25,7 +27,7 @@ interface CategorySectionProps {
 }
 
 const CategorySection: React.FC<CategorySectionProps> = ({
-    path, label, node, depth, onEditNode, onDeleteNode,
+    path, label, node, depth, onEditNode, onDuplicateNode, onDeleteNode,
     selectedNodeId, onSelectNode, searchQuery,
 }) => {
     const [collapsed, setCollapsed] = useState(false);
@@ -61,7 +63,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
                 </span>
             </button>
 
-            {/* Content — animated collapse */}
+            {/* Content - animated collapse */}
             <div
                 className="overflow-hidden transition-all duration-300 ease-in-out"
                 style={{ maxHeight: collapsed ? 0 : '9999px', opacity: collapsed ? 0 : 1 }}
@@ -79,6 +81,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
                                     node={childNode}
                                     depth={depth + 1}
                                     onEditNode={onEditNode}
+                                    onDuplicateNode={onDuplicateNode}
                                     onDeleteNode={onDeleteNode}
                                     selectedNodeId={selectedNodeId}
                                     onSelectNode={onSelectNode}
@@ -133,6 +136,13 @@ const CategorySection: React.FC<CategorySectionProps> = ({
                                                         <Icon name="edit" size={13} />
                                                     </button>
                                                     <button
+                                                        className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
+                                                        onClick={(e) => { e.stopPropagation(); onDuplicateNode(n); }}
+                                                        title="Duplicate"
+                                                    >
+                                                        <Icon name="content_copy" size={13} />
+                                                    </button>
+                                                    <button
                                                         className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
                                                         onClick={(e) => { e.stopPropagation(); onDeleteNode(n); }}
                                                         title="Delete"
@@ -158,17 +168,18 @@ function countNodes(node: CategoryTreeNode): number {
     return count;
 }
 
-// ─── Flat search results ────────────────────────────────────────────────────
+// --- Flat search results ----------------------------------------------------
 
 interface SearchResultsProps {
     nodes: NodeType[];
     onEditNode: (n: NodeType) => void;
+    onDuplicateNode: (n: NodeType) => void;
     onDeleteNode: (n: NodeType) => void;
     selectedNodeId: string | null;
     onSelectNode: (id: string) => void;
 }
 
-const SearchResults: React.FC<SearchResultsProps> = ({ nodes, onEditNode, onDeleteNode, selectedNodeId, onSelectNode }) => (
+const SearchResults: React.FC<SearchResultsProps> = ({ nodes, onEditNode, onDuplicateNode, onDeleteNode, selectedNodeId, onSelectNode }) => (
     <div className="bg-surface-800 rounded-2xl border border-[var(--border-base)] overflow-hidden shadow-xl ring-1 ring-black/5 dark:ring-white/5">
         <table className="w-full text-left border-collapse">
             <thead>
@@ -191,7 +202,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ nodes, onEditNode, onDele
                         </td>
                         <td className="px-5 py-3">
                             <span className="text-[10px] font-mono text-[var(--text-muted)] opacity-60 group-hover:opacity-90">
-                                {n.category?.split('|').join(' › ') || '—'}
+                                {n.category?.split('|').join(' > ') || '-'}
                             </span>
                         </td>
                         <td className="px-5 py-3">
@@ -205,12 +216,23 @@ const SearchResults: React.FC<SearchResultsProps> = ({ nodes, onEditNode, onDele
                                     className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
                                     onClick={(e) => { e.stopPropagation(); onEditNode(n); }}
                                     title="Edit"
-                                ><Icon name="edit" size={13} /></button>
+                                >
+                                    <Icon name="edit" size={13} />
+                                </button>
+                                <button
+                                    className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
+                                    onClick={(e) => { e.stopPropagation(); onDuplicateNode(n); }}
+                                    title="Duplicate"
+                                >
+                                    <Icon name="content_copy" size={13} />
+                                </button>
                                 <button
                                     className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
                                     onClick={(e) => { e.stopPropagation(); onDeleteNode(n); }}
                                     title="Delete"
-                                ><Icon name="delete" size={13} /></button>
+                                >
+                                    <Icon name="delete" size={13} />
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -223,9 +245,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({ nodes, onEditNode, onDele
     </div>
 );
 
-// ─── Main component ──────────────────────────────────────────────────────────
+// --- Main component -----------------------------------------------------------
 
-export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, refreshTrigger = 0 }) => {
+export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, onDuplicateNode, refreshTrigger = 0 }) => {
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -289,7 +311,7 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, 
                 <input
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search nodes by name, category or description…"
+                    placeholder="Search nodes by name, category or description..."
                     className="w-full bg-surface-800 border border-[var(--border-base)] rounded-2xl pl-10 pr-10 py-3.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] placeholder:opacity-40 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/40 transition-all shadow-inner"
                 />
                 {searchQuery && (
@@ -311,6 +333,7 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, 
                     <SearchResults
                         nodes={searchResults}
                         onEditNode={onEditNode}
+                        onDuplicateNode={onDuplicateNode}
                         onDeleteNode={setNodeToDelete}
                         selectedNodeId={selectedNodeId}
                         onSelectNode={setSelectedNodeId}
@@ -328,6 +351,7 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, 
                                 node={node}
                                 depth={0}
                                 onEditNode={onEditNode}
+                                onDuplicateNode={onDuplicateNode}
                                 onDeleteNode={setNodeToDelete}
                                 selectedNodeId={selectedNodeId}
                                 onSelectNode={setSelectedNodeId}

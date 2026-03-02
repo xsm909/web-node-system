@@ -1,9 +1,12 @@
 import uuid
 import json
+import logging
 from typing import Dict, List, Optional
 import google.genai as genai
 from google.genai import types
 from ..credentials import get_credential_by_key
+
+logger = logging.getLogger(__name__)
 
 # In-memory storage for conversations
 _conversations: Dict[str, List[Dict[str, str]]] = {}
@@ -16,7 +19,16 @@ def _get_api_key() -> Optional[str]:
 def _get_client() -> Optional[genai.Client]:
     api_key = _get_api_key()
     if api_key:
-        return genai.Client(api_key=api_key)
+        client = genai.Client(api_key=api_key)
+        # Debug: list available models
+        try:
+            logger.info("--- Available Gemini Models ---")
+            for m in client.models.list():
+                logger.info(f"Model: {m.name}, Supported Methods: {m.supported_generation_methods}")
+            logger.info("-------------------------------")
+        except Exception as e:
+            logger.error(f"Error listing models: {e}")
+        return client
     return None
 
 def gemini_create_new_conversation() -> str:

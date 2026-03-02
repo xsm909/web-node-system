@@ -44,6 +44,15 @@ export function useNodeTypeManagement() {
         }
     };
 
+    const handleDuplicateNode = (node: NodeType) => {
+        setEditingNode(null);
+        setFormData({
+            ...node,
+            name: `${node.name} (Copy)`
+        });
+        setIsModalOpen(true);
+    };
+
     return {
         isModalOpen,
         setIsModalOpen,
@@ -51,6 +60,7 @@ export function useNodeTypeManagement() {
         formData,
         setFormData,
         handleOpenModal,
+        handleDuplicateNode,
         handleSave
     };
 }

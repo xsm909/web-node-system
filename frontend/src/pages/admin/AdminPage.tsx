@@ -27,6 +27,7 @@ export default function AdminPage() {
         formData,
         setFormData,
         handleOpenModal,
+        handleDuplicateNode,
         handleSave
     } = useNodeTypeManagement();
 
@@ -66,6 +67,7 @@ export default function AdminPage() {
                         ) : activeTab === 'nodes' ? (
                             <AdminNodeLibrary
                                 onEditNode={handleOpenModal}
+                                onDuplicateNode={handleDuplicateNode}
                                 refreshTrigger={refreshCount}
                             />
                         ) : (
