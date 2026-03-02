@@ -59,15 +59,10 @@ def update_seed_file(new_nodes_data_block):
         content = f.read()
 
     # Regex to find the nodes_data = [ ... ] block inside seed_database function
-    # It looks for nodes_data = [ and then non-greedily captures until the closing ]
-    # that is followed by the for loop.
-    pattern = r'(\s+)nodes_data = \[.*?\]\s+(?=for node_data in nodes_data:)'
-    
-    # We capture the indentation of the start to preserve it
-    # But since we provide the whole block from the capture, we just replace it.
+    pattern = r'(\s+)nodes_data = \[.*?\]\s+(?=# Sync nodes)'
     
     updated_content = re.sub(
-        r'nodes_data = \[.*?\](?=\s+for node_data in nodes_data:)',
+        r'nodes_data = \[.*?\](?=\n\s+# Sync nodes)',
         new_nodes_data_block,
         content,
         flags=re.DOTALL
