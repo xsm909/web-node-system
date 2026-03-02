@@ -134,7 +134,7 @@ export default function ManagerPage() {
                             className="flex-1 px-4 py-3 rounded-2xl text-xs font-bold text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 border border-[var(--border-base)] hover:border-red-500/20 transition-all flex items-center justify-center gap-2 active:scale-95"
                             onClick={logout}
                         >
-                            <Icon name="logout" size={16} />
+                            <Icon name="signout" size={16} />
                             <span>Sign Out</span>
                         </button>
                         <ThemeToggle />

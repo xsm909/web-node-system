@@ -6,27 +6,34 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
     size?: number | string;
 }
 
+// Use relative paths and modern glob query for better Vite compatibility
+const iconModules = import.meta.glob('../../../assets/icons/*.svg', { query: '?raw', import: 'default', eager: true });
+const nodeIconModules = import.meta.glob('../../../assets/node_icons/*.svg', { query: '?raw', import: 'default', eager: true });
+
 export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, className = '', ...props }) => {
     const [svgContent, setSvgContent] = useState<string | null>(null);
 
     useEffect(() => {
-        const path = dir === 'icons' ? `/src/assets/icons/${name}.svg` : `/src/assets/node_icons/${name}.svg`;
-        fetch(path)
-            .then(res => res.text())
-            .then(text => {
-                // Extract only the path or inner content if needed, 
-                // but for simplicity we'll just inject the whole thing and strip svg tags if they exist
-                // or just render as is if we wrap it.
-                // Best way for "currentColor" is to have the <svg> in the DOM.
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'image/svg+xml');
-                const svgElement = doc.querySelector('svg');
-                if (svgElement) {
-                    setSvgContent(svgElement.innerHTML);
-                }
-            })
-            .catch(err => console.error(`Failed to load icon: ${name}`, err));
-    }, [name]);
+        const modules = dir === 'icons' ? iconModules : nodeIconModules;
+
+        // Construct the expected key for the glob map
+        const path = dir === 'icons'
+            ? `../../../assets/icons/${name}.svg`
+            : `../../../assets/node_icons/${name}.svg`;
+
+        const rawSvg = modules[path] as string | undefined;
+
+        if (rawSvg) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(rawSvg, 'image/svg+xml');
+            const svgElement = doc.querySelector('svg');
+            if (svgElement) {
+                setSvgContent(svgElement.innerHTML);
+            }
+        } else {
+            console.error(`Failed to load icon: ${name} from ${dir} at ${path}`);
+        }
+    }, [name, dir]);
 
     if (!svgContent) return <div style={{ width: size, height: size }} className={className} />;
 

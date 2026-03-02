@@ -69,7 +69,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
                     onClick={onLogout}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold text-[var(--text-muted)] border border-[var(--border-base)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all active:scale-[0.98]"
                 >
-                    <Icon name="logout" size={18} />
+                    <Icon name="signout" size={18} />
                     Sign Out
                 </button>
                 <ThemeToggle />

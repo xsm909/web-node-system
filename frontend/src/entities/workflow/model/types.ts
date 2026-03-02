@@ -4,5 +4,6 @@ export interface Workflow {
     status: string;
     owner_id: string;
     workflow_data?: any;
+    runtime_data?: any;
     graph?: any;
 }

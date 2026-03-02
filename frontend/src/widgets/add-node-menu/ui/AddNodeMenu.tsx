@@ -21,7 +21,7 @@ interface CategoryPanelProps {
     activeDescendant: string[];  // currently hovered path below this panel
 }
 
-const CategoryPanel: React.FC<CategoryPanelProps> = ({ tree, breadcrumb, onAddNode, onNavigate, activeDescendant }) => {
+const CategoryPanel: React.FC<CategoryPanelProps> = ({ tree, breadcrumb, onAddNode: _onAddNode, onNavigate, activeDescendant }) => {
     const entries = Object.entries(tree).sort(([a], [b]) => a.localeCompare(b));
     const hasSubcategories = entries.some(([, n]) => Object.keys(n.children).length > 0);
     const hasLeafNodes = entries.some(([, n]) => Object.keys(n.children).length === 0 && n.nodes.length > 0);
