@@ -30,7 +30,17 @@ const CategorySection: React.FC<CategorySectionProps> = ({
     path, label, node, depth, onEditNode, onDuplicateNode, onDeleteNode,
     selectedNodeId, onSelectNode, searchQuery,
 }) => {
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(() => {
+        return localStorage.getItem(`cat_collapsed_${path}`) === 'true';
+    });
+
+    const toggleCollapsed = () => {
+        setCollapsed(prev => {
+            const next = !prev;
+            localStorage.setItem(`cat_collapsed_${path}`, String(next));
+            return next;
+        });
+    };
 
     const hasChildren = Object.keys(node.children).length > 0;
     const hasNodes = node.nodes.length > 0;
@@ -44,7 +54,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
             <button
                 className="flex items-center gap-3 w-full text-left px-2 py-1 rounded-xl hover:bg-[var(--border-muted)]/50 transition-colors group"
                 style={{ paddingLeft: `${indentPx + 8}px` }}
-                onClick={() => setCollapsed(c => !c)}
+                onClick={toggleCollapsed}
             >
                 <span
                     className={`transition-transform duration-200 ${collapsed ? '-rotate-90' : ''} opacity-40 group-hover:opacity-80`}

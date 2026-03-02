@@ -72,9 +72,13 @@ export function WorkflowGraph({
         const loadedNodes = graphNodes.map((n: any) => {
             const base = n.type === 'default' ? { ...n, type: 'action' } : { ...n };
             // Merge default params from nodeType so existing nodes get any newly added parameters
-            const ntDef = nodeTypes.find((t: NodeType) =>
-                t.name.toLowerCase() === (base.data?.nodeType || base.data?.label || '').toLowerCase()
-            );
+            const ntDef = nodeTypes.find((t: NodeType) => {
+                const nameMatches = t.name.toLowerCase() === (base.data?.nodeType || base.data?.label || '').toLowerCase();
+                if (base.data?.category && t.category) {
+                    return nameMatches && t.category === base.data.category;
+                }
+                return nameMatches;
+            });
             if (ntDef) {
                 const merged = { ...(base.data?.params || {}) };
                 if (ntDef.parameters) {
@@ -203,6 +207,7 @@ export function WorkflowGraph({
             },
             data: {
                 label: type.name,
+                category: type.category,
                 params: initialParams,
                 icon: type.icon
             },
@@ -297,9 +302,13 @@ export function WorkflowGraph({
 
     // Inject isActive + maxThan (from nodeType definition) into each node's data
     const renderedNodes = nodes.map(node => {
-        const ntDef = nodeTypes.find((t: NodeType) =>
-            t.name.toLowerCase() === (node.data?.nodeType || node.data?.label || '').toLowerCase()
-        );
+        const ntDef = nodeTypes.find((t: NodeType) => {
+            const nameMatches = t.name.toLowerCase() === (node.data?.nodeType || node.data?.label || '').toLowerCase();
+            if (node.data?.category && t.category) {
+                return nameMatches && t.category === node.data.category;
+            }
+            return nameMatches;
+        });
         // Determine MAX_THAN from nodeType parameters definition
         const maxThanParam = ntDef?.parameters?.find((p: any) => p.name === 'MAX_THAN');
         const maxThan = node.data?.params?.MAX_THAN ?? maxThanParam?.default ?? 0;

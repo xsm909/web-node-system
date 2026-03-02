@@ -484,7 +484,10 @@ def seed():
 
         # 2. CREATE or UPDATE nodes
         for node_data in nodes_data:
-            existing_node = db.query(NodeType).filter(NodeType.name == node_data["name"]).first()
+            existing_node = db.query(NodeType).filter(
+                NodeType.name == node_data["name"],
+                NodeType.category == node_data.get("category")
+            ).first()
             if not existing_node:
                 node = NodeType(**node_data)
                 db.add(node)

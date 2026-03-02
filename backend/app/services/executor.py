@@ -354,7 +354,11 @@ class WorkflowExecutor:
                 try:
                     data = node_data.get("data", {})
                     node_type_name = data.get("nodeType") or data.get("label")
-                    node_type = self.db.query(NodeType).filter(NodeType.name == node_type_name).first()
+                    node_type_category = data.get("category")
+                    query = self.db.query(NodeType).filter(NodeType.name == node_type_name)
+                    if node_type_category:
+                        query = query.filter(NodeType.category == node_type_category)
+                    node_type = query.first()
                     code = node_type.code if node_type else "def run(inputs, params):\n    return {}"
                     params = data.get("params", {})
 
