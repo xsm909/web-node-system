@@ -7,9 +7,11 @@ import { WorkflowGraph } from '../../workflow-graph';
 import { WorkflowDataEditorTabs } from '../../workflow-data-editor';
 import { useWorkflowOperations } from '../../../features/workflow-operations';
 import { useWorkflowManagement } from '../../../features/workflow-management';
+import { useClientStore } from '../../../features/workflow-management/model/clientStore';
 import { Icon } from '../../../shared/ui/icon';
 
 export function AdminCommonWorkflowManagement({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+    const { activeClientId } = useClientStore();
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [renameInputValue, setRenameInputValue] = useState('');
@@ -88,11 +90,12 @@ export function AdminCommonWorkflowManagement({ onToggleSidebar }: { onToggleSid
                     setCreateInputValue('');
                 }}
                 onSave={saveWorkflow}
-                onRun={() => runWorkflow(() => setIsConsoleVisible(true), null)}
+                onRun={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
                 onToggleSidebar={onToggleSidebar}
                 canAction={!!activeWorkflow}
                 isCreating={isCreating}
                 onOpenEditModal={() => setIsEditModalOpen(true)}
+                showClientSelector={true}
             />
 
             {activeWorkflow ? (

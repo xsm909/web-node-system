@@ -25,6 +25,7 @@ interface WorkflowHeaderProps {
     canAction: boolean;
     isCreating?: boolean;
     onOpenEditModal: () => void;
+    showClientSelector?: boolean;
 }
 
 export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
@@ -43,8 +44,9 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     onToggleSidebar,
     canAction,
     onOpenEditModal,
+    showClientSelector,
 }) => {
-    const { activeClientId } = useClientStore();
+    const { activeClientId, assignedUsers, setActiveClientId } = useClientStore();
     const { user: currentUser } = useAuthStore();
     const isAdmin = currentUser?.role === 'admin';
 
@@ -102,6 +104,26 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
         return data;
     }, [workflowsByOwner, users, activeClientId, isAdmin]);
 
+    const activeClient = useMemo(() =>
+        assignedUsers.find(u => u.id === activeClientId),
+        [assignedUsers, activeClientId]
+    );
+
+    const clientSelectionData = useMemo(() => {
+        const data: Record<string, SelectionGroup> = {};
+        assignedUsers.forEach(u => {
+            data[u.username] = {
+                id: u.id,
+                name: u.username,
+                selectable: true,
+                icon: 'person',
+                items: [],
+                children: {}
+            };
+        });
+        return data;
+    }, [assignedUsers]);
+
     const handleSelect = (item: SelectionItem) => {
         // Find the actual workflow object
         const ownerId = (item.parentId || 'personal').toLowerCase();
@@ -153,6 +175,19 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                             groupActions: ['add'],
                         }}
                     />
+                    {showClientSelector && (
+                        <>
+                            <div className="w-px h-6 bg-[var(--border-base)] mx-1" />
+                            <ComboBox
+                                value={activeClientId || 'all'}
+                                label={activeClient?.username || 'No client selected'}
+                                icon={activeClient ? 'person' : 'group'}
+                                data={clientSelectionData}
+                                onSelect={(item) => setActiveClientId(item.id === 'all' ? null : item.id)}
+                                searchPlaceholder="Find client..."
+                            />
+                        </>
+                    )}
                 </div>
             }
             rightContent={
