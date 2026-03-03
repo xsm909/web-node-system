@@ -48,18 +48,18 @@ export default function AdminPage() {
                         onClick: () => setActiveTab('users'),
                     },
                     {
-                        id: 'nodes',
-                        label: 'Node Types',
-                        icon: 'code_blocks',
-                        isActive: activeTab === 'nodes',
-                        onClick: () => setActiveTab('nodes'),
-                    },
-                    {
                         id: 'credentials',
                         label: 'Credentials',
                         icon: 'key_clear',
                         isActive: activeTab === 'credentials',
                         onClick: () => setActiveTab('credentials'),
+                    },
+                    {
+                        id: 'nodes',
+                        label: 'Node Types',
+                        icon: 'code_blocks',
+                        isActive: activeTab === 'nodes',
+                        onClick: () => setActiveTab('nodes'),
                     },
                     {
                         id: 'workflows',
