@@ -101,7 +101,18 @@ export function useWorkflowOperations({
 
     const runWorkflow = async (onConsoleOpen: () => void, activeClientId?: string | null) => {
         if (!activeWorkflow) return;
-        await saveWorkflow();
+        try {
+            await saveWorkflow();
+        } catch (err: any) {
+            // If the user doesn't have permission to save (e.g. non-admin running common workflow),
+            // just continue to run the workflow as it is saved in the database
+            if (err?.response?.status !== 403) {
+                console.error("Failed to save workflow before running:", err);
+                // Optionally alert the user here if it's not a 403
+            } else {
+                console.warn("Could not save workflow before running (403 Forbidden). Proceeding with execution using existing backend state.");
+            }
+        }
         setCurrentExecutionId(null);
         setIsRunning(true);
         setExecutionLogs([]);
