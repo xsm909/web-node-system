@@ -10,6 +10,7 @@ import { WorkflowGraph } from '../../widgets/workflow-graph';
 import { WorkflowDataEditorTabs } from '../../widgets/workflow-data-editor';
 import { useWorkflowOperations } from '../../features/workflow-operations';
 import { useWorkflowManagement } from '../../features/workflow-management';
+import { useAuthStore } from '../../features/auth/store';
 
 import { Icon } from '../../shared/ui/icon';
 import { AppSidebar } from '../../widgets/app-sidebar';
@@ -106,6 +107,10 @@ export default function ManagerPage() {
         ? assignedUsers.filter(u => u.id === activeClientId)
         : assignedUsers;
 
+    const { user: currentUser } = useAuthStore();
+    const isAdmin = currentUser?.role === 'admin';
+    const canSave = isAdmin || activeWorkflow?.owner_id !== 'common';
+
     return (
         <div className="fixed inset-0 flex bg-[var(--bg-app)] text-[var(--text-main)] overflow-hidden font-sans">
             <AppSidebar
@@ -159,6 +164,7 @@ export default function ManagerPage() {
                             canAction={!!activeWorkflow}
                             isCreating={isCreating}
                             onOpenEditModal={() => setIsEditModalOpen(true)}
+                            canSave={canSave}
                         />
 
                         {activeWorkflow && (

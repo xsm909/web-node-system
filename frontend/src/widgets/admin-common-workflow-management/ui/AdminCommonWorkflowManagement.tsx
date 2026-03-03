@@ -96,6 +96,7 @@ export function AdminCommonWorkflowManagement({ onToggleSidebar }: { onToggleSid
                 isCreating={isCreating}
                 onOpenEditModal={() => setIsEditModalOpen(true)}
                 showClientSelector={true}
+                canSave={true}
             />
 
             {activeWorkflow ? (

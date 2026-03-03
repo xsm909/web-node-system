@@ -26,6 +26,7 @@ interface WorkflowHeaderProps {
     isCreating?: boolean;
     onOpenEditModal: () => void;
     showClientSelector?: boolean;
+    canSave?: boolean;
 }
 
 export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
@@ -45,6 +46,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     canAction,
     onOpenEditModal,
     showClientSelector,
+    canSave = false,
 }) => {
     const { activeClientId, assignedUsers, setActiveClientId } = useClientStore();
     const { user: currentUser } = useAuthStore();
@@ -61,16 +63,6 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                 description: `ID: ${wf.id}`,
                 parentId: ownerId
             }));
-
-        // Personal workflows - ALWAYS visible
-        data['My Workflows'] = {
-            id: 'personal',
-            name: 'My Workflows',
-            selectable: false,
-            icon: 'folder_shared',
-            items: transformWorkflows('personal', workflowsByOwner['personal'] || []),
-            children: {}
-        };
 
         // Common workflows - Always show for admins/managers
         // For non-admins: no add on group, no rename/delete on items
@@ -100,6 +92,16 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                 };
             }
         }
+
+        // Personal workflows - ALWAYS visible
+        data['My Workflows'] = {
+            id: 'personal',
+            name: 'My Workflows',
+            selectable: false,
+            icon: 'folder_shared',
+            items: transformWorkflows('personal', workflowsByOwner['personal'] || []),
+            children: {}
+        };
 
         return data;
     }, [workflowsByOwner, users, activeClientId, isAdmin]);
@@ -201,15 +203,19 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                         </button>
                     )}
 
-                    <div className="w-px h-6 bg-[var(--border-base)] mx-1" />
-                    <button
-                        className="p-2.5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] hover:border-[var(--border-base)] transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
-                        onClick={onSave}
-                        disabled={!canAction}
-                        title="Save Workflow"
-                    >
-                        <Icon name="save" size={18} className="group-active:scale-95 transition-transform" />
-                    </button>
+                    {canSave && (
+                        <>
+                            <div className="w-px h-6 bg-[var(--border-base)] mx-1" />
+                            <button
+                                className="p-2.5 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] hover:border-[var(--border-base)] transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
+                                onClick={onSave}
+                                disabled={!canAction}
+                                title="Save Workflow"
+                            >
+                                <Icon name="save" size={18} className="group-active:scale-95 transition-transform" />
+                            </button>
+                        </>
+                    )}
                     <button
                         className={`h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
                             ${isRunning
