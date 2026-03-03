@@ -28,14 +28,14 @@ class Workflow(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     owner = relationship("User", foreign_keys=[owner_id], back_populates="workflows")
-    executions = relationship("WorkflowExecution", back_populates="workflow")
+    executions = relationship("WorkflowExecution", back_populates="workflow", cascade="all, delete-orphan")
 
 
 class WorkflowExecution(Base):
     __tablename__ = "workflow_executions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    workflow_id = Column(UUID(as_uuid=True), ForeignKey("workflows.id"), nullable=False)
+    workflow_id = Column(UUID(as_uuid=True), ForeignKey("workflows.id", ondelete="CASCADE"), nullable=False)
     status = Column(Enum(WorkflowStatus), default=WorkflowStatus.pending)
     result_summary = Column(Text, nullable=True)
     logs = Column(JSON, nullable=True, default=[])
@@ -44,14 +44,14 @@ class WorkflowExecution(Base):
     finished_at = Column(DateTime(timezone=True), nullable=True)
 
     workflow = relationship("Workflow", back_populates="executions")
-    node_results = relationship("NodeExecution", back_populates="execution")
+    node_results = relationship("NodeExecution", back_populates="execution", cascade="all, delete-orphan")
 
 
 class NodeExecution(Base):
     __tablename__ = "node_executions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    execution_id = Column(UUID(as_uuid=True), ForeignKey("workflow_executions.id"), nullable=False)
+    execution_id = Column(UUID(as_uuid=True), ForeignKey("workflow_executions.id", ondelete="CASCADE"), nullable=False)
     node_id = Column(String(100), nullable=False)
     status = Column(Enum(WorkflowStatus), default=WorkflowStatus.pending)
     output = Column(JSON, nullable=True)
