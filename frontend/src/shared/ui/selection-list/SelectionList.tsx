@@ -177,21 +177,11 @@ export const SelectionList: React.FC<SelectionListProps> = ({
     position
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [highlightedIndex, setHighlightedIndex] = useState(0);
     const [hoveredPath, setHoveredPath] = useState<string[]>([]);
     const [hoveredTops, setHoveredTops] = useState<number[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => { inputRef.current?.focus(); }, []);
-
-    const handleNavigate = (path: string[], top: number) => {
-        setHoveredPath(path);
-        // depth is path.length. But we need to store top for each depth
-        setHoveredTops(prev => {
-            const next = [...prev];
-            next[path.length - 1] = top;
-            return next;
-        });
-    };
+    const searchResultsRef = useRef<HTMLDivElement>(null);
 
     const flatItems = useMemo(() => {
         const items: SelectionItem[] = [];
@@ -215,6 +205,34 @@ export const SelectionList: React.FC<SelectionListProps> = ({
     }, [flatItems, searchQuery]);
 
     const isSearching = searchQuery.trim().length > 0;
+
+    useEffect(() => { inputRef.current?.focus(); }, []);
+    useEffect(() => { setHighlightedIndex(0); }, [searchQuery]);
+
+    useEffect(() => {
+        if (isSearching && searchResultsRef.current) {
+            const container = searchResultsRef.current;
+            const highlightedElement = container.children[highlightedIndex] as HTMLElement;
+            if (highlightedElement) {
+                highlightedElement.scrollIntoView({
+                    block: 'nearest',
+                    behavior: 'smooth'
+                });
+            }
+        }
+    }, [highlightedIndex, isSearching]);
+
+    const handleNavigate = (path: string[], top: number) => {
+        setHoveredPath(path);
+        // depth is path.length. But we need to store top for each depth
+        setHoveredTops(prev => {
+            const next = [...prev];
+            next[path.length - 1] = top;
+            return next;
+        });
+    };
+
+
 
     return createPortal(
         <div className="fixed inset-0 z-[100] selection-list-container">
@@ -249,6 +267,23 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                             ref={inputRef}
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                    if (isSearching && searchResults.length > 0) {
+                                        onSelect(searchResults[highlightedIndex] || searchResults[0]);
+                                    } else {
+                                        onClose?.();
+                                    }
+                                } else if (e.key === 'Escape') {
+                                    onClose?.();
+                                } else if (e.key === 'ArrowDown') {
+                                    e.preventDefault();
+                                    setHighlightedIndex(prev => Math.min(prev + 1, searchResults.length - 1));
+                                } else if (e.key === 'ArrowUp') {
+                                    e.preventDefault();
+                                    setHighlightedIndex(prev => Math.max(0, prev - 1));
+                                }
+                            }}
                             placeholder={searchPlaceholder}
                             className="w-full bg-[var(--bg-app)] text-xs text-[var(--text-main)] pl-8 pr-8 py-2.5 rounded-xl border border-[var(--border-base)] outline-none focus:border-brand/50 transition-colors shadow-inner"
                         />
@@ -303,17 +338,31 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                     )}
 
                     {isSearching && (
-                        <div className="max-h-[320px] overflow-y-auto pr-1 space-y-0.5 custom-scrollbar">
-                            {searchResults.map(item => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => onSelect(item)}
-                                    className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all border border-transparent flex flex-col justify-center min-h-[40px] group"
-                                >
-                                    <span className="truncate text-[var(--text-main)] group-hover:text-brand transition-colors">{item.name}</span>
-                                    {item.description && <span className="text-[10px] opacity-40 group-hover:opacity-60 font-mono mt-0.5 line-clamp-1">{item.description}</span>}
-                                </button>
-                            ))}
+                        <div
+                            ref={searchResultsRef}
+                            className="max-h-[320px] overflow-y-auto pr-1 space-y-0.5 custom-scrollbar"
+                        >
+                            {searchResults.map((item, index) => {
+                                const isHighlighted = index === highlightedIndex;
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => onSelect(item)}
+                                        onMouseEnter={() => setHighlightedIndex(index)}
+                                        className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all border flex flex-col justify-center min-h-[40px] group ${isHighlighted
+                                            ? 'bg-brand/10 border-brand/20 text-brand shadow-sm'
+                                            : 'border-transparent text-[var(--text-main)] hover:bg-brand/5 hover:border-brand/10'
+                                            }`}
+                                    >
+                                        <span className={`truncate transition-colors ${isHighlighted ? 'text-brand' : 'group-hover:text-brand'}`}>{item.name}</span>
+                                        {item.description && (
+                                            <span className={`text-[10px] font-mono mt-0.5 line-clamp-1 transition-opacity ${isHighlighted ? 'opacity-70' : 'opacity-40 group-hover:opacity-60'}`}>
+                                                {item.description}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
