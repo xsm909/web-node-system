@@ -6,8 +6,10 @@ import { Icon } from '../../../shared/ui/icon';
 
 export const DefaultNode = memo(({ id, data, selected }: any) => {
     const updateNodeInternals = useUpdateNodeInternals();
-    const maxThen: number = Number(data?.maxThen ?? data?.params?.MAX_THEN ?? data?.maxThan ?? 0);
-    const hasBranching = maxThen >= 2;
+    const maxThen: number = Number(data?.extractedMaxThen ?? data?.maxThen ?? data?.params?.MAX_THEN ?? data?.maxThan ?? 0);
+    const defaultOutput: boolean = !!(data?.extractedDefaultOutput ?? data?.params?.DEFAULT_OUTPUT);
+    const customOutput: boolean = !!(data?.extractedCustomOutput ?? data?.params?.CUSTOM_OUTPUT);
+    const isCustomMode = customOutput;
 
     // Force React Flow to recalculate handle bounds when geometry/provider logic changes
     const inputsLength = data.inputs?.length || 0;
@@ -20,7 +22,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
         <div
             style={data.isRightInputProvider
                 ? { width: 70, height: 70 }
-                : { width: 250, minHeight: hasBranching ? 120 : 100 }
+                : { width: 250, minHeight: isCustomMode ? 120 : 100 }
             }
             className={`group relative bg-surface-800 border-2 shadow-2xl transition-all animate-in fade-in duration-300 flex flex-col ${data.isRightInputProvider
                 ? 'rounded-full items-center justify-center p-0'
@@ -71,7 +73,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                         </div>
                         <div className="flex flex-col min-w-0 flex-1">
                             <span className={`text-[10px] font-black uppercase tracking-[0.2em] leading-tight ${data.isActive || selected ? 'text-brand/80' : 'text-[var(--text-muted)]'}`}>
-                                {data.isActive ? 'Running...' : (data.params?.NODE_TYPE || (hasBranching ? 'Condition' : ''))}
+                                {data.isActive ? 'Running...' : (data.params?.NODE_TYPE || (isCustomMode ? 'Condition' : ''))}
                             </span>
                             <span className="text-sm font-black text-[var(--text-main)] leading-tight truncate block w-full">
                                 {data.label}
@@ -140,58 +142,82 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                 />
             )}
 
-            {/* Output handle(s) — single for normal nodes, N for branching nodes */}
-            {hasBranching ? (
-                Array.from({ length: maxThen }, (_, i) => {
-                    const idx = i + 1; // 1-based
-                    const totalHandles = maxThen;
-                    const leftPct = ((i + 1) / (totalHandles + 1)) * 100;
+            {/* Output handles distribution */}
+            {(() => {
+                const totalHandles = (isCustomMode ? maxThen : 0) + ((defaultOutput || !isCustomMode) ? 1 : 0);
+                if (totalHandles === 0) return null;
 
-                    let label = String(idx);
-                    if (data.params) {
-                        const prefix = `THEN${idx}_`;
-                        const matchingKey = Object.keys(data.params).find(k => k.startsWith(prefix) && /^[A-Z0-9_]+$/.test(k));
-                        if (matchingKey) {
-                            label = matchingKey.substring(prefix.length).replace(/_/g, ' ');
-                        }
-                    }
+                const handles = [];
 
-                    return (
-                        <div
-                            key={`then_${idx}`}
-                            style={{ position: 'absolute', bottom: -10, left: `${leftPct}%`, transform: 'translate(-50%, 50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-                        >
-                            <Handle
-                                type="source"
-                                position={Position.Bottom}
-                                id={`then_${idx}`}
-                                style={{
-                                    position: 'static',
-                                    transform: 'none',
-                                }}
-                                className={`!w-4 !h-4 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair ${selected ? '!bg-brand' : '!bg-[var(--text-muted)]'
-                                    }`}
-                            />
-
-                            {/* Branch label - moved below the handle */}
-                            <span className="text-[10px] font-bold text-[var(--text-main)] bg-surface-900/80 backdrop-blur-md border border-[var(--border-base)] px-2 py-0.5 rounded-full shadow-lg whitespace-nowrap mt-1 min-w-[20px] text-center">
-                                {label}
-                            </span>
-                        </div>
+                // 1. Default output handle (first if enabled OR if in classic mode)
+                if (defaultOutput || !isCustomMode) {
+                    const slot = 1;
+                    const leftPct = (slot / (totalHandles + 1)) * 100;
+                    handles.push(
+                        <Handle
+                            key="output"
+                            type="source"
+                            id="output"
+                            position={data.isRightInputProvider ? Position.Left : Position.Bottom}
+                            style={!data.isRightInputProvider ? { left: `${leftPct}%` } : {}}
+                            className={data.isRightInputProvider
+                                ? `!w-4 !h-4 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair ${selected ? '!bg-brand' : '!bg-[var(--text-muted)]'} !left-0 !-translate-x-1/2`
+                                : `!w-4 !h-4 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair ${selected ? '!bg-brand' : '!bg-[var(--text-muted)]'}`
+                            }
+                        />
                     );
-                })
-            ) : (
-                <Handle
-                    key={data.isRightInputProvider ? 'left-output' : 'bottom-output'}
-                    type="source"
-                    id="output"
-                    position={data.isRightInputProvider ? Position.Left : Position.Bottom}
-                    className={data.isRightInputProvider
-                        ? `!w-4 !h-4 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair ${selected ? '!bg-brand' : '!bg-[var(--text-muted)]'} !left-0 !-translate-x-1/2`
-                        : `!w-4 !h-4 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair ${selected ? '!bg-brand' : '!bg-[var(--text-muted)]'}`
+                }
+
+                // 2. Branch handles (only in custom mode)
+                if (isCustomMode) {
+                    for (let i = 0; i < maxThen; i++) {
+                        const idx = i + 1;
+                        const slot = (defaultOutput || !isCustomMode) ? i + 2 : i + 1;
+                        const leftPct = (slot / (totalHandles + 1)) * 100;
+
+                        let label = String(idx);
+                        if (data.params) {
+                            const prefix = `THEN${idx}_`;
+                            const matchingKey = Object.keys(data.params).find(k => k.startsWith(prefix) && /^[A-Z0-9_]+$/.test(k));
+                            if (matchingKey) {
+                                label = matchingKey.substring(prefix.length).replace(/_/g, ' ');
+                            }
+                        }
+
+                        handles.push(
+                            <div
+                                key={`then_${idx}`}
+                                style={{
+                                    position: 'absolute',
+                                    bottom: -10,
+                                    left: `${leftPct}%`,
+                                    transform: 'translate(-50%, 50%)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: 4
+                                }}
+                            >
+                                <Handle
+                                    type="source"
+                                    position={Position.Bottom}
+                                    id={`then_${idx}`}
+                                    style={{
+                                        position: 'static',
+                                        transform: 'none',
+                                    }}
+                                    className={`!w-4 !h-4 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair ${selected ? '!bg-brand' : '!bg-[var(--text-muted)]'}`}
+                                />
+                                <span className="text-[10px] font-bold text-[var(--text-main)] bg-surface-900/80 backdrop-blur-md border border-[var(--border-base)] px-2 py-0.5 rounded-full shadow-lg whitespace-nowrap mt-1 min-w-[20px] text-center">
+                                    {label}
+                                </span>
+                            </div>
+                        );
                     }
-                />
-            )}
+                }
+
+                return handles;
+            })()}
 
         </div>
     );

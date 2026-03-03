@@ -39,7 +39,7 @@ def seed():
 
         # Node Types Seeding
         # Node Types Seeding
-                nodes_data = [
+                                        nodes_data = [
             {
                         "name": "Tool: Calculator",
                         "version": "1.0",
@@ -449,75 +449,6 @@ def run(inputs, params):
                         "is_async": False
             },
             {
-                        "name": "If ... than ... else",
-                        "version": "1.6",
-                        "description": "Simple condition example = ",
-                        "code": "class NodeParameters:    
-    Argument: str = \"Param\"
-    Value = \"Any\"
-    MAX_THEN: int = 2
-    THEN1_THEN = 1
-    THEN2_ELSE = 2
-    THEN = 0
-    NODE_TYPE=\"COMPARE\"
-
-def run(inputs, params):
-    if inputs[nodeParameters.Argument] == nodeParameters.Value:
-        nodeParameters.THEN = nodeParameters.THEN1_THEN;
-    else:
-        nodeParameters.THEN = nodeParameters.THEN2_ELSE;
-    return inputs",
-                        "input_schema": {},
-                        "output_schema": {},
-                        "parameters": [
-                                    {
-                                                "name": "Argument",
-                                                "type": "string",
-                                                "label": "Argument",
-                                                "default": "Param"
-                                    },
-                                    {
-                                                "name": "Value",
-                                                "type": "string",
-                                                "label": "Value",
-                                                "default": "Any"
-                                    },
-                                    {
-                                                "name": "MAX_THEN",
-                                                "type": "number",
-                                                "label": "Max Then",
-                                                "default": 2
-                                    },
-                                    {
-                                                "name": "THEN1_THEN",
-                                                "type": "number",
-                                                "label": "Then1 Then",
-                                                "default": 1
-                                    },
-                                    {
-                                                "name": "THEN2_ELSE",
-                                                "type": "number",
-                                                "label": "Then2 Else",
-                                                "default": 2
-                                    },
-                                    {
-                                                "name": "THEN",
-                                                "type": "number",
-                                                "label": "Then",
-                                                "default": 0
-                                    },
-                                    {
-                                                "name": "NODE_TYPE",
-                                                "type": "string",
-                                                "label": "Node Type",
-                                                "default": "COMPARE"
-                                    }
-                        ],
-                        "category": "Logic|Conditions",
-                        "icon": "graph",
-                        "is_async": False
-            },
-            {
                         "name": "Get active client",
                         "version": "1.0",
                         "description": "",
@@ -570,65 +501,6 @@ def run(inputs, params):
                         "parameters": [],
                         "category": "Data|Workflow",
                         "icon": "text",
-                        "is_async": False
-            },
-            {
-                        "name": "loop for n",
-                        "version": "1.0",
-                        "description": "Simple loop",
-                        "code": "class NodeParameters:    
-    loop_to: int = 10
-    MAX_THEN: int = 2
-    #output description
-    THEN1_FINISH = 1
-    THEN2_DO = 2
-    #node description
-    NODE_TYPE=\"LOOP\"
-
-def run(inputs, params):
-    for i in range(0,nodeParameters.loop_to):
-        data = {
-            \"index\": i
-        }
-        workflow.execute_node (nodeParameters.THEN2_DO,data)
-    workflow.execute_node (nodeParameters.THEN1_FINISH)
-    return inputs",
-                        "input_schema": {},
-                        "output_schema": {},
-                        "parameters": [
-                                    {
-                                                "name": "loop_to",
-                                                "type": "number",
-                                                "label": "Loop To",
-                                                "default": 10
-                                    },
-                                    {
-                                                "name": "MAX_THEN",
-                                                "type": "number",
-                                                "label": "Max Then",
-                                                "default": 2
-                                    },
-                                    {
-                                                "name": "THEN1_FINISH",
-                                                "type": "number",
-                                                "label": "Then1 Finish",
-                                                "default": 1
-                                    },
-                                    {
-                                                "name": "THEN2_DO",
-                                                "type": "number",
-                                                "label": "Then2 Do",
-                                                "default": 2
-                                    },
-                                    {
-                                                "name": "NODE_TYPE",
-                                                "type": "string",
-                                                "label": "Node Type",
-                                                "default": "LOOP"
-                                    }
-                        ],
-                        "category": "Logic|Loop",
-                        "icon": "graph",
                         "is_async": False
             },
             {
@@ -804,6 +676,155 @@ def run(inputs, params):
                         "parameters": [],
                         "category": "Utility|Console",
                         "icon": "task",
+                        "is_async": False
+            },
+            {
+                        "name": "loop for n",
+                        "version": "1.3",
+                        "description": "Simple loop",
+                        "code": "class NodeParameters:    
+    n: int = 10
+    MAX_THEN: int = 2
+    #output description
+    CUSTOM_OUTPUT=True
+    DEFAULT_OUTPUT=True
+    THEN1_FINISH = 1
+    THEN2_DO = 2
+    #node description
+    NODE_TYPE=\"LOOP\"
+
+def run(inputs, params):
+    for i in range(0,nodeParameters.n):
+        data = {
+            \"index\": i
+        }
+        workflow.execute_node (nodeParameters.THEN2_DO,data)
+    workflow.execute_node (nodeParameters.THEN1_FINISH)
+    return inputs",
+                        "input_schema": {},
+                        "output_schema": {},
+                        "parameters": [
+                                    {
+                                                "name": "n",
+                                                "type": "number",
+                                                "label": "N",
+                                                "default": 10
+                                    },
+                                    {
+                                                "name": "MAX_THEN",
+                                                "type": "number",
+                                                "label": "Max Then",
+                                                "default": 2
+                                    },
+                                    {
+                                                "name": "CUSTOM_OUTPUT",
+                                                "type": "number",
+                                                "label": "Custom Output",
+                                                "default": True
+                                    },
+                                    {
+                                                "name": "DEFAULT_OUTPUT",
+                                                "type": "number",
+                                                "label": "Default Output",
+                                                "default": True
+                                    },
+                                    {
+                                                "name": "THEN1_FINISH",
+                                                "type": "number",
+                                                "label": "Then1 Finish",
+                                                "default": 1
+                                    },
+                                    {
+                                                "name": "THEN2_DO",
+                                                "type": "number",
+                                                "label": "Then2 Do",
+                                                "default": 2
+                                    },
+                                    {
+                                                "name": "NODE_TYPE",
+                                                "type": "string",
+                                                "label": "Node Type",
+                                                "default": "LOOP"
+                                    }
+                        ],
+                        "category": "Logic|Loop",
+                        "icon": "graph",
+                        "is_async": False
+            },
+            {
+                        "name": "If ... than ... else",
+                        "version": "1.7",
+                        "description": "Simple condition example = ",
+                        "code": "class NodeParameters:    
+    Argument: str = \"Param\"
+    Value = \"Any\"
+    MAX_THEN: int = 2
+    CUSTOM_OUTPUT=True
+    THEN1_THEN = 1
+    THEN2_ELSE = 2
+    THEN = 0
+    NODE_TYPE=\"COMPARE\"
+
+def run(inputs, params):
+    if inputs[nodeParameters.Argument] == nodeParameters.Value:
+        nodeParameters.THEN = nodeParameters.THEN1_THEN;
+    else:
+        nodeParameters.THEN = nodeParameters.THEN2_ELSE;
+    return inputs",
+                        "input_schema": {},
+                        "output_schema": {},
+                        "parameters": [
+                                    {
+                                                "name": "Argument",
+                                                "type": "string",
+                                                "label": "Argument",
+                                                "default": "Param"
+                                    },
+                                    {
+                                                "name": "Value",
+                                                "type": "string",
+                                                "label": "Value",
+                                                "default": "Any"
+                                    },
+                                    {
+                                                "name": "MAX_THEN",
+                                                "type": "number",
+                                                "label": "Max Then",
+                                                "default": 2
+                                    },
+                                    {
+                                                "name": "CUSTOM_OUTPUT",
+                                                "type": "number",
+                                                "label": "Custom Output",
+                                                "default": True
+                                    },
+                                    {
+                                                "name": "THEN1_THEN",
+                                                "type": "number",
+                                                "label": "Then1 Then",
+                                                "default": 1
+                                    },
+                                    {
+                                                "name": "THEN2_ELSE",
+                                                "type": "number",
+                                                "label": "Then2 Else",
+                                                "default": 2
+                                    },
+                                    {
+                                                "name": "THEN",
+                                                "type": "number",
+                                                "label": "Then",
+                                                "default": 0
+                                    },
+                                    {
+                                                "name": "NODE_TYPE",
+                                                "type": "string",
+                                                "label": "Node Type",
+                                                "default": "COMPARE"
+                                    }
+                        ],
+                        "category": "Logic|Conditions",
+                        "icon": "graph",
                         "is_async": False
             },
             {

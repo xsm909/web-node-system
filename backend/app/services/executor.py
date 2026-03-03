@@ -389,6 +389,9 @@ class WorkflowExecutor:
         node_data = node_map.get(node_id)
         if not node_data:
             return
+        
+        node_name = node_data.get("data", {}).get("label", node_id)
+        self.log(f"--- Executing Node: {node_name} ({node_id}) ---", level="system")
 
         node_exec = NodeExecution(
             execution_id=self.execution_id,
@@ -598,9 +601,14 @@ class WorkflowExecutor:
 
             than_val = None
             max_than = None
+            default_output = False
+            custom_output = False
             if node_params_inst is not None:
                 than_val = getattr(node_params_inst, "THEN", getattr(node_params_inst, "THAN", getattr(node_params_inst, "than", None)))
                 max_than = getattr(node_params_inst, "MAX_THEN", getattr(node_params_inst, "MAX_THAN", None))
+                default_output = getattr(node_params_inst, "DEFAULT_OUTPUT", False)
+                custom_output = getattr(node_params_inst, "CUSTOM_OUTPUT", False)
+                self.log(f"  Params extracted: custom_output={custom_output}, default_output={default_output}, max_than={max_than}", level="system")
 
             for edge in edges:
                 if edge.get("source") != node_id:
@@ -614,16 +622,35 @@ class WorkflowExecutor:
 
                 source_handle = edge.get("sourceHandle")
 
-                if max_than is not None and isinstance(max_than, int) and max_than > 0:
-                    if than_val == 0:
-                        # Special case: manual override via execute_node handles branching
-                        # But if than_val is 0, we treat it as "no automatic branching"
+                is_standard = source_handle in (None, "", "output")
+                self.log(f"Evaluating edge {node_id} -> {target_id} (handle: {source_handle}, standard: {is_standard})", level="system")
+
+                if custom_output:
+                    # Branching mode active
+                    if is_standard and default_output:
+                        self.log(f"  [CUSTOM] Allowing standard output because DEFAULT_OUTPUT=True", level="system")
+                        pass
+                    elif source_handle and (source_handle.startswith("then_") or source_handle.startswith("than_")):
+                        try:
+                            h_idx = int(source_handle.split('_')[1])
+                            if than_val is not None and int(than_val) == h_idx:
+                                self.log(f"  [CUSTOM] Allowing branch '{source_handle}' because THEN={than_val}", level="system")
+                                pass
+                            else:
+                                self.log(f"  [CUSTOM] Skipping branch '{source_handle}' (THEN={than_val})", level="system")
+                                continue
+                        except (ValueError, IndexError, TypeError):
+                            self.log(f"  [CUSTOM] Invalid handle format '{source_handle}'", level="warning")
+                            continue
+                    else:
+                        self.log(f"  [CUSTOM] Skipping handle '{source_handle}'", level="system")
                         continue
-                        
-                    expected_handle = f"then_{than_val}"
-                    fallback_handle = f"than_{than_val}"
-                    if source_handle and source_handle not in (expected_handle, fallback_handle):
+                else:
+                    # Classic mode: ONLY standard output triggers automatically.
+                    if not is_standard:
+                        self.log(f"  [CLASSIC] Skipping non-standard handle '{source_handle}'", level="system")
                         continue
+                    self.log(f"  [CLASSIC] Allowing standard output", level="system")
 
                 # Ignore if target already executed UNLESS re-execution is allowed (LOOP)
                 if target_id and (target_id not in outputs or allow_reexecution):

@@ -153,3 +153,68 @@ def run(inputs, params):
     result = libs.my_func("hello")
     return {"output": result}
 ```
+
+---
+
+## Advanced Node Settings (Branching & Custom Outputs)
+
+You can create complex nodes with multiple output handles (branches) by using special markers and logic in the `NodeParameters` class.
+
+### Special Parameters
+
+- `CUSTOM_OUTPUT: bool`: **The Master Switch**. If set to `True`, the node enables branching mode. If `False` or missing, the node always has exactly one standard output handle.
+- `DEFAULT_OUTPUT: bool`: If `True` (and `CUSTOM_OUTPUT` is `True`), the node will display the standard "anonymous" output handle in addition to any branches.
+- `MAX_THEN: int`: Defines how many custom branch handles to render on the node.
+- `THEN: int`: **Automatic Branch Selector**. If set to a value `X`, the executor will automatically follow the branch handle `then_X` after the `run()` function completes.
+- `THEN[X]_[NAME]`: Defines the label for branch `X`. For example, `THEN1_FINISH = 1` will label the first branch as "FINISH".
+
+### Branching Example (LOOP)
+
+This example demonstrates a loop that executes a "DO" branch for each iteration and then triggers a "FINISH" branch.
+
+```python
+class NodeParameters:    
+    n: int = 10
+    MAX_THEN: int = 2
+    
+    # Enable custom branching and the default output handle
+    CUSTOM_OUTPUT = True
+    DEFAULT_OUTPUT = True
+    
+    # Custom Labels for branches 1 and 2
+    THEN1_FINISH = 1
+    THEN2_DO = 2
+    
+    NODE_TYPE = "LOOP"
+
+def run(inputs, params):
+    # workflow.execute_node(index, data) triggers a branch manually
+    for i in range(0, nodeParameters.n):
+        data = {"index": i}
+        workflow.execute_node(nodeParameters.THEN2_DO, data)
+    
+    # After the loop, trigger the finish branch
+    workflow.execute_node(nodeParameters.THEN1_FINISH)
+    
+    return inputs
+```
+
+### Automatic Branching Example (Condition)
+
+If you don't use `workflow.execute_node()`, you can simply set the `THEN` parameter to the desired branch index to have the workflow continue automatically.
+
+```python
+class NodeParameters:    
+    CUSTOM_OUTPUT = True
+    MAX_THEN = 2
+    THEN1_TRUE = 1
+    THEN2_FALSE = 2
+    THEN = 0 # Initial value
+
+def run(inputs, params):
+    if inputs.get("score", 0) > 50:
+        nodeParameters.THEN = nodeParameters.THEN1_TRUE
+    else:
+        nodeParameters.THEN = nodeParameters.THEN2_FALSE
+    return inputs
+```

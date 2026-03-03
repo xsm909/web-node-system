@@ -88,7 +88,26 @@ export function WorkflowGraph({
                         }
                     });
                 }
-                base.data = { ...base.data, params: merged, icon: ntDef.icon || base.data?.icon };
+
+                // Parse code for MAX_THEN and DEFAULT_OUTPUT "signature"
+                // Support formats like: MAX_THEN = 2, MAX_THEN: int = 2, DEFAULT_OUTPUT = True, etc.
+                const nodeCode = base.data?.code || ntDef.code || '';
+                const maxThenMatch = nodeCode.match(/MAX_THEN\s*(?::\s*\w+\s*)?=\s*(\d+)/) || nodeCode.match(/MAX_THAN\s*(?::\s*\w+\s*)?=\s*(\d+)/);
+                const defaultOutputMatch = nodeCode.match(/DEFAULT_OUTPUT\s*(?::\s*\w+\s*)?=\s*(true|false|True|False)/);
+                const customOutputMatch = nodeCode.match(/CUSTOM_OUTPUT\s*(?::\s*\w+\s*)?=\s*(true|false|True|False)/);
+
+                const extractedMaxThen = maxThenMatch ? parseInt(maxThenMatch[1], 10) : undefined;
+                const extractedDefaultOutput = defaultOutputMatch ? (defaultOutputMatch[1].toLowerCase() === 'true') : undefined;
+                const extractedCustomOutput = customOutputMatch ? (customOutputMatch[1].toLowerCase() === 'true') : undefined;
+
+                base.data = {
+                    ...base.data,
+                    params: merged,
+                    icon: ntDef.icon || base.data?.icon,
+                    extractedMaxThen,
+                    extractedDefaultOutput,
+                    extractedCustomOutput
+                };
             }
             return base;
         });
