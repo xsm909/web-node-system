@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { buildCategoryTree, type CategoryTree } from '../../../shared/lib/categoryUtils';
 import { SelectionList, type SelectionGroup, type SelectionItem } from '../../../shared/ui/selection-list';
@@ -14,9 +14,6 @@ interface AddNodeMenuProps {
 // ─── Main AddNodeMenu ─────────────────────────────────────────────────────────
 
 export const AddNodeMenu: React.FC<AddNodeMenuProps> = ({ clientX, clientY, nodeTypes, onAddNode, onCancel }) => {
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => { inputRef.current?.focus(); }, []);
 
     const categoryTree = useMemo(() => buildCategoryTree(nodeTypes), [nodeTypes]);
 
@@ -50,25 +47,13 @@ export const AddNodeMenu: React.FC<AddNodeMenuProps> = ({ clientX, clientY, node
     };
 
     return (
-        <>
-            {/* Click-outside overlay */}
-            <div
-                className="fixed inset-0 z-40 bg-transparent"
-                onClick={onCancel}
-                onContextMenu={(e) => { e.preventDefault(); onCancel(); }}
-            />
-
-            <div
-                className="fixed z-50 animate-in fade-in zoom-in-95 duration-200"
-                style={{ left: clientX, top: clientY }}
-            >
-                <SelectionList
-                    data={selectionData}
-                    onSelect={handleSelect}
-                    searchPlaceholder="Search node..."
-                    config={{}} // No CRUD actions for add node menu
-                />
-            </div>
-        </>
+        <SelectionList
+            data={selectionData}
+            onSelect={handleSelect}
+            onClose={onCancel}
+            searchPlaceholder="Search node..."
+            config={{}} // No CRUD actions for add node menu
+            position={{ x: clientX, y: clientY }}
+        />
     );
 };

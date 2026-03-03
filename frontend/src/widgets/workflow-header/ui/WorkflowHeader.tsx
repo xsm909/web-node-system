@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import type { Workflow } from '../../../entities/workflow/model/types';
 import type { AssignedUser } from '../../../entities/user/model/types';
 import { SelectionList, type SelectionGroup, type SelectionItem, type SelectionAction } from '../../../shared/ui/selection-list';
@@ -42,22 +42,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     onOpenEditModal,
 }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsDropdownOpen(false);
-            }
-        };
-
-        if (isDropdownOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isDropdownOpen]);
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     const selectionData = useMemo(() => {
         const data: Record<string, SelectionGroup> = {};
@@ -134,8 +119,9 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
             onToggleSidebar={onToggleSidebar}
             isSidebarOpen={isSidebarOpen}
             leftContent={
-                <div className="relative flex-1 max-w-xl" ref={dropdownRef}>
+                <div className="relative flex-1 max-w-xl">
                     <button
+                        ref={triggerRef}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all max-w-full ${isDropdownOpen ? 'bg-[var(--border-base)] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
                             }`}
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -149,20 +135,23 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                     </button>
 
                     {isDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-3 z-[100] animate-in fade-in zoom-in-95 duration-200">
-                            <SelectionList
-                                data={selectionData}
-                                config={{
-                                    allowDelete: true,
-                                    allowRename: true,
-                                    groupActions: ['add']
-                                }}
-                                activeItemId={activeWorkflowId}
-                                onSelect={handleSelect}
-                                onAction={handleAction}
-                                searchPlaceholder="Find workflow..."
-                            />
-                        </div>
+                        <SelectionList
+                            data={selectionData}
+                            config={{
+                                allowDelete: true,
+                                allowRename: true,
+                                groupActions: ['add']
+                            }}
+                            activeItemId={activeWorkflowId}
+                            onSelect={handleSelect}
+                            onAction={handleAction}
+                            onClose={() => setIsDropdownOpen(false)}
+                            searchPlaceholder="Find workflow..."
+                            position={triggerRef.current ? {
+                                x: triggerRef.current.getBoundingClientRect().left,
+                                y: triggerRef.current.getBoundingClientRect().bottom + 8
+                            } : undefined}
+                        />
                     )}
                 </div>
             }
