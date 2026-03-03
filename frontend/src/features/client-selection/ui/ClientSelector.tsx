@@ -18,6 +18,8 @@ export const ClientSelector = () => {
             data[u.username] = {
                 id: u.id,
                 name: u.username,
+                selectable: true,
+                icon: 'person',
                 items: [],
                 children: {}
             };

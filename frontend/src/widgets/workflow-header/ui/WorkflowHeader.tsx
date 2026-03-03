@@ -61,6 +61,8 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
         data['My Workflows'] = {
             id: 'personal',
             name: 'My Workflows',
+            selectable: false,
+            icon: 'folder_shared',
             items: transformWorkflows('personal', workflowsByOwner['personal'] || []),
             children: {}
         };
@@ -72,6 +74,8 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                 data['Clients workflow'] = {
                     id: activeClientId,
                     name: 'Clients workflow',
+                    selectable: false,
+                    icon: 'folder',
                     items: transformWorkflows(activeClientId, workflowsByOwner[activeClientId] || []),
                     children: {}
                 };

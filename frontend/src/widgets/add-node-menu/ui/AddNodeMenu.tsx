@@ -24,11 +24,15 @@ export const AddNodeMenu: React.FC<AddNodeMenuProps> = ({ clientX, clientY, node
                 data[label] = {
                     id: label,
                     name: label,
+                    selectable: false, // Groups are not selectable in add node menu
+                    icon: 'folder',
                     items: node.nodes.map(nt => ({
                         id: nt.id,
                         name: nt.name,
                         description: nt.description,
-                        parentId: label
+                        parentId: label,
+                        selectable: true,
+                        icon: nt.icon || 'task'
                     })),
                     children: transform(node.children)
                 };

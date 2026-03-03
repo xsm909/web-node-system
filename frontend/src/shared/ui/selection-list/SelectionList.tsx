@@ -9,6 +9,8 @@ export interface SelectionItem {
     name: string;
     description?: string;
     parentId?: string;
+    selectable?: boolean;
+    icon?: string;
 }
 
 export interface SelectionGroup {
@@ -16,6 +18,8 @@ export interface SelectionGroup {
     name: string;
     items: SelectionItem[];
     children: Record<string, SelectionGroup>;
+    selectable?: boolean;
+    icon?: string;
 }
 
 export interface SelectionListConfig {
@@ -68,6 +72,7 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, act
                     const hasChildren = Object.keys(group.children).length > 0;
                     const fullPath = [...breadcrumb, label];
                     const isActive = activeDescendant[breadcrumb.length] === label;
+                    const isSelectable = group.selectable ?? false;
 
                     return (
                         <div key={label} className="group/item relative">
@@ -79,7 +84,7 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, act
                                     onNavigate(fullPath, top);
                                 }}
                                 onClick={() => {
-                                    if (!hasChildren) {
+                                    if (isSelectable) {
                                         onSelect({
                                             id: group.id,
                                             name: group.name,
@@ -90,9 +95,14 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, act
                                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] ${isActive
                                     ? 'bg-brand text-white shadow-lg shadow-brand/20'
                                     : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
-                                    }`}
+                                    } ${!isSelectable && !isActive ? 'cursor-default' : ''}`}
                             >
-                                <span className="truncate pr-8">{label}</span>
+                                <div className="flex items-center gap-2 truncate pr-4">
+                                    {group.icon && (
+                                        <Icon name={group.icon} size={14} className={isActive ? 'text-white' : 'text-brand'} />
+                                    )}
+                                    <span className="truncate">{label}</span>
+                                </div>
                                 <div className="flex items-center gap-1">
                                     {isActive && config.groupActions?.map(action => (
                                         <button
@@ -139,17 +149,26 @@ const ItemListPanel: React.FC<ItemListPanelProps> = ({ items, breadcrumb, config
         <div className="max-h-[320px] overflow-y-auto pr-1 space-y-0.5 custom-scrollbar">
             {items.sort((a, b) => a.name.localeCompare(b.name)).map(item => {
                 const isActive = item.id === activeItemId;
+                const isSelectable = item.selectable ?? true;
+
                 return (
                     <div key={item.id} className="group/item relative">
                         <button
-                            onClick={() => onSelect(item)}
+                            onClick={() => isSelectable && onSelect(item)}
                             className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all border border-transparent flex flex-col justify-center min-h-[40px] ${isActive
                                 ? 'bg-brand/10 border-brand/20 text-brand'
-                                : 'text-[var(--text-muted)] hover:text-brand hover:bg-brand/10 hover:border-brand/20'
+                                : isSelectable
+                                    ? 'text-[var(--text-muted)] hover:text-brand hover:bg-brand/10 hover:border-brand/20'
+                                    : 'text-[var(--text-muted)] cursor-default'
                                 }`}
                         >
                             <div className="flex justify-between items-center w-full">
-                                <span className={`truncate ${isActive ? 'text-brand' : 'text-[var(--text-main)] group-hover/item:text-brand'}`}>{item.name}</span>
+                                <div className="flex items-center gap-2 truncate flex-1 pr-2">
+                                    {item.icon && (
+                                        <Icon name={item.icon} size={14} className={isActive ? 'text-brand' : 'text-brand/50'} />
+                                    )}
+                                    <span className={`truncate ${isActive ? 'text-brand' : 'text-[var(--text-main)] group-hover/item:text-brand'}`}>{item.name}</span>
+                                </div>
                                 <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
                                     {config.allowRename && (
                                         <button onClick={(e) => { e.stopPropagation(); onAction?.('rename', item); }} className="p-1 hover:bg-brand/10 rounded-md"><Icon name="edit" size={12} /></button>
@@ -319,6 +338,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                             {Object.entries(data).sort(([a], [b]) => a.localeCompare(b)).map(([label, group]) => {
                                 const hasChildren = Object.keys(group.children).length > 0;
                                 const isActive = hoveredPath[0] === label;
+                                const isSelectable = group.selectable ?? false;
                                 return (
                                     <div key={label} className="group/item relative">
                                         <button
@@ -329,7 +349,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                                 handleNavigate([label], top);
                                             }}
                                             onClick={() => {
-                                                if (!hasChildren) {
+                                                if (isSelectable) {
                                                     onSelect({
                                                         id: group.id,
                                                         name: group.name,
@@ -340,9 +360,14 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] ${isActive
                                                 ? 'bg-brand text-white shadow-lg shadow-brand/20'
                                                 : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
-                                                }`}
+                                                } ${!isSelectable && !isActive ? 'cursor-default' : ''}`}
                                         >
-                                            <span className="truncate pr-8">{label}</span>
+                                            <div className="flex items-center gap-2 truncate pr-4">
+                                                {group.icon && (
+                                                    <Icon name={group.icon} size={14} className={isActive ? 'text-white' : 'text-brand'} />
+                                                )}
+                                                <span className="truncate">{label}</span>
+                                            </div>
                                             <div className="flex items-center gap-1">
                                                 {isActive && config.groupActions?.map(action => (
                                                     <button
@@ -381,9 +406,14 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                             : 'border-transparent text-[var(--text-main)] hover:bg-brand/5 hover:border-brand/10'
                                             }`}
                                     >
-                                        <span className={`truncate transition-colors ${isHighlighted ? 'text-brand' : 'group-hover:text-brand'}`}>{item.name}</span>
+                                        <div className="flex items-center gap-2 truncate">
+                                            {item.icon && (
+                                                <Icon name={item.icon} size={14} className={isHighlighted ? 'text-brand' : 'text-brand/50'} />
+                                            )}
+                                            <span className={`truncate transition-colors ${isHighlighted ? 'text-brand' : 'group-hover:text-brand'}`}>{item.name}</span>
+                                        </div>
                                         {item.description && (
-                                            <span className={`text-[10px] font-mono mt-0.5 line-clamp-1 transition-opacity ${isHighlighted ? 'opacity-70' : 'opacity-40 group-hover:opacity-60'}`}>
+                                            <span className={`text-[10px] font-mono mt-0.5 ml-0 line-clamp-1 transition-opacity ${isHighlighted ? 'opacity-70' : 'opacity-40 group-hover:opacity-60'}`} style={{ paddingLeft: item.icon ? '22px' : '0' }}>
                                                 {item.description}
                                             </span>
                                         )}
