@@ -1,7 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { WorkflowTree } from '../../workflow-tree';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import type { Workflow } from '../../../entities/workflow/model/types';
 import type { AssignedUser } from '../../../entities/user/model/types';
+import { SelectionList, type SelectionGroup, type SelectionItem, type SelectionAction } from '../../../shared/ui/selection-list';
+import { Icon } from '../../../shared/ui/icon';
+import { AppHeader } from '../../app-header';
 
 interface WorkflowHeaderProps {
     title: string;
@@ -22,9 +24,6 @@ interface WorkflowHeaderProps {
     onOpenEditModal: () => void;
 }
 
-import { Icon } from '../../../shared/ui/icon';
-import { AppHeader } from '../../app-header';
-
 export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     title,
     activeWorkflowId,
@@ -40,7 +39,6 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     onRun,
     onToggleSidebar,
     canAction,
-    isCreating,
     onOpenEditModal,
 }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -61,9 +59,74 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
         };
     }, [isDropdownOpen]);
 
-    const handleSelect = (wf: Workflow) => {
-        onSelect(wf);
-        setIsDropdownOpen(false);
+    const selectionData = useMemo(() => {
+        const data: Record<string, SelectionGroup> = {};
+
+        // Helper to transform workflows
+        const transformWorkflows = (ownerId: string, workflows: Workflow[]): SelectionItem[] =>
+            workflows.map(wf => ({
+                id: wf.id,
+                name: wf.name,
+                description: `ID: ${wf.id}`,
+                parentId: ownerId
+            }));
+
+        // Personal workflows
+        data['My Workflows'] = {
+            id: 'personal',
+            name: 'My Workflows',
+            items: transformWorkflows('personal', workflowsByOwner['personal'] || []),
+            children: {}
+        };
+
+        // Client workspaces
+        const clients: Record<string, SelectionGroup> = {};
+        users.forEach(u => {
+            clients[u.username] = {
+                id: u.id,
+                name: u.username,
+                items: transformWorkflows(u.id, workflowsByOwner[u.id] || []),
+                children: {}
+            };
+        });
+
+        data['Client Workspaces'] = {
+            id: 'clients',
+            name: 'Client Workspaces',
+            items: [],
+            children: clients
+        };
+
+        return data;
+    }, [workflowsByOwner, users]);
+
+    const handleSelect = (item: SelectionItem) => {
+        // Find the actual workflow object
+        const ownerId = item.parentId || 'personal';
+        const wf = workflowsByOwner[ownerId]?.find(w => w.id === item.id);
+        if (wf) {
+            onSelect(wf);
+            setIsDropdownOpen(false);
+        }
+    };
+
+    const handleAction = (action: SelectionAction, target: SelectionItem | SelectionGroup) => {
+        if (action === 'add') {
+            const ownerId = target.id;
+            // Instead of prompt, we rely on the parent's creation logic
+            // The parent (ManagerPage) handles the actual UI for creation
+            onCreate('', ownerId);
+        } else if (action === 'delete') {
+            const wfId = (target as SelectionItem).id;
+            const ownerId = (target as SelectionItem).parentId || 'personal';
+            const workflow = workflowsByOwner[ownerId]?.find(w => w.id === wfId);
+            if (workflow) onDelete(workflow);
+        } else if (action === 'rename') {
+            const wfId = (target as SelectionItem).id;
+            const ownerId = (target as SelectionItem).parentId || 'personal';
+            const workflow = workflowsByOwner[ownerId]?.find(w => w.id === wfId);
+            if (workflow) onRename(workflow);
+        }
     };
 
     return (
@@ -86,16 +149,18 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                     </button>
 
                     {isDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-3 w-80 bg-surface-800 border border-[var(--border-base)] rounded-2xl shadow-2xl p-2 ring-1 ring-black/5 dark:ring-white/5 animate-in fade-in zoom-in-95 duration-200">
-                            <WorkflowTree
-                                users={users}
-                                workflowsByOwner={workflowsByOwner}
-                                activeWorkflowId={activeWorkflowId}
+                        <div className="absolute top-full left-0 mt-3 z-[100] animate-in fade-in zoom-in-95 duration-200">
+                            <SelectionList
+                                data={selectionData}
+                                config={{
+                                    allowDelete: true,
+                                    allowRename: true,
+                                    groupActions: ['add']
+                                }}
+                                activeItemId={activeWorkflowId}
                                 onSelect={handleSelect}
-                                onDelete={onDelete}
-                                onRename={onRename}
-                                onCreate={onCreate}
-                                isCreating={isCreating}
+                                onAction={handleAction}
+                                searchPlaceholder="Find workflow..."
                             />
                         </div>
                     )}
