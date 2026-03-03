@@ -315,9 +315,9 @@ export function WorkflowGraph({
             }
             return nameMatches;
         });
-        // Determine MAX_THAN from nodeType parameters definition
-        const maxThanParam = ntDef?.parameters?.find((p: any) => p.name === 'MAX_THAN');
-        const maxThan = node.data?.params?.MAX_THAN ?? maxThanParam?.default ?? 0;
+        // Determine MAX_THEN from nodeType parameters definition
+        const maxThenParam = ntDef?.parameters?.find((p: any) => p.name === 'MAX_THEN' || p.name === 'MAX_THAN');
+        const maxThen = node.data?.params?.MAX_THEN ?? node.data?.params?.maxThen ?? node.data?.params?.MAX_THAN ?? node.data?.params?.maxThan ?? maxThenParam?.default ?? 0;
 
         // Extract inputs from input_schema
         const inputs = ntDef?.input_schema?.inputs || [];
@@ -327,7 +327,7 @@ export function WorkflowGraph({
             data: {
                 ...node.data,
                 isActive: activeNodeIds.includes(node.id),
-                maxThan: Number(maxThan),
+                maxThen: Number(maxThen),
                 inputs: inputs,
                 icon: ntDef?.icon || node.data?.icon,
                 isRightInputProvider: rightConnectedSources.has(node.id)

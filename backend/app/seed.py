@@ -45,7 +45,7 @@ def seed():
             print("Assigned client1 to manager1")
 
         # Node Types Seeding
-                                                        nodes_data = [
+                                                                nodes_data = [
             {
                         "name": "Tool: Calculator",
                         "version": "1.0",
@@ -441,20 +441,37 @@ def run(inputs, params):
                         "is_async": False
             },
             {
+                        "name": "Print",
+                        "version": "1.0",
+                        "description": "Print input parameters",
+                        "code": "def run(inputs, params):
+    print(inputs)
+    return inputs;",
+                        "input_schema": {},
+                        "output_schema": {},
+                        "parameters": [],
+                        "category": "Utility|Console",
+                        "icon": "text",
+                        "is_async": False
+            },
+            {
                         "name": "If ... than ... else",
-                        "version": "1.5",
+                        "version": "1.6",
                         "description": "Simple condition example = ",
-                        "code": "class NodeParameters:
+                        "code": "class NodeParameters:    
     Argument: str = \"Param\"
     Value = \"Any\"
-    than: int = 0
-    MAX_THAN: int = 2
+    MAX_THEN: int = 2
+    THEN1_THEN = 1
+    THEN2_ELSE = 2
+    THEN = 0
+    NODE_TYPE=\"COMPARE\"
 
 def run(inputs, params):
     if inputs[nodeParameters.Argument] == nodeParameters.Value:
-        nodeParameters.than = 1
+        nodeParameters.THEN = nodeParameters.THEN1_THEN;
     else:
-        nodeParameters.than = 2
+        nodeParameters.THEN = nodeParameters.THEN2_ELSE;
     return inputs",
                         "input_schema": {},
                         "output_schema": {},
@@ -472,16 +489,34 @@ def run(inputs, params):
                                                 "default": "Any"
                                     },
                                     {
-                                                "name": "than",
+                                                "name": "MAX_THEN",
                                                 "type": "number",
-                                                "label": "Than",
+                                                "label": "Max Then",
+                                                "default": 2
+                                    },
+                                    {
+                                                "name": "THEN1_THEN",
+                                                "type": "number",
+                                                "label": "Then1 Then",
+                                                "default": 1
+                                    },
+                                    {
+                                                "name": "THEN2_ELSE",
+                                                "type": "number",
+                                                "label": "Then2 Else",
+                                                "default": 2
+                                    },
+                                    {
+                                                "name": "THEN",
+                                                "type": "number",
+                                                "label": "Then",
                                                 "default": 0
                                     },
                                     {
-                                                "name": "MAX_THAN",
-                                                "type": "number",
-                                                "label": "Max Than",
-                                                "default": 2
+                                                "name": "NODE_TYPE",
+                                                "type": "string",
+                                                "label": "Node Type",
+                                                "default": "COMPARE"
                                     }
                         ],
                         "category": "Logic|Conditions",
@@ -489,17 +524,16 @@ def run(inputs, params):
                         "is_async": False
             },
             {
-                        "name": "Print",
+                        "name": "Get active client",
                         "version": "1.0",
-                        "description": "Print input parameters",
+                        "description": "",
                         "code": "def run(inputs, params):
-    print(inputs)
-    return inputs;",
+    return common.get_active_client()",
                         "input_schema": {},
                         "output_schema": {},
                         "parameters": [],
-                        "category": "Utility|Console",
-                        "icon": "text",
+                        "category": "Utility",
+                        "icon": "task",
                         "is_async": False
             },
             {

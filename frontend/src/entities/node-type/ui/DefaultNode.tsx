@@ -6,15 +6,15 @@ import { Icon } from '../../../shared/ui/icon';
 
 export const DefaultNode = memo(({ id, data, selected }: any) => {
     const updateNodeInternals = useUpdateNodeInternals();
-    const maxThan: number = Number(data?.maxThan ?? 0);
-    const hasBranching = maxThan >= 2;
+    const maxThen: number = Number(data?.maxThen ?? data?.params?.MAX_THEN ?? data?.maxThan ?? 0);
+    const hasBranching = maxThen >= 2;
 
     // Force React Flow to recalculate handle bounds when geometry/provider logic changes
     const inputsLength = data.inputs?.length || 0;
     const nodeIcon = data.icon || 'task';
     useEffect(() => {
         updateNodeInternals(id);
-    }, [data.isRightInputProvider, inputsLength, maxThan, id, updateNodeInternals]);
+    }, [data.isRightInputProvider, inputsLength, maxThen, id, updateNodeInternals]);
 
     return (
         <div
@@ -71,7 +71,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                         </div>
                         <div className="flex flex-col min-w-0 flex-1">
                             <span className={`text-[10px] font-black uppercase tracking-[0.2em] leading-tight ${data.isActive || selected ? 'text-brand/80' : 'text-[var(--text-muted)]'}`}>
-                                {data.isActive ? 'Running...' : hasBranching ? 'Condition' : ''}
+                                {data.isActive ? 'Running...' : (data.params?.NODE_TYPE || (hasBranching ? 'Condition' : ''))}
                             </span>
                             <span className="text-sm font-black text-[var(--text-main)] leading-tight truncate block w-full">
                                 {data.label}
@@ -82,10 +82,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                     {data.params && Object.keys(data.params).length > 0 && (
                         <div className="mt-4 space-y-1.5 opacity-80 overflow-hidden">
                             {Object.entries(data.params)
-                                .filter(([key]) => {
-                                    const k = key.toLowerCase();
-                                    return k !== 'than' && k !== 'max_than' && k !== 'maxthan';
-                                })
+                                .filter(([key]) => !(/^[A-Z0-9_]+$/.test(key)))
                                 .map(([key, value]) => {
                                     // Find parameter info from node definition if available to check type
                                     const paramInfo = data.parameters?.find((p: any) => p.name === key);
@@ -145,24 +142,29 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
 
             {/* Output handle(s) — single for normal nodes, N for branching nodes */}
             {hasBranching ? (
-                Array.from({ length: maxThan }, (_, i) => {
+                Array.from({ length: maxThen }, (_, i) => {
                     const idx = i + 1; // 1-based
-                    //const color = BRANCH_COLORS[(i) % BRANCH_COLORS.length];
-                    // Distribute handles evenly: left-offset as percentage of node width
-                    const totalHandles = maxThan;
+                    const totalHandles = maxThen;
                     const leftPct = ((i + 1) / (totalHandles + 1)) * 100;
+
+                    let label = String(idx);
+                    if (data.params) {
+                        const prefix = `THEN${idx}_`;
+                        const matchingKey = Object.keys(data.params).find(k => k.startsWith(prefix) && /^[A-Z0-9_]+$/.test(k));
+                        if (matchingKey) {
+                            label = matchingKey.substring(prefix.length).replace(/_/g, ' ');
+                        }
+                    }
 
                     return (
                         <div
-                            key={`than_${idx}`}
-                            style={{ position: 'absolute', bottom: 0, left: `${leftPct}%`, transform: 'translate(-50%, 50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}
+                            key={`then_${idx}`}
+                            style={{ position: 'absolute', bottom: -10, left: `${leftPct}%`, transform: 'translate(-50%, 50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
                         >
-                            {/* Branch label */}
-
                             <Handle
                                 type="source"
                                 position={Position.Bottom}
-                                id={`than_${idx}`}
+                                id={`then_${idx}`}
                                 style={{
                                     position: 'static',
                                     transform: 'none',
@@ -170,6 +172,11 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                                 className={`!w-4 !h-4 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair ${selected ? '!bg-brand' : '!bg-[var(--text-muted)]'
                                     }`}
                             />
+
+                            {/* Branch label - moved below the handle */}
+                            <span className="text-[10px] font-bold text-[var(--text-main)] bg-surface-900/80 backdrop-blur-md border border-[var(--border-base)] px-2 py-0.5 rounded-full shadow-lg whitespace-nowrap mt-1 min-w-[20px] text-center">
+                                {label}
+                            </span>
                         </div>
                     );
                 })

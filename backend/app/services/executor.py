@@ -503,8 +503,8 @@ class WorkflowExecutor:
                     than_val = None
                     max_than = None
                     if node_params_inst is not None:
-                        than_val = getattr(node_params_inst, "than", None)
-                        max_than = getattr(node_params_inst, "MAX_THAN", None)
+                        than_val = getattr(node_params_inst, "THEN", getattr(node_params_inst, "THAN", getattr(node_params_inst, "than", None)))
+                        max_than = getattr(node_params_inst, "MAX_THEN", getattr(node_params_inst, "MAX_THAN", None))
 
                     for edge in edges:
                         if edge.get("source") != node_id:
@@ -522,8 +522,9 @@ class WorkflowExecutor:
                             if than_val == 0:
                                 self.log(f"{node_name}: than=0, блокируем все выходы", level="system")
                                 continue
-                            expected_handle = f"than_{than_val}"
-                            if source_handle and source_handle != expected_handle:
+                            expected_handle = f"then_{than_val}"
+                            fallback_handle = f"than_{than_val}"
+                            if source_handle and source_handle not in (expected_handle, fallback_handle):
                                 continue
 
                         if target_id and target_id not in outputs:
