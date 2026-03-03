@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Table, UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Table, UUID, cast
+from sqlalchemy.orm import relationship, remote, foreign
 from ..core.database import Base
 import enum
 import uuid
@@ -34,4 +34,8 @@ class User(Base):
         backref="assigned_managers",
     )
 
-    workflows = relationship("Workflow", back_populates="owner", foreign_keys="Workflow.owner_id")
+    workflows = relationship(
+        "Workflow", 
+        back_populates="owner",
+        primaryjoin="foreign(Workflow.owner_id) == cast(User.id, String)"
+    )

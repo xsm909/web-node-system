@@ -52,7 +52,9 @@ export default function Router() {
                     path="/admin/*"
                     element={
                         <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminPage />
+                            <ReactFlowProvider>
+                                <AdminPage />
+                            </ReactFlowProvider>
                         </ProtectedRoute>
                     }
                 />

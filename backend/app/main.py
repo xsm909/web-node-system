@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.database import Base, engine
-from .routers import auth, admin, manager, client
+from .routers import auth, admin, workflow, client
 
 # Create all tables on startup
 Base.metadata.create_all(bind=engine)
@@ -45,7 +45,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(admin.router)
-app.include_router(manager.router)
+app.include_router(workflow.router)
 app.include_router(client.router)
 
 

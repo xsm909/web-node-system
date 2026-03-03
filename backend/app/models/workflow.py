@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON, Enum, UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON, Enum, UUID, cast
+from sqlalchemy.orm import relationship, remote, foreign
 from sqlalchemy.sql import func
 from ..core.database import Base
 import enum
@@ -19,15 +19,21 @@ class Workflow(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False)
-    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    owner_id = Column(String(50), nullable=False, index=True) # Changed from UUID/FK to String to allow "common"
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     graph = Column(JSON, nullable=False, default={"nodes": [], "edges": []})
+    category = Column(String(50), nullable=False, default="personal")
     status = Column(Enum(WorkflowStatus), default=WorkflowStatus.draft)
     workflow_data = Column(JSON, nullable=True, default={})
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    owner = relationship("User", foreign_keys=[owner_id], back_populates="workflows")
+    owner = relationship(
+        "User", 
+        back_populates="workflows",
+        primaryjoin="remote(cast(User.id, String)) == foreign(Workflow.owner_id)",
+        viewonly=True
+    )
     executions = relationship("WorkflowExecution", back_populates="workflow", cascade="all, delete-orphan")
 
 

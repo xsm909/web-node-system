@@ -12,13 +12,14 @@ from ..models.workflow import Workflow, WorkflowExecution, WorkflowStatus
 from ..models.node import NodeType
 from ..services.executor import execute_workflow
 
-router = APIRouter(prefix="/manager", tags=["manager"])
-manager_only = Depends(require_role("manager"))
+router = APIRouter(prefix="/workflows", tags=["workflows"])
+workflow_access = Depends(require_role("manager", "admin", "client"))
 
 
 class WorkflowCreate(BaseModel):
     name: str
-    owner_id: uuid.UUID
+    owner_id: str # Changed from UUID to str
+    category: str = "personal"
 
 
 class WorkflowUpdate(BaseModel):
@@ -33,8 +34,8 @@ class WorkflowRename(BaseModel):
 class WorkflowOut(BaseModel):
     id: uuid.UUID
     name: str
-    status: str
-    owner_id: uuid.UUID
+    status: Optional[str] = "draft"
+    owner_id: str # Changed from UUID to str
 
     class Config:
         from_attributes = True
@@ -115,30 +116,47 @@ class ExecutionOut(BaseModel):
 
 
 @router.get("/users", response_model=List[dict])
-def get_assigned_users(current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def get_assigned_users(current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
+    if current_user.role == "admin":
+        return [{"id": u.id, "username": u.username} for u in db.query(User).filter(User.role == "client").all()]
     return [{"id": u.id, "username": u.username} for u in current_user.assigned_clients]
 
 
 @router.get("/users/{user_id}/workflows", response_model=List[WorkflowOut])
-def get_user_workflows(user_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
-    # Ensure manager has access to this user or it's themselves
-    if user_id != current_user.id:
-        client_ids = [u.id for u in current_user.assigned_clients]
+def get_user_workflows(user_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
+    # Admins can see everything
+    if current_user.role == "admin":
+        return db.query(Workflow).filter(Workflow.owner_id == user_id).all()
+        
+    # Ensure manager has access to this user or it's themselves, or it's "common"
+    is_common = user_id == "common"
+    
+    if not is_common and user_id != str(current_user.id):
+        if current_user.role == "client":
+             raise HTTPException(status_code=403, detail="Access denied")
+             
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
         if user_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
-    return db.query(Workflow).filter(Workflow.owner_id == user_id).all()
+            
+    # Load workflows for user plus any "common" ones if they are asking for themselves or clients
+    query = db.query(Workflow).filter(Workflow.owner_id == user_id)
+    return query.all()
 
 
 @router.post("/workflows", response_model=WorkflowOut)
-def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
-    if data.owner_id != current_user.id:
-        client_ids = [u.id for u in current_user.assigned_clients]
+def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
+    is_common = data.owner_id == "common"
+    if current_user.role != "admin" and not is_common and uuid.UUID(data.owner_id) != current_user.id:
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
         if data.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
+    
     wf = Workflow(
         name=data.name, 
         owner_id=data.owner_id, 
         created_by=current_user.id,
+        category=data.category,
         graph={
             "nodes": [
                 {
@@ -159,24 +177,32 @@ def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_curre
 
 
 @router.get("/workflows/{workflow_id}", response_model=WorkflowDetail)
-def get_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def get_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    if wf.owner_id != current_user.id:
-        client_ids = [u.id for u in current_user.assigned_clients]
+    
+    if current_user.role == "admin":
+        return wf
+
+    is_common = wf.owner_id == "common"
+    if not is_common and wf.owner_id != str(current_user.id):
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
-            raise HTTPException(status_code=403, detail="Access denied")
+            if current_user.role != "admin": # Double check for admin
+                raise HTTPException(status_code=403, detail="Access denied")
     return wf
 
 
 @router.put("/workflows/{workflow_id}", response_model=WorkflowDetail)
-def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    if wf.owner_id != current_user.id:
-        client_ids = [u.id for u in current_user.assigned_clients]
+    
+    is_common = wf.owner_id == "common"
+    if current_user.role != "admin" and not is_common and wf.owner_id != str(current_user.id):
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
     
@@ -191,12 +217,14 @@ def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: 
 
 
 @router.patch("/workflows/{workflow_id}/rename", response_model=WorkflowDetail)
-def rename_workflow(workflow_id: uuid.UUID, data: WorkflowRename, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def rename_workflow(workflow_id: uuid.UUID, data: WorkflowRename, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    if wf.owner_id != current_user.id:
-        client_ids = [u.id for u in current_user.assigned_clients]
+    
+    is_common = wf.owner_id == "common"
+    if current_user.role != "admin" and not is_common and wf.owner_id != str(current_user.id):
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
     
@@ -207,12 +235,14 @@ def rename_workflow(workflow_id: uuid.UUID, data: WorkflowRename, current_user: 
 
 
 @router.delete("/workflows/{workflow_id}")
-def delete_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def delete_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    if wf.owner_id != current_user.id:
-        client_ids = [u.id for u in current_user.assigned_clients]
+    
+    is_common = wf.owner_id == "common"
+    if current_user.role != "admin" and not is_common and wf.owner_id != str(current_user.id):
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
     
@@ -226,12 +256,14 @@ class RunWorkflowRequest(BaseModel):
 
 
 @router.post("/workflows/{workflow_id}/run")
-def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = None, background_tasks: BackgroundTasks = None, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = None, background_tasks: BackgroundTasks = None, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    if wf.owner_id != current_user.id:
-        client_ids = [u.id for u in current_user.assigned_clients]
+    
+    is_common = wf.owner_id == "common"
+    if current_user.role != "admin" and not is_common and wf.owner_id != str(current_user.id):
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
 
@@ -254,17 +286,17 @@ def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = No
 
 
 @router.get("/node-types", response_model=List[NodeTypeOut])
-def list_node_types(db: Session = Depends(get_db), _=manager_only):
+def list_node_types(db: Session = Depends(get_db), _=workflow_access):
     return db.query(NodeType).all()
 
 
 @router.get("/workflows/{workflow_id}/executions", response_model=List[ExecutionOut])
-def list_workflow_executions(workflow_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def list_workflow_executions(workflow_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
     # Access control
-    if wf.owner_id != current_user.id:
+    if current_user.role != "admin" and wf.owner_id != current_user.id:
         client_ids = [u.id for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
@@ -273,7 +305,7 @@ def list_workflow_executions(workflow_id: uuid.UUID, current_user: User = Depend
 
 
 @router.get("/executions/{execution_id}", response_model=ExecutionOut)
-def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
     execution = db.query(WorkflowExecution).filter(WorkflowExecution.id == execution_id).first()
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
@@ -283,8 +315,8 @@ def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(
     execution = db.query(WorkflowExecution).filter(WorkflowExecution.id == execution_id).first()
     
     wf = db.query(Workflow).filter(Workflow.id == execution.workflow_id).first()
-    if wf.owner_id != current_user.id:
-        client_ids = [u.id for u in current_user.assigned_clients]
+    if current_user.role != "admin" and wf.owner_id != str(current_user.id):
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
     
@@ -293,3 +325,8 @@ def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(
     response.current_runtime_data = execution.runtime_data
     
     return response
+
+
+@router.get("/common", response_model=List[WorkflowOut])
+def list_common_workflows(db: Session = Depends(get_db), _=workflow_access):
+    return db.query(Workflow).filter(Workflow.owner_id == "common").all()

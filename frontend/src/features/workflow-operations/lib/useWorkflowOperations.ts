@@ -39,7 +39,7 @@ export function useWorkflowOperations({
 
     const saveWorkflow = async () => {
         if (!activeWorkflow) return;
-        await apiClient.put(`/manager/workflows/${activeWorkflow.id}`, {
+        await apiClient.put(`/workflows/workflows/${activeWorkflow.id}`, {
             graph: { nodes: nodesRef.current, edges: edgesRef.current },
             workflow_data: activeWorkflow.workflow_data,
             runtime_data: activeWorkflow.runtime_data,
@@ -54,7 +54,7 @@ export function useWorkflowOperations({
 
     const pollExecution = useCallback(async (executionId: string) => {
         try {
-            const { data } = await apiClient.get(`/manager/executions/${executionId}`);
+            const { data } = await apiClient.get(`/workflows/executions/${executionId}`);
             setExecutionLogs(data.logs || []);
             if (data.current_runtime_data) {
                 setLiveRuntimeData(data.current_runtime_data);
@@ -110,7 +110,7 @@ export function useWorkflowOperations({
         onConsoleOpen();
 
         try {
-            const { data } = await apiClient.post(`/manager/workflows/${activeWorkflow.id}/run`, {
+            const { data } = await apiClient.post(`/workflows/workflows/${activeWorkflow.id}/run`, {
                 target_client_id: activeClientId
             });
             setCurrentExecutionId(data.execution_id);

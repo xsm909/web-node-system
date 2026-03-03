@@ -67,16 +67,27 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
             children: {}
         };
 
+        // Common workflows - Always show for admins/managers
+        data['Common Workflows'] = {
+            id: 'common',
+            name: 'Common Workflows',
+            selectable: false,
+            icon: 'group',
+            items: transformWorkflows('common', workflowsByOwner['common'] || []),
+            children: {}
+        };
+
         // Client workflows - ONLY if activeClientId is set
         if (activeClientId) {
-            const activeUser = users.find(u => u.id === activeClientId);
+            const normalizedClientId = activeClientId.toLowerCase();
+            const activeUser = users.find(u => u.id.toLowerCase() === normalizedClientId);
             if (activeUser) {
                 data['Clients workflow'] = {
-                    id: activeClientId,
+                    id: normalizedClientId,
                     name: 'Clients workflow',
                     selectable: false,
                     icon: 'folder',
-                    items: transformWorkflows(activeClientId, workflowsByOwner[activeClientId] || []),
+                    items: transformWorkflows(normalizedClientId, workflowsByOwner[normalizedClientId] || []),
                     children: {}
                 };
             }
@@ -87,7 +98,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
 
     const handleSelect = (item: SelectionItem) => {
         // Find the actual workflow object
-        const ownerId = item.parentId || 'personal';
+        const ownerId = (item.parentId || 'personal').toLowerCase();
         const wf = workflowsByOwner[ownerId]?.find(w => w.id === item.id);
         if (wf) {
             onSelect(wf);
