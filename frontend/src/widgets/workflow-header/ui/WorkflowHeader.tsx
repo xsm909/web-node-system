@@ -6,6 +6,7 @@ import { ComboBox } from '../../../shared/ui/combo-box';
 import { Icon } from '../../../shared/ui/icon';
 import { AppHeader } from '../../app-header';
 import { useClientStore } from '../../../features/workflow-management/model/clientStore';
+import { useAuthStore } from '../../../features/auth/store';
 
 interface WorkflowHeaderProps {
     title: string;
@@ -44,6 +45,8 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     onOpenEditModal,
 }) => {
     const { activeClientId } = useClientStore();
+    const { user: currentUser } = useAuthStore();
+    const isAdmin = currentUser?.role === 'admin';
 
     const selectionData = useMemo(() => {
         const data: Record<string, SelectionGroup> = {};
@@ -68,13 +71,16 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
         };
 
         // Common workflows - Always show for admins/managers
+        // For non-admins: no add on group, no rename/delete on items
         data['Common Workflows'] = {
             id: 'common',
             name: 'Common Workflows',
             selectable: false,
             icon: 'group',
             items: transformWorkflows('common', workflowsByOwner['common'] || []),
-            children: {}
+            children: {},
+            groupActions: isAdmin ? ['add'] : [],
+            itemActions: isAdmin ? ['rename', 'delete'] : []
         };
 
         // Client workflows - ONLY if activeClientId is set
@@ -94,7 +100,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
         }
 
         return data;
-    }, [workflowsByOwner, users, activeClientId]);
+    }, [workflowsByOwner, users, activeClientId, isAdmin]);
 
     const handleSelect = (item: SelectionItem) => {
         // Find the actual workflow object
@@ -108,20 +114,25 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     const handleAction = (action: SelectionAction, target: SelectionItem | SelectionGroup) => {
         if (action === 'add') {
             const ownerId = target.id;
+            // Safety guard: only admins can create common workflows
+            if (ownerId === 'common' && !isAdmin) return;
             onCreate('', ownerId);
         } else if (action === 'delete') {
             const wfId = (target as SelectionItem).id;
             const ownerId = (target as SelectionItem).parentId || 'personal';
+            // Only admins can delete common workflows
+            if (ownerId === 'common' && !isAdmin) return;
             const workflow = workflowsByOwner[ownerId]?.find(w => w.id === wfId);
             if (workflow) onDelete(workflow);
         } else if (action === 'rename') {
             const wfId = (target as SelectionItem).id;
             const ownerId = (target as SelectionItem).parentId || 'personal';
+            // Only admins can rename common workflows
+            if (ownerId === 'common' && !isAdmin) return;
             const workflow = workflowsByOwner[ownerId]?.find(w => w.id === wfId);
             if (workflow) onRename(workflow);
         }
     };
-
     return (
         <AppHeader
             onToggleSidebar={onToggleSidebar}
@@ -139,7 +150,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                         config={{
                             allowDelete: true,
                             allowRename: true,
-                            groupActions: ['add']
+                            groupActions: ['add'],
                         }}
                     />
                 </div>

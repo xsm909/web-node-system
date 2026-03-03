@@ -29,16 +29,20 @@ def get_active_client() -> Dict[str, Any]:
             return {"id": None, "name": "Unknown", "error": "Execution not found"}
             
         workflow = execution.workflow
-        if not workflow or not workflow.owner:
-            return {"id": None, "name": "Unknown", "error": "Owner not found"}
+        if not workflow:
+            return {"id": None, "name": "Unknown", "error": "Workflow not found"}
             
-        owner = workflow.owner
-        
-        # 1. If owner is a direct client, return them
-        if owner.role == RoleEnum.client:
-            return {"id": str(owner.id), "name": owner.username}
+        if workflow.owner_id != "common":
+            if not workflow.owner:
+                return {"id": None, "name": "Unknown", "error": "Owner not found"}
+                
+            owner = workflow.owner
             
-        # 2. If owner is Manager/Admin, check context from frontend
+            # 1. If owner is a direct client, return them
+            if owner.role == RoleEnum.client:
+                return {"id": str(owner.id), "name": owner.username}
+                
+        # 2. If owner is Manager/Admin or workflow is common, check context from frontend
         active_client_id = (execution.runtime_data or {}).get("_active_client_id")
         
         if active_client_id:

@@ -20,6 +20,10 @@ export interface SelectionGroup {
     children: Record<string, SelectionGroup>;
     selectable?: boolean;
     icon?: string;
+    /** Per-group override of config.groupActions. If set, only these actions show for this group. */
+    groupActions?: SelectionAction[];
+    /** If set, overrides config.allowDelete/allowRename/allowDuplicate for items in this group. */
+    itemActions?: SelectionAction[];
 }
 
 export interface SelectionListConfig {
@@ -73,6 +77,8 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, act
                     const fullPath = [...breadcrumb, label];
                     const isActive = activeDescendant[breadcrumb.length] === label;
                     const isSelectable = group.selectable ?? false;
+                    // Use group-level override if set, otherwise fall back to global config
+                    const effectiveGroupActions = group.groupActions ?? config.groupActions;
 
                     return (
                         <div key={label} className="group/item relative">
@@ -104,7 +110,7 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, act
                                     <span className="truncate">{label}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    {isActive && config.groupActions?.map(action => (
+                                    {isActive && effectiveGroupActions?.map(action => (
                                         <button
                                             key={action}
                                             onClick={(e) => { e.stopPropagation(); onAction?.(action, group); }}
@@ -132,11 +138,13 @@ interface ItemListPanelProps {
     breadcrumb: string[];
     config: SelectionListConfig;
     activeItemId?: string;
+    /** Per-group override of which actions are allowed on items. */
+    groupItemActions?: SelectionAction[];
     onSelect: (item: SelectionItem) => void;
     onAction?: (action: SelectionAction, target: SelectionItem) => void;
 }
 
-const ItemListPanel: React.FC<ItemListPanelProps> = ({ items, breadcrumb, config, activeItemId, onSelect, onAction }) => (
+const ItemListPanel: React.FC<ItemListPanelProps> = ({ items, breadcrumb, config, activeItemId, onSelect, onAction, groupItemActions }) => (
     <div className="w-64 border border-[var(--border-base)] rounded-2xl p-2 flex flex-col gap-1 backdrop-blur-xl bg-[var(--bg-app)]/80 animate-in slide-in-from-left-2 duration-200">
         <div className="px-3 py-2 text-[10px] font-black text-brand uppercase tracking-widest opacity-50 mb-1 flex items-center gap-1 flex-wrap">
             {breadcrumb.map((seg, i) => (
@@ -150,6 +158,10 @@ const ItemListPanel: React.FC<ItemListPanelProps> = ({ items, breadcrumb, config
             {items.sort((a, b) => a.name.localeCompare(b.name)).map(item => {
                 const isActive = item.id === activeItemId;
                 const isSelectable = item.selectable ?? true;
+                // Use group-level item action overrides if set
+                const canRename = groupItemActions ? groupItemActions.includes('rename') : config.allowRename;
+                const canDuplicate = groupItemActions ? groupItemActions.includes('duplicate') : config.allowDuplicate;
+                const canDelete = groupItemActions ? groupItemActions.includes('delete') : config.allowDelete;
 
                 return (
                     <div key={item.id} className="group/item relative">
@@ -170,13 +182,13 @@ const ItemListPanel: React.FC<ItemListPanelProps> = ({ items, breadcrumb, config
                                     <span className={`truncate ${isActive ? 'text-brand' : 'text-[var(--text-main)] group-hover/item:text-brand'}`}>{item.name}</span>
                                 </div>
                                 <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                    {config.allowRename && (
+                                    {canRename && (
                                         <button onClick={(e) => { e.stopPropagation(); onAction?.('rename', item); }} className="p-1 hover:bg-brand/10 rounded-md"><Icon name="edit" size={12} /></button>
                                     )}
-                                    {config.allowDuplicate && (
+                                    {canDuplicate && (
                                         <button onClick={(e) => { e.stopPropagation(); onAction?.('duplicate', item); }} className="p-1 hover:bg-brand/10 rounded-md"><Icon name="content_copy" size={12} /></button>
                                     )}
-                                    {config.allowDelete && (
+                                    {canDelete && (
                                         <button onClick={(e) => { e.stopPropagation(); onAction?.('delete', item); }} className="p-1 hover:bg-red-500/10 text-red-500 rounded-md"><Icon name="delete" size={12} /></button>
                                     )}
                                 </div>
@@ -369,7 +381,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                                 <span className="truncate">{label}</span>
                                             </div>
                                             <div className="flex items-center gap-1">
-                                                {isActive && config.groupActions?.map(action => (
+                                                {isActive && (group.groupActions ?? config.groupActions)?.map(action => (
                                                     <button
                                                         key={action}
                                                         onClick={(e) => { e.stopPropagation(); onAction?.(action, group); }}
@@ -472,6 +484,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                         activeItemId={activeItemId}
                                         onSelect={onSelect}
                                         onAction={onAction}
+                                        groupItemActions={group.itemActions}
                                     />
                                 </div>
                             );

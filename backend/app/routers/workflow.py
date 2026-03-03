@@ -146,7 +146,9 @@ def get_user_workflows(user_id: str, current_user: User = Depends(get_current_us
 
 @router.post("/workflows", response_model=WorkflowOut)
 def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
-    is_common = data.owner_id == "common"
+    is_common = data.owner_id == "common" or data.category == "common"
+    if is_common and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can create common workflows")
     if current_user.role != "admin" and not is_common and uuid.UUID(data.owner_id) != current_user.id:
         client_ids = [str(u.id) for u in current_user.assigned_clients]
         if data.owner_id not in client_ids:
@@ -201,6 +203,8 @@ def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: 
         raise HTTPException(status_code=404, detail="Workflow not found")
     
     is_common = wf.owner_id == "common"
+    if is_common and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can modify common workflows")
     if current_user.role != "admin" and not is_common and wf.owner_id != str(current_user.id):
         client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
@@ -223,6 +227,8 @@ def rename_workflow(workflow_id: uuid.UUID, data: WorkflowRename, current_user: 
         raise HTTPException(status_code=404, detail="Workflow not found")
     
     is_common = wf.owner_id == "common"
+    if is_common and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can rename common workflows")
     if current_user.role != "admin" and not is_common and wf.owner_id != str(current_user.id):
         client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
@@ -241,6 +247,8 @@ def delete_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_cur
         raise HTTPException(status_code=404, detail="Workflow not found")
     
     is_common = wf.owner_id == "common"
+    if is_common and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can delete common workflows")
     if current_user.role != "admin" and not is_common and wf.owner_id != str(current_user.id):
         client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
@@ -295,9 +303,10 @@ def list_workflow_executions(workflow_id: uuid.UUID, current_user: User = Depend
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    # Access control
-    if current_user.role != "admin" and wf.owner_id != current_user.id:
-        client_ids = [u.id for u in current_user.assigned_clients]
+    # Access control — common workflows are accessible by any authenticated user
+    is_common = wf.owner_id == "common"
+    if not is_common and current_user.role != "admin" and wf.owner_id != str(current_user.id):
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
     
@@ -315,7 +324,9 @@ def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(
     execution = db.query(WorkflowExecution).filter(WorkflowExecution.id == execution_id).first()
     
     wf = db.query(Workflow).filter(Workflow.id == execution.workflow_id).first()
-    if current_user.role != "admin" and wf.owner_id != str(current_user.id):
+    # Common workflows can be executed/viewed by any authenticated user
+    is_common = wf.owner_id == "common"
+    if not is_common and current_user.role != "admin" and wf.owner_id != str(current_user.id):
         client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
