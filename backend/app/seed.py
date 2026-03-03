@@ -45,7 +45,7 @@ def seed():
             print("Assigned client1 to manager1")
 
         # Node Types Seeding
-                                                nodes_data = [
+                                                        nodes_data = [
             {
                         "name": "Tool: Calculator",
                         "version": "1.0",
@@ -346,7 +346,7 @@ def run(inputs, params):
                                                 "default": 1.5
                                     }
                         ],
-                        "category": "Utility",
+                        "category": "Utility|Time",
                         "icon": "timer",
                         "is_async": False
             },
@@ -370,7 +370,7 @@ def run(inputs, params):
                                                 "default": "Default value"
                                     }
                         ],
-                        "category": "Utility",
+                        "category": "Utility|Console",
                         "icon": "text",
                         "is_async": False
             },
@@ -498,7 +498,7 @@ def run(inputs, params):
                         "input_schema": {},
                         "output_schema": {},
                         "parameters": [],
-                        "category": "Utility",
+                        "category": "Utility|Console",
                         "icon": "text",
                         "is_async": False
             },
@@ -687,6 +687,39 @@ def run(inputs, params):
                         "is_async": False
             },
             {
+                        "name": "Show workflow data",
+                        "version": "1.0",
+                        "description": "Misc",
+                        "code": "def print_data(data, indent=0):
+    space = \"  \" * indent
+
+    if isinstance(data, dict):
+        for key, value in data.items():
+            print(f\"{space}{key}:\")
+            print_data(value, indent + 1)
+
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            print(f\"{space}[{i}]\")
+            print_data(item, indent + 1)
+
+    else:
+        # Простое значение (строка, число, bool и т.д.)
+        print(f\"{space}{data}\")
+
+
+def run(inputs, params):
+    data = libs.get_workflow_data()
+    print_data(data)
+    return {}",
+                        "input_schema": {},
+                        "output_schema": {},
+                        "parameters": [],
+                        "category": "Utility|Console",
+                        "icon": "task",
+                        "is_async": False
+            },
+            {
                         "name": "Window Memory",
                         "version": "1.0",
                         "description": "Chat memory with a fixed window size.",
@@ -743,39 +776,6 @@ def run(inputs, params):
                                     }
                         ],
                         "category": "Data|Runtime",
-                        "icon": "task",
-                        "is_async": False
-            },
-            {
-                        "name": "Show workflow data",
-                        "version": "1.0",
-                        "description": "Misc",
-                        "code": "def print_data(data, indent=0):
-    space = \"  \" * indent
-
-    if isinstance(data, dict):
-        for key, value in data.items():
-            print(f\"{space}{key}:\")
-            print_data(value, indent + 1)
-
-    elif isinstance(data, list):
-        for i, item in enumerate(data):
-            print(f\"{space}[{i}]\")
-            print_data(item, indent + 1)
-
-    else:
-        # Простое значение (строка, число, bool и т.д.)
-        print(f\"{space}{data}\")
-
-
-def run(inputs, params):
-    data = libs.get_workflow_data()
-    print_data(data)
-    return {}",
-                        "input_schema": {},
-                        "output_schema": {},
-                        "parameters": [],
-                        "category": "Utility",
                         "icon": "task",
                         "is_async": False
             },
