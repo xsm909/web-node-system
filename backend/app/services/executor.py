@@ -305,46 +305,8 @@ class WorkflowExecutor:
             triggered = set(initial_queue)
             waiting = set()
             outputs: dict = {}
-            all_success = True
-
-            while queue or waiting:
-                if not queue:
-                    ready_nids = []
-                    for wid in list(waiting):
-                        node_edges = [e for e in edges if e.get("target") == wid]
-                        side_deps = [e.get("source") for e in node_edges if e.get("targetHandle") and e.get("targetHandle") not in (None, "", "top")]
-                        if all(s in outputs for s in side_deps):
-                            ready_nids.append(wid)
-                    
-                    if not ready_nids:
-                        self.log(f"Stall detected: Nodes {list(waiting)} waiting for unresolved dependencies.", level="critical")
-                        all_success = False
-                        break
-                    
-                    for r in ready_nids:
-                        waiting.remove(r)
-                        queue.append(r)
-                    continue
-
-                node_id = queue.pop(0)
-                if node_id in outputs: 
-                    continue
-
-                node_edges = [e for e in edges if e.get("target") == node_id]
-                side_deps = [e.get("source") for e in node_edges if e.get("targetHandle") and e.get("targetHandle") not in (None, "", "top")]
-                
-                missing_deps = [s for s in side_deps if s not in outputs]
-                if missing_deps:
-                    waiting.add(node_id)
-                    continue
-
-                try:
-                    self._execute_node_internal(node_id, nodes, edges, node_map, triggered, queue, waiting, outputs)
-                except Exception as e:
-                    self.log(f"Error executing node {node_id}: {str(e)}", level="error")
-                    all_success = False
-
-                self.db.commit()
+            
+            all_success = self._run_execution_loop(nodes, edges, node_map, queue, triggered, waiting, outputs)
 
             self.execution.status = WorkflowStatus.success if all_success else WorkflowStatus.failed
             self.execution.result_summary = "Completed successfully" if all_success else "One or more nodes failed"
@@ -366,7 +328,63 @@ class WorkflowExecutor:
                 execution_context.reset(context_token)
             self.db.close()
 
-    def _execute_node_internal(self, node_id, nodes, edges, node_map, triggered, queue, waiting, outputs, manual_inputs: dict = None):
+    def _run_execution_loop(self, nodes, edges, node_map, queue, triggered, waiting, outputs, manual_node_inputs: dict = None, allow_reexecution: bool = False):
+        """
+        Runs the dependency-aware execution loop. 
+        If manual_node_inputs is provided, it's a mapping of {node_id: inputs_dict} 
+        for specific nodes that should receive manual inputs (e.g. from execute_node).
+        """
+        all_success = True
+        while queue or waiting:
+            if not queue:
+                ready_nids = []
+                for wid in list(waiting):
+                    node_edges = [e for e in edges if e.get("target") == wid]
+                    side_deps = [e.get("source") for e in node_edges if e.get("targetHandle") and e.get("targetHandle") not in (None, "", "top")]
+                    if all(s in outputs for s in side_deps):
+                        ready_nids.append(wid)
+                
+                if not ready_nids:
+                    # Potential stall, but if we are in a sub-execution, it's possible 
+                    # we are just waiting for nodes outside this sub-set.
+                    self.log(f"Stall or branch completion detected: Nodes {list(waiting)} waiting for unresolved dependencies.", level="system")
+                    break
+                
+                for r in ready_nids:
+                    waiting.remove(r)
+                    queue.append(r)
+                continue
+
+            node_id = queue.pop(0)
+            # In sub-executions (branches), we allow re-execution of nodes 
+            # if they are part of the new sub_triggered set OR manually specified OR allow_reexecution is True.
+            if node_id in outputs and not allow_reexecution and not (manual_node_inputs and node_id in manual_node_inputs):
+                continue
+
+            node_edges = [e for e in edges if e.get("target") == node_id]
+            side_deps = [e.get("source") for e in node_edges if e.get("targetHandle") and e.get("targetHandle") not in (None, "", "top")]
+            
+            missing_deps = [s for s in side_deps if s not in outputs]
+            if missing_deps:
+                waiting.add(node_id)
+                continue
+
+            try:
+                # Pass manual inputs if this node is the target of a manual trigger
+                node_manual_input = manual_node_inputs.get(node_id) if manual_node_inputs else None
+                self._execute_node_internal(
+                    node_id, nodes, edges, node_map, triggered, queue, waiting, outputs, 
+                    manual_inputs=node_manual_input, 
+                    allow_reexecution=allow_reexecution
+                )
+            except Exception as e:
+                self.log(f"Error executing node {node_id}: {str(e)}", level="error")
+                all_success = False
+
+            self.db.commit()
+        return all_success
+
+    def _execute_node_internal(self, node_id, nodes, edges, node_map, triggered, queue, waiting, outputs, manual_inputs: dict = None, allow_reexecution: bool = False):
         self.current_node_id = node_id
         node_data = node_map.get(node_id)
         if not node_data:
@@ -459,24 +477,36 @@ class WorkflowExecutor:
                     self.outputs = outputs
 
                 def execute_node(self, handle_index, inputs: dict = None):
-                    expected_handle = f"then_{handle_index}"
-                    fallback_handle = f"than_{handle_index}"
+                    # Support both "then_1" and legacy "than_1"
+                    expected_handles = [f"then_{handle_index}", f"than_{handle_index}"]
                     
-                    # Find downstream nodes
+                    # Find downstream target nodes
                     targets = [
                         e.get("target") for e in self.edges 
                         if e.get("source") == self.source_node_id and 
-                        e.get("sourceHandle") in (expected_handle, fallback_handle)
+                        e.get("sourceHandle") in expected_handles
                     ]
                     
                     for target_id in targets:
-                        # For synchronous execution, we force-re-execute even if it's in outputs
-                        # but we avoid infinite recursion by not allowing cyclic calls to the SAME node
-                        # unless it's explicitly a loop.
-                        self.executor._execute_node_internal(
-                            target_id, self.nodes, self.edges, self.node_map, 
-                            set(), [], set(), self.outputs, manual_inputs=inputs
+                        # For synchronous branch execution:
+                        # 1. We start a NEW queue from this target
+                        sub_queue = [target_id]
+                        sub_triggered = {target_id}
+                        sub_waiting = set()
+                        
+                        # 2. We use _run_execution_loop to run the branch to completion
+                        # We pass a fresh sub_triggered set but keep the same outputs dict
+                        # to allow branch-specific re-execution logic in _run_execution_loop.
+                        manual_node_inputs = {target_id: inputs} if inputs else {}
+                        
+                        self.executor.log(f"Branch execution started from node {target_id} via execute_node({handle_index})", level="system")
+                        self.executor._run_execution_loop(
+                            self.nodes, self.edges, self.node_map, 
+                            sub_queue, sub_triggered, sub_waiting, self.outputs,
+                            manual_node_inputs=manual_node_inputs,
+                            allow_reexecution=True
                         )
+                        self.executor.log(f"Branch execution from node {target_id} completed", level="system")
 
             node_globals = {
                 **SAFE_GLOBALS,
@@ -595,7 +625,8 @@ class WorkflowExecutor:
                     if source_handle and source_handle not in (expected_handle, fallback_handle):
                         continue
 
-                if target_id and target_id not in outputs:
+                # Ignore if target already executed UNLESS re-execution is allowed (LOOP)
+                if target_id and (target_id not in outputs or allow_reexecution):
                     if target_id not in triggered:
                         triggered.add(target_id)
                         queue.append(target_id)

@@ -38,7 +38,8 @@ def seed():
                 print(f"User already exists: {u['username']}")
 
         # Node Types Seeding
-                        nodes_data = [
+        # Node Types Seeding
+                nodes_data = [
             {
                         "name": "Tool: Calculator",
                         "version": "1.0",
