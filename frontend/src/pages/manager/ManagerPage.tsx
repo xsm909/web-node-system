@@ -14,6 +14,7 @@ import { useWorkflowManagement } from '../../features/workflow-management';
 import { Icon } from '../../shared/ui/icon';
 import { AppSidebar } from '../../widgets/app-sidebar';
 import { AppHeader } from '../../widgets/app-header';
+import { ClientSelector } from '../../features/client-selection/ui/ClientSelector';
 import { useClientStore } from '../../features/workflow-management/model/clientStore';
 
 export default function ManagerPage() {
@@ -112,6 +113,7 @@ export default function ManagerPage() {
                 headerIcon="bolt"
                 isOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
+                topContent={<ClientSelector />}
                 navItems={filteredNavItems}
                 customContent={
                     <>

@@ -3,10 +3,6 @@ import { Sidebar } from '../../../shared/ui/sidebar';
 import { Icon } from '../../../shared/ui/icon';
 import { ThemeToggle } from '../../../shared/ui/theme-toggle/ThemeToggle';
 import { useAuthStore } from '../../../features/auth/store';
-import { useMemo } from 'react';
-import { type SelectionItem, type SelectionGroup } from '../../../shared/ui/selection-list';
-import { ComboBox } from '../../../shared/ui/combo-box';
-import { useClientStore } from '../../../features/workflow-management/model/clientStore';
 
 export interface NavItem {
     id: string;
@@ -20,6 +16,7 @@ interface AppSidebarProps {
     title: ReactNode;
     headerIcon?: string;
     navItems?: NavItem[];
+    topContent?: ReactNode;
     customContent?: ReactNode;
     isOpen?: boolean;
     onClose?: () => void;
@@ -29,36 +26,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     title,
     headerIcon = 'bolt',
     navItems = [],
+    topContent,
     customContent,
     isOpen = true,
     onClose,
 }) => {
     const { user, logout } = useAuthStore();
-    const { activeClientId, assignedUsers, setActiveClientId } = useClientStore();
-
-    const activeClient = useMemo(() =>
-        assignedUsers.find(u => u.id === activeClientId),
-        [assignedUsers, activeClientId]
-    );
-
-    const selectionData = useMemo(() => {
-        const data: Record<string, SelectionGroup> = {};
-
-        assignedUsers.forEach(u => {
-            data[u.username] = {
-                id: u.id,
-                name: u.username,
-                items: [],
-                children: {}
-            };
-        });
-
-        return data;
-    }, [assignedUsers]);
-
-    const handleSelect = (item: SelectionItem) => {
-        setActiveClientId(item.id === 'all' ? null : item.id);
-    };
 
     return (
         <Sidebar
@@ -87,18 +60,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             }
             content={
                 <>
-                    <div className="mb-6">
-                        <div className="px-3 py-2 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest opacity-50">Active Client</div>
-                        <ComboBox
-                            variant="sidebar"
-                            value={activeClientId || 'all'}
-                            label={activeClient?.username || 'Not selected'}
-                            icon={activeClient ? 'person' : 'group'}
-                            data={selectionData}
-                            onSelect={handleSelect}
-                            searchPlaceholder="Find client..."
-                        />
-                    </div>
+                    {topContent}
 
                     {navItems.length > 0 && (
                         <nav className="space-y-1 mb-6">
