@@ -220,7 +220,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
         <div className="fixed inset-0 z-[100] selection-list-container">
             {/* Click-outside backdrop */}
             <div
-                className="fixed inset-0 bg-black/5 backdrop-blur-[2px] cursor-default"
+                className="fixed inset-0 bg-black/5 backdrop-blur-[0.7px] cursor-default"
                 onClick={(e) => {
                     e.stopPropagation();
                     onClose?.();
@@ -332,8 +332,8 @@ export const SelectionList: React.FC<SelectionListProps> = ({
 
                         const panelStyle = {
                             position: 'absolute' as const,
-                            left: `${depth * 140}px`,
-                            top: `${topOffset}px`,
+                            left: `${depth * 80}px`,
+                            top: `${topOffset + 35}px`,
                             zIndex: depth + 1,
                         };
 
