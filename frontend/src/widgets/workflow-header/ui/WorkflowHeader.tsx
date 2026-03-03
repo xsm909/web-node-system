@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import type { Workflow } from '../../../entities/workflow/model/types';
 import type { AssignedUser } from '../../../entities/user/model/types';
-import { SelectionList, type SelectionGroup, type SelectionItem, type SelectionAction } from '../../../shared/ui/selection-list';
+import { type SelectionGroup, type SelectionItem, type SelectionAction } from '../../../shared/ui/selection-list';
+import { ComboBox } from '../../../shared/ui/combo-box';
 import { Icon } from '../../../shared/ui/icon';
 import { AppHeader } from '../../app-header';
 import { useClientStore } from '../../../features/workflow-management/model/clientStore';
@@ -43,8 +44,6 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     onOpenEditModal,
 }) => {
     const { activeClientId } = useClientStore();
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const triggerRef = useRef<HTMLButtonElement>(null);
 
     const selectionData = useMemo(() => {
         const data: Record<string, SelectionGroup> = {};
@@ -88,12 +87,10 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
         const wf = workflowsByOwner[ownerId]?.find(w => w.id === item.id);
         if (wf) {
             onSelect(wf);
-            setIsDropdownOpen(false);
         }
     };
 
     const handleAction = (action: SelectionAction, target: SelectionItem | SelectionGroup) => {
-        setIsDropdownOpen(false);
         if (action === 'add') {
             const ownerId = target.id;
             onCreate('', ownerId);
@@ -115,40 +112,21 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
             onToggleSidebar={onToggleSidebar}
             isSidebarOpen={isSidebarOpen}
             leftContent={
-                <div className="relative flex-1 max-w-xl">
-                    <button
-                        ref={triggerRef}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all max-w-full ${isDropdownOpen ? 'bg-[var(--border-base)] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
-                            }`}
-                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    >
-                        <h1 className="text-sm font-semibold truncate tracking-tight">{title}</h1>
-                        <Icon
-                            name="chevron_down"
-                            size={14}
-                            className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
-                        />
-                    </button>
-
-                    {isDropdownOpen && (
-                        <SelectionList
-                            data={selectionData}
-                            config={{
-                                allowDelete: true,
-                                allowRename: true,
-                                groupActions: ['add']
-                            }}
-                            activeItemId={activeWorkflowId}
-                            onSelect={handleSelect}
-                            onAction={handleAction}
-                            onClose={() => setIsDropdownOpen(false)}
-                            searchPlaceholder="Find workflow..."
-                            position={triggerRef.current ? {
-                                x: triggerRef.current.getBoundingClientRect().left,
-                                y: triggerRef.current.getBoundingClientRect().bottom + 8
-                            } : undefined}
-                        />
-                    )}
+                <div className="flex items-center gap-1.5 min-w-0">
+                    <ComboBox
+                        value={activeWorkflowId}
+                        label={title}
+                        placeholder="Select a workflow"
+                        data={selectionData}
+                        onSelect={handleSelect}
+                        onAction={handleAction}
+                        searchPlaceholder="Search workflows..."
+                        config={{
+                            allowDelete: true,
+                            allowRename: true,
+                            groupActions: ['add']
+                        }}
+                    />
                 </div>
             }
             rightContent={
@@ -172,13 +150,11 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                         <Icon name="save" size={18} className="group-active:scale-95 transition-transform" />
                     </button>
                     <button
-                        className={`
-                            h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
+                        className={`h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
                             ${isRunning
                                 ? 'bg-brand/10 text-brand ring-1 ring-inset ring-brand/30 cursor-default'
                                 : 'bg-brand hover:brightness-110 text-white shadow-lg shadow-brand/20'
-                            }
-                        `}
+                            }`}
                         onClick={onRun}
                         disabled={!canAction || isRunning}
                     >
@@ -199,5 +175,3 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
         />
     );
 };
-
-

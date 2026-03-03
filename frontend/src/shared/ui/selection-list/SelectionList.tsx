@@ -195,6 +195,18 @@ export const SelectionList: React.FC<SelectionListProps> = ({
         const items: SelectionItem[] = [];
         const traverse = (groups: Record<string, SelectionGroup>) => {
             Object.values(groups).forEach(g => {
+                const hasChildren = Object.keys(g.children).length > 0;
+                const hasItems = g.items.length > 0;
+
+                // If group is a leaf (selectable as a group), add it as an item for search
+                if (!hasChildren && !hasItems) {
+                    items.push({
+                        id: g.id,
+                        name: g.name,
+                        parentId: g.id
+                    });
+                }
+
                 items.push(...g.items);
                 traverse(g.children);
             });
