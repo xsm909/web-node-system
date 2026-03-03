@@ -45,42 +45,7 @@ def seed():
             print("Assigned client1 to manager1")
 
         # Node Types Seeding
-                                        nodes_data = [
-            {
-                        "name": "Gemini Ask AI",
-                        "version": "1.2",
-                        "description": "Asks Gemini AI a question using internal library.",
-                        "code": "class NodeParameters:
-    question: str = 'What is the meaning of life?'
-
-def run(inputs, params):
-    # Get question from inputs or params
-    question = inputs.get('question') or nodeParameters.question
-    print(f'Asking AI: {question}')
-
-    # Call internal library
-    result = libs.ask_ai(question)
-    print (f\"result: \")
-    print (result);
-    return {'answer': result}",
-                        "input_schema": {
-                                    "question": "string"
-                        },
-                        "output_schema": {
-                                    "answer": "string"
-                        },
-                        "parameters": [
-                                    {
-                                                "name": "question",
-                                                "type": "string",
-                                                "label": "Question",
-                                                "default": "What is the meaning of life?"
-                                    }
-                        ],
-                        "category": "AI|Chat|Gemini",
-                        "icon": "graph_2",
-                        "is_async": False
-            },
+                                                nodes_data = [
             {
                         "name": "Tool: Calculator",
                         "version": "1.0",
@@ -284,6 +249,80 @@ def run(inputs, params):
                                     }
                         ],
                         "category": "AI|Models",
+                        "icon": "graph_2",
+                        "is_async": False
+            },
+            {
+                        "name": "Simple question",
+                        "version": "1.2",
+                        "description": "Asks Gemini AI a question using internal library.",
+                        "code": "class NodeParameters:
+    question: str = 'What is the meaning of life?'
+    model: str = 'gemini-1.5-flash'
+
+def run(inputs, params):
+    question = nodeParameters.question
+    model = nodeParameters.model
+    result = gemini.ask_single(question, model)
+    return result",
+                        "input_schema": {
+                                    "question": "string"
+                        },
+                        "output_schema": {
+                                    "answer": "string"
+                        },
+                        "parameters": [
+                                    {
+                                                "name": "question",
+                                                "type": "string",
+                                                "label": "Question",
+                                                "default": "What is the meaning of life?"
+                                    },
+                                    {
+                                                "name": "model",
+                                                "type": "string",
+                                                "label": "Model",
+                                                "default": "gemini-1.5-flash"
+                                    }
+                        ],
+                        "category": "AI|Chat|Gemini",
+                        "icon": "graph_2",
+                        "is_async": False
+            },
+            {
+                        "name": "Simple question",
+                        "version": "1.2",
+                        "description": "Asks Gemini AI a question using internal library.",
+                        "code": "class NodeParameters:
+    question: str = 'What is the meaning of life?'
+    model: str = 'sonar'
+
+def run(inputs, params):
+    question = nodeParameters.question
+    model = nodeParameters.model
+    result = perplexity.ask_single(question, model)
+    return result",
+                        "input_schema": {
+                                    "question": "string"
+                        },
+                        "output_schema": {
+                                    "answer": "string"
+                        },
+                        "parameters": [
+                                    {
+                                                "name": "question",
+                                                "type": "string",
+                                                "label": "Question",
+                                                "default": "What is the meaning of life?"
+                                    },
+                                    {
+                                                "name": "model",
+                                                "type": "string",
+                                                "label": "Model",
+                                                "default": "sonar"
+                                    }
+                        ],
+                        "category": "AI|Chat|Perplexity",
                         "icon": "graph_2",
                         "is_async": False
             },
@@ -611,6 +650,43 @@ def run(inputs, params):
                         "is_async": False
             },
             {
+                        "name": "Simple question",
+                        "version": "1.1",
+                        "description": "Open AI Simple Question",
+                        "code": "class NodeParameters:
+    question: str = 'What is the meaning of life?'
+    model: str = 'gpt-4o-mini'
+
+def run(inputs, params):
+    question = nodeParameters.question
+    model = nodeParameters.model
+    result = openai.ask_single(question, model)
+    return result",
+                        "input_schema": {
+                                    "question": "string"
+                        },
+                        "output_schema": {
+                                    "answer": "string"
+                        },
+                        "parameters": [
+                                    {
+                                                "name": "question",
+                                                "type": "string",
+                                                "label": "Question",
+                                                "default": "What is the meaning of life?"
+                                    },
+                                    {
+                                                "name": "model",
+                                                "type": "string",
+                                                "label": "Model",
+                                                "default": "gpt-4o-mini"
+                                    }
+                        ],
+                        "category": "AI|Chat|OpenAI",
+                        "icon": "graph_2",
+                        "is_async": False
+            },
+            {
                         "name": "Window Memory",
                         "version": "1.0",
                         "description": "Chat memory with a fixed window size.",
@@ -633,38 +709,6 @@ def run(inputs, params):
                         ],
                         "category": "AI|Memory",
                         "icon": "text",
-                        "is_async": False
-            },
-            {
-                        "name": "Open AI: Simple quesion",
-                        "version": "1.1",
-                        "description": "Open AI Simple Question",
-                        "code": "class NodeParameters:
-    question: str = 'calculate 2+2'
-    
-def run(inputs, params):
-    # Get question from inputs or params
-    question = inputs.get('question') or nodeParameters.question
-    print(f'Asking AI: {question}')
-    
-    simple_answer = openai.ask_single(question)
-    return {'answer': simple_answer}",
-                        "input_schema": {
-                                    "question": "string"
-                        },
-                        "output_schema": {
-                                    "answer": "string"
-                        },
-                        "parameters": [
-                                    {
-                                                "name": "question",
-                                                "type": "string",
-                                                "label": "Question",
-                                                "default": "calculate 2+2"
-                                    }
-                        ],
-                        "category": "AI|Chat|OpenAI",
-                        "icon": "graph_2",
                         "is_async": False
             },
             {
