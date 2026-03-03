@@ -99,7 +99,7 @@ export function useWorkflowOperations({
         };
     }, [isRunning, currentExecutionId, pollExecution]);
 
-    const runWorkflow = async (onConsoleOpen: () => void) => {
+    const runWorkflow = async (onConsoleOpen: () => void, activeClientId?: string | null) => {
         if (!activeWorkflow) return;
         await saveWorkflow();
         setCurrentExecutionId(null);
@@ -110,7 +110,9 @@ export function useWorkflowOperations({
         onConsoleOpen();
 
         try {
-            const { data } = await apiClient.post(`/manager/workflows/${activeWorkflow.id}/run`);
+            const { data } = await apiClient.post(`/manager/workflows/${activeWorkflow.id}/run`, {
+                target_client_id: activeClientId
+            });
             setCurrentExecutionId(data.execution_id);
         } catch {
             setIsRunning(false);

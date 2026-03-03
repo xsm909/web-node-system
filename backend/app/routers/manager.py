@@ -221,8 +221,12 @@ def delete_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_cur
     return {"status": "success"}
 
 
+class RunWorkflowRequest(BaseModel):
+    target_client_id: Optional[uuid.UUID] = None
+
+
 @router.post("/workflows/{workflow_id}/run")
-def run_workflow(workflow_id: uuid.UUID, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = None, background_tasks: BackgroundTasks = None, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -231,7 +235,16 @@ def run_workflow(workflow_id: uuid.UUID, background_tasks: BackgroundTasks, curr
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
 
-    execution = WorkflowExecution(workflow_id=wf.id, status=WorkflowStatus.pending)
+    # Store target client in runtime data for the refined get_active_client logic
+    runtime_data = {}
+    if data and data.target_client_id:
+        runtime_data["_active_client_id"] = str(data.target_client_id)
+
+    execution = WorkflowExecution(
+        workflow_id=wf.id, 
+        status=WorkflowStatus.pending,
+        runtime_data=runtime_data
+    )
     db.add(execution)
     db.commit()
     db.refresh(execution)

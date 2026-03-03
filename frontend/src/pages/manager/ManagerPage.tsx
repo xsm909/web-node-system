@@ -154,7 +154,7 @@ export default function ManagerPage() {
                                 setCreateInputValue('');
                             }}
                             onSave={saveWorkflow}
-                            onRun={() => runWorkflow(() => setIsConsoleVisible(true))}
+                            onRun={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
                             onToggleSidebar={toggleSidebar}
                             canAction={!!activeWorkflow}
                             isCreating={isCreating}

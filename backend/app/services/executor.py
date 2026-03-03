@@ -22,11 +22,13 @@ from ..internal_libs.openai.openai_lib import openai_create_new_conversation as 
 from ..internal_libs.gemini.gemini_lib import gemini_create_new_conversation as gemini_create_new_conversation, gemini_set_prompt as gemini_set_prompt, gemini_ask_chat as gemini_ask_chat, gemini_ask_single as gemini_ask_single, gemini_perform_web_search as gemini_perform_web_search
 from ..internal_libs.perplexity.perplexity_lib import perplexity_create_new_conversation as perplexity_create_new_conversation, perplexity_set_prompt as perplexity_set_prompt, perplexity_ask_chat as perplexity_ask_chat, perplexity_ask_single as perplexity_ask_single, perplexity_perform_web_search as perplexity_perform_web_search
 from ..internal_libs.agent_lib import agent_run
+from ..internal_libs import common_lib
 from ..internal_libs.tools_lib import (
     calculator, database_query, http_request, http_search, 
     smart_search, read_workflow_data, read_runtime_data, write_runtime_data
 )
 from ..internal_libs.logger_lib import executor_logger
+from ..internal_libs.context_lib import execution_context
 
 
 def json_sanitize(obj):
@@ -108,6 +110,9 @@ SAFE_GLOBALS = {
         ask_chat=perplexity_ask_chat,
         ask_single=perplexity_ask_single,
         perform_web_search=perplexity_perform_web_search,
+    ),
+    "common": SimpleNamespace(
+        get_active_client=common_lib.get_active_client
     ),
 }
 
@@ -223,8 +228,9 @@ class WorkflowExecutor:
             if not workflow:
                 return
 
-            # Set the logger context for this execution thread
+            # Set the logger and execution context for this execution thread
             token = executor_logger.set(self.log)
+            context_token = execution_context.set(str(self.execution_id))
 
             self.execution.status = WorkflowStatus.running
             self.db.commit()
@@ -405,6 +411,7 @@ class WorkflowExecutor:
                     from copy import copy
                     execution_libs = copy(SAFE_GLOBALS["libs"])
                     execution_openai = copy(SAFE_GLOBALS["openai"])
+                    execution_common = copy(SAFE_GLOBALS["common"])
 
                     node_globals = {
                         **SAFE_GLOBALS,
@@ -420,6 +427,7 @@ class WorkflowExecutor:
                         },
                         "libs": execution_libs,
                         "openai": execution_openai,
+                        "common": execution_common,
                     }
                     
                     current_execution_id = str(self.execution_id)
@@ -559,6 +567,8 @@ class WorkflowExecutor:
             # Clear the logger context
             if 'token' in locals():
                 executor_logger.reset(token)
+            if 'context_token' in locals():
+                execution_context.reset(context_token)
             self.db.close()
 
 
