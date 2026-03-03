@@ -173,10 +173,9 @@ export function WorkflowGraph({
         const connectionEstablished = (window as any)._connectionEstablished;
 
         if (targetIsPane && startParams && !connectionEstablished) {
-            const containerRect = event.target.closest('.react-flow').getBoundingClientRect();
             setAddNodeMenu({
-                x: event.clientX - containerRect.left - 20,
-                y: event.clientY - containerRect.top - 20,
+                x: event.clientX,
+                y: event.clientY,
                 clientX: event.clientX,
                 clientY: event.clientY,
                 connectionStart: startParams,
@@ -195,8 +194,15 @@ export function WorkflowGraph({
             });
         }
 
+        const isProvider = !!type.isRightInputProvider;
+        const nodeWidth = isProvider ? 70 : 250;
         const newNodeId = `node_${Date.now()}`;
-        const flowPos = screenToFlowPosition({ x: position.x, y: position.y });
+
+        // Center horizontally (half width) and align top vertically
+        const flowPos = screenToFlowPosition({
+            x: position.x - (nodeWidth / 2),
+            y: position.y
+        });
 
         const newNode: Node = {
             id: newNodeId,

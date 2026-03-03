@@ -10,4 +10,5 @@ export interface NodeType {
     category?: string;
     icon?: string;
     is_async: boolean;
+    isRightInputProvider?: boolean;
 }
