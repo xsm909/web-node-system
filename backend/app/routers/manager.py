@@ -26,6 +26,10 @@ class WorkflowUpdate(BaseModel):
     workflow_data: Optional[dict] = None
 
 
+class WorkflowRename(BaseModel):
+    name: str
+
+
 class WorkflowOut(BaseModel):
     id: uuid.UUID
     name: str
@@ -181,6 +185,22 @@ def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: 
     if data.workflow_data is not None:
         wf.workflow_data = data.workflow_data
         
+    db.commit()
+    db.refresh(wf)
+    return wf
+
+
+@router.patch("/workflows/{workflow_id}/rename", response_model=WorkflowDetail)
+def rename_workflow(workflow_id: uuid.UUID, data: WorkflowRename, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=manager_only):
+    wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
+    if not wf:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    if wf.owner_id != current_user.id:
+        client_ids = [u.id for u in current_user.assigned_clients]
+        if wf.owner_id not in client_ids:
+            raise HTTPException(status_code=403, detail="Access denied")
+    
+    wf.name = data.name
     db.commit()
     db.refresh(wf)
     return wf

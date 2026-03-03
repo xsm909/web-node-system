@@ -14,6 +14,7 @@ export function useWorkflowManagement() {
 
     const [isCreating, setIsCreating] = useState(false);
     const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
+    const [workflowToRename, setWorkflowToRename] = useState<Workflow | null>(null);
 
     const loadWorkflowsForUser = useCallback(async (userId: string, isPersonal = false) => {
         try {
@@ -106,6 +107,31 @@ export function useWorkflowManagement() {
         }
     };
 
+    const handleRenameWorkflow = async (workflowId: string, newName: string) => {
+        if (!newName.trim()) return;
+        try {
+            const { data } = await apiClient.patch(`/manager/workflows/${workflowId}/rename`, {
+                name: newName,
+            });
+
+            setWorkflowsByOwner((prev) => {
+                const newWorkflows = { ...prev };
+                for (const ownerId in newWorkflows) {
+                    newWorkflows[ownerId] = newWorkflows[ownerId].map(w =>
+                        w.id === workflowId ? { ...w, name: data.name } : w
+                    );
+                }
+                return newWorkflows;
+            });
+
+            if (activeWorkflow?.id === workflowId) {
+                setActiveWorkflow(data);
+            }
+        } catch (error) {
+            console.error('Failed to rename workflow', error);
+        }
+    };
+
     return {
         assignedUsers,
         workflowsByOwner,
@@ -113,11 +139,14 @@ export function useWorkflowManagement() {
         nodeTypes,
         isCreating,
         workflowToDelete,
+        workflowToRename,
         currentUser,
         setWorkflowToDelete,
+        setWorkflowToRename,
         loadWorkflow,
         handleCreateWorkflow,
         confirmDeleteWorkflow,
+        handleRenameWorkflow,
         setActiveWorkflow
     };
 }

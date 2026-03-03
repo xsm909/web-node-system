@@ -12,6 +12,7 @@ interface WorkflowHeaderProps {
     isSidebarOpen: boolean;
     onSelect: (wf: Workflow) => void;
     onDelete: (wf: Workflow) => void;
+    onRename: (wf: Workflow) => void;
     onCreate: (name: string, ownerId: string) => Promise<void>;
     onSave: () => void;
     onRun: () => void;
@@ -33,6 +34,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     isSidebarOpen,
     onSelect,
     onDelete,
+    onRename,
     onCreate,
     onSave,
     onRun,
@@ -91,6 +93,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                                 activeWorkflowId={activeWorkflowId}
                                 onSelect={handleSelect}
                                 onDelete={onDelete}
+                                onRename={onRename}
                                 onCreate={onCreate}
                                 isCreating={isCreating}
                             />

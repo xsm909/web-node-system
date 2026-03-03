@@ -23,6 +23,7 @@ export default function ManagerPage() {
 
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [renameInputValue, setRenameInputValue] = useState('');
 
     const EMPTY_OBJ = useRef({});
 
@@ -36,10 +37,13 @@ export default function ManagerPage() {
         nodeTypes,
         isCreating,
         workflowToDelete,
+        workflowToRename,
         setWorkflowToDelete,
+        setWorkflowToRename,
         loadWorkflow,
         handleCreateWorkflow,
         confirmDeleteWorkflow,
+        handleRenameWorkflow,
         setActiveWorkflow
     } = useWorkflowManagement();
 
@@ -128,6 +132,10 @@ export default function ManagerPage() {
                             isSidebarOpen={isSidebarOpen}
                             onSelect={loadWorkflow}
                             onDelete={(wf) => setWorkflowToDelete(wf)}
+                            onRename={(wf) => {
+                                setWorkflowToRename(wf);
+                                setRenameInputValue(wf.name);
+                            }}
                             onCreate={handleCreateWorkflow}
                             onSave={saveWorkflow}
                             onRun={() => runWorkflow(() => setIsConsoleVisible(true))}
@@ -186,6 +194,35 @@ export default function ManagerPage() {
                             onConfirm={confirmDeleteWorkflow}
                             onCancel={() => setWorkflowToDelete(null)}
                         />
+
+                        <ConfirmModal
+                            isOpen={!!workflowToRename}
+                            title="Rename Workflow"
+                            description={`Enter a new name for "${workflowToRename?.name}".`}
+                            confirmLabel="Rename"
+                            variant="success"
+                            onConfirm={() => {
+                                if (workflowToRename) {
+                                    handleRenameWorkflow(workflowToRename.id, renameInputValue);
+                                }
+                                setWorkflowToRename(null);
+                            }}
+                            onCancel={() => setWorkflowToRename(null)}
+                        >
+                            <input
+                                autoFocus
+                                className="w-full px-4 py-3 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-medium"
+                                placeholder="Workflow name"
+                                value={renameInputValue}
+                                onChange={(e) => setRenameInputValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && workflowToRename && renameInputValue.trim()) {
+                                        handleRenameWorkflow(workflowToRename.id, renameInputValue);
+                                        setWorkflowToRename(null);
+                                    }
+                                }}
+                            />
+                        </ConfirmModal>
                     </>
                 ) : (
                     <div className="flex-1 flex flex-col relative">
