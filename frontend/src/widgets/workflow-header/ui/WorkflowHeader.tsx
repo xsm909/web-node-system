@@ -4,6 +4,7 @@ import type { AssignedUser } from '../../../entities/user/model/types';
 import { SelectionList, type SelectionGroup, type SelectionItem, type SelectionAction } from '../../../shared/ui/selection-list';
 import { Icon } from '../../../shared/ui/icon';
 import { AppHeader } from '../../app-header';
+import { useClientStore } from '../../../features/workflow-management/model/clientStore';
 
 interface WorkflowHeaderProps {
     title: string;
@@ -41,6 +42,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     canAction,
     onOpenEditModal,
 }) => {
+    const { activeClientId } = useClientStore();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -56,7 +58,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                 parentId: ownerId
             }));
 
-        // Personal workflows
+        // Personal workflows - ALWAYS visible
         data['My Workflows'] = {
             id: 'personal',
             name: 'My Workflows',
@@ -64,26 +66,21 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
             children: {}
         };
 
-        // Client workspaces
-        const clients: Record<string, SelectionGroup> = {};
-        users.forEach(u => {
-            clients[u.username] = {
-                id: u.id,
-                name: u.username,
-                items: transformWorkflows(u.id, workflowsByOwner[u.id] || []),
-                children: {}
-            };
-        });
-
-        data['Client Workspaces'] = {
-            id: 'clients',
-            name: 'Client Workspaces',
-            items: [],
-            children: clients
-        };
+        // Client workflows - ONLY if activeClientId is set
+        if (activeClientId) {
+            const activeUser = users.find(u => u.id === activeClientId);
+            if (activeUser) {
+                data['Clients workflow'] = {
+                    id: activeClientId,
+                    name: 'Clients workflow',
+                    items: transformWorkflows(activeClientId, workflowsByOwner[activeClientId] || []),
+                    children: {}
+                };
+            }
+        }
 
         return data;
-    }, [workflowsByOwner, users]);
+    }, [workflowsByOwner, users, activeClientId]);
 
     const handleSelect = (item: SelectionItem) => {
         // Find the actual workflow object
@@ -96,10 +93,9 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     };
 
     const handleAction = (action: SelectionAction, target: SelectionItem | SelectionGroup) => {
+        setIsDropdownOpen(false);
         if (action === 'add') {
             const ownerId = target.id;
-            // Instead of prompt, we rely on the parent's creation logic
-            // The parent (ManagerPage) handles the actual UI for creation
             onCreate('', ownerId);
         } else if (action === 'delete') {
             const wfId = (target as SelectionItem).id;

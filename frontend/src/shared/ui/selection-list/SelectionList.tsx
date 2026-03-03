@@ -44,10 +44,11 @@ interface GroupPanelProps {
     config: SelectionListConfig;
     activeDescendant: string[];
     onNavigate: (path: string[], top: number) => void;
+    onSelect: (item: SelectionItem) => void;
     onAction?: (action: SelectionAction, target: SelectionItem | SelectionGroup) => void;
 }
 
-const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, activeDescendant, onNavigate, onAction }) => {
+const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, activeDescendant, onNavigate, onSelect, onAction }) => {
     const entries = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
 
     return (
@@ -77,6 +78,15 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, act
                                     const top = rect.top - (containerRect?.top || 0);
                                     onNavigate(fullPath, top);
                                 }}
+                                onClick={() => {
+                                    if (!hasChildren) {
+                                        onSelect({
+                                            id: group.id,
+                                            name: group.name,
+                                            parentId: group.id // Or empty if top level
+                                        });
+                                    }
+                                }}
                                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] ${isActive
                                     ? 'bg-brand text-white shadow-lg shadow-brand/20'
                                     : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
@@ -93,10 +103,8 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, act
                                             <Icon name={action === 'add' ? 'add' : action === 'delete' ? 'delete' : action === 'rename' ? 'edit' : 'content_copy'} size={12} />
                                         </button>
                                     ))}
-                                    {hasChildren ? (
+                                    {(hasChildren || group.items.length > 0) && (
                                         <Icon name="chevron_right" size={12} className={`transition-transform duration-300 ${isActive ? 'translate-x-1' : 'opacity-40'}`} />
-                                    ) : (
-                                        <span className={`text-[9px] opacity-60 ${isActive ? 'opacity-80 text-white' : ''}`}>{group.items.length}</span>
                                     )}
                                 </div>
                             </button>
@@ -308,6 +316,15 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                                 const top = rect.top - (containerRect?.top || 0);
                                                 handleNavigate([label], top);
                                             }}
+                                            onClick={() => {
+                                                if (!hasChildren) {
+                                                    onSelect({
+                                                        id: group.id,
+                                                        name: group.name,
+                                                        parentId: group.id
+                                                    });
+                                                }
+                                            }}
                                             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] ${isActive
                                                 ? 'bg-brand text-white shadow-lg shadow-brand/20'
                                                 : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
@@ -324,10 +341,8 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                                         <Icon name={action === 'add' ? 'add' : action === 'delete' ? 'delete' : action === 'rename' ? 'edit' : 'content_copy'} size={12} />
                                                     </button>
                                                 ))}
-                                                {hasChildren ? (
+                                                {(hasChildren || group.items.length > 0) && (
                                                     <Icon name="chevron_right" size={12} className={`transition-transform duration-300 ${isActive ? 'translate-x-1' : 'opacity-40'}`} />
-                                                ) : (
-                                                    <span className={`text-[9px] opacity-60 ${isActive ? 'opacity-80 text-white' : ''}`}>{group.items.length}</span>
                                                 )}
                                             </div>
                                         </button>
@@ -386,7 +401,10 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                             zIndex: depth + 1,
                         };
 
-                        if (childKeys.length > 0) {
+                        const hasItems = group.items.length > 0;
+                        const hasChildren = childKeys.length > 0;
+
+                        if (hasChildren) {
                             subPanels.push(
                                 <div key={`group-${depth}`} style={panelStyle} className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
                                     <GroupPanel
@@ -395,13 +413,14 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                         config={config}
                                         activeDescendant={hoveredPath}
                                         onNavigate={handleNavigate}
+                                        onSelect={onSelect}
                                         onAction={onAction}
                                     />
                                 </div>
                             );
                             cur = group.children;
                             depth++;
-                        } else {
+                        } else if (hasItems) {
                             subPanels.push(
                                 <div key={`items-${depth}`} style={panelStyle} className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
                                     <ItemListPanel
@@ -414,6 +433,9 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                     />
                                 </div>
                             );
+                            break;
+                        } else {
+                            // No children and no items: don't show a sub-panel
                             break;
                         }
                     }

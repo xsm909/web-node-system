@@ -14,6 +14,7 @@ import { useWorkflowManagement } from '../../features/workflow-management';
 import { Icon } from '../../shared/ui/icon';
 import { AppSidebar } from '../../widgets/app-sidebar';
 import { AppHeader } from '../../widgets/app-header';
+import { useClientStore } from '../../features/workflow-management/model/clientStore';
 
 export default function ManagerPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -24,6 +25,8 @@ export default function ManagerPage() {
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [renameInputValue, setRenameInputValue] = useState('');
+    const [workflowToCreateOwnerId, setWorkflowToCreateOwnerId] = useState<string | null>(null);
+    const [createInputValue, setCreateInputValue] = useState('');
 
     const EMPTY_OBJ = useRef({});
 
@@ -79,6 +82,29 @@ export default function ManagerPage() {
         edgesRef.current = edges;
     }, []);
 
+    const { activeClientId } = useClientStore();
+
+    const filteredNavItems = [
+        {
+            id: 'workflows',
+            label: 'Workflows',
+            icon: 'account_tree',
+            isActive: activeTab === 'workflows',
+            onClick: () => setActiveTab('workflows'),
+        },
+        {
+            id: 'reports',
+            label: 'Reports',
+            icon: 'bar_chart',
+            isActive: activeTab === 'reports',
+            onClick: () => setActiveTab('reports'),
+        }
+    ];
+
+    const filteredUsers = activeClientId
+        ? assignedUsers.filter(u => u.id === activeClientId)
+        : assignedUsers;
+
     return (
         <div className="fixed inset-0 flex bg-[var(--bg-app)] text-[var(--text-main)] overflow-hidden font-sans">
             <AppSidebar
@@ -86,22 +112,7 @@ export default function ManagerPage() {
                 headerIcon="bolt"
                 isOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
-                navItems={[
-                    {
-                        id: 'workflows',
-                        label: 'Workflows',
-                        icon: 'account_tree',
-                        isActive: activeTab === 'workflows',
-                        onClick: () => setActiveTab('workflows'),
-                    },
-                    {
-                        id: 'reports',
-                        label: 'Reports',
-                        icon: 'bar_chart',
-                        isActive: activeTab === 'reports',
-                        onClick: () => setActiveTab('reports'),
-                    }
-                ]}
+                navItems={filteredNavItems}
                 customContent={
                     <>
                         <div className="px-3 py-2 text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest opacity-50">Workspace Resources</div>
@@ -126,7 +137,7 @@ export default function ManagerPage() {
                         <WorkflowHeader
                             title={activeWorkflow ? activeWorkflow.name : 'Select a workflow'}
                             activeWorkflowId={activeWorkflow?.id}
-                            users={assignedUsers}
+                            users={filteredUsers}
                             workflowsByOwner={workflowsByOwner}
                             isRunning={isRunning}
                             isSidebarOpen={isSidebarOpen}
@@ -136,7 +147,10 @@ export default function ManagerPage() {
                                 setWorkflowToRename(wf);
                                 setRenameInputValue(wf.name);
                             }}
-                            onCreate={handleCreateWorkflow}
+                            onCreate={async (_name, ownerId) => {
+                                setWorkflowToCreateOwnerId(ownerId);
+                                setCreateInputValue('');
+                            }}
                             onSave={saveWorkflow}
                             onRun={() => runWorkflow(() => setIsConsoleVisible(true))}
                             onToggleSidebar={toggleSidebar}
@@ -194,6 +208,35 @@ export default function ManagerPage() {
                             onConfirm={confirmDeleteWorkflow}
                             onCancel={() => setWorkflowToDelete(null)}
                         />
+
+                        <ConfirmModal
+                            isOpen={!!workflowToCreateOwnerId}
+                            title="New Workflow"
+                            description="Enter a name for the new workflow."
+                            confirmLabel="Create"
+                            variant="success"
+                            onConfirm={() => {
+                                if (workflowToCreateOwnerId && createInputValue.trim()) {
+                                    handleCreateWorkflow(createInputValue, workflowToCreateOwnerId);
+                                }
+                                setWorkflowToCreateOwnerId(null);
+                            }}
+                            onCancel={() => setWorkflowToCreateOwnerId(null)}
+                        >
+                            <input
+                                autoFocus
+                                className="w-full px-4 py-3 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-medium"
+                                placeholder="Workflow name"
+                                value={createInputValue}
+                                onChange={(e) => setCreateInputValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && workflowToCreateOwnerId && createInputValue.trim()) {
+                                        handleCreateWorkflow(createInputValue, workflowToCreateOwnerId);
+                                        setWorkflowToCreateOwnerId(null);
+                                    }
+                                }}
+                            />
+                        </ConfirmModal>
 
                         <ConfirmModal
                             isOpen={!!workflowToRename}

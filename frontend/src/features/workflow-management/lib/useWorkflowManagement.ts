@@ -4,10 +4,12 @@ import { useAuthStore } from '../../auth/store';
 import type { AssignedUser } from '../../../entities/user/model/types';
 import type { Workflow } from '../../../entities/workflow/model/types';
 import type { NodeType } from '../../../entities/node-type/model/types';
+import { useClientStore } from '../model/clientStore';
 
 export function useWorkflowManagement() {
     const { user: currentUser } = useAuthStore();
-    const [assignedUsers, setAssignedUsers] = useState<AssignedUser[]>([]);
+    const { activeClientId, setAssignedUsers } = useClientStore();
+    const [assignedUsers, setAssignedUsersState] = useState<AssignedUser[]>([]);
     const [workflowsByOwner, setWorkflowsByOwner] = useState<Record<string, Workflow[]>>({});
     const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
@@ -15,6 +17,18 @@ export function useWorkflowManagement() {
     const [isCreating, setIsCreating] = useState(false);
     const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
     const [workflowToRename, setWorkflowToRename] = useState<Workflow | null>(null);
+
+    // Auto-close workflow if it doesn't belong to the active context (client or personal)
+    useEffect(() => {
+        if (activeWorkflow) {
+            const isPersonal = activeWorkflow.owner_id === currentUser?.id;
+            const belongsToActiveClient = activeClientId && activeWorkflow.owner_id === activeClientId;
+
+            if (!isPersonal && !belongsToActiveClient) {
+                setActiveWorkflow(null);
+            }
+        }
+    }, [activeClientId, activeWorkflow, currentUser?.id]);
 
     const loadWorkflowsForUser = useCallback(async (userId: string, isPersonal = false) => {
         try {
@@ -36,6 +50,7 @@ export function useWorkflowManagement() {
 
                 const usersRes = await apiClient.get('/manager/users');
                 const users = usersRes.data;
+                setAssignedUsersState(users);
                 setAssignedUsers(users);
 
                 if (currentUser?.id) {
@@ -50,7 +65,7 @@ export function useWorkflowManagement() {
             }
         };
         init();
-    }, [currentUser?.id, loadWorkflowsForUser]);
+    }, [currentUser?.id, loadWorkflowsForUser, setAssignedUsers]);
 
     const loadWorkflow = (wf: Workflow) => {
         // Fetch new workflow data directly, bypassing the null state flash
