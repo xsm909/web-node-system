@@ -38,7 +38,7 @@ def seed():
                 print(f"User already exists: {u['username']}")
 
         # Node Types Seeding
-                nodes_data = [
+                        nodes_data = [
             {
                         "name": "Tool: Calculator",
                         "version": "1.0",
@@ -586,7 +586,10 @@ def run(inputs, params):
 
 def run(inputs, params):
     for i in range(0,nodeParameters.loop_to):
-        workflow.execute_node (nodeParameters.THEN2_DO)
+        data = {
+            \"index\": i
+        }
+        workflow.execute_node (nodeParameters.THEN2_DO,data)
     workflow.execute_node (nodeParameters.THEN1_FINISH)
     return inputs",
                         "input_schema": {},

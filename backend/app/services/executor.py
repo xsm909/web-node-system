@@ -366,7 +366,7 @@ class WorkflowExecutor:
                 execution_context.reset(context_token)
             self.db.close()
 
-    def _execute_node_internal(self, node_id, nodes, edges, node_map, triggered, queue, waiting, outputs):
+    def _execute_node_internal(self, node_id, nodes, edges, node_map, triggered, queue, waiting, outputs, manual_inputs: dict = None):
         self.current_node_id = node_id
         node_data = node_map.get(node_id)
         if not node_data:
@@ -429,6 +429,12 @@ class WorkflowExecutor:
                                 else:
                                     handle_inputs[tgt_handle] = [existing, extracted_val]
 
+            if manual_inputs:
+                inputs.update(manual_inputs)
+                # Also merge into handle_inputs if any keys match? 
+                # For now, let's just merge into the flat 'inputs' dict which is passed to run()
+
+
             byte_code = compile_restricted(
                 code, 
                 f"<node:{node_id}>", 
@@ -452,7 +458,7 @@ class WorkflowExecutor:
                     self.node_map = node_map
                     self.outputs = outputs
 
-                def execute_node(self, handle_index):
+                def execute_node(self, handle_index, inputs: dict = None):
                     expected_handle = f"then_{handle_index}"
                     fallback_handle = f"than_{handle_index}"
                     
@@ -469,7 +475,7 @@ class WorkflowExecutor:
                         # unless it's explicitly a loop.
                         self.executor._execute_node_internal(
                             target_id, self.nodes, self.edges, self.node_map, 
-                            set(), [], set(), self.outputs
+                            set(), [], set(), self.outputs, manual_inputs=inputs
                         )
 
             node_globals = {
