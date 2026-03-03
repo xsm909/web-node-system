@@ -37,15 +37,8 @@ def seed():
                 created_users[u["username"]] = existing
                 print(f"User already exists: {u['username']}")
 
-        # Assign client1 to manager1
-        manager = created_users.get("manager1")
-        client = created_users.get("client1")
-        if manager and client and client not in manager.assigned_clients:
-            manager.assigned_clients.append(client)
-            print("Assigned client1 to manager1")
-
         # Node Types Seeding
-                                                                nodes_data = [
+                nodes_data = [
             {
                         "name": "Tool: Calculator",
                         "version": "1.0",
@@ -576,6 +569,62 @@ def run(inputs, params):
                         "parameters": [],
                         "category": "Data|Workflow",
                         "icon": "text",
+                        "is_async": False
+            },
+            {
+                        "name": "loop for n",
+                        "version": "1.0",
+                        "description": "Simple loop",
+                        "code": "class NodeParameters:    
+    loop_to: int = 10
+    MAX_THEN: int = 2
+    #output description
+    THEN1_FINISH = 1
+    THEN2_DO = 2
+    #node description
+    NODE_TYPE=\"LOOP\"
+
+def run(inputs, params):
+    for i in range(0,nodeParameters.loop_to):
+        workflow.execute_node (nodeParameters.THEN2_DO)
+    workflow.execute_node (nodeParameters.THEN1_FINISH)
+    return inputs",
+                        "input_schema": {},
+                        "output_schema": {},
+                        "parameters": [
+                                    {
+                                                "name": "loop_to",
+                                                "type": "number",
+                                                "label": "Loop To",
+                                                "default": 10
+                                    },
+                                    {
+                                                "name": "MAX_THEN",
+                                                "type": "number",
+                                                "label": "Max Then",
+                                                "default": 2
+                                    },
+                                    {
+                                                "name": "THEN1_FINISH",
+                                                "type": "number",
+                                                "label": "Then1 Finish",
+                                                "default": 1
+                                    },
+                                    {
+                                                "name": "THEN2_DO",
+                                                "type": "number",
+                                                "label": "Then2 Do",
+                                                "default": 2
+                                    },
+                                    {
+                                                "name": "NODE_TYPE",
+                                                "type": "string",
+                                                "label": "Node Type",
+                                                "default": "LOOP"
+                                    }
+                        ],
+                        "category": "Logic|Loop",
+                        "icon": "graph",
                         "is_async": False
             },
             {

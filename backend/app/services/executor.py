@@ -114,6 +114,7 @@ SAFE_GLOBALS = {
     "common": SimpleNamespace(
         get_active_client=common_lib.get_active_client
     ),
+    "workflow": None,  # Will be injected per-execution
 }
 
 
@@ -337,219 +338,12 @@ class WorkflowExecutor:
                     waiting.add(node_id)
                     continue
 
-                self.current_node_id = node_id
-                node_data = node_map.get(node_id)
-                if not node_data:
-                    continue
-
-                node_exec = NodeExecution(
-                    execution_id=self.execution_id,
-                    node_id=node_id,
-                    status=WorkflowStatus.running,
-                )
-                self.db.add(node_exec)
-                self.db.commit()
-                self.db.refresh(node_exec)
-
-                node_name = node_data.get("data", {}).get("label") or node_id
-                self.log(f"Start: {node_name}", level="system")
-
-                next_node_ids: list = []
-                node_params_inst = None
-
                 try:
-                    data = node_data.get("data", {})
-                    node_type_name = data.get("nodeType") or data.get("label")
-                    node_type_category = data.get("category")
-                    query = self.db.query(NodeType).filter(NodeType.name == node_type_name)
-                    if node_type_category:
-                        query = query.filter(NodeType.category == node_type_category)
-                    node_type = query.first()
-                    code = node_type.code if node_type else "def run(inputs, params):\n    return {}"
-                    params = data.get("params", {})
-
-                    inputs = {}
-                    prior_output_value = None
-                    handle_inputs = {}
-
-                    for edge in edges:
-                        if edge.get("target") == node_id:
-                            src_id = edge.get("source")
-                            tgt_handle = edge.get("targetHandle")
-                            
-                            if src_id in outputs:
-                                src_out = outputs[src_id]
-                                inputs.update(src_out)
-                                
-                                extracted_val = None
-                                if len(src_out) == 1:
-                                    extracted_val = list(src_out.values())[0]
-                                elif len(src_out) > 1:
-                                    extracted_val = src_out
-                                
-                                if not tgt_handle or tgt_handle in (None, "", "top"):
-                                    prior_output_value = extracted_val
-                                
-                                if tgt_handle:
-                                    if tgt_handle not in handle_inputs:
-                                        handle_inputs[tgt_handle] = extracted_val
-                                    else:
-                                        existing = handle_inputs[tgt_handle]
-                                        if isinstance(existing, list):
-                                            existing.append(extracted_val)
-                                        else:
-                                            handle_inputs[tgt_handle] = [existing, extracted_val]
-
-                    byte_code = compile_restricted(
-                        code, 
-                        f"<node:{node_id}>", 
-                        "exec", 
-                        policy=CustomRestrictingNodeTransformer
-                    )
-                    
-                    # Create a FRESH libs namespace for this execution to avoid data leakage
-                    from copy import copy
-                    execution_libs = copy(SAFE_GLOBALS["libs"])
-                    execution_openai = copy(SAFE_GLOBALS["openai"])
-                    execution_common = copy(SAFE_GLOBALS["common"])
-
-                    node_globals = {
-                        **SAFE_GLOBALS,
-                        "__name__": f"<node:{node_id}>",
-                        "_print_": lambda _getattr_=None: self.NodePrintCollector(self, _getattr_),
-                        "_getattr_": Guards.safer_getattr,
-                        "_setattr_": Guards.guarded_setattr,
-                        "_delattr_": Guards.guarded_delattr,
-                        "__builtins__": {
-                            **SAFE_GLOBALS["__builtins__"],
-                            "print": self.restricted_print,
-                            "__import__": restricted_import
-                        },
-                        "libs": execution_libs,
-                        "openai": execution_openai,
-                        "common": execution_common,
-                    }
-                    
-                    current_execution_id = str(self.execution_id)
-                    execution_libs.get_workflow_data = lambda: get_workflow_data(current_execution_id)
-                    execution_libs.get_runtime_data = lambda: get_runtime_data(current_execution_id)
-                    execution_libs.get_runtime_schema = lambda: {} # Return empty dict as schema is removed
-                    execution_libs.update_runtime_data = lambda data: update_runtime_data(current_execution_id, data)
-                    execution_libs.read_workflow_data = lambda: read_workflow_data(current_execution_id)
-                    execution_libs.read_runtime_data = lambda: read_runtime_data(current_execution_id)
-                    execution_libs.write_runtime_data = lambda data: write_runtime_data(data, current_execution_id)
-                    execution_libs.agent_run = lambda *args, **kwargs: agent_run(*args, **kwargs, execution_id=current_execution_id)
-
-                    exec(byte_code, node_globals)
-
-                    node_params_class = node_globals.get("NodeParameters")
-                    if node_params_class and isinstance(node_params_class, type):
-                        node_params_inst = node_globals.get("nodeParameters")
-                        if not node_params_inst or not isinstance(node_params_inst, node_params_class):
-                            node_params_inst = node_params_class()
-                            node_globals["nodeParameters"] = node_params_inst
-                        
-                        if prior_output_value is not None and hasattr(node_params_inst, "Input"):
-                            setattr(node_params_inst, "Input", prior_output_value)
-
-                    input_params_class = node_globals.get("InputParameters")
-                    if input_params_class and isinstance(input_params_class, type):
-                        input_params_inst = node_globals.get("inputParameters")
-                        if not input_params_inst or not isinstance(input_params_inst, input_params_class):
-                            input_params_inst = input_params_class()
-                            node_globals["inputParameters"] = input_params_inst
-                            
-                        for handle_name, val in handle_inputs.items():
-                            if val is None:
-                                self.log(f"Warning: Input handle '{handle_name}' received a null value", level="warning")
-                            if hasattr(input_params_inst, handle_name):
-                                setattr(input_params_inst, handle_name, val)
-                            elif handle_name.endswith('s') and hasattr(input_params_inst, handle_name[:-1]):
-                                setattr(input_params_inst, handle_name[:-1], val)
-
-                    if node_params_inst:
-                        node_type_params = node_type.parameters if node_type else []
-                        param_types = {p["name"]: p["type"] for p in node_type_params if "name" in p and "type" in p}
-
-                        for key, value in params.items():
-                            if hasattr(node_params_inst, key):
-                                try:
-                                    ptype = param_types.get(key)
-                                    if ptype == "number":
-                                        value = float(value) if "." in str(value) else int(value)
-                                    elif ptype == "boolean":
-                                        if isinstance(value, str):
-                                            value = value.lower() in ("true", "1", "yes")
-                                        else:
-                                            value = bool(value)
-                                except (ValueError, TypeError):
-                                    pass
-                                setattr(node_params_inst, key, value)
-
-                    run_fn = node_globals.get("run")
-                    if not run_fn:
-                        raise ValueError("Node code must define a 'run(inputs, params)' function")
-                    
-                    result = run_fn(inputs, params)
-                    if not isinstance(result, dict):
-                        result = {"output": result}
-
-                    outputs[node_id] = result
-                    node_exec.status = WorkflowStatus.success
-                    # Sanitize before JSON serialization
-                    node_exec.output = json_sanitize(result)
-                    self.log(f"Success: {node_name}", level="system")
-
-                    than_val = None
-                    max_than = None
-                    if node_params_inst is not None:
-                        than_val = getattr(node_params_inst, "THEN", getattr(node_params_inst, "THAN", getattr(node_params_inst, "than", None)))
-                        max_than = getattr(node_params_inst, "MAX_THEN", getattr(node_params_inst, "MAX_THAN", None))
-
-                    for edge in edges:
-                        if edge.get("source") != node_id:
-                            continue
-                        
-                        target_id = edge.get("target")
-                        tgt_handle = edge.get("targetHandle")
-                        
-                        if tgt_handle and tgt_handle not in (None, "", "top"):
-                            continue
-
-                        source_handle = edge.get("sourceHandle")
-
-                        if max_than is not None and isinstance(max_than, int) and max_than > 0:
-                            if than_val == 0:
-                                self.log(f"{node_name}: than=0, блокируем все выходы", level="system")
-                                continue
-                            expected_handle = f"then_{than_val}"
-                            fallback_handle = f"than_{than_val}"
-                            if source_handle and source_handle not in (expected_handle, fallback_handle):
-                                continue
-
-                        if target_id and target_id not in outputs:
-                            if target_id not in triggered:
-                                triggered.add(target_id)
-                                queue.append(target_id)
-
-                    ready_now = []
-                    for wid in list(waiting):
-                        w_edges = [e for e in edges if e.get("target") == wid]
-                        w_side_deps = [e.get("source") for e in w_edges if e.get("targetHandle") and e.get("targetHandle") not in (None, "", "top")]
-                        if all(s in outputs for s in w_side_deps):
-                            ready_now.append(wid)
-                    
-                    for r in ready_now:
-                        waiting.remove(r)
-                        queue.append(r)
-
+                    self._execute_node_internal(node_id, nodes, edges, node_map, triggered, queue, waiting, outputs)
                 except Exception as e:
-                    error_msg = traceback.format_exc()
-                    node_exec.status = WorkflowStatus.failed
-                    node_exec.error = error_msg
-                    self.log(f"Ошибка {node_name}:\n{str(e)}", level="error")
+                    self.log(f"Error executing node {node_id}: {str(e)}", level="error")
                     all_success = False
-                
+
                 self.db.commit()
 
             self.execution.status = WorkflowStatus.success if all_success else WorkflowStatus.failed
@@ -571,6 +365,252 @@ class WorkflowExecutor:
             if 'context_token' in locals():
                 execution_context.reset(context_token)
             self.db.close()
+
+    def _execute_node_internal(self, node_id, nodes, edges, node_map, triggered, queue, waiting, outputs):
+        self.current_node_id = node_id
+        node_data = node_map.get(node_id)
+        if not node_data:
+            return
+
+        node_exec = NodeExecution(
+            execution_id=self.execution_id,
+            node_id=node_id,
+            status=WorkflowStatus.running,
+        )
+        self.db.add(node_exec)
+        self.db.commit()
+        self.db.refresh(node_exec)
+
+        node_name = node_data.get("data", {}).get("label") or node_id
+        self.log(f"Start: {node_name}", level="system")
+
+        node_params_inst = None
+
+        try:
+            data = node_data.get("data", {})
+            node_type_name = data.get("nodeType") or data.get("label")
+            node_type_category = data.get("category")
+            query = self.db.query(NodeType).filter(NodeType.name == node_type_name)
+            if node_type_category:
+                query = query.filter(NodeType.category == node_type_category)
+            node_type = query.first()
+            code = node_type.code if node_type else "def run(inputs, params):\n    return {}"
+            params = data.get("params", {})
+
+            inputs = {}
+            prior_output_value = None
+            handle_inputs = {}
+
+            for edge in edges:
+                if edge.get("target") == node_id:
+                    src_id = edge.get("source")
+                    tgt_handle = edge.get("targetHandle")
+                    
+                    if src_id in outputs:
+                        src_out = outputs[src_id]
+                        inputs.update(src_out)
+                        
+                        extracted_val = None
+                        if len(src_out) == 1:
+                            extracted_val = list(src_out.values())[0]
+                        elif len(src_out) > 1:
+                            extracted_val = src_out
+                        
+                        if not tgt_handle or tgt_handle in (None, "", "top"):
+                            prior_output_value = extracted_val
+                        
+                        if tgt_handle:
+                            if tgt_handle not in handle_inputs:
+                                handle_inputs[tgt_handle] = extracted_val
+                            else:
+                                existing = handle_inputs[tgt_handle]
+                                if isinstance(existing, list):
+                                    existing.append(extracted_val)
+                                else:
+                                    handle_inputs[tgt_handle] = [existing, extracted_val]
+
+            byte_code = compile_restricted(
+                code, 
+                f"<node:{node_id}>", 
+                "exec", 
+                policy=CustomRestrictingNodeTransformer
+            )
+            
+            # Create a FRESH libs namespace for this execution to avoid data leakage
+            from copy import copy
+            execution_libs = copy(SAFE_GLOBALS["libs"])
+            execution_openai = copy(SAFE_GLOBALS["openai"])
+            execution_common = copy(SAFE_GLOBALS["common"])
+
+            # Logic for synchronous branch execution (LOOP)
+            class WorkflowNamespace:
+                def __init__(self, executor, source_node_id, edges, nodes, node_map, outputs):
+                    self.executor = executor
+                    self.source_node_id = source_node_id
+                    self.edges = edges
+                    self.nodes = nodes
+                    self.node_map = node_map
+                    self.outputs = outputs
+
+                def execute_node(self, handle_index):
+                    expected_handle = f"then_{handle_index}"
+                    fallback_handle = f"than_{handle_index}"
+                    
+                    # Find downstream nodes
+                    targets = [
+                        e.get("target") for e in self.edges 
+                        if e.get("source") == self.source_node_id and 
+                        e.get("sourceHandle") in (expected_handle, fallback_handle)
+                    ]
+                    
+                    for target_id in targets:
+                        # For synchronous execution, we force-re-execute even if it's in outputs
+                        # but we avoid infinite recursion by not allowing cyclic calls to the SAME node
+                        # unless it's explicitly a loop.
+                        self.executor._execute_node_internal(
+                            target_id, self.nodes, self.edges, self.node_map, 
+                            set(), [], set(), self.outputs
+                        )
+
+            node_globals = {
+                **SAFE_GLOBALS,
+                "__name__": f"<node:{node_id}>",
+                "_print_": lambda _getattr_=None: self.NodePrintCollector(self, _getattr_),
+                "_getattr_": Guards.safer_getattr,
+                "_setattr_": Guards.guarded_setattr,
+                "_delattr_": Guards.guarded_delattr,
+                "__builtins__": {
+                    **SAFE_GLOBALS["__builtins__"],
+                    "print": self.restricted_print,
+                    "__import__": restricted_import
+                },
+                "libs": execution_libs,
+                "openai": execution_openai,
+                "common": execution_common,
+                "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),
+            }
+            
+            current_execution_id = str(self.execution_id)
+            execution_libs.get_workflow_data = lambda: get_workflow_data(current_execution_id)
+            execution_libs.get_runtime_data = lambda: get_runtime_data(current_execution_id)
+            execution_libs.get_runtime_schema = lambda: {} # Return empty dict as schema is removed
+            execution_libs.update_runtime_data = lambda data: update_runtime_data(current_execution_id, data)
+            execution_libs.read_workflow_data = lambda: read_workflow_data(current_execution_id)
+            execution_libs.read_runtime_data = lambda: read_runtime_data(current_execution_id)
+            execution_libs.write_runtime_data = lambda data: write_runtime_data(data, current_execution_id)
+            execution_libs.agent_run = lambda *args, **kwargs: agent_run(*args, **kwargs, execution_id=current_execution_id)
+
+            exec(byte_code, node_globals)
+
+            node_params_class = node_globals.get("NodeParameters")
+            if node_params_class and isinstance(node_params_class, type):
+                node_params_inst = node_globals.get("nodeParameters")
+                if not node_params_inst or not isinstance(node_params_inst, node_params_class):
+                    node_params_inst = node_params_class()
+                    node_globals["nodeParameters"] = node_params_inst
+                
+                if prior_output_value is not None and hasattr(node_params_inst, "Input"):
+                    setattr(node_params_inst, "Input", prior_output_value)
+
+            input_params_class = node_globals.get("InputParameters")
+            if input_params_class and isinstance(input_params_class, type):
+                input_params_inst = node_globals.get("inputParameters")
+                if not input_params_inst or not isinstance(input_params_inst, input_params_class):
+                    input_params_inst = input_params_class()
+                    node_globals["inputParameters"] = input_params_inst
+                    
+                for handle_name, val in handle_inputs.items():
+                    if val is None:
+                        self.log(f"Warning: Input handle '{handle_name}' received a null value", level="warning")
+                    if hasattr(input_params_inst, handle_name):
+                        setattr(input_params_inst, handle_name, val)
+                    elif handle_name.endswith('s') and hasattr(input_params_inst, handle_name[:-1]):
+                        setattr(input_params_inst, handle_name[:-1], val)
+
+            if node_params_inst:
+                node_type_params = node_type.parameters if node_type else []
+                param_types = {p["name"]: p["type"] for p in node_type_params if "name" in p and "type" in p}
+
+                for key, value in params.items():
+                    if hasattr(node_params_inst, key):
+                        try:
+                            ptype = param_types.get(key)
+                            if ptype == "number":
+                                value = float(value) if "." in str(value) else int(value)
+                            elif ptype == "boolean":
+                                if isinstance(value, str):
+                                    value = value.lower() in ("true", "1", "yes")
+                                else:
+                                    value = bool(value)
+                        except (ValueError, TypeError):
+                            pass
+                        setattr(node_params_inst, key, value)
+
+            run_fn = node_globals.get("run")
+            if not run_fn:
+                raise ValueError("Node code must define a 'run(inputs, params)' function")
+            
+            result = run_fn(inputs, params)
+            if not isinstance(result, dict):
+                result = {"output": result}
+
+            outputs[node_id] = result
+            node_exec.status = WorkflowStatus.success
+            # Sanitize before JSON serialization
+            node_exec.output = json_sanitize(result)
+            self.log(f"Success: {node_name}", level="system")
+
+            than_val = None
+            max_than = None
+            if node_params_inst is not None:
+                than_val = getattr(node_params_inst, "THEN", getattr(node_params_inst, "THAN", getattr(node_params_inst, "than", None)))
+                max_than = getattr(node_params_inst, "MAX_THEN", getattr(node_params_inst, "MAX_THAN", None))
+
+            for edge in edges:
+                if edge.get("source") != node_id:
+                    continue
+                
+                target_id = edge.get("target")
+                tgt_handle = edge.get("targetHandle")
+                
+                if tgt_handle and tgt_handle not in (None, "", "top"):
+                    continue
+
+                source_handle = edge.get("sourceHandle")
+
+                if max_than is not None and isinstance(max_than, int) and max_than > 0:
+                    if than_val == 0:
+                        # Special case: manual override via execute_node handles branching
+                        # But if than_val is 0, we treat it as "no automatic branching"
+                        continue
+                        
+                    expected_handle = f"then_{than_val}"
+                    fallback_handle = f"than_{than_val}"
+                    if source_handle and source_handle not in (expected_handle, fallback_handle):
+                        continue
+
+                if target_id and target_id not in outputs:
+                    if target_id not in triggered:
+                        triggered.add(target_id)
+                        queue.append(target_id)
+
+            ready_now = []
+            for wid in list(waiting):
+                w_edges = [e for e in edges if e.get("target") == wid]
+                w_side_deps = [e.get("source") for e in w_edges if e.get("targetHandle") and e.get("targetHandle") not in (None, "", "top")]
+                if all(s in outputs for s in w_side_deps):
+                    ready_now.append(wid)
+            
+            for r in ready_now:
+                waiting.remove(r)
+                queue.append(r)
+
+        except Exception as e:
+            error_msg = traceback.format_exc()
+            node_exec.status = WorkflowStatus.failed
+            node_exec.error = error_msg
+            self.log(f"Ошибка {node_name}:\n{str(e)}", level="error")
+            raise e
 
 
 def execute_workflow(execution_id: uuid.UUID):
