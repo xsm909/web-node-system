@@ -117,6 +117,36 @@ CREATE TABLE ai_results (
     PRIMARY KEY (uid)
 );
 INSERT INTO ai_results SELECT * FROM old_db.ai_results;
+
+CREATE TABLE intermediate_results (
+    id UUID NOT NULL PRIMARY KEY,
+    session_id UUID NOT NULL,
+    reference_id UUID DEFAULT NULL,
+    client_id UUID,
+    created_by UUID,
+    updated_by UUID,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    category VARCHAR(50) NOT NULL DEFAULT 'category',
+    sub_category VARCHAR(50) NOT NULL DEFAULT 'sub_category',
+    data JSON,
+    short_description VARCHAR(50),
+
+    CHECK (length(category) > 0),
+    CHECK (length(sub_category) > 0)
+);
+
+CREATE INDEX idx_my_table_session_id ON intermediate_results(session_id);
+CREATE INDEX idx_my_table_reference_id ON intermediate_results(reference_id);
+CREATE INDEX idx_my_table_client_id ON intermediate_results(client_id);
+
+CREATE TRIGGER trg_set_reference_id
+BEFORE INSERT ON intermediate_results
+FOR EACH ROW
+WHEN NEW.reference_id IS NULL
+BEGIN
+    UPDATE intermediate_results SET reference_id = NEW.session_id WHERE rowid = NEW.rowid;
+END;
 """)
 
 conn.commit()
