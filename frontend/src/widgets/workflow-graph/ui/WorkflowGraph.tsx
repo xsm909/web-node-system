@@ -7,6 +7,8 @@ import ReactFlow, {
     useNodesState,
     useEdgesState,
     useReactFlow,
+    Panel,
+    SelectionMode,
 } from 'reactflow';
 import type {
     Node,
@@ -51,6 +53,7 @@ export function WorkflowGraph({
     const [nodes, setNodes, onNodesChangeRaw] = useNodesState([]);
     const [edges, setEdges, onEdgesChangeRaw] = useEdgesState([]);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
     const { screenToFlowPosition, setCenter } = useReactFlow();
     const centeredWorkflowId = React.useRef<string | null>(null);
 
@@ -300,16 +303,16 @@ export function WorkflowGraph({
     };
 
     const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-        event.preventDefault();
-
         if (!isReadOnly && event.altKey) {
+            event.stopPropagation();
+            event.preventDefault();
             setEdges((eds) => eds.filter(e => !(e.target === node.id && (e.targetHandle === 'top' || !e.targetHandle))));
             return;
         }
 
-        setSelectedNodeId(node.id);
-
         if (!isReadOnly && event.button === 2) {
+            event.stopPropagation();
+            event.preventDefault();
             if (node.id === 'node_start' || node.type === 'start') {
                 setMenu(null);
                 return;
@@ -328,6 +331,8 @@ export function WorkflowGraph({
                 nodeId: node.id,
             });
         }
+
+        setSelectedNodeId(node.id);
     }, [isReadOnly, setEdges]);
 
     const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
@@ -399,7 +404,27 @@ export function WorkflowGraph({
                     nodesDraggable={!isReadOnly}
                     nodesConnectable={!isReadOnly}
                     elementsSelectable={true}
+                    panOnDrag={!isSelectionMode}
+                    selectionOnDrag={true}
+                    selectionKeyCode={isSelectionMode ? null : 'Shift'}
+                    multiSelectionKeyCode="Shift"
                 >
+                    <Panel position="top-right" className="bg-surface-800 border-[var(--border-base)] rounded-xl p-1 shadow-2xl flex gap-1 mr-4 mt-2">
+                        <button
+                            onClick={() => setIsSelectionMode(false)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${!isSelectionMode ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:bg-white/5'}`}
+                            title="Move tool"
+                        >
+                            Move
+                        </button>
+                        <button
+                            onClick={() => setIsSelectionMode(true)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${isSelectionMode ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:bg-white/5'}`}
+                            title="Selection tool"
+                        >
+                            Select
+                        </button>
+                    </Panel>
                     <Background
                         variant={BackgroundVariant.Dots}
                         color="currentColor"
@@ -425,6 +450,9 @@ export function WorkflowGraph({
                         y={menu.y}
                         nodeId={menu.nodeId}
                         onDelete={handleDeleteNode}
+                        onDisconnectInput={(id) => {
+                            setEdges((eds) => eds.filter(e => !(e.target === id && (e.targetHandle === 'top' || !e.targetHandle))));
+                        }}
                         onClose={() => setMenu(null)}
                     />
                 )}
