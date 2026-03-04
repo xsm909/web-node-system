@@ -19,6 +19,7 @@ def get_node_data():
         nodes_list = []
         for node in nodes:
             nodes_list.append({
+                "id": str(node.id),
                 "name": node.name,
                 "version": node.version,
                 "description": node.description,
@@ -35,9 +36,9 @@ def get_node_data():
         session.close()
 
 def format_python_data(data):
-    """Format the JSON data into a valid Python list string with correct indentation."""
-    # Convert to JSON with high indent for formatting
-    json_str = json.dumps(data, indent=12, ensure_ascii=False)
+    """Format the data into a valid Python list string using json.dumps."""
+    # json.dumps ensures all strings are correctly escaped and on a single line
+    json_str = json.dumps(data, indent=4)
     
     # Convert JSON literals to Python literals
     python_str = (
@@ -46,8 +47,13 @@ def format_python_data(data):
         .replace("null", "None")
     )
     
-    # Prefix with required indentation for nodes_data block
-    return "        nodes_data = " + python_str.strip()
+    # Prepend 8 spaces to each line to fit inside the seed() function indentation
+    lines = python_str.splitlines()
+    res = ["        nodes_data = " + lines[0]]
+    for line in lines[1:]:
+        res.append("        " + line)
+        
+    return "\n".join(res)
 
 def update_seed_file(new_nodes_data_block):
     """Replace the nodes_data block in seed.py using regex."""
@@ -58,15 +64,26 @@ def update_seed_file(new_nodes_data_block):
     with open(SEED_FILE_PATH, "r") as f:
         content = f.read()
 
-    # Regex to find the nodes_data = [ ... ] block inside seed_database function
-    pattern = r'(\s+)nodes_data = \[.*?\]\s+(?=# Sync nodes)'
+    # Regex to find the nodes_data block and any surrounding comments that look like 'Node Types Seeding'
+    # It replaces the whole block including redundant comments
+    pattern = r'\n\s*# Node Types Seeding.*?\n\s*nodes_data = \[.*?\](?=\n\s+# Sync nodes)'
+    replacement = "\n\n        # Node Types Seeding\n" + new_nodes_data_block
     
     updated_content = re.sub(
-        r'nodes_data = \[.*?\](?=\n\s+# Sync nodes)',
-        new_nodes_data_block,
+        pattern,
+        lambda _: replacement,
         content,
         flags=re.DOTALL
     )
+
+    if content == updated_content:
+        # Fallback if the first regex didn't match (e.g. if the comment is missing)
+        updated_content = re.sub(
+            r'\n\s*nodes_data = \[.*?\](?=\n\s+# Sync nodes)',
+            lambda _: "\n" + new_nodes_data_block,
+            content,
+            flags=re.DOTALL
+        )
 
     if content == updated_content:
         print("Warning: No changes made to seed.py. Potential regex mismatch.")

@@ -73,6 +73,11 @@ export function WorkflowGraph({
             const base = n.type === 'default' ? { ...n, type: 'action' } : { ...n };
             // Merge default params from nodeType so existing nodes get any newly added parameters
             const ntDef = nodeTypes.find((t: NodeType) => {
+                // Prefer looking up by UID (nodeTypeId)
+                if (base.data?.nodeTypeId && t.id === base.data.nodeTypeId) {
+                    return true;
+                }
+                // Fallback to name/category for legacy nodes
                 const nameMatches = t.name.toLowerCase() === (base.data?.nodeType || base.data?.label || '').toLowerCase();
                 if (base.data?.category && t.category) {
                     return nameMatches && t.category === base.data.category;
@@ -231,6 +236,7 @@ export function WorkflowGraph({
                 y: Math.round(flowPos.y / 10) * 10
             },
             data: {
+                nodeTypeId: type.id,
                 label: type.name,
                 category: type.category,
                 params: initialParams,
@@ -328,6 +334,11 @@ export function WorkflowGraph({
     // Inject isActive + maxThan (from nodeType definition) into each node's data
     const renderedNodes = nodes.map(node => {
         const ntDef = nodeTypes.find((t: NodeType) => {
+            // Prefer looking up by UID
+            if (node.data?.nodeTypeId && t.id === node.data.nodeTypeId) {
+                return true;
+            }
+            // Fallback to name/category
             const nameMatches = t.name.toLowerCase() === (node.data?.nodeType || node.data?.label || '').toLowerCase();
             if (node.data?.category && t.category) {
                 return nameMatches && t.category === node.data.category;
@@ -345,6 +356,8 @@ export function WorkflowGraph({
             ...node,
             data: {
                 ...node.data,
+                // Always use the latest label and icon from the library if available
+                label: ntDef?.name || node.data?.label,
                 isActive: activeNodeIds.includes(node.id),
                 maxThen: Number(maxThen),
                 inputs: inputs,
