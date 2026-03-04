@@ -5,6 +5,7 @@ import type { AssignedUser } from '../../../entities/user/model/types';
 import type { Workflow } from '../../../entities/workflow/model/types';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { useClientStore } from '../model/clientStore';
+import { getCookie, setCookie, eraseCookie } from '../../../shared/lib/cookieUtils';
 
 export function useWorkflowManagement() {
     const { user: currentUser } = useAuthStore();
@@ -77,6 +78,19 @@ export function useWorkflowManagement() {
                     if (user.id.toLowerCase() === currentUser?.id?.toLowerCase()) continue;
                     await loadWorkflowsForUser(user.id);
                 }
+
+                // 4. Restore active workflow from cookie for admin
+                if (currentUser?.role === 'admin') {
+                    const savedWorkflowId = getCookie('active_workflow_id');
+                    if (savedWorkflowId) {
+                        // Check if we have this workflow in our loaded state
+                        apiClient.get(`/workflows/workflows/${savedWorkflowId}`).then((r) => {
+                            setActiveWorkflow(r.data);
+                        }).catch(() => {
+                            // If it fails to load (e.g. deleted), just ignore
+                        });
+                    }
+                }
             } catch (e) {
                 console.error("Initialization failed", e);
             }
@@ -85,6 +99,9 @@ export function useWorkflowManagement() {
     }, [currentUser?.id, currentUser?.role, loadWorkflowsForUser, setAssignedUsers]);
 
     const loadWorkflow = (wf: Workflow) => {
+        if (currentUser?.role === 'admin') {
+            setCookie('active_workflow_id', wf.id);
+        }
         apiClient.get(`/workflows/workflows/${wf.id}`).then((r) => {
             setActiveWorkflow(r.data);
         }).catch((err) => {
@@ -135,6 +152,9 @@ export function useWorkflowManagement() {
             });
 
             if (activeWorkflow?.id === workflowToDelete.id) {
+                if (currentUser?.role === 'admin') {
+                    eraseCookie('active_workflow_id');
+                }
                 setActiveWorkflow(null);
             }
         } catch (error) {

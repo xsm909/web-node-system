@@ -10,10 +10,19 @@ import { apiClient } from '../../shared/api/client';
 import type { NodeType } from '../../entities/node-type/model/types';
 import { Icon } from '../../shared/ui/icon';
 import { AppHeader } from '../../widgets/app-header';
+import { getCookie, setCookie } from '../../shared/lib/cookieUtils';
 
 export default function AdminPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'users' | 'nodes' | 'credentials' | 'workflows'>('users');
+    const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'credentials' | 'workflows'>(
+        (getCookie('active_admin_tab') as any) || 'users'
+    );
+
+    const setActiveTab = (tab: 'users' | 'nodes' | 'credentials' | 'workflows') => {
+        setCookie('active_admin_tab', tab);
+        setActiveTabState(tab);
+    };
+
     const [refreshCount, setRefreshCount] = useState(0);
     const [allNodes, setAllNodes] = useState<NodeType[]>([]);
 

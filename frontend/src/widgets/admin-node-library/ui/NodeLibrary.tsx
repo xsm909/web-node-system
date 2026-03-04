@@ -4,6 +4,7 @@ import type { NodeType } from '../../../entities/node-type/model/types';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
 import { Icon } from '../../../shared/ui/icon';
 import { buildCategoryTree, type CategoryTreeNode } from '../../../shared/lib/categoryUtils';
+import { getCookie, setCookie, eraseCookie } from '../../../shared/lib/cookieUtils';
 
 interface AdminNodeLibraryProps {
     onEditNode: (node: NodeType) => void;
@@ -262,7 +263,16 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, 
     const [loading, setLoading] = useState(true);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [nodeToDelete, setNodeToDelete] = useState<NodeType | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQueryState] = useState(getCookie('admin_node_search') || '');
+
+    const setSearchQuery = (query: string) => {
+        if (query) {
+            setCookie('admin_node_search', query);
+        } else {
+            eraseCookie('admin_node_search');
+        }
+        setSearchQueryState(query);
+    };
 
     const fetchData = async () => {
         setLoading(true);
