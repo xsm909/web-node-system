@@ -285,7 +285,7 @@ def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = No
     if data and data.target_client_id:
         runtime_data["_active_client_id"] = str(data.target_client_id)
 
-    runtime_data["_session_id"] = "1"
+    
 
     execution = WorkflowExecution(
         workflow_id=wf.id, 

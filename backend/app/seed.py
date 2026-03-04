@@ -65,36 +65,6 @@ def seed():
                 "is_async": False
             },
             {
-                "id": "078b3951-b63c-4c4d-8c4c-a66a7bed127a",
-                "name": "Simple question",
-                "version": "1.1",
-                "description": "Open AI Simple Question",
-                "code": "class NodeParameters:\n    question: str = 'What is the meaning of life?'\n    model: str = 'gpt-4o-mini'\n\ndef run(inputs, params):\n    question = params.question\n    model = params.model\n    result = openai.ask_single(question, model)\n    return result",
-                "input_schema": {
-                    "question": "string"
-                },
-                "output_schema": {
-                    "answer": "string"
-                },
-                "parameters": [
-                    {
-                        "name": "question",
-                        "type": "string",
-                        "label": "Question",
-                        "default": "What is the meaning of life?"
-                    },
-                    {
-                        "name": "model",
-                        "type": "string",
-                        "label": "Model",
-                        "default": "gpt-4o-mini"
-                    }
-                ],
-                "category": "AI|Chat|OpenAI",
-                "icon": "graph_2",
-                "is_async": False
-            },
-            {
                 "id": "09ec264b-d07c-4079-bbb6-37ccdefe24f4",
                 "name": "AI Agent",
                 "version": "1.1",
@@ -836,6 +806,62 @@ def seed():
                     }
                 ],
                 "category": "Data|Runtime",
+                "icon": "text",
+                "is_async": False
+            },
+            {
+                "id": "078b3951-b63c-4c4d-8c4c-a66a7bed127a",
+                "name": "Simple question",
+                "version": "1.2",
+                "description": "Open AI Simple Question",
+                "code": "class NodeParameters:\n    question: str = 'What is the meaning of life?'\n    model: str = 'gpt-4o-mini'\n    runtime: bool = False\n\ndef run(inputs, params):\n    \n    pattern = params[\"question\"]\n    if params.runtime:\n        question = pattern.format(**libs.get_runtime_data())\n    else:\n        question = pattern.format(**inputs)\n\n    \n    model = params.model\n    result = openai.ask_single(question, model)\n    return result",
+                "input_schema": {
+                    "question": "string"
+                },
+                "output_schema": {
+                    "answer": "string"
+                },
+                "parameters": [
+                    {
+                        "name": "question",
+                        "type": "string",
+                        "label": "Question",
+                        "default": "What is the meaning of life?"
+                    },
+                    {
+                        "name": "model",
+                        "type": "string",
+                        "label": "Model",
+                        "default": "gpt-4o-mini"
+                    },
+                    {
+                        "name": "runtime",
+                        "type": "boolean",
+                        "label": "Runtime",
+                        "default": False
+                    }
+                ],
+                "category": "AI|Chat|OpenAI",
+                "icon": "graph_2",
+                "is_async": False
+            },
+            {
+                "id": "66171aa4-8781-4e88-bf92-ec2be6d01ba2",
+                "name": "create/get session ID",
+                "version": "1.2",
+                "description": "Database query",
+                "code": "class NodeParameters:\n    days: int = 1\n\n\ndef run(inputs, params):\n\n    # \u041f\u043e\u043b\u0443\u0447\u0430\u0435\u043c client_id\n    runtime = libs.get_runtime_data()\n    client_id = runtime[\"_active_client_id\"]\n\n    # 1. \u0418\u0449\u0435\u043c \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u044e\u044e \u0441\u0435\u0441\u0441\u0438\u044e \u0437\u0430 N \u0434\u043d\u0435\u0439\n    select_query = f\"\"\"\n    SELECT session_id\n    FROM intermediate_results\n    WHERE client_id = '{client_id}'\n      AND created_at >= NOW() - INTERVAL '{params.days} days'\n      AND category = 'Session'\n    ORDER BY created_at DESC\n    LIMIT 1;\n    \"\"\"\n\n    result = inner_database.unsafe_request(select_query)\n\n    # \u0415\u0441\u043b\u0438 \u043d\u0430\u0448\u043b\u0438 \u2014 \u0432\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u043c session_id\n    if result and len(result) > 0:\n        session_id = result[0][\"session_id\"]\n        runtime[\"_session_id\"] = str(session_id)\n        libs.update_runtime_data(runtime)\n        \n        return session_id\n\n\n    # 2. \u0415\u0441\u043b\u0438 \u043d\u0435 \u043d\u0430\u0448\u043b\u0438 \u2014 \u0441\u043e\u0437\u0434\u0430\u0451\u043c \u043d\u043e\u0432\u0443\u044e\n    insert_query = f\"\"\"\n    INSERT INTO intermediate_results (\n        id,\n        session_id,\n        reference_id,\n        client_id,\n        created_by,\n        updated_by,\n        created_at,\n        updated_at,\n        category,\n        sub_category,\n        data,\n        short_description\n    )\n    VALUES (\n        gen_random_uuid(),\n        gen_random_uuid(),\n        NULL,\n        '{client_id}',\n        NULL,\n        NULL,\n        NOW(),\n        NOW(),\n        'Session',\n        'Default',\n        NULL,\n        NULL\n    )\n    RETURNING session_id;\n    \"\"\"\n\n    insert_result = inner_database.unsafe_request(insert_query)\n    print('add')\n    # \u0412\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u043c \u043d\u043e\u0432\u0443\u044e session_id\n    session_id = insert_result[0][\"session_id\"]\n    runtime['_session_id'] = str(session_id)\n    libs.update_runtime_data(runtime)\n    return session_id",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [
+                    {
+                        "name": "days",
+                        "type": "number",
+                        "label": "Days",
+                        "default": 1
+                    }
+                ],
+                "category": "Database",
                 "icon": "text",
                 "is_async": False
             }
