@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '../../../features/auth/store';
 import { apiClient } from '../../../shared/api/client';
 import type { AITask } from '../../../entities/ai-task/model/types';
 import { Icon } from '../../../shared/ui/icon';
+import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
+import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
 
 interface AITaskEditModalProps {
     isOpen: boolean;
@@ -12,11 +15,29 @@ interface AITaskEditModalProps {
     defaultOwnerId?: string;
 }
 
+const CATEGORY_DATA: Record<string, SelectionGroup> = {
+    'Q1': { id: 'Q1', name: 'Q1', icon: 'filter_1', selectable: true, items: [], children: {} },
+    'Q2': { id: 'Q2', name: 'Q2', icon: 'filter_2', selectable: true, items: [], children: {} },
+    'Q3': { id: 'Q3', name: 'Q3', icon: 'filter_3', selectable: true, items: [], children: {} },
+    'Common': { id: 'Common', name: 'Common', icon: 'group', selectable: true, items: [], children: {} },
+};
+
+const MODEL_DATA: Record<string, SelectionGroup> = {
+    'Any Model': { id: 'any', name: 'Any Model', icon: 'auto_awesome', selectable: true, items: [], children: {} },
+    'GPT-4o': { id: 'gpt-4o', name: 'GPT-4o', icon: 'bolt', selectable: true, items: [], children: {} },
+    'Claude 3.5 Sonnet': { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', icon: 'smart_toy', selectable: true, items: [], children: {} },
+    'Gemini 1.5 Pro': { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', icon: 'tempest', selectable: true, items: [], children: {} },
+};
+
 export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClose, task, onSave, defaultOwnerId }) => {
     const queryClient = useQueryClient();
+    const { user } = useAuthStore();
+    const isAdmin = user?.role === 'admin';
+
     const [taskText, setTaskText] = useState('');
     const [category, setCategory] = useState('');
     const [model, setModel] = useState('');
+    const [ownerId, setOwnerId] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -32,9 +53,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
                 setOwnerId(defaultOwnerId || '');
             }
         }
-    }, [isOpen, task]);
-
-    const [ownerId, setOwnerId] = useState('');
+    }, [isOpen, task, defaultOwnerId]);
 
     const mutation = useMutation({
         mutationFn: async () => {
@@ -64,6 +83,20 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
 
     const isEdit = !!task;
 
+    // Helper to find label for ComboBox
+    const getCategoryLabel = (id: string) => {
+        return Object.values(CATEGORY_DATA).find(g => g.id === id)?.name;
+    };
+    const getModelLabel = (id: string) => {
+        return Object.values(MODEL_DATA).find(g => g.id === id)?.name;
+    };
+    const getCategoryIcon = (id: string) => {
+        return Object.values(CATEGORY_DATA).find(g => g.id === id)?.icon;
+    };
+    const getModelIcon = (id: string) => {
+        return Object.values(MODEL_DATA).find(g => g.id === id)?.icon;
+    };
+
     return (
         <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
             <div className="w-full max-w-2xl bg-surface-800 border border-[var(--border-base)] rounded-[2.5rem] shadow-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5 animate-in zoom-in-95 duration-500">
@@ -90,39 +123,45 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
                 </header>
 
                 <div className="p-10 space-y-8">
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Owner ID (Client UID)</label>
-                        <input
-                            value={ownerId}
-                            onChange={(e) => setOwnerId(e.target.value)}
-                            className="w-full px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-medium focus:ring-2 focus:ring-brand outline-none transition-all"
-                            placeholder="e.g., common or UUID"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-6">
+                    {isAdmin && (
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Category</label>
+                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Owner ID (Client UID)</label>
                             <input
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
+                                value={ownerId}
+                                onChange={(e) => setOwnerId(e.target.value)}
                                 className="w-full px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-medium focus:ring-2 focus:ring-brand outline-none transition-all"
-                                placeholder="Task Category"
+                                placeholder="e.g., common or UUID"
                             />
                         </div>
+                    )}
+
+                    <div className={`grid ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'} gap-6`}>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">AI Model</label>
-                            <select
-                                value={model}
-                                onChange={(e) => setModel(e.target.value)}
-                                className="w-full px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-medium focus:ring-2 focus:ring-brand outline-none transition-all appearance-none"
-                            >
-                                <option value="any">Any Model</option>
-                                <option value="gpt-4o">GPT-4o</option>
-                                <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
-                                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                            </select>
+                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Category</label>
+                            <ComboBox
+                                value={category}
+                                label={getCategoryLabel(category)}
+                                icon={getCategoryIcon(category)}
+                                placeholder="Select category..."
+                                data={CATEGORY_DATA}
+                                onSelect={(item) => setCategory(item.id)}
+                                className="w-full"
+                            />
                         </div>
+                        {isAdmin && (
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">AI Model</label>
+                                <ComboBox
+                                    value={model}
+                                    label={getModelLabel(model)}
+                                    icon={getModelIcon(model)}
+                                    placeholder="Select model..."
+                                    data={MODEL_DATA}
+                                    onSelect={(item) => setModel(item.id)}
+                                    className="w-full"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-2">

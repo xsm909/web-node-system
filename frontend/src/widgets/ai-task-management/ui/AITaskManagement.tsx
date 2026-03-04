@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../../../shared/ui/icon';
+import { useAuthStore } from '../../../features/auth/store';
 import {
     useReactTable,
     getCoreRowModel,
@@ -19,16 +20,25 @@ interface AITaskManagementProps {
 
 export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClientId }) => {
     const queryClient = useQueryClient();
+    const { user } = useAuthStore();
+    const isAdmin = user?.role === 'admin';
+
     const [selectedTask, setSelectedTask] = useState<AITask | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const { data: tasks = [], isLoading, refetch } = useQuery({
+    const { data: allTasks = [], isLoading, refetch } = useQuery({
         queryKey: ['ai-tasks'],
         queryFn: async () => {
             const response = await apiClient.get<AITask[]>('/ai-tasks/');
             return response.data;
         },
     });
+
+    const tasks = useMemo(() => {
+        if (isAdmin) return allTasks;
+        if (!activeClientId) return []; // If manager but no client selected, show nothing as per user request ("only tasks of current client")
+        return allTasks.filter(t => t.owner_id === activeClientId);
+    }, [allTasks, isAdmin, activeClientId]);
 
     const deleteMutation = useMutation({
         mutationFn: async (taskId: string) => {
@@ -39,60 +49,79 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
         },
     });
 
-    const columns = useMemo(() => [
-        columnHelper.accessor('owner_id', {
-            header: 'Owner',
-            cell: info => <span className="font-medium text-[var(--text-main)]">{info.getValue()}</span>,
-        }),
-        columnHelper.accessor('category', {
-            header: 'Category',
-            cell: info => (
-                <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-                    {info.getValue()}
-                </span>
-            ),
-        }),
-        columnHelper.accessor('ai_model', {
-            header: 'Model',
-            cell: info => (
-                <span className="px-2 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-[10px] font-bold uppercase tracking-widest text-brand">
-                    {info.getValue()}
-                </span>
-            ),
-        }),
-        columnHelper.accessor('task', {
-            header: 'Task Content',
-            cell: info => {
-                const taskObj = info.getValue();
-                const content = taskObj?.Task || 'No content';
-                return (
-                    <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80" title={content}>
-                        {content}
+    const columns = useMemo(() => {
+        const cols = [];
+
+        if (isAdmin) {
+            cols.push(
+                columnHelper.accessor('owner_id', {
+                    header: 'Owner',
+                    cell: info => <span className="font-medium text-[var(--text-main)]">{info.getValue()}</span>,
+                })
+            );
+        }
+
+        cols.push(
+            columnHelper.accessor('category', {
+                header: 'Category',
+                cell: info => (
+                    <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                        {info.getValue()}
+                    </span>
+                ),
+            })
+        );
+
+        if (isAdmin) {
+            cols.push(
+                columnHelper.accessor('ai_model', {
+                    header: 'Model',
+                    cell: info => (
+                        <span className="px-2 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-[10px] font-bold uppercase tracking-widest text-brand">
+                            {info.getValue()}
+                        </span>
+                    ),
+                })
+            );
+        }
+
+        cols.push(
+            columnHelper.accessor('task', {
+                header: 'Task Content',
+                cell: info => {
+                    const taskObj = info.getValue();
+                    const content = taskObj?.Task || 'No content';
+                    return (
+                        <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80" title={content}>
+                            {content}
+                        </div>
+                    );
+                },
+            }),
+            columnHelper.display({
+                id: 'actions',
+                header: '',
+                cell: info => (
+                    <div className="flex justify-end gap-2 pr-4">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm('Are you sure you want to delete this task?')) {
+                                    deleteMutation.mutate(info.row.original.id);
+                                }
+                            }}
+                            disabled={deleteMutation.isPending}
+                            className="p-2 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                        >
+                            <Icon name="delete" size={18} />
+                        </button>
                     </div>
-                );
-            },
-        }),
-        columnHelper.display({
-            id: 'actions',
-            header: '',
-            cell: info => (
-                <div className="flex justify-end gap-2 pr-4">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm('Are you sure you want to delete this task?')) {
-                                deleteMutation.mutate(info.row.original.id);
-                            }
-                        }}
-                        disabled={deleteMutation.isPending}
-                        className="p-2 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
-                    >
-                        <Icon name="delete" size={18} />
-                    </button>
-                </div>
-            ),
-        }),
-    ], [deleteMutation.isPending]);
+                ),
+            })
+        );
+
+        return cols;
+    }, [isAdmin, deleteMutation.isPending]);
 
     const table = useReactTable({
         data: tasks,
