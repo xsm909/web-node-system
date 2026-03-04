@@ -44,7 +44,7 @@ def seed():
                 "name": "Simple question",
                 "version": "1.2",
                 "description": "Asks Gemini AI a question using internal library.",
-                "code": "class params:\n    question: str = 'What is the meaning of life?'\n    model: str = 'gemini-1.5-flash'\n\ndef run(inputs, params):\n    question = params.question\n    model = params.model\n    result = gemini.ask_single(question, model)\n    return result",
+                "code": "class NodeParameters:\n    question: str = 'What is the meaning of life?'\n    model: str = 'gemini-1.5-flash'\n\ndef run(inputs, params):\n    question = params.question\n    model = params.model\n    result = gemini.ask_single(question, model)\n    return result",
                 "input_schema": {
                     "question": "string"
                 },
@@ -74,7 +74,7 @@ def seed():
                 "name": "Simple question",
                 "version": "1.2",
                 "description": "Asks Gemini AI a question using internal library.",
-                "code": "class params:\n    question: str = 'What is the meaning of life?'\n    model: str = 'sonar'\n\ndef run(inputs, params):\n    question = params.question\n    model = params.model\n    result = perplexity.ask_single(question, model)\n    return result",
+                "code": "class NodeParameters:\n    question: str = 'What is the meaning of life?'\n    model: str = 'sonar'\n\ndef run(inputs, params):\n    question = params.question\n    model = params.model\n    result = perplexity.ask_single(question, model)\n    return result",
                 "input_schema": {
                     "question": "string"
                 },
@@ -119,7 +119,7 @@ def seed():
                 "name": "Echo",
                 "version": "1.1",
                 "description": "Echo",
-                "code": "class params:\n    text: str = \"Default value\"\n\ndef run(inputs, params):\n    print(f\"Echo: {params.text}\")\n    return inputs",
+                "code": "class NodeParameters:\n    text: str = \"Default value\"\n\ndef run(inputs, params):\n    print(f\"Echo: {params.text}\")\n    return inputs",
                 "input_schema": {},
                 "output_schema": {},
                 "parameters": [
@@ -154,7 +154,7 @@ def seed():
                 "name": "OpenAI Chat Model",
                 "version": "1.0",
                 "description": "Configuration for OpenAI Chat Model.",
-                "code": "class params:\n    model: str = 'gpt-4o-mini'\n\ndef run(inputs, params):\n    return {'model': params.model, 'provider': 'openai'}",
+                "code": "class NodeParameters:\n    model: str = 'gpt-4o-mini'\n\ndef run(inputs, params):\n    return {'model': params.model, 'provider': 'openai'}",
                 "input_schema": {},
                 "output_schema": {
                     "model": "object"
@@ -176,7 +176,7 @@ def seed():
                 "name": "Perplexity Chat Model",
                 "version": "1.0",
                 "description": "Configuration for Perplexity Chat Model.",
-                "code": "class params:\n    model: str = 'sonar'\n\ndef run(inputs, params):\n    return {'model': params.model, 'provider': 'perplexity'}",
+                "code": "class NodeParameters:\n    model: str = 'sonar'\n\ndef run(inputs, params):\n    return {'model': params.model, 'provider': 'perplexity'}",
                 "input_schema": {},
                 "output_schema": {
                     "model": "object"
@@ -198,7 +198,7 @@ def seed():
                 "name": "Delay",
                 "version": "1.1",
                 "description": "time.sleep",
-                "code": "class params:\n    delay: float = 1.5\n  \ndef run(inputs, params):\n    time.sleep(params.delay)\n    return inputs",
+                "code": "class NodeParameters:\n    delay: float = 1.5\n  \ndef run(inputs, params):\n    time.sleep(params.delay)\n    return inputs",
                 "input_schema": {},
                 "output_schema": {},
                 "parameters": [
@@ -218,7 +218,7 @@ def seed():
                 "name": "Gemini Chat Model",
                 "version": "1.0",
                 "description": "Configuration for Gemini Chat Model.",
-                "code": "class params:\n    model: str = 'gemini-1.5-flash'\n\ndef run(inputs, params):\n    return {'model': params.model, 'provider': 'gemini'}",
+                "code": "class NodeParameters:\n    model: str = 'gemini-1.5-flash'\n\ndef run(inputs, params):\n    return {'model': params.model, 'provider': 'gemini'}",
                 "input_schema": {},
                 "output_schema": {
                     "model": "object"
@@ -279,7 +279,7 @@ def seed():
                 "name": "loop for n",
                 "version": "1.3",
                 "description": "Simple loop",
-                "code": "class params:    \n    n: int = 10\n    MAX_THEN: int = 2\n    #output description\n    CUSTOM_OUTPUT=True\n    DEFAULT_OUTPUT=True\n    THEN1_FINISH = 1\n    THEN2_DO = 2\n    #node description\n    NODE_TYPE=\"LOOP\"\n\ndef run(inputs, params):\n    for i in range(0,params.n):\n        data = {\n            \"index\": i\n        }\n        workflow.execute_node (params.THEN2_DO,data)\n    workflow.execute_node (params.THEN1_FINISH)\n    return inputs",
+                "code": "class NodeParameters:    \n    n: int = 10\n    MAX_THEN: int = 2\n    #output description\n    CUSTOM_OUTPUT=True\n    DEFAULT_OUTPUT=True\n    THEN1_FINISH = 1\n    THEN2_DO = 2\n    #node description\n    NODE_TYPE=\"LOOP\"\n\ndef run(inputs, params):\n    for i in range(0,params.n):\n        data = {\n            \"index\": i\n        }\n        workflow.execute_node (params.THEN2_DO,data)\n    workflow.execute_node (params.THEN1_FINISH)\n    return inputs",
                 "input_schema": {},
                 "output_schema": {},
                 "parameters": [
@@ -363,7 +363,7 @@ def seed():
                 "name": "Perform Web Search",
                 "version": "1.0",
                 "description": "Gemini AI question with web search",
-                "code": "class params:\n    question: str = 'What was a positive news story from today?'\n    model: str = 'gemini-2.0-flash'\n    \ndef run(inputs, params):\n    respons = gemini.perform_web_search(params.question, params.model)\n    return respons",
+                "code": "class NodeParameters:\n    question: str = 'What was a positive news story from today?'\n    model: str = 'gemini-2.0-flash'\n    \ndef run(inputs, params):\n    respons = gemini.perform_web_search(params.question, params.model)\n    return respons",
                 "input_schema": {
                     "question": "string"
                 },
@@ -408,7 +408,7 @@ def seed():
                 "name": "Perform Web Search",
                 "version": "1.0",
                 "description": "Open  AI question with web search",
-                "code": "class params:\n    question: str = 'What was a positive news story from today?'\n    model: str = 'gpt-4o'\n    \ndef run(inputs, params):\n    respons = openai.perform_web_search(params.question, params.model)\n    return respons",
+                "code": "class NodeParameters:\n    question: str = 'What was a positive news story from today?'\n    model: str = 'gpt-4o'\n    \ndef run(inputs, params):\n    respons = openai.perform_web_search(params.question, params.model)\n    return respons",
                 "input_schema": {
                     "question": "string"
                 },
@@ -453,7 +453,7 @@ def seed():
                 "name": "Gemini Chat Model",
                 "version": "1.0",
                 "description": "Configuration for Gemini Chat Model.",
-                "code": "class params:\n    model: str = 'gemini-1.5-flash'\n\ndef run(inputs, params):\n    return {'model': params.model, 'provider': 'gemini'}",
+                "code": "class NodeParameters:\n    model: str = 'gemini-1.5-flash'\n\ndef run(inputs, params):\n    return {'model': params.model, 'provider': 'gemini'}",
                 "input_schema": {},
                 "output_schema": {
                     "model": "object"
@@ -490,7 +490,7 @@ def seed():
                 "name": "Window Memory",
                 "version": "1.0",
                 "description": "Chat memory with a fixed window size.",
-                "code": "class params:\n    window_size: int = 5\n\ndef run(inputs, params):\n    return {'type': 'window', 'size': params.window_size}",
+                "code": "class NodeParameters:\n    window_size: int = 5\n\ndef run(inputs, params):\n    return {'type': 'window', 'size': params.window_size}",
                 "input_schema": {},
                 "output_schema": {
                     "memory": "object"
@@ -512,7 +512,7 @@ def seed():
                 "name": "Simple question",
                 "version": "1.1",
                 "description": "Open AI Simple Question",
-                "code": "class params:\n    question: str = 'What is the meaning of life?'\n    model: str = 'gpt-4o-mini'\n\ndef run(inputs, params):\n    question = params.question\n    model = params.model\n    result = openai.ask_single(question, model)\n    return result",
+                "code": "class NodeParameters:\n    question: str = 'What is the meaning of life?'\n    model: str = 'gpt-4o-mini'\n\ndef run(inputs, params):\n    question = params.question\n    model = params.model\n    result = openai.ask_single(question, model)\n    return result",
                 "input_schema": {
                     "question": "string"
                 },
@@ -542,7 +542,7 @@ def seed():
                 "name": "Set value",
                 "version": "1.1",
                 "description": "Set value in runtime",
-                "code": "class params:\n    Name: str = \"Param\"\n    NewValue = \"Any\"\n\ndef run(inputs, params):\n    data = libs.get_runtime_data ()\n    data[params.Name] = params.NewValue\n    libs.update_runtime_data(data)\n    \n    inputs [params.Name] = params.NewValue\n    return inputs",
+                "code": "class NodeParameters:\n    Name: str = \"Param\"\n    NewValue = \"Any\"\n\ndef run(inputs, params):\n    data = libs.get_runtime_data ()\n    data[params.Name] = params.NewValue\n    libs.update_runtime_data(data)\n    \n    inputs [params.Name] = params.NewValue\n    return inputs",
                 "input_schema": {},
                 "output_schema": {},
                 "parameters": [
@@ -581,7 +581,7 @@ def seed():
                 "name": "If ... than ... else",
                 "version": "1.7",
                 "description": "Simple condition example = ",
-                "code": "class params:    \n    Argument: str = \"Param\"\n    Value = \"Any\"\n    MAX_THEN: int = 2\n    CUSTOM_OUTPUT=True\n    THEN1_THEN = 1\n    THEN2_ELSE = 2\n    THEN = 0\n    NODE_TYPE=\"COMPARE\"\n\ndef run(inputs, params):\n    if inputs[params.Argument] == params.Value:\n        params.THEN = params.THEN1_THEN;\n    else:\n        params.THEN = params.THEN2_ELSE;\n    return inputs",
+                "code": "class NodeParameters:    \n    Argument: str = \"Param\"\n    Value = \"Any\"\n    MAX_THEN: int = 2\n    CUSTOM_OUTPUT=True\n    THEN1_THEN = 1\n    THEN2_ELSE = 2\n    THEN = 0\n    NODE_TYPE=\"COMPARE\"\n\ndef run(inputs, params):\n    if inputs[params.Argument] == params.Value:\n        params.THEN = params.THEN1_THEN;\n    else:\n        params.THEN = params.THEN2_ELSE;\n    return inputs",
                 "input_schema": {},
                 "output_schema": {},
                 "parameters": [
@@ -643,7 +643,7 @@ def seed():
                 "name": "Perform Web Search",
                 "version": "1.0",
                 "description": "Perplexity AI question with web search",
-                "code": "class params:\n    question: str = 'What was a positive news story from today?'\n    model: str = 'sonar'\n    \ndef run(inputs, params):\n    respons = perplexity.perform_web_search(params.question, params.model)\n    return respons",
+                "code": "class NodeParameters:\n    question: str = 'What was a positive news story from today?'\n    model: str = 'sonar'\n    \ndef run(inputs, params):\n    respons = perplexity.perform_web_search(params.question, params.model)\n    return respons",
                 "input_schema": {
                     "question": "string"
                 },
@@ -703,7 +703,7 @@ def seed():
                 "name": "sql query",
                 "version": "1.2",
                 "description": "Database query",
-                "code": "class params:\n    query: str = \"select users.username, users.role from users\"\n\ndef run(inputs, params):\n    result = inner_database.unsafe_request(params.query)\n    return result\n    ",
+                "code": "class NodeParameters:\n    query: str = \"select users.username, users.role from users\"\n\ndef run(inputs, params):\n    result = inner_database.unsafe_request(params.query)\n    return result\n    ",
                 "input_schema": {},
                 "output_schema": {},
                 "parameters": [
@@ -723,7 +723,7 @@ def seed():
                 "name": "Runtime Data Write",
                 "version": "1.0",
                 "description": "Writes data to the runtime state of the execution.",
-                "code": "class params:\n    name_from: str = 'output'\n    name_as: str = 'users'\n    merge: bool = True\n\ndef run(inputs, params):\n    # 1. \u0411\u0435\u0440\u0435\u043c \u0434\u0430\u043d\u043d\u044b\u0435 \u0438\u0437 \u0432\u0445\u043e\u0434\u0430. \u0415\u0441\u043b\u0438 \u0432 name_from 'output', \n    # \u0442\u043e payload \u0431\u0443\u0434\u0435\u0442 \u0440\u0430\u0432\u0435\u043d \u0442\u043e\u043c\u0443 \u0441\u0430\u043c\u043e\u043c\u0443 \u0441\u043f\u0438\u0441\u043a\u0443 [...]\n    payload = inputs.get(params.name_from, {})\n    \n    if params.merge:\n        # 2. \u0411\u0435\u0440\u0435\u043c \u0442\u0435\u043a\u0443\u0449\u0438\u0439 runtime (\u0442\u0430\u043c \u043b\u0435\u0436\u0438\u0442 {\"_session_id\": \"1\"})\n        current = libs.get_runtime_data() or {}\n        \n        # 3. \u0414\u043e\u0431\u0430\u0432\u043b\u044f\u0435\u043c \u0432 \u043d\u0435\u0433\u043e \u043a\u043b\u044e\u0447 'users' \u0441\u043e \u0441\u043f\u0438\u0441\u043a\u043e\u043c\n        current[params.name_as] = payload\n        \n        # 4. \u0421\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u043c \u0412\u0415\u0421\u042c \u0441\u043b\u043e\u0432\u0430\u0440\u044c current. \n        # \u0422\u0435\u043f\u0435\u0440\u044c \u0432 \u0431\u0430\u0437\u0435 \u0431\u0443\u0434\u0435\u0442 {\"_session_id\": \"1\", \"users\": [...]}\n        libs.update_runtime_data(current)\n    else:\n        # \u0415\u0441\u043b\u0438 \u043d\u0435 \u043c\u0435\u0440\u0436\u0438\u043c, \u043f\u0440\u043e\u0441\u0442\u043e \u0441\u043e\u0437\u0434\u0430\u0435\u043c \u043d\u043e\u0432\u044b\u0439 \u043e\u0431\u044a\u0435\u043a\u0442\n        libs.update_runtime_data({params.name_as: payload})\n    \n    return {'success': True}\n",
+                "code": "class NodeParameters:\n    name_from: str = 'output'\n    name_as: str = 'users'\n    merge: bool = True\n\ndef run(inputs, params):\n    # 1. \u0411\u0435\u0440\u0435\u043c \u0434\u0430\u043d\u043d\u044b\u0435 \u0438\u0437 \u0432\u0445\u043e\u0434\u0430. \u0415\u0441\u043b\u0438 \u0432 name_from 'output', \n    # \u0442\u043e payload \u0431\u0443\u0434\u0435\u0442 \u0440\u0430\u0432\u0435\u043d \u0442\u043e\u043c\u0443 \u0441\u0430\u043c\u043e\u043c\u0443 \u0441\u043f\u0438\u0441\u043a\u0443 [...]\n    payload = inputs.get(params.name_from, {})\n    \n    if params.merge:\n        # 2. \u0411\u0435\u0440\u0435\u043c \u0442\u0435\u043a\u0443\u0449\u0438\u0439 runtime (\u0442\u0430\u043c \u043b\u0435\u0436\u0438\u0442 {\"_session_id\": \"1\"})\n        current = libs.get_runtime_data() or {}\n        \n        # 3. \u0414\u043e\u0431\u0430\u0432\u043b\u044f\u0435\u043c \u0432 \u043d\u0435\u0433\u043e \u043a\u043b\u044e\u0447 'users' \u0441\u043e \u0441\u043f\u0438\u0441\u043a\u043e\u043c\n        current[params.name_as] = payload\n        \n        # 4. \u0421\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u043c \u0412\u0415\u0421\u042c \u0441\u043b\u043e\u0432\u0430\u0440\u044c current. \n        # \u0422\u0435\u043f\u0435\u0440\u044c \u0432 \u0431\u0430\u0437\u0435 \u0431\u0443\u0434\u0435\u0442 {\"_session_id\": \"1\", \"users\": [...]}\n        libs.update_runtime_data(current)\n    else:\n        # \u0415\u0441\u043b\u0438 \u043d\u0435 \u043c\u0435\u0440\u0436\u0438\u043c, \u043f\u0440\u043e\u0441\u0442\u043e \u0441\u043e\u0437\u0434\u0430\u0435\u043c \u043d\u043e\u0432\u044b\u0439 \u043e\u0431\u044a\u0435\u043a\u0442\n        libs.update_runtime_data({params.name_as: payload})\n    \n    return {'success': True}\n",
                 "input_schema": {
                     "data": "object"
                 },
