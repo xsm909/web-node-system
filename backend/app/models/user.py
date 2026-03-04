@@ -8,6 +8,7 @@ class RoleEnum(str, enum.Enum):
     admin = "admin"
     manager = "manager"
     client = "client"
+    service = "service"
 
 # Association table: manager -> assigned clients
 manager_client = Table(

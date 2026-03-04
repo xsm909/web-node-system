@@ -27,6 +27,7 @@ from ..internal_libs.tools_lib import (
     calculator, database_query, http_request, http_search, 
     smart_search, read_workflow_data, read_runtime_data, write_runtime_data
 )
+from ..internal_libs import database_lib
 from ..internal_libs.logger_lib import executor_logger
 from ..internal_libs.context_lib import execution_context
 
@@ -113,6 +114,9 @@ SAFE_GLOBALS = {
     ),
     "common": SimpleNamespace(
         get_active_client=common_lib.get_active_client
+    ),
+    "inner_database": SimpleNamespace(
+        unsafe_request=database_lib.unsafe_request
     ),
     "workflow": None,  # Will be injected per-execution
 }
