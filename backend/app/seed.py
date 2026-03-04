@@ -135,103 +135,6 @@ def seed():
                 "is_async": False
             },
             {
-                "id": "09ec264b-d07c-4079-bbb6-37ccdefe24f4",
-                "name": "AI Agent",
-                "version": "1.1",
-                "description": "Modular AI Agent that uses tools, memory, and a chat model.",
-                "code": "class InputParameters:\n    model: dict = None\n    memory: dict = None\n    tools: list = []\n\nclass NodeParameters:\n    prompt: str = 'Help me with my task'\n\ndef run(inputs, params):\n    model = inputParameters.model\n    memory = inputParameters.memory\n    tools = inputParameters.tools\n    prompt = nodeParameters.prompt\n\n    print(f'Agent running with model: {model}, tools: {len(tools) if tools else 0}')\n    result = libs.agent_run(model, memory, tools, prompt, inputs)\n    return {'output': result}",
-                "input_schema": {
-                    "model": "object",
-                    "memory": "object",
-                    "tools": "array"
-                },
-                "output_schema": {
-                    "output": "string"
-                },
-                "parameters": [
-                    {
-                        "name": "prompt",
-                        "type": "string",
-                        "label": "Prompt",
-                        "default": "Help me with my task"
-                    }
-                ],
-                "category": "AI|Agent",
-                "icon": "graph_2",
-                "is_async": False
-            },
-            {
-                "id": "6d611cd6-7229-40c8-9742-d8b7e2657c3f",
-                "name": "loop for n",
-                "version": "1.3",
-                "description": "Simple loop",
-                "code": "class NodeParameters:    \n    n: int = 10\n    MAX_THEN: int = 2\n    #output description\n    CUSTOM_OUTPUT=True\n    DEFAULT_OUTPUT=True\n    THEN1_FINISH = 1\n    THEN2_DO = 2\n    #node description\n    NODE_TYPE=\"LOOP\"\n\ndef run(inputs, params):\n    for i in range(0,nodeParameters.n):\n        data = {\n            \"index\": i\n        }\n        workflow.execute_node (nodeParameters.THEN2_DO,data)\n    workflow.execute_node (nodeParameters.THEN1_FINISH)\n    return inputs",
-                "input_schema": {},
-                "output_schema": {},
-                "parameters": [
-                    {
-                        "name": "n",
-                        "type": "number",
-                        "label": "N",
-                        "default": 10
-                    },
-                    {
-                        "name": "MAX_THEN",
-                        "type": "number",
-                        "label": "Max Then",
-                        "default": 2
-                    },
-                    {
-                        "name": "CUSTOM_OUTPUT",
-                        "type": "number",
-                        "label": "Custom Output",
-                        "default": True
-                    },
-                    {
-                        "name": "DEFAULT_OUTPUT",
-                        "type": "number",
-                        "label": "Default Output",
-                        "default": True
-                    },
-                    {
-                        "name": "THEN1_FINISH",
-                        "type": "number",
-                        "label": "Then1 Finish",
-                        "default": 1
-                    },
-                    {
-                        "name": "THEN2_DO",
-                        "type": "number",
-                        "label": "Then2 Do",
-                        "default": 2
-                    },
-                    {
-                        "name": "NODE_TYPE",
-                        "type": "string",
-                        "label": "Node Type",
-                        "default": "LOOP"
-                    }
-                ],
-                "category": "Logic|Loop",
-                "icon": "graph",
-                "is_async": False
-            },
-            {
-                "id": "6f8e8815-72be-4771-b268-08686f85188f",
-                "name": "Tool: Workflow Data",
-                "version": "1.0",
-                "description": "Allows AI Agent to read static workflow configuration.",
-                "code": "def run(inputs, params):\n    return {\n        'name': 'read_workflow_data',\n        'description': 'Reads static workflow configuration JSON (environment variables, flow setup)',\n        'parameters': {'type': 'object', 'properties': {}},\n        'execute': libs.read_workflow_data\n    }",
-                "input_schema": {},
-                "output_schema": {
-                    "tool": "object"
-                },
-                "parameters": [],
-                "category": "AI|Tools",
-                "icon": "text",
-                "is_async": False
-            },
-            {
                 "id": "6fffcfcb-ad3b-40fb-97b4-028c094d6a84",
                 "name": "Tool: HTTP Request",
                 "version": "1.0",
@@ -333,19 +236,6 @@ def seed():
                 "is_async": False
             },
             {
-                "id": "a2f85281-0eb4-4f22-87b4-eb788697e944",
-                "name": "Get active client",
-                "version": "1.0",
-                "description": "",
-                "code": "def run(inputs, params):\n    return common.get_active_client()",
-                "input_schema": {},
-                "output_schema": {},
-                "parameters": [],
-                "category": "Utility",
-                "icon": "task",
-                "is_async": False
-            },
-            {
                 "id": "b09d0d31-8e6a-4667-9110-88d03f3dad0c",
                 "name": "Print",
                 "version": "1.0",
@@ -359,27 +249,113 @@ def seed():
                 "is_async": False
             },
             {
-                "id": "c290e2eb-8cb7-4c4c-a2d1-9f0f69b9e8e9",
-                "name": "Runtime Data Write",
-                "version": "1.0",
-                "description": "Writes data to the runtime state of the execution.",
-                "code": "class NodeParameters:\n    merge: bool = True\n\ndef run(inputs, params):\n    new_data = inputs.get('data', {})\n    if nodeParameters.merge:\n        current = libs.get_runtime_data() or {}\n        current.update(new_data)\n        new_data = current\n    libs.update_runtime_data(new_data)\n    print(f'Runtime Data Updated: {new_data}')\n    return {'success': True}",
+                "id": "09ec264b-d07c-4079-bbb6-37ccdefe24f4",
+                "name": "AI Agent",
+                "version": "1.1",
+                "description": "Modular AI Agent that uses tools, memory, and a chat model.",
+                "code": "class InputParameters:\n    model: dict = None\n    memory: dict = None\n    tools: list = []\n\nclass NodeParameters:\n    prompt: str = 'Help me with my task'\n\ndef run(inputs, params):\n    model = inputParameters.model\n    memory = inputParameters.memory\n    tools = inputParameters.tools\n    prompt = nodeParameters.prompt\n\n    print(f'Agent running with model: {model}, tools: {len(tools) if tools else 0}')\n    result = libs.agent_run(model, memory, tools, prompt, inputs)\n    return {'output': result}",
                 "input_schema": {
-                    "data": "object"
+                    "model": "object",
+                    "memory": "object",
+                    "tools": "array"
                 },
                 "output_schema": {
-                    "success": "boolean"
+                    "output": "string"
                 },
                 "parameters": [
                     {
-                        "name": "merge",
-                        "type": "boolean",
-                        "label": "Merge",
-                        "default": True
+                        "name": "prompt",
+                        "type": "string",
+                        "label": "Prompt",
+                        "default": "Help me with my task"
                     }
                 ],
-                "category": "Data|Runtime",
+                "category": "AI|Agent",
+                "icon": "graph_2",
+                "is_async": False
+            },
+            {
+                "id": "6d611cd6-7229-40c8-9742-d8b7e2657c3f",
+                "name": "loop for n",
+                "version": "1.3",
+                "description": "Simple loop",
+                "code": "class NodeParameters:    \n    n: int = 10\n    MAX_THEN: int = 2\n    #output description\n    CUSTOM_OUTPUT=True\n    DEFAULT_OUTPUT=True\n    THEN1_FINISH = 1\n    THEN2_DO = 2\n    #node description\n    NODE_TYPE=\"LOOP\"\n\ndef run(inputs, params):\n    for i in range(0,nodeParameters.n):\n        data = {\n            \"index\": i\n        }\n        workflow.execute_node (nodeParameters.THEN2_DO,data)\n    workflow.execute_node (nodeParameters.THEN1_FINISH)\n    return inputs",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [
+                    {
+                        "name": "n",
+                        "type": "number",
+                        "label": "N",
+                        "default": 10
+                    },
+                    {
+                        "name": "MAX_THEN",
+                        "type": "number",
+                        "label": "Max Then",
+                        "default": 2
+                    },
+                    {
+                        "name": "CUSTOM_OUTPUT",
+                        "type": "number",
+                        "label": "Custom Output",
+                        "default": True
+                    },
+                    {
+                        "name": "DEFAULT_OUTPUT",
+                        "type": "number",
+                        "label": "Default Output",
+                        "default": True
+                    },
+                    {
+                        "name": "THEN1_FINISH",
+                        "type": "number",
+                        "label": "Then1 Finish",
+                        "default": 1
+                    },
+                    {
+                        "name": "THEN2_DO",
+                        "type": "number",
+                        "label": "Then2 Do",
+                        "default": 2
+                    },
+                    {
+                        "name": "NODE_TYPE",
+                        "type": "string",
+                        "label": "Node Type",
+                        "default": "LOOP"
+                    }
+                ],
+                "category": "Logic|Loop",
+                "icon": "graph",
+                "is_async": False
+            },
+            {
+                "id": "6f8e8815-72be-4771-b268-08686f85188f",
+                "name": "Tool: Workflow Data",
+                "version": "1.0",
+                "description": "Allows AI Agent to read static workflow configuration.",
+                "code": "def run(inputs, params):\n    return {\n        'name': 'read_workflow_data',\n        'description': 'Reads static workflow configuration JSON (environment variables, flow setup)',\n        'parameters': {'type': 'object', 'properties': {}},\n        'execute': libs.read_workflow_data\n    }",
+                "input_schema": {},
+                "output_schema": {
+                    "tool": "object"
+                },
+                "parameters": [],
+                "category": "AI|Tools",
                 "icon": "text",
+                "is_async": False
+            },
+            {
+                "id": "a2f85281-0eb4-4f22-87b4-eb788697e944",
+                "name": "Get active client",
+                "version": "1.0",
+                "description": "",
+                "code": "def run(inputs, params):\n    return common.get_active_client()",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [],
+                "category": "Utility",
+                "icon": "task",
                 "is_async": False
             },
             {
@@ -473,68 +449,6 @@ def seed():
                 "is_async": False
             },
             {
-                "id": "cda2737b-2609-4d21-92a0-1f7a2f031633",
-                "name": "If ... than ... else",
-                "version": "1.7",
-                "description": "Simple condition example = ",
-                "code": "class NodeParameters:    \n    Argument: str = \"Param\"\n    Value = \"Any\"\n    MAX_THEN: int = 2\n    CUSTOM_OUTPUT=True\n    THEN1_THEN = 1\n    THEN2_ELSE = 2\n    THEN = 0\n    NODE_TYPE=\"COMPARE\"\n\ndef run(inputs, params):\n    if inputs[nodeParameters.Argument] == nodeParameters.Value:\n        nodeParameters.THEN = nodeParameters.THEN1_THEN;\n    else:\n        nodeParameters.THEN = nodeParameters.THEN2_ELSE;\n    return inputs",
-                "input_schema": {},
-                "output_schema": {},
-                "parameters": [
-                    {
-                        "name": "Argument",
-                        "type": "string",
-                        "label": "Argument",
-                        "default": "Param"
-                    },
-                    {
-                        "name": "Value",
-                        "type": "string",
-                        "label": "Value",
-                        "default": "Any"
-                    },
-                    {
-                        "name": "MAX_THEN",
-                        "type": "number",
-                        "label": "Max Then",
-                        "default": 2
-                    },
-                    {
-                        "name": "CUSTOM_OUTPUT",
-                        "type": "number",
-                        "label": "Custom Output",
-                        "default": True
-                    },
-                    {
-                        "name": "THEN1_THEN",
-                        "type": "number",
-                        "label": "Then1 Then",
-                        "default": 1
-                    },
-                    {
-                        "name": "THEN2_ELSE",
-                        "type": "number",
-                        "label": "Then2 Else",
-                        "default": 2
-                    },
-                    {
-                        "name": "THEN",
-                        "type": "number",
-                        "label": "Then",
-                        "default": 0
-                    },
-                    {
-                        "name": "NODE_TYPE",
-                        "type": "string",
-                        "label": "Node Type",
-                        "default": "COMPARE"
-                    }
-                ],
-                "category": "Logic|Conditions",
-                "icon": "graph",
-                "is_async": False
-            },
-            {
                 "id": "d5936531-2e19-444d-b88e-02c4474bb212",
                 "name": "Gemini Chat Model",
                 "version": "1.0",
@@ -553,36 +467,6 @@ def seed():
                     }
                 ],
                 "category": "AI|Models|Gemini",
-                "icon": "graph_2",
-                "is_async": False
-            },
-            {
-                "id": "d6bcad12-0e8d-4114-8512-f589341698a0",
-                "name": "Perform Web Search",
-                "version": "1.0",
-                "description": "Perplexity AI question with web search",
-                "code": "class NodeParameters:\n    question: str = 'What was a positive news story from today?'\n    model: str = 'sonar'\n    \ndef run(inputs, params):\n    respons = perplexity.perform_web_search(nodeParameters.question, nodeParameters.model)\n    return respons",
-                "input_schema": {
-                    "question": "string"
-                },
-                "output_schema": {
-                    "answer": "string"
-                },
-                "parameters": [
-                    {
-                        "name": "question",
-                        "type": "string",
-                        "label": "Question",
-                        "default": "What was a positive news story from today?"
-                    },
-                    {
-                        "name": "model",
-                        "type": "string",
-                        "label": "Model",
-                        "default": "sonar"
-                    }
-                ],
-                "category": "AI|Chat|Perplexity",
                 "icon": "graph_2",
                 "is_async": False
             },
@@ -693,6 +577,98 @@ def seed():
                 "is_async": False
             },
             {
+                "id": "cda2737b-2609-4d21-92a0-1f7a2f031633",
+                "name": "If ... than ... else",
+                "version": "1.7",
+                "description": "Simple condition example = ",
+                "code": "class NodeParameters:    \n    Argument: str = \"Param\"\n    Value = \"Any\"\n    MAX_THEN: int = 2\n    CUSTOM_OUTPUT=True\n    THEN1_THEN = 1\n    THEN2_ELSE = 2\n    THEN = 0\n    NODE_TYPE=\"COMPARE\"\n\ndef run(inputs, params):\n    if inputs[nodeParameters.Argument] == nodeParameters.Value:\n        nodeParameters.THEN = nodeParameters.THEN1_THEN;\n    else:\n        nodeParameters.THEN = nodeParameters.THEN2_ELSE;\n    return inputs",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [
+                    {
+                        "name": "Argument",
+                        "type": "string",
+                        "label": "Argument",
+                        "default": "Param"
+                    },
+                    {
+                        "name": "Value",
+                        "type": "string",
+                        "label": "Value",
+                        "default": "Any"
+                    },
+                    {
+                        "name": "MAX_THEN",
+                        "type": "number",
+                        "label": "Max Then",
+                        "default": 2
+                    },
+                    {
+                        "name": "CUSTOM_OUTPUT",
+                        "type": "number",
+                        "label": "Custom Output",
+                        "default": True
+                    },
+                    {
+                        "name": "THEN1_THEN",
+                        "type": "number",
+                        "label": "Then1 Then",
+                        "default": 1
+                    },
+                    {
+                        "name": "THEN2_ELSE",
+                        "type": "number",
+                        "label": "Then2 Else",
+                        "default": 2
+                    },
+                    {
+                        "name": "THEN",
+                        "type": "number",
+                        "label": "Then",
+                        "default": 0
+                    },
+                    {
+                        "name": "NODE_TYPE",
+                        "type": "string",
+                        "label": "Node Type",
+                        "default": "COMPARE"
+                    }
+                ],
+                "category": "Logic|Conditions",
+                "icon": "graph",
+                "is_async": False
+            },
+            {
+                "id": "d6bcad12-0e8d-4114-8512-f589341698a0",
+                "name": "Perform Web Search",
+                "version": "1.0",
+                "description": "Perplexity AI question with web search",
+                "code": "class NodeParameters:\n    question: str = 'What was a positive news story from today?'\n    model: str = 'sonar'\n    \ndef run(inputs, params):\n    respons = perplexity.perform_web_search(nodeParameters.question, nodeParameters.model)\n    return respons",
+                "input_schema": {
+                    "question": "string"
+                },
+                "output_schema": {
+                    "answer": "string"
+                },
+                "parameters": [
+                    {
+                        "name": "question",
+                        "type": "string",
+                        "label": "Question",
+                        "default": "What was a positive news story from today?"
+                    },
+                    {
+                        "name": "model",
+                        "type": "string",
+                        "label": "Model",
+                        "default": "sonar"
+                    }
+                ],
+                "category": "AI|Chat|Perplexity",
+                "icon": "graph_2",
+                "is_async": False
+            },
+            {
                 "id": "f1b356ff-85c1-469c-95c3-46d3a01827a5",
                 "name": "Runtime Data Read",
                 "version": "1.0",
@@ -708,9 +684,24 @@ def seed():
                 "is_async": False
             },
             {
+                "id": "c0c861ae-8f6f-4ca4-9856-76e6d331c7b0",
+                "name": "Tool: Runtime Data",
+                "version": "1.0",
+                "description": "Allows AI Agent to read and write dynamic runtime state.",
+                "code": "def run(inputs, params):\n    return [\n        {\n            'name': 'read_runtime_data',\n            'description': 'Reads dynamic runtime state JSON (shared data between nodes)',\n            'parameters': {'type': 'object', 'properties': {}},\n            'execute': libs.read_runtime_data\n        },\n        {\n            'name': 'write_runtime_data',\n            'description': 'Writes or updates dynamic runtime state JSON',\n            'parameters': {\n                'type': 'object',\n                'properties': {\n                    'data': {'type': 'string', 'description': 'JSON string to write or merge'}\n                },\n                'required': ['data']\n            },\n            'execute': libs.write_runtime_data\n        }\n    ]",
+                "input_schema": {},
+                "output_schema": {
+                    "tool": "object"
+                },
+                "parameters": [],
+                "category": "AI|Tools",
+                "icon": "text",
+                "is_async": False
+            },
+            {
                 "id": "7194c010-4a63-4c35-9de4-b970f56271d3",
-                "name": "query",
-                "version": "1.1",
+                "name": "sql query",
+                "version": "1.2",
                 "description": "Database query",
                 "code": "class NodeParameters:\n    query: str = \"select users.username, users.role from users\"\n\ndef run(inputs, params):\n    result = inner_database.unsafe_request(nodeParameters.query)\n    return result\n    ",
                 "input_schema": {},
@@ -728,17 +719,38 @@ def seed():
                 "is_async": False
             },
             {
-                "id": "c0c861ae-8f6f-4ca4-9856-76e6d331c7b0",
-                "name": "Tool: Runtime Data",
+                "id": "c290e2eb-8cb7-4c4c-a2d1-9f0f69b9e8e9",
+                "name": "Runtime Data Write",
                 "version": "1.0",
-                "description": "Allows AI Agent to read and write dynamic runtime state.",
-                "code": "def run(inputs, params):\n    return [\n        {\n            'name': 'read_runtime_data',\n            'description': 'Reads dynamic runtime state JSON (shared data between nodes)',\n            'parameters': {'type': 'object', 'properties': {}},\n            'execute': libs.read_runtime_data\n        },\n        {\n            'name': 'write_runtime_data',\n            'description': 'Writes or updates dynamic runtime state JSON',\n            'parameters': {\n                'type': 'object',\n                'properties': {\n                    'data': {'type': 'string', 'description': 'JSON string to write or merge'}\n                },\n                'required': ['data']\n            },\n            'execute': libs.write_runtime_data\n        }\n    ]",
-                "input_schema": {},
-                "output_schema": {
-                    "tool": "object"
+                "description": "Writes data to the runtime state of the execution.",
+                "code": "class NodeParameters:\n    name_from: str = 'output'\n    name_as: str = 'users'\n    merge: bool = True\n\ndef run(inputs, params):\n    # 1. \u0411\u0435\u0440\u0435\u043c \u0434\u0430\u043d\u043d\u044b\u0435 \u0438\u0437 \u0432\u0445\u043e\u0434\u0430. \u0415\u0441\u043b\u0438 \u0432 name_from 'output', \n    # \u0442\u043e payload \u0431\u0443\u0434\u0435\u0442 \u0440\u0430\u0432\u0435\u043d \u0442\u043e\u043c\u0443 \u0441\u0430\u043c\u043e\u043c\u0443 \u0441\u043f\u0438\u0441\u043a\u0443 [...]\n    payload = inputs.get(nodeParameters.name_from, {})\n    \n    if nodeParameters.merge:\n        # 2. \u0411\u0435\u0440\u0435\u043c \u0442\u0435\u043a\u0443\u0449\u0438\u0439 runtime (\u0442\u0430\u043c \u043b\u0435\u0436\u0438\u0442 {\"_session_id\": \"1\"})\n        current = libs.get_runtime_data() or {}\n        \n        # 3. \u0414\u043e\u0431\u0430\u0432\u043b\u044f\u0435\u043c \u0432 \u043d\u0435\u0433\u043e \u043a\u043b\u044e\u0447 'users' \u0441\u043e \u0441\u043f\u0438\u0441\u043a\u043e\u043c\n        current[nodeParameters.name_as] = payload\n        \n        # 4. \u0421\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u043c \u0412\u0415\u0421\u042c \u0441\u043b\u043e\u0432\u0430\u0440\u044c current. \n        # \u0422\u0435\u043f\u0435\u0440\u044c \u0432 \u0431\u0430\u0437\u0435 \u0431\u0443\u0434\u0435\u0442 {\"_session_id\": \"1\", \"users\": [...]}\n        libs.update_runtime_data(current)\n    else:\n        # \u0415\u0441\u043b\u0438 \u043d\u0435 \u043c\u0435\u0440\u0436\u0438\u043c, \u043f\u0440\u043e\u0441\u0442\u043e \u0441\u043e\u0437\u0434\u0430\u0435\u043c \u043d\u043e\u0432\u044b\u0439 \u043e\u0431\u044a\u0435\u043a\u0442\n        libs.update_runtime_data({nodeParameters.name_as: payload})\n    \n    return {'success': True}\n",
+                "input_schema": {
+                    "data": "object"
                 },
-                "parameters": [],
-                "category": "AI|Tools",
+                "output_schema": {
+                    "success": "boolean"
+                },
+                "parameters": [
+                    {
+                        "name": "name_from",
+                        "type": "string",
+                        "label": "Name From",
+                        "default": "output"
+                    },
+                    {
+                        "name": "name_as",
+                        "type": "string",
+                        "label": "Name As",
+                        "default": "users"
+                    },
+                    {
+                        "name": "merge",
+                        "type": "boolean",
+                        "label": "Merge",
+                        "default": True
+                    }
+                ],
+                "category": "Data|Runtime",
                 "icon": "text",
                 "is_async": False
             }
