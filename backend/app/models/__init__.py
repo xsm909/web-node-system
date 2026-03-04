@@ -2,7 +2,7 @@ from .user import User, RoleEnum, manager_client
 from .workflow import Workflow, WorkflowExecution, NodeExecution, WorkflowStatus
 from .node import NodeType
 from .credential import Credential
-from .ai_result import AI_Result
+from .ai_task import AI_Task
 
 __all__ = [
     "User",
@@ -14,5 +14,5 @@ __all__ = [
     "WorkflowStatus",
     "NodeType",
     "Credential",
-    "AI_Result",
+    "AI_Task",
 ]

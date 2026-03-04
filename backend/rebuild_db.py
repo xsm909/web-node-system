@@ -110,13 +110,7 @@ CREATE TABLE credentials (
 );
 INSERT INTO credentials SELECT * FROM old_db.credentials;
 
-CREATE TABLE ai_results (
-    uid VARCHAR(36) NOT NULL, 
-    result VARCHAR, 
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, 
-    PRIMARY KEY (uid)
-);
-INSERT INTO ai_results SELECT * FROM old_db.ai_results;
+
 
 CREATE TABLE intermediate_results (
     id UUID NOT NULL PRIMARY KEY,
@@ -147,6 +141,21 @@ WHEN NEW.reference_id IS NULL
 BEGIN
     UPDATE intermediate_results SET reference_id = NEW.session_id WHERE rowid = NEW.rowid;
 END;
+
+CREATE TABLE ai_tasks (
+    id UUID NOT NULL PRIMARY KEY,
+    owner_id VARCHAR(50) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    created_by UUID,
+    updated_by UUID,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    task JSON
+);
+
+CREATE INDEX idx_ai_task_owner_id ON ai_tasks(owner_id);
+CREATE INDEX idx_ai_task_category ON ai_tasks(category);
+CREATE INDEX idx_ai_task_created_by ON ai_tasks(created_by);
 """)
 
 conn.commit()

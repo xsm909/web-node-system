@@ -5,7 +5,7 @@ Run once after `docker compose up`:
 """
 from .core.database import SessionLocal, Base, engine
 from .core.security import hash_password
-from .models import User, RoleEnum, NodeType, AI_Result
+from .models import User, RoleEnum, NodeType
 
 Base.metadata.create_all(bind=engine)
 

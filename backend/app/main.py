@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .core.database import Base, engine
 from .routers import auth, admin, workflow, client
 from .models.intermediate_result import IntermediateResult  # noqa: F401 — registers table with Base
+from .models.ai_task import AI_Task  # noqa: F401 — registers table with Base
 
 # Create all tables on startup
 Base.metadata.create_all(bind=engine)

@@ -55,7 +55,7 @@ def database_query(query: str) -> str:
         ALLOWED_TABLES = {
             "example_table_read": "R",
             "example_table_write": "W",
-            "ai_results": "RW"
+            "ai_tasks": "RW"
         }
         
         # Determine the type of operation
