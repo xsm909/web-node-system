@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../../../shared/api/client';
 import type { User } from '../../../entities/user/model/types';
+import { UserEditModal } from './UserEditModal';
 
 export const AdminUserManagement: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-    useEffect(() => {
+    const fetchUsers = useCallback(() => {
+        setLoading(true);
         apiClient.get('/admin/users')
             .then((r: { data: User[] }) => {
                 setUsers(r.data);
@@ -17,7 +21,16 @@ export const AdminUserManagement: React.FC = () => {
             });
     }, []);
 
-    if (loading) {
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
+
+    const handleRowClick = (user: User) => {
+        setSelectedUser(user);
+        setIsModalOpen(true);
+    };
+
+    if (loading && users.length === 0) {
         return (
             <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5">
                 <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
@@ -26,46 +39,69 @@ export const AdminUserManagement: React.FC = () => {
     }
 
     return (
-        <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5">
-            <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
-                            <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">ID</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Username</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Role</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border-base)]">
-                        {users.map((u) => (
-                            <tr key={u.id} className="hover:bg-[var(--border-muted)]/50 transition-colors group">
-                                <td className="px-6 py-4 text-sm font-mono text-[var(--text-muted)] opacity-40 group-hover:opacity-60 transition-opacity">
-                                    {u.id.slice(0, 8)}...
-                                </td>
-                                <td className="px-6 py-4 text-sm font-bold text-[var(--text-main)] transition-colors">
-                                    {u.username}
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 ring-inset ${u.role === 'admin'
-                                        ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-indigo-500/20'
-                                        : u.role === 'manager'
-                                            ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-blue-500/20'
-                                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20'
-                                        }`}>
-                                        {u.role}
-                                    </span>
-                                </td>
+        <>
+            <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
+                                <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">ID</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Username</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Role</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Assigned Manager</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            {users.length === 0 && (
-                <div className="p-16 text-center text-[var(--text-muted)] text-sm opacity-40 font-medium">
-                    No users detected in the system.
+                        </thead>
+                        <tbody className="divide-y divide-[var(--border-base)]">
+                            {users.map((u) => (
+                                <tr
+                                    key={u.id}
+                                    className="hover:bg-[var(--border-muted)]/50 transition-colors group cursor-pointer"
+                                    onClick={() => handleRowClick(u)}
+                                >
+                                    <td className="px-6 py-4 text-sm font-mono text-[var(--text-muted)] opacity-40 group-hover:opacity-60 transition-opacity">
+                                        {u.id.slice(0, 8)}...
+                                    </td>
+                                    <td className="px-6 py-4 text-sm font-bold text-[var(--text-main)] transition-colors">
+                                        {u.username}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 ring-inset ${u.role === 'admin'
+                                            ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-indigo-500/20'
+                                            : u.role === 'manager'
+                                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-blue-500/20'
+                                                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20'
+                                            }`}>
+                                            {u.role}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm font-medium text-[var(--text-muted)] opacity-80">
+                                        {u.role === 'client' ? (
+                                            u.assigned_managers?.[0]?.username || (
+                                                <span className="text-[10px] font-black uppercase tracking-widest opacity-30 italic">Unassigned</span>
+                                            )
+                                        ) : (
+                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-10">—</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-            )}
-        </div>
+                {users.length === 0 && (
+                    <div className="p-16 text-center text-[var(--text-muted)] text-sm opacity-40 font-medium">
+                        No users detected in the system.
+                    </div>
+                )}
+            </div>
+
+            <UserEditModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                user={selectedUser}
+                onSave={fetchUsers}
+            />
+        </>
     );
 };
 

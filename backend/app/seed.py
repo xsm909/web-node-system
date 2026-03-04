@@ -17,7 +17,10 @@ def seed():
         users_data = [
             {"username": "admin", "password": "admin123", "role": RoleEnum.admin},
             {"username": "manager1", "password": "manager123", "role": RoleEnum.manager},
+            {"username": "manager2", "password": "manager123", "role": RoleEnum.manager},
             {"username": "client1", "password": "client123", "role": RoleEnum.client},
+            {"username": "client2", "password": "client123", "role": RoleEnum.client},
+            {"username": "client3", "password": "client123", "role": RoleEnum.client},
         ]
         created_users = {}
         for u in users_data:

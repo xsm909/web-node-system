@@ -32,7 +32,16 @@ class User(Base):
         secondary=manager_client,
         primaryjoin=id == manager_client.c.manager_id,
         secondaryjoin=id == manager_client.c.client_id,
-        backref="assigned_managers",
+        back_populates="assigned_managers",
+    )
+
+    # Client's assigned managers
+    assigned_managers = relationship(
+        "User",
+        secondary=manager_client,
+        primaryjoin=id == manager_client.c.client_id,
+        secondaryjoin=id == manager_client.c.manager_id,
+        back_populates="assigned_clients",
     )
 
     workflows = relationship(

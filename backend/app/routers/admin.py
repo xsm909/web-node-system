@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from typing import List, Optional
 from pydantic import BaseModel
 import uuid
@@ -12,6 +12,27 @@ from ..models.credential import Credential
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 admin_only = Depends(require_role("admin"))
+
+
+class UserSummary(BaseModel):
+    id: uuid.UUID
+    username: str
+    role: str
+
+    class Config:
+        from_attributes = True
+
+
+class UserOut(UserSummary):
+    assigned_managers: List[UserSummary] = []
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/users", response_model=List[UserOut])
+def list_users(db: Session = Depends(get_db), _=admin_only):
+    return db.query(User).options(selectinload(User.assigned_managers)).all()
 
 
 def extract_node_parameters(code: str) -> list:
@@ -204,6 +225,11 @@ def list_users(db: Session = Depends(get_db), _=admin_only):
     return db.query(User).all()
 
 
+@router.get("/managers", response_model=List[UserOut])
+def list_managers(db: Session = Depends(get_db), _=admin_only):
+    return db.query(User).filter(User.role == RoleEnum.manager).all()
+
+
 @router.post("/users", response_model=UserOut)
 def create_user(data: UserCreate, db: Session = Depends(get_db), _=admin_only):
     if db.query(User).filter(User.username == data.username).first():
@@ -217,14 +243,26 @@ def create_user(data: UserCreate, db: Session = Depends(get_db), _=admin_only):
 
 @router.post("/users/{manager_id}/assign/{client_id}")
 def assign_client(manager_id: uuid.UUID, client_id: uuid.UUID, db: Session = Depends(get_db), _=admin_only):
-    manager = db.query(User).filter(User.id == manager_id, User.role == "manager").first()
-    client = db.query(User).filter(User.id == client_id, User.role == "client").first()
+    manager = db.query(User).filter(User.id == manager_id, User.role == RoleEnum.manager).first()
+    client = db.query(User).filter(User.id == client_id, User.role == RoleEnum.client).first()
     if not manager or not client:
         raise HTTPException(status_code=404, detail="User not found")
     if client not in manager.assigned_clients:
         manager.assigned_clients.append(client)
         db.commit()
     return {"status": "assigned"}
+
+
+@router.delete("/users/manager-assignment/{manager_id}/{client_id}")
+def unassign_client(manager_id: uuid.UUID, client_id: uuid.UUID, db: Session = Depends(get_db), _=admin_only):
+    manager = db.query(User).filter(User.id == manager_id, User.role == RoleEnum.manager).first()
+    client = db.query(User).filter(User.id == client_id, User.role == RoleEnum.client).first()
+    if not manager or not client:
+        raise HTTPException(status_code=404, detail="User not found")
+    if client in manager.assigned_clients:
+        manager.assigned_clients.remove(client)
+        db.commit()
+    return {"status": "unassigned"}
 
 
 @router.get("/node-types", response_model=List[NodeTypeOut])
