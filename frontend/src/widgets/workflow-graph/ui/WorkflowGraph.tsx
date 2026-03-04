@@ -8,7 +8,6 @@ import ReactFlow, {
     useEdgesState,
     useReactFlow,
     Panel,
-    SelectionMode,
 } from 'reactflow';
 import type {
     Node,
