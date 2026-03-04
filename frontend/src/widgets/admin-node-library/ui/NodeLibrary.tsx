@@ -124,7 +124,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
                                         <tr
                                             key={n.id}
                                             className={`hover:bg-[var(--border-muted)]/50 transition-colors group cursor-pointer ${selectedNodeId === n.id ? 'bg-brand/5' : ''}`}
-                                            onClick={() => onSelectNode(n.id)}
+                                            onClick={() => { onSelectNode(n.id); onEditNode(n); }}
                                         >
                                             <td className="px-5 py-3">
                                                 <div className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors">{n.name}</div>
@@ -139,13 +139,6 @@ const CategorySection: React.FC<CategorySectionProps> = ({
                                             </td>
                                             <td className="px-5 py-3 text-right">
                                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
-                                                        onClick={(e) => { e.stopPropagation(); onEditNode(n); }}
-                                                        title="Edit"
-                                                    >
-                                                        <Icon name="edit" size={13} />
-                                                    </button>
                                                     <button
                                                         className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
                                                         onClick={(e) => { e.stopPropagation(); onDuplicateNode(n); }}
@@ -206,7 +199,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ nodes, onEditNode, onDupl
                     <tr
                         key={n.id}
                         className={`hover:bg-[var(--border-muted)]/50 transition-colors group cursor-pointer ${selectedNodeId === n.id ? 'bg-brand/5' : ''}`}
-                        onClick={() => onSelectNode(n.id)}
+                        onClick={() => { onSelectNode(n.id); onEditNode(n); }}
                     >
                         <td className="px-5 py-3">
                             <div className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors">{n.name}</div>
@@ -223,13 +216,6 @@ const SearchResults: React.FC<SearchResultsProps> = ({ nodes, onEditNode, onDupl
                         </td>
                         <td className="px-5 py-3 text-right">
                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                    className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
-                                    onClick={(e) => { e.stopPropagation(); onEditNode(n); }}
-                                    title="Edit"
-                                >
-                                    <Icon name="edit" size={13} />
-                                </button>
                                 <button
                                     className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
                                     onClick={(e) => { e.stopPropagation(); onDuplicateNode(n); }}
