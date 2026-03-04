@@ -43,6 +43,16 @@ def json_sanitize(obj):
     return obj
 
 
+def custom_getattr(obj, name, *args, **kwargs):
+    """Custom _getattr_ guard that extends safer_getattr to allow str.format methods.
+    RestrictedPython blocks str.format and str.format_map by default, but they
+    are needed for template interpolation in node code (e.g. pattern.format(**inputs)).
+    """
+    if isinstance(obj, str) and name in ("format", "format_map"):
+        return getattr(obj, name)
+    return Guards.safer_getattr(obj, name, *args, **kwargs)
+
+
 SAFE_GLOBALS = {
     **safe_globals,
     "__builtins__": {
@@ -75,6 +85,7 @@ SAFE_GLOBALS = {
         "_getiter_": iter,
         "_getitem_": lambda obj, key: obj[key],
         "_write_": lambda obj: obj,  # Allow attribute writes inside sandbox
+        "_apply_": lambda f, *a, **kw: f(*a, **kw),  # Allow **kwargs unpacking in function calls
     },
     "__metaclass__": type,
     "time": time,  # available without import
@@ -526,7 +537,7 @@ class WorkflowExecutor:
                 **SAFE_GLOBALS,
                 "__name__": f"<node:{node_id}>",
                 "_print_": lambda _getattr_=None: self.NodePrintCollector(self, _getattr_),
-                "_getattr_": Guards.safer_getattr,
+                "_getattr_": custom_getattr,
                 "_setattr_": Guards.guarded_setattr,
                 "_delattr_": Guards.guarded_delattr,
                 "__builtins__": {
@@ -560,6 +571,10 @@ class WorkflowExecutor:
                     node_globals["nodeParameters"] = node_params_inst
                     node_globals["params"] = node_params_inst
                 
+                # Add dictionary-style access support
+                if not hasattr(node_params_class, "__getitem__"):
+                    node_params_class.__getitem__ = lambda self, key: getattr(self, key)
+                
                 if prior_output_value is not None and hasattr(node_params_inst, "Input"):
                     setattr(node_params_inst, "Input", prior_output_value)
 
@@ -569,6 +584,10 @@ class WorkflowExecutor:
                 if not input_params_inst or not isinstance(input_params_inst, input_params_class):
                     input_params_inst = input_params_class()
                     node_globals["inputParameters"] = input_params_inst
+                
+                # Add dictionary-style access support
+                if not hasattr(input_params_class, "__getitem__"):
+                    input_params_class.__getitem__ = lambda self, key: getattr(self, key)
                     
                 for handle_name, val in handle_inputs.items():
                     if val is None:
