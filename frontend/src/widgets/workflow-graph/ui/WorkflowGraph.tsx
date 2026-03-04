@@ -301,9 +301,15 @@ export function WorkflowGraph({
 
     const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
         event.preventDefault();
+
+        if (!isReadOnly && event.altKey) {
+            setEdges((eds) => eds.filter(e => !(e.target === node.id && (e.targetHandle === 'top' || !e.targetHandle))));
+            return;
+        }
+
         setSelectedNodeId(node.id);
 
-        if (!isReadOnly && (event.button === 2 || event.ctrlKey)) {
+        if (!isReadOnly && event.button === 2) {
             if (node.id === 'node_start' || node.type === 'start') {
                 setMenu(null);
                 return;
@@ -322,7 +328,7 @@ export function WorkflowGraph({
                 nodeId: node.id,
             });
         }
-    }, [isReadOnly]);
+    }, [isReadOnly, setEdges]);
 
     const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
