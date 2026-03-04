@@ -552,12 +552,13 @@ class WorkflowExecutor:
 
             exec(byte_code, node_globals)
 
-            node_params_class = node_globals.get("NodeParameters")
+            node_params_class = node_globals.get("NodeParameters") or node_globals.get("params")
             if node_params_class and isinstance(node_params_class, type):
-                node_params_inst = node_globals.get("nodeParameters")
+                node_params_inst = node_globals.get("nodeParameters") or node_globals.get("params")
                 if not node_params_inst or not isinstance(node_params_inst, node_params_class):
                     node_params_inst = node_params_class()
                     node_globals["nodeParameters"] = node_params_inst
+                    node_globals["params"] = node_params_inst
                 
                 if prior_output_value is not None and hasattr(node_params_inst, "Input"):
                     setattr(node_params_inst, "Input", prior_output_value)
@@ -600,7 +601,7 @@ class WorkflowExecutor:
             if not run_fn:
                 raise ValueError("Node code must define a 'run(inputs, params)' function")
             
-            result = run_fn(inputs, params)
+            result = run_fn(inputs, node_params_inst if node_params_inst is not None else params)
             if not isinstance(result, dict):
                 result = {"output": result}
 
