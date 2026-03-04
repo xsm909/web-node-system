@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.database import Base, engine
-from .routers import auth, admin, workflow, client
+from .routers import auth, admin, workflow, client, ai_task
 from .models.intermediate_result import IntermediateResult  # noqa: F401 — registers table with Base
 from .models.ai_task import AI_Task  # noqa: F401 — registers table with Base
 
@@ -49,6 +49,7 @@ app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(workflow.router)
 app.include_router(client.router)
+app.include_router(ai_task.router)
 
 
 @app.get("/")

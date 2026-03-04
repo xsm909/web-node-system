@@ -8,6 +8,7 @@ import { WorkflowHeader } from '../../widgets/workflow-header';
 import { ConfirmModal } from '../../shared/ui/confirm-modal';
 import { WorkflowGraph } from '../../widgets/workflow-graph';
 import { WorkflowDataEditorTabs } from '../../widgets/workflow-data-editor';
+import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskManagement';
 import { useWorkflowOperations } from '../../features/workflow-operations';
 import { useWorkflowManagement } from '../../features/workflow-management';
 import { useAuthStore } from '../../features/auth/store';
@@ -22,7 +23,7 @@ export default function ManagerPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
-    const [activeTab, setActiveTab] = useState<'workflows' | 'reports'>('workflows');
+    const [activeTab, setActiveTab] = useState<'workflows' | 'reports' | 'ai-tasks'>('workflows');
 
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -100,6 +101,13 @@ export default function ManagerPage() {
             icon: 'bar_chart',
             isActive: activeTab === 'reports',
             onClick: () => setActiveTab('reports'),
+        },
+        {
+            id: 'ai-tasks',
+            label: 'AI Tasks',
+            icon: 'bolt',
+            isActive: activeTab === 'ai-tasks',
+            onClick: () => setActiveTab('ai-tasks'),
         }
     ];
 
@@ -275,6 +283,21 @@ export default function ManagerPage() {
                             />
                         </ConfirmModal>
                     </>
+                ) : activeTab === 'ai-tasks' ? (
+                    <div className="flex-1 flex flex-col relative overflow-hidden">
+                        <AppHeader
+                            onToggleSidebar={toggleSidebar}
+                            isSidebarOpen={isSidebarOpen}
+                            leftContent={
+                                <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
+                                    AI Task Management
+                                </h1>
+                            }
+                        />
+                        <div className="flex-1 p-8 overflow-y-auto">
+                            <AITaskManagement activeClientId={activeClientId} />
+                        </div>
+                    </div>
                 ) : (
                     <div className="flex-1 flex flex-col relative">
                         <AppHeader

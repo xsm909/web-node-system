@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../shared/api/client';
 import type { User } from '../../../entities/user/model/types';
 import { Icon } from '../../../shared/ui/icon';
@@ -13,13 +14,20 @@ interface UserEditModalProps {
 }
 
 export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, user, onSave }) => {
-    const [managers, setManagers] = useState<User[]>([]);
+    const queryClient = useQueryClient();
     const [selectedManagerId, setSelectedManagerId] = useState<string>('');
-    const [isSaving, setIsSaving] = useState(false);
+
+    const { data: managers = [] } = useQuery({
+        queryKey: ['admin-managers'],
+        queryFn: async () => {
+            const response = await apiClient.get<User[]>('/admin/managers');
+            return response.data;
+        },
+        enabled: isOpen && user?.role === 'client',
+    });
 
     useEffect(() => {
         if (isOpen && user?.role === 'client') {
-            apiClient.get('/admin/managers').then(r => setManagers(r.data)).catch(() => { });
             const currentManager = user.assigned_managers?.[0];
             setSelectedManagerId(currentManager?.id || '');
         }
@@ -40,11 +48,9 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
         return data;
     }, [managers]);
 
-    if (!isOpen || !user) return null;
-
-    const handleSave = async () => {
-        setIsSaving(true);
-        try {
+    const mutation = useMutation({
+        mutationFn: async () => {
+            if (!user) return;
             const currentManagerId = user.assigned_managers?.[0]?.id;
 
             // If manager changed
@@ -58,13 +64,21 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
                     await apiClient.post(`/admin/users/${selectedManagerId}/assign/${user.id}`);
                 }
             }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
             onSave();
             onClose();
-        } catch (error) {
+        },
+        onError: (error) => {
             console.error('Failed to save manager assignment', error);
-        } finally {
-            setIsSaving(false);
         }
+    });
+
+    if (!isOpen || !user) return null;
+
+    const handleSave = () => {
+        mutation.mutate();
     };
 
     const selectedManager = managers.find(m => m.id === selectedManagerId);
@@ -147,10 +161,10 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
                     </button>
                     <button
                         onClick={handleSave}
-                        disabled={isSaving}
+                        disabled={mutation.isPending}
                         className="px-8 py-3 rounded-2xl bg-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none"
                     >
-                        {isSaving ? 'Saving...' : 'Save Changes'}
+                        {mutation.isPending ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>
             </div>
