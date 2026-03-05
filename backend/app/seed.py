@@ -135,32 +135,6 @@ def seed():
                 "is_async": False
             },
             {
-                "id": "2301f433-3341-44f2-a679-1bf841bb7202",
-                "name": "Set value",
-                "version": "1.1",
-                "description": "Set value in runtime",
-                "code": "class NodeParameters:\n    Name: str = \"Param\"\n    NewValue = \"Any\"\n\ndef run(inputs, params):\n    data = libs.get_runtime_data ()\n    data[params.Name] = params.NewValue\n    libs.update_runtime_data(data)\n    \n    inputs [params.Name] = params.NewValue\n    return inputs",
-                "input_schema": {},
-                "output_schema": {},
-                "parameters": [
-                    {
-                        "name": "Name",
-                        "type": "string",
-                        "label": "Name",
-                        "default": "Param"
-                    },
-                    {
-                        "name": "NewValue",
-                        "type": "string",
-                        "label": "Newvalue",
-                        "default": "Any"
-                    }
-                ],
-                "category": "Data|Runtime",
-                "icon": "task",
-                "is_async": False
-            },
-            {
                 "id": "232bbc82-bc33-47c4-8eea-9bfd8e31dec1",
                 "name": "Tool: Smart Search",
                 "version": "1.0",
@@ -332,6 +306,38 @@ def seed():
                 ],
                 "category": "Utility|Console",
                 "icon": "text",
+                "is_async": False
+            },
+            {
+                "id": "2301f433-3341-44f2-a679-1bf841bb7202",
+                "name": "Set value",
+                "version": "1.1",
+                "description": "Set value in runtime",
+                "code": "class NodeParameters:\n    Name: str = \"Param\"\n    NewValue = \"Any\"\n    Update: bool = True\n\ndef run(inputs, params):\n\n    data = libs.get_runtime_data()\n\n    if params.Name not in data or params.Update:\n        data[params.Name] = params.NewValue\n        libs.update_runtime_data(data)\n\n    return inputs",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [
+                    {
+                        "name": "Name",
+                        "type": "string",
+                        "label": "Name",
+                        "default": "Param"
+                    },
+                    {
+                        "name": "NewValue",
+                        "type": "string",
+                        "label": "Newvalue",
+                        "default": "Any"
+                    },
+                    {
+                        "name": "Update",
+                        "type": "boolean",
+                        "label": "Update",
+                        "default": True
+                    }
+                ],
+                "category": "Data|Runtime",
+                "icon": "task",
                 "is_async": False
             },
             {
@@ -847,20 +853,13 @@ def seed():
             },
             {
                 "id": "c71008b9-9b88-4405-8780-53105361b7f8",
-                "name": "Prepare AI Question by Category",
+                "name": "Prepare AI Question",
                 "version": "1.2",
                 "description": "Get clients' tasks and save as questions ",
-                "code": "class NodeParameters:\n    Category: str = \"Q1\"\n\ndef get_task (category, client_id):\n    query = f\"select ai_tasks.task->>'Task' as task, ai_tasks.id from ai_tasks where ai_tasks.category = '{category}' and ai_tasks.owner_id = '{client_id}'\"\n    result = inner_database.unsafe_request(query)\n    return result\n\ndef clear_sequence (session_id, category):\n    query = f\"\"\"\n    DELETE FROM intermediate_results\n    WHERE session_id = '{session_id}' AND sub_category='{category}' AND category = 'AI_Question'\n    \"\"\"\n    inner_database.unsafe_request(query)\n                              \ndef save_task_as_question(data, category, client_id, session_id):\n    if not data:\n        return\n\n    values_list = []\n    question_count = 0\n\n    for item in data:\n        question_count=question_count+1\n        json_data = json.dumps({\"Question\": item[\"task\"]}).replace(\"'\", \"''\")\n\n        values_list.append(\n            f\"(gen_random_uuid(), '{session_id}', '{item['id']}', '{client_id}', 'AI_Question', '{category}', '{json_data}', NOW(), NOW())\"\n        )\n\n    query = f\"\"\"\n    INSERT INTO intermediate_results (\n        id,\n        session_id,\n        reference_id,\n        client_id,\n        category,\n        sub_category,\n        data,\n        created_at,\n        updated_at\n    )\n    VALUES\n        {',\\n'.join(values_list)};\n    \"\"\"\n\n    inner_database.unsafe_request(query)\n    \n    return question_count\n        \ndef run(inputs, params):\n    \n    runtime = libs.get_runtime_data()\n    client_id = runtime[\"_active_client_id\"]\n    session_id = runtime[\"_session_id\"]\n\n    #save update runtime\n    result = get_task (params.Category, client_id);\n    clear_sequence (session_id, params.Category)\n    question_count=save_task_as_question (result, params.Category, client_id, session_id)\n\n    runtime['_questions'] = question_count;\n    libs.update_runtime_data(runtime)\n\n    return inputs",
+                "code": "def get_task (category, client_id):\n    query = f\"select ai_tasks.task->>'Task' as task, ai_tasks.id from ai_tasks where ai_tasks.category = '{category}' and ai_tasks.owner_id = '{client_id}'\"\n    result = inner_database.unsafe_request(query)\n    return result\n\ndef clear_sequence (session_id, category):\n    query = f\"\"\"\n    DELETE FROM intermediate_results\n    WHERE session_id = '{session_id}' \n      AND sub_category = '{category}' \n      AND (category = 'AI_Question' OR category LIKE 'AI_Answer|%')\n    \"\"\"\n    inner_database.unsafe_request(query)\n                              \ndef save_task_as_question(data, category, client_id, session_id):\n    if not data:\n        return\n\n    values_list = []\n    question_count = 0\n\n    for item in data:\n        question_count=question_count+1\n        json_data = json.dumps({\"Question\": item[\"task\"]}).replace(\"'\", \"''\")\n\n        values_list.append(\n            f\"(gen_random_uuid(), '{session_id}', '{item['id']}', '{client_id}', 'AI_Question', '{category}', '{json_data}', NOW(), NOW())\"\n        )\n\n    query = f\"\"\"\n    INSERT INTO intermediate_results (\n        id,\n        session_id,\n        reference_id,\n        client_id,\n        category,\n        sub_category,\n        data,\n        created_at,\n        updated_at\n    )\n    VALUES\n        {',\\n'.join(values_list)};\n    \"\"\"\n\n    inner_database.unsafe_request(query)\n    \n    return question_count\n        \ndef run(inputs, params):\n    \n    runtime = libs.get_runtime_data()\n    client_id = runtime[\"_active_client_id\"]\n    session_id = runtime[\"_session_id\"]\n    category = runtime[\"_category\"]\n    \n\n    #save update runtime\n    result = get_task (category, client_id);\n    clear_sequence (session_id, category)\n    question_count=save_task_as_question (result, category, client_id, session_id)\n\n    runtime['_questions'] = question_count;\n    libs.update_runtime_data(runtime)\n\n    return inputs",
                 "input_schema": {},
                 "output_schema": {},
-                "parameters": [
-                    {
-                        "name": "Category",
-                        "type": "string",
-                        "label": "Category",
-                        "default": "Q1"
-                    }
-                ],
+                "parameters": [],
                 "category": "Database",
                 "icon": "text",
                 "is_async": False
@@ -870,23 +869,36 @@ def seed():
                 "name": "Create or get session ID",
                 "version": "1.2",
                 "description": "Create or get session ID by client",
-                "code": "class NodeParameters:\n    days: int = 1\n    sub_category: str = \"Q1\"\n\n\ndef run(inputs, params):\n\n    # \u041f\u043e\u043b\u0443\u0447\u0430\u0435\u043c client_id\n    runtime = libs.get_runtime_data()\n    client_id = runtime[\"_active_client_id\"]\n\n    # 1. \u0418\u0449\u0435\u043c \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u044e\u044e \u0441\u0435\u0441\u0441\u0438\u044e \u0437\u0430 N \u0434\u043d\u0435\u0439\n    select_query = f\"\"\"\n    SELECT session_id\n    FROM intermediate_results\n    WHERE client_id = '{client_id}'\n      AND created_at >= NOW() - INTERVAL '{params.days} days'\n      AND category = 'Session'\n      AND sub_category = '{params.sub_category}'\n    ORDER BY created_at DESC\n    LIMIT 1;\n    \"\"\"\n\n    result = inner_database.unsafe_request(select_query)\n\n    # \u0415\u0441\u043b\u0438 \u043d\u0430\u0448\u043b\u0438 \u2014 \u0432\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u043c session_id\n    if result and len(result) > 0:\n        session_id = result[0][\"session_id\"]\n        runtime[\"_session_id\"] = str(session_id)\n        libs.update_runtime_data(runtime)\n        \n        return session_id\n\n\n    # 2. \u0415\u0441\u043b\u0438 \u043d\u0435 \u043d\u0430\u0448\u043b\u0438 \u2014 \u0441\u043e\u0437\u0434\u0430\u0451\u043c \u043d\u043e\u0432\u0443\u044e\n    insert_query = f\"\"\"\n    INSERT INTO intermediate_results (\n        id,\n        session_id,\n        reference_id,\n        client_id,\n        created_by,\n        updated_by,\n        created_at,\n        updated_at,\n        category,\n        sub_category,\n        data,\n        short_description\n    )\n    VALUES (\n        gen_random_uuid(),\n        gen_random_uuid(),\n        NULL,\n        '{client_id}',\n        NULL,\n        NULL,\n        NOW(),\n        NOW(),\n        'Session',\n        '{params.sub_category}',\n        NULL,\n        NULL\n    )\n    RETURNING session_id;\n    \"\"\"\n\n    insert_result = inner_database.unsafe_request(insert_query)\n    print('add')\n    # \u0412\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u043c \u043d\u043e\u0432\u0443\u044e session_id\n    session_id = insert_result[0][\"session_id\"]\n    runtime['_session_id'] = str(session_id)\n    libs.update_runtime_data(runtime)\n    return session_id",
+                "code": "def run(inputs, params):\n\n    # \u041f\u043e\u043b\u0443\u0447\u0430\u0435\u043c client_id\n    runtime = libs.get_runtime_data()\n    client_id = runtime[\"_active_client_id\"]\n    sub_category = runtime[\"_category\"]\n    session_expires_in_days = runtime[\"_session_expires_in_days\"]\n\n    # 1. \u0418\u0449\u0435\u043c \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u044e\u044e \u0441\u0435\u0441\u0441\u0438\u044e \u0437\u0430 N \u0434\u043d\u0435\u0439\n    select_query = f\"\"\"\n    SELECT session_id\n    FROM intermediate_results\n    WHERE client_id = '{client_id}'\n      AND created_at >= NOW() - INTERVAL '{session_expires_in_days} days'\n      AND category = 'Session'\n      AND sub_category = '{sub_category}'\n    ORDER BY created_at DESC\n    LIMIT 1;\n    \"\"\"\n\n    result = inner_database.unsafe_request(select_query)\n\n    # \u0415\u0441\u043b\u0438 \u043d\u0430\u0448\u043b\u0438 \u2014 \u0432\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u043c session_id\n    if result and len(result) > 0:\n        session_id = result[0][\"session_id\"]\n        runtime[\"_session_id\"] = str(session_id)\n        libs.update_runtime_data(runtime)\n        \n        return session_id\n\n\n    # 2. \u0415\u0441\u043b\u0438 \u043d\u0435 \u043d\u0430\u0448\u043b\u0438 \u2014 \u0441\u043e\u0437\u0434\u0430\u0451\u043c \u043d\u043e\u0432\u0443\u044e\n    insert_query = f\"\"\"\n    INSERT INTO intermediate_results (\n        id,\n        session_id,\n        reference_id,\n        client_id,\n        created_by,\n        updated_by,\n        created_at,\n        updated_at,\n        category,\n        sub_category,\n        data,\n        short_description\n    )\n    VALUES (\n        gen_random_uuid(),\n        gen_random_uuid(),\n        NULL,\n        '{client_id}',\n        NULL,\n        NULL,\n        NOW(),\n        NOW(),\n        'Session',\n        '{sub_category}',\n        NULL,\n        NULL\n    )\n    RETURNING session_id;\n    \"\"\"\n\n    insert_result = inner_database.unsafe_request(insert_query)\n    print('add')\n    # \u0412\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u043c \u043d\u043e\u0432\u0443\u044e session_id\n    session_id = insert_result[0][\"session_id\"]\n    runtime['_session_id'] = str(session_id)\n    libs.update_runtime_data(runtime)\n    return session_id",
                 "input_schema": {},
                 "output_schema": {},
-                "parameters": [
-                    {
-                        "name": "days",
-                        "type": "number",
-                        "label": "Days",
-                        "default": 1
-                    },
-                    {
-                        "name": "sub_category",
-                        "type": "string",
-                        "label": "Sub Category",
-                        "default": "Q1"
-                    }
-                ],
+                "parameters": [],
+                "category": "Database",
+                "icon": "text",
+                "is_async": False
+            },
+            {
+                "id": "94a06316-3627-4ab2-b95e-36a26fc8839a",
+                "name": "Getting answers from AI",
+                "version": "1.0",
+                "description": "Get questions of clients' and answer",
+                "code": "def get_questions(session_id, category):\n    query = f\"\"\"\n    SELECT id, reference_id, data\n    FROM intermediate_results\n    WHERE session_id = '{session_id}'\n    AND sub_category = '{category}'\n    AND category = 'AI_Question'\n    ORDER BY created_at\n    \"\"\"\n\n    return inner_database.unsafe_request(query)\n\ndef save_answer(question_id, answer, session_id, category, client_id, AnswerAI):\n\n    json_data = json.dumps({\"Answer\": answer}).replace(\"'\", \"''\")\n\n    query = f\"\"\"\n    INSERT INTO intermediate_results (\n        id,\n        session_id,\n        reference_id,\n        client_id,\n        category,\n        sub_category,\n        data,\n        created_at,\n        updated_at\n    )\n    VALUES (\n        gen_random_uuid(),\n        '{session_id}',\n        '{question_id}',\n        '{client_id}',\n        'AI_Answer|{AnswerAI}',\n        '{category}',\n        '{json_data}',\n        NOW(),\n        NOW()\n    );\n    \"\"\"\n\n    inner_database.unsafe_request(query)    \n\ndef process_questions(session_id, category, client_id, AnswerAI, Model, Additional_query):\n    questions = get_questions(session_id, category)\n    count_of_answer = 0\n    for question in questions:\n        count_of_answer=count_of_answer+1\n        \n        question_text = question[\"data\"].get(\"Question\")  \n        print (f'Ask {AnswerAI} {count_of_answer}: {question_text}')\n        \n        if AnswerAI == \"OpenAI\":\n            answer = openai.perform_web_search(question_text, Model)\n        elif AnswerAI == \"Gemini\":\n            answer = gemini.perform_web_search(question_text, Model)\n        elif AnswerAI == \"Perplexity\":\n            answer = perplexity.perform_web_search(question_text + Additional_query, Model)\n        else:\n            answer = \"Unknown AI\"\n        \n        print (f'Answer {AnswerAI} {count_of_answer}: {answer}')\n        save_answer(\n            question[\"id\"],\n            answer,\n            session_id,\n            category,\n            client_id,\n            AnswerAI\n        )   \n    return count_of_answer\n        \ndef run(inputs, params):\n    \n    runtime = libs.get_runtime_data()\n    client_id = runtime[\"_active_client_id\"]\n    session_id = runtime[\"_session_id\"]\n    AnswerAI = runtime[\"_AIAnswer\"]\n    Model = runtime[\"_AIModel\"]\n    Category = runtime[\"_category\"]\n    Additional_query = runtime[\"_additional_query\"]\n    \n    qustions = get_questions (session_id, Category)\n    \n    print ('---------------- AI Answer ----------------')\n    \n    answers = process_questions(\n        session_id,\n        Category,\n        client_id, \n        AnswerAI, \n        Model,\n        Additional_query)\n    \n    runtime[f'_answers_{AnswerAI}'] = answers\n\n    libs.update_runtime_data(runtime)\n    return inputs",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [],
+                "category": "AI",
+                "icon": "graph-2",
+                "is_async": False
+            },
+            {
+                "id": "21a0c4b5-f180-4072-aefc-a71be1193d3a",
+                "name": "Clear answers of model",
+                "version": "1.0",
+                "description": "Clear answer of model",
+                "code": "def clear_answers_of_model (session_id, category, ClearAI):\n    query = f\"\"\"\n    DELETE FROM intermediate_results\n    WHERE session_id = '{session_id}' \n      AND sub_category = '{category}' \n      AND (category = 'AI_Answer|{ClearAI}')\n    \"\"\"\n    inner_database.unsafe_request(query)\n                              \n        \ndef run(inputs, params):\n    \n    runtime = libs.get_runtime_data()\n    client_id = runtime[\"_active_client_id\"]\n    session_id = runtime[\"_session_id\"]\n    ClearAI = runtime[\"_AIAnswer\"]\n    category = runtime[\"_category\"]\n\n    clear_answers_of_model (session_id, category, ClearAI)\n    \n    return inputs",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [],
                 "category": "Database",
                 "icon": "text",
                 "is_async": False
