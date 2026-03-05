@@ -846,6 +846,26 @@ def seed():
                 "is_async": False
             },
             {
+                "id": "c71008b9-9b88-4405-8780-53105361b7f8",
+                "name": "Prepare AI Question by Category",
+                "version": "1.2",
+                "description": "Get clients' tasks and save as questions ",
+                "code": "class NodeParameters:\n    Category: str = \"Q1\"\n\ndef get_task (category, client_id):\n    query = f\"select ai_tasks.task->>'Task' as task, ai_tasks.id from ai_tasks where ai_tasks.category = '{category}' and ai_tasks.owner_id = '{client_id}'\"\n    result = inner_database.unsafe_request(query)\n    return result\n\ndef clear_sequence (session_id, category):\n    query = f\"\"\"\n    DELETE FROM intermediate_results\n    WHERE session_id = '{session_id}' AND sub_category='{category}' AND category = 'AI_Question'\n    \"\"\"\n    inner_database.unsafe_request(query)\n                              \ndef save_task_as_question(data, category, client_id, session_id):\n    if not data:\n        return\n\n    values_list = []\n    question_count = 0\n\n    for item in data:\n        question_count=question_count+1\n        json_data = json.dumps({\"Question\": item[\"task\"]}).replace(\"'\", \"''\")\n\n        values_list.append(\n            f\"(gen_random_uuid(), '{session_id}', '{item['id']}', '{client_id}', 'AI_Question', '{category}', '{json_data}', NOW(), NOW())\"\n        )\n\n    query = f\"\"\"\n    INSERT INTO intermediate_results (\n        id,\n        session_id,\n        reference_id,\n        client_id,\n        category,\n        sub_category,\n        data,\n        created_at,\n        updated_at\n    )\n    VALUES\n        {',\\n'.join(values_list)};\n    \"\"\"\n\n    inner_database.unsafe_request(query)\n    \n    return question_count\n        \ndef run(inputs, params):\n    \n    runtime = libs.get_runtime_data()\n    client_id = runtime[\"_active_client_id\"]\n    session_id = runtime[\"_session_id\"]\n\n    #save update runtime\n    result = get_task (params.Category, client_id);\n    clear_sequence (session_id, params.Category)\n    question_count=save_task_as_question (result, params.Category, client_id, session_id)\n\n    runtime['_questions'] = question_count;\n    libs.update_runtime_data(runtime)\n\n    return inputs",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [
+                    {
+                        "name": "Category",
+                        "type": "string",
+                        "label": "Category",
+                        "default": "Q1"
+                    }
+                ],
+                "category": "Database",
+                "icon": "text",
+                "is_async": False
+            },
+            {
                 "id": "66171aa4-8781-4e88-bf92-ec2be6d01ba2",
                 "name": "Create or get session ID",
                 "version": "1.2",
@@ -864,26 +884,6 @@ def seed():
                         "name": "sub_category",
                         "type": "string",
                         "label": "Sub Category",
-                        "default": "Q1"
-                    }
-                ],
-                "category": "Database",
-                "icon": "text",
-                "is_async": False
-            },
-            {
-                "id": "c71008b9-9b88-4405-8780-53105361b7f8",
-                "name": "Get clients\u2019 tasks by category",
-                "version": "1.2",
-                "description": "Get clients tasks",
-                "code": "class NodeParameters:\n    Category: str = \"Q1\"\n    \ndef run(inputs, params):\n    \n    runtime = libs.get_runtime_data()\n    client_id = runtime[\"_active_client_id\"]\n    session_id = runtime[\"_session_id\"]\n\n    query = f\"select ai_tasks.task->>'Task' as task from ai_tasks where ai_tasks.category = '{params.Category}' and ai_tasks.owner_id = '{client_id}'\"\n    result = inner_database.unsafe_request(query)\n    runtime[\"Tasks\"] = result;\n    libs.update_runtime_data(runtime)\n    return result",
-                "input_schema": {},
-                "output_schema": {},
-                "parameters": [
-                    {
-                        "name": "Category",
-                        "type": "string",
-                        "label": "Category",
                         "default": "Q1"
                     }
                 ],
