@@ -89,6 +89,7 @@ SAFE_GLOBALS = {
     },
     "__metaclass__": type,
     "time": time,  # available without import
+    "json": json,
     "libs": SimpleNamespace(
         ask_ai=ask_single,
         check_ai=check_ai,
