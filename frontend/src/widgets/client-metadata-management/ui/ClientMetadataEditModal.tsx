@@ -4,8 +4,7 @@ import { useAuthStore } from '../../../features/auth/store';
 import { apiClient } from '../../../shared/api/client';
 import type { ClientMetadata } from '../../../entities/client-metadata/model/types';
 import { Icon } from '../../../shared/ui/icon';
-import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
-import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
+import { DataTypeSelect } from '../../../shared/ui/data-type-select';
 
 interface ClientMetadataEditModalProps {
     isOpen: boolean;
@@ -30,25 +29,7 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
     const [singleValue, setSingleValue] = useState<string>('');
     const [multiValues, setMultiValues] = useState<string[]>(['']);
 
-    const categoryData: Record<string, SelectionGroup> = useMemo(() => {
-        const map: Record<string, SelectionGroup> = {};
 
-        // Put data types directly at the root level so they don't have an "all" parent folder
-        dataTypes.forEach(dt => {
-            const idStr = String(dt.id);
-            const label = dt.config?.Caption || dt.config?.caption || dt.type;
-            map[label] = { // Use name as the key so the label renders correctly in the list
-                id: idStr,
-                name: label,
-                icon: dt.config?.icon || 'category',
-                selectable: true,
-                items: [],
-                children: {}
-            };
-        });
-
-        return map;
-    }, [dataTypes]);
 
     useEffect(() => {
         if (isOpen) {
@@ -119,13 +100,7 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
 
     const isEdit = !!metadata;
 
-    const getDataTypeLabel = (id: string) => {
-        const dt = dataTypes.find(dt => String(dt.id) === id);
-        return dt ? (dt.config?.Caption || dt.config?.caption || dt.type) : undefined;
-    };
-    const getDataTypeIcon = (id: string) => {
-        return dataTypes.find(dt => String(dt.id) === id)?.config?.icon || 'category';
-    };
+
 
     const addRow = () => {
         setMultiValues([...multiValues, '']);
@@ -185,13 +160,11 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
                     <div className="grid grid-cols-1 gap-6">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Data Type</label>
-                            <ComboBox
+                            <DataTypeSelect
                                 value={dataTypeId}
-                                label={getDataTypeLabel(dataTypeId) || (dataTypeId ? 'Loading...' : 'Select data type...')}
-                                icon={getDataTypeIcon(dataTypeId)}
-                                placeholder="Select data type..."
-                                data={categoryData}
-                                onSelect={(item) => setDataTypeId(item.id)}
+                                onChange={(val: string) => setDataTypeId(val)}
+                                dataTypes={dataTypes}
+                                valueProp="id"
                                 className="w-full"
                             />
                         </div>

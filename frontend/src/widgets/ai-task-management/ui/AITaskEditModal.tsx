@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../../features/auth/store';
 import { apiClient } from '../../../shared/api/client';
 import type { AITask } from '../../../entities/ai-task/model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
+import { DataTypeSelect } from '../../../shared/ui/data-type-select';
 import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
 
 interface AITaskEditModalProps {
@@ -34,30 +35,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
     const [model, setModel] = useState('');
     const [ownerId, setOwnerId] = useState('');
 
-    const { data: dataTypes = [], isLoading: isDataTypesLoading } = useQuery({
-        queryKey: ['data-types', 'AI_question'],
-        queryFn: async () => {
-            const response = await apiClient.get<any[]>('/data-types/', { params: { category: 'AI_question' } });
-            return response.data;
-        },
-    });
 
-    const categoryData: Record<string, SelectionGroup> = useMemo(() => {
-        const map: Record<string, SelectionGroup> = {};
-
-        dataTypes.forEach(dt => {
-            map[dt.type] = {
-                id: dt.type,
-                name: dt.type,
-                icon: dt.config?.icon || 'category',
-                selectable: true,
-                items: [],
-                children: {}
-            };
-        });
-
-        return map;
-    }, [dataTypes]);
 
     useEffect(() => {
         if (isOpen) {
@@ -104,15 +82,11 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
     const isEdit = !!task;
 
     // Helper to find label for ComboBox
-    const getCategoryLabel = (id: string) => {
-        return dataTypes.find(dt => dt.type === id)?.type;
-    };
+
     const getModelLabel = (id: string) => {
         return Object.values(MODEL_DATA).find(g => g.id === id)?.name;
     };
-    const getCategoryIcon = (id: string) => {
-        return dataTypes.find(dt => dt.type === id)?.config?.icon || 'category';
-    };
+
     const getModelIcon = (id: string) => {
         return Object.values(MODEL_DATA).find(g => g.id === id)?.icon;
     };
@@ -158,13 +132,11 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
                     <div className={`grid ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'} gap-6`}>
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Category</label>
-                            <ComboBox
+                            <DataTypeSelect
                                 value={category}
-                                label={getCategoryLabel(category) || (isDataTypesLoading ? 'Loading...' : category)}
-                                icon={getCategoryIcon(category)}
-                                placeholder="Select category..."
-                                data={categoryData}
-                                onSelect={(item) => setCategory(item.id)}
+                                onChange={(val: string) => setCategory(val)}
+                                categoryFilter="AI_question"
+                                valueProp="type"
                                 className="w-full"
                             />
                         </div>
