@@ -76,7 +76,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 cell: info => {
                     const dtId = info.getValue() as number;
                     const dt = dataTypes.find((d: any) => d.id === dtId);
-                    const label = dt ? dt.type : dtId;
+                    const label = dt ? (dt.config?.Caption || dt.config?.caption || dt.type) : dtId;
                     return (
                         <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
                             {label}

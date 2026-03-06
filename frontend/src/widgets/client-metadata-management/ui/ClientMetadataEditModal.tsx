@@ -36,9 +36,10 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
         // Put data types directly at the root level so they don't have an "all" parent folder
         dataTypes.forEach(dt => {
             const idStr = String(dt.id);
-            map[dt.type] = { // Use name as the key so the label renders correctly in the list
+            const label = dt.config?.Caption || dt.config?.caption || dt.type;
+            map[label] = { // Use name as the key so the label renders correctly in the list
                 id: idStr,
-                name: dt.type,
+                name: label,
                 icon: dt.config?.icon || 'category',
                 selectable: true,
                 items: [],
@@ -119,7 +120,8 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
     const isEdit = !!metadata;
 
     const getDataTypeLabel = (id: string) => {
-        return dataTypes.find(dt => String(dt.id) === id)?.type;
+        const dt = dataTypes.find(dt => String(dt.id) === id);
+        return dt ? (dt.config?.Caption || dt.config?.caption || dt.type) : undefined;
     };
     const getDataTypeIcon = (id: string) => {
         return dataTypes.find(dt => String(dt.id) === id)?.config?.icon || 'category';
