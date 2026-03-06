@@ -28,6 +28,7 @@ from ..internal_libs.tools_lib import (
     smart_search, read_workflow_data, read_runtime_data, write_runtime_data
 )
 from ..internal_libs import database_lib
+from ..internal_libs import analytics
 from ..internal_libs.logger_lib import executor_logger
 from ..internal_libs.context_lib import execution_context
 
@@ -162,6 +163,9 @@ SAFE_GLOBALS = {
     ),
     "inner_database": SimpleNamespace(
         unsafe_request=database_lib.unsafe_request
+    ),
+    "analytics": SimpleNamespace(
+        process_request=analytics.process_analytics_request
     ),
     "workflow": None,  # Will be injected per-execution
 }
@@ -582,6 +586,9 @@ class WorkflowExecutor:
                 "libs": execution_libs,
                 "openai": execution_openai,
                 "common": execution_common,
+                "analytics": SimpleNamespace(
+                    process_request=analytics.process_analytics_request
+                ),
                 "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),
             }
             
