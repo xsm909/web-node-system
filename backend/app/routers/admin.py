@@ -86,11 +86,27 @@ def extract_node_parameters(code: str) -> list:
                                 ptype = "boolean"
 
                     if name:
+                        # Extract @table marker from comments on the same line
+                        options_source = None
+                        line_content = code.splitlines()[item.lineno-1] if item.lineno <= len(code.splitlines()) else ""
+                        marker_match = re.search(r"@table[-|>]+([\w]+)->([\w]+),([\w]+)->([\w]+)", line_content)
+                        if marker_match:
+                            table_name = marker_match.group(1)
+                            options_source = {
+                                "table": table_name,
+                                "value_field": marker_match.group(2),
+                                "label_field": marker_match.group(4),
+                                "component": "ComboBox"
+                            }
+                            if table_name == "AI_Tasks":
+                                options_source["filters"] = {"owner_id": "AI_Task"}
+
                         params.append({
                             "name": name,
                             "type": ptype,
                             "label": name.replace("_", " ").title(),
-                            "default": default
+                            "default": default,
+                            "options_source": options_source
                         })
                 return params
         return []

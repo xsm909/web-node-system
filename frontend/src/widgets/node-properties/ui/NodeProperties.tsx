@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Node } from 'reactflow';
 import type { NodeType } from '../../../entities/node-type/model/types';
+import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
+import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
+import { apiClient } from '../../../shared/api/client';
 
 interface NodePropertiesProps {
     node: Node | null;
@@ -9,6 +12,152 @@ interface NodePropertiesProps {
     onClose: () => void;
     isReadOnly?: boolean;
 }
+
+const ParameterRow: React.FC<{
+    param: any;
+    value: any;
+    onChange: (val: any) => void;
+    isReadOnly: boolean;
+}> = ({ param, value, onChange, isReadOnly }) => {
+    const [options, setOptions] = useState<Record<string, SelectionGroup>>({});
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (param.options_source?.component === 'ComboBox') {
+            const fetchOptions = async () => {
+                setIsLoading(true);
+                try {
+                    let endpoint = "";
+                    if (param.options_source.table === "AI_Tasks") {
+                        endpoint = "/ai-tasks/";
+                    } else {
+                        // Fallback for other tables if needed
+                        endpoint = `/${param.options_source.table.toLowerCase().replace(/_/g, '-')}/`;
+                    }
+
+                    const response = await apiClient.get(endpoint);
+                    const data = response.data;
+
+                    const groupedOptions: Record<string, SelectionGroup> = {
+                        '': {
+                            id: 'all',
+                            name: '',
+                            icon: '',
+                            selectable: false,
+                            items: data
+                                .filter((item: any) => {
+                                    if (param.options_source.filters) {
+                                        return Object.entries(param.options_source.filters).every(
+                                            ([key, val]) => item[key] === val
+                                        );
+                                    }
+                                    return true;
+                                })
+                                .map((item: any) => {
+                                    const labelField = param.options_source.label_field;
+                                    let nameValue = item[labelField];
+
+                                    // Handle typo in marker (e.g. 'desription' instead of 'description')
+                                    if (nameValue === undefined && labelField === 'desription') {
+                                        nameValue = item['description'];
+                                    }
+
+                                    if (nameValue === undefined) {
+                                        nameValue = item.name || item.title || item.id || 'Unknown';
+                                    }
+
+                                    return {
+                                        id: String(item[param.options_source.value_field]),
+                                        name: String(nameValue),
+                                        icon: 'bolt'
+                                    };
+                                }),
+                            children: {}
+                        }
+                    };
+                    setOptions(groupedOptions);
+                } catch (error) {
+                    console.error("Failed to fetch options for", param.name, error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            fetchOptions();
+        }
+    }, [param]);
+
+    const getSelectedLabel = () => {
+        if (!value) return "";
+        for (const group of Object.values(options)) {
+            const item = group.items.find(i => i.id === String(value));
+            if (item) return item.name;
+        }
+        return value;
+    };
+
+    return (
+        <div className="space-y-2 group">
+            <div className="flex items-center justify-between">
+                <label
+                    htmlFor={`param-${param.name}`}
+                    className="text-xs font-medium text-[var(--text-main)] opacity-70 group-focus-within:text-brand transition-colors"
+                >
+                    {param.label}
+                </label>
+                {param.type === 'boolean' && (
+                    <div
+                        className={`relative inline-flex h-5 w-9 shrink-0 ${isReadOnly ? 'cursor-default opacity-50' : 'cursor-pointer'} items-center rounded-full transition-colors focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2 ${value ? 'bg-brand' : 'bg-[var(--border-base)]'}`}
+                        onClick={() => !isReadOnly && onChange(!(value ?? false))}
+                    >
+                        <input
+                            id={`param-${param.name}`}
+                            type="checkbox"
+                            checked={value ?? false}
+                            onChange={(e) => !isReadOnly && onChange(e.target.checked)}
+                            className="sr-only"
+                            disabled={isReadOnly}
+                        />
+                        <div
+                            className={`
+                                pointer-events-none block h-3.5 w-3.5 rounded-full bg-white shadow ring-0 transition-transform
+                                ${value ? 'translate-x-4.5' : 'translate-x-1'}
+                            `}
+                        />
+                    </div>
+                )}
+            </div>
+
+            {param.type !== 'boolean' && (
+                param.options_source?.component === 'ComboBox' ? (
+                    <ComboBox
+                        value={String(value || '')}
+                        label={getSelectedLabel()}
+                        icon="bolt"
+                        placeholder={isLoading ? "Loading..." : `Select ${param.label.toLowerCase()}...`}
+                        data={options}
+                        onSelect={(item) => onChange(item.id)}
+                        className="w-full"
+                    />
+                ) : (
+                    <input
+                        id={`param-${param.name}`}
+                        type={param.type === 'number' ? 'number' : 'text'}
+                        value={value ?? ''}
+                        onChange={(e) => onChange(param.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
+                        placeholder={`Enter ${param.label.toLowerCase()}...`}
+                        className="w-full px-3 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-xs text-[var(--text-main)] placeholder:text-[var(--text-muted)] opacity-80 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                (e.target as HTMLInputElement).blur();
+                            }
+                        }}
+                        disabled={isReadOnly}
+                    />
+                )
+            )}
+        </div>
+    );
+};
 
 export const NodeProperties: React.FC<NodePropertiesProps> = ({
     node,
@@ -21,9 +170,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
 
     const nodeTypeData = nodeTypes.find(t => t.name === node.data.label);
     const allParameters = nodeTypeData?.parameters || [];
-    // Hide internal branching params and technical parameters (all uppercase)
-    const isTechnicalParam = (name: string) => /^[A-Z0-9_]+$/.test(name);
-    const parameters = allParameters.filter((p: any) => !isTechnicalParam(p.name));
+
+    // Updated filtering logic: Allow parameters WITH options_source even if they are all uppercase
+    const isTechnicalParam = (p: any) => /^[A-Z0-9_]+$/.test(p.name) && !p.options_source;
+    const parameters = allParameters.filter((p: any) => !isTechnicalParam(p));
 
     if (parameters.length === 0) return null;
 
@@ -59,54 +209,13 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
                     {parameters.length > 0 ? (
                         <div className="space-y-5">
                             {parameters.map((param: any) => (
-                                <div key={param.name} className="space-y-2 group">
-                                    <div className="flex items-center justify-between">
-                                        <label
-                                            htmlFor={`param-${param.name}`}
-                                            className="text-xs font-medium text-[var(--text-main)] opacity-70 group-focus-within:text-brand transition-colors"
-                                        >
-                                            {param.label}
-                                        </label>
-                                        {param.type === 'boolean' && (
-                                            <div
-                                                className={`relative inline-flex h-5 w-9 shrink-0 ${isReadOnly ? 'cursor-default opacity-50' : 'cursor-pointer'} items-center rounded-full transition-colors focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2 ${node.data.params?.[param.name] ? 'bg-brand' : 'bg-[var(--border-base)]'}`}
-                                                onClick={() => !isReadOnly && handleChange(param.name, !(node.data.params?.[param.name] ?? false))}
-                                            >
-                                                <input
-                                                    id={`param-${param.name}`}
-                                                    type="checkbox"
-                                                    checked={node.data.params?.[param.name] ?? false}
-                                                    onChange={(e) => !isReadOnly && handleChange(param.name, e.target.checked)}
-                                                    className="sr-only"
-                                                    disabled={isReadOnly}
-                                                />
-                                                <div
-                                                    className={`
-                                            pointer-events-none block h-3.5 w-3.5 rounded-full bg-white shadow ring-0 transition-transform
-                                            ${node.data.params?.[param.name] ? 'translate-x-4.5' : 'translate-x-1'}
-                                        `}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {param.type !== 'boolean' && (
-                                        <input
-                                            id={`param-${param.name}`}
-                                            type={param.type === 'number' ? 'number' : 'text'}
-                                            value={node.data.params?.[param.name] ?? ''}
-                                            onChange={(e) => handleChange(param.name, param.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
-                                            placeholder={`Enter ${param.label.toLowerCase()}...`}
-                                            className="w-full px-3 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-xs text-[var(--text-main)] placeholder:text-[var(--text-muted)] opacity-80 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    (e.target as HTMLInputElement).blur();
-                                                }
-                                            }}
-                                            disabled={isReadOnly}
-                                        />
-                                    )}
-                                </div>
+                                <ParameterRow
+                                    key={param.name}
+                                    param={param}
+                                    value={node.data.params?.[param.name]}
+                                    onChange={(val) => handleChange(param.name, val)}
+                                    isReadOnly={isReadOnly}
+                                />
                             ))}
                         </div>
                     ) : (
