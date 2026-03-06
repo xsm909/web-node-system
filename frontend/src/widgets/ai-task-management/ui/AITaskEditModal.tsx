@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../../features/auth/store';
 import { apiClient } from '../../../shared/api/client';
 import type { AITask } from '../../../entities/ai-task/model/types';
@@ -15,12 +15,7 @@ interface AITaskEditModalProps {
     defaultOwnerId?: string;
 }
 
-const CATEGORY_DATA: Record<string, SelectionGroup> = {
-    'Q1': { id: 'Q1', name: 'Q1', icon: 'filter_1', selectable: true, items: [], children: {} },
-    'Q2': { id: 'Q2', name: 'Q2', icon: 'filter_2', selectable: true, items: [], children: {} },
-    'Q3': { id: 'Q3', name: 'Q3', icon: 'filter_3', selectable: true, items: [], children: {} },
-    'Common': { id: 'Common', name: 'Common', icon: 'group', selectable: true, items: [], children: {} },
-};
+// Categories fetched dynamically
 
 const MODEL_DATA: Record<string, SelectionGroup> = {
     'Any Model': { id: 'any', name: 'Any Model', icon: 'auto_awesome', selectable: true, items: [], children: {} },
@@ -38,6 +33,29 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
     const [category, setCategory] = useState('');
     const [model, setModel] = useState('');
     const [ownerId, setOwnerId] = useState('');
+
+    const { data: dataTypes = [], isLoading: isDataTypesLoading } = useQuery({
+        queryKey: ['data-types', 'AI_Question'],
+        queryFn: async () => {
+            const response = await apiClient.get<any[]>('/data-types/', { params: { category: 'AI_Question' } });
+            return response.data;
+        },
+    });
+
+    const categoryData: Record<string, SelectionGroup> = useMemo(() => {
+        const map: Record<string, SelectionGroup> = {};
+        dataTypes.forEach(dt => {
+            map[dt.type] = {
+                id: dt.type,
+                name: dt.type,
+                icon: dt.config?.icon || 'category',
+                selectable: true,
+                items: [],
+                children: {}
+            };
+        });
+        return map;
+    }, [dataTypes]);
 
     useEffect(() => {
         if (isOpen) {
@@ -85,13 +103,13 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
 
     // Helper to find label for ComboBox
     const getCategoryLabel = (id: string) => {
-        return Object.values(CATEGORY_DATA).find(g => g.id === id)?.name;
+        return Object.values(categoryData).find(g => g.id === id)?.name;
     };
     const getModelLabel = (id: string) => {
         return Object.values(MODEL_DATA).find(g => g.id === id)?.name;
     };
     const getCategoryIcon = (id: string) => {
-        return Object.values(CATEGORY_DATA).find(g => g.id === id)?.icon;
+        return Object.values(categoryData).find(g => g.id === id)?.icon;
     };
     const getModelIcon = (id: string) => {
         return Object.values(MODEL_DATA).find(g => g.id === id)?.icon;
@@ -140,10 +158,10 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
                             <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Category</label>
                             <ComboBox
                                 value={category}
-                                label={getCategoryLabel(category)}
+                                label={getCategoryLabel(category) || (isDataTypesLoading ? 'Loading...' : category)}
                                 icon={getCategoryIcon(category)}
                                 placeholder="Select category..."
-                                data={CATEGORY_DATA}
+                                data={categoryData}
                                 onSelect={(item) => setCategory(item.id)}
                                 className="w-full"
                             />
