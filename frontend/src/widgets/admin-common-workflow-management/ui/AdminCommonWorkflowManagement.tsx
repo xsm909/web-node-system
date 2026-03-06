@@ -4,13 +4,23 @@ import { Console } from '../../console/ui/Console';
 import { WorkflowHeader } from '../../workflow-header';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { WorkflowGraph } from '../../workflow-graph';
+import type { NodeType } from '../../../entities/node-type/model/types';
 import { WorkflowDataEditorTabs } from '../../workflow-data-editor';
 import { useWorkflowOperations } from '../../../features/workflow-operations';
 import { useWorkflowManagement } from '../../../features/workflow-management';
 import { useClientStore } from '../../../features/workflow-management/model/clientStore';
 import { Icon } from '../../../shared/ui/icon';
+import { apiClient } from '../../../shared/api/client';
 
-export function AdminCommonWorkflowManagement({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+export function AdminCommonWorkflowManagement({
+    onToggleSidebar,
+    onEditNode,
+    refreshTrigger
+}: {
+    onToggleSidebar: () => void;
+    onEditNode?: (node: NodeType) => void;
+    refreshTrigger?: number;
+}) {
     const { activeClientId } = useClientStore();
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -36,7 +46,7 @@ export function AdminCommonWorkflowManagement({ onToggleSidebar }: { onToggleSid
         confirmDeleteWorkflow,
         handleRenameWorkflow,
         setActiveWorkflow
-    } = useWorkflowManagement();
+    } = useWorkflowManagement(refreshTrigger);
 
     const {
         saveWorkflow,
@@ -69,6 +79,27 @@ export function AdminCommonWorkflowManagement({ onToggleSidebar }: { onToggleSid
     const handleEdgesChange = useCallback((edges: Edge[]) => {
         edgesRef.current = edges;
     }, []);
+
+    const handleNodeDoubleClick = useCallback(async (event: React.MouseEvent, node: Node) => {
+        if (!onEditNode) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const ntDef = nodeTypes.find(t =>
+            (node.data?.nodeTypeId && t.id === node.data.nodeTypeId) ||
+            (t.name.toLowerCase() === (node.data?.nodeType || node.data?.label || '').toLowerCase())
+        );
+        if (ntDef) {
+            try {
+                // Fetch full node type to ensure `code` is included
+                const { data } = await apiClient.get(`/admin/node-types/${ntDef.id}`);
+                onEditNode(data);
+            } catch (error) {
+                console.error("Failed to fetch full node type for editing:", error);
+                // Fallback to the partial def if the full fetch fails
+                onEditNode(ntDef);
+            }
+        }
+    }, [onEditNode, nodeTypes]);
 
     return (
         <div className="flex-1 flex flex-col min-w-0 relative h-full">
@@ -106,6 +137,7 @@ export function AdminCommonWorkflowManagement({ onToggleSidebar }: { onToggleSid
                     isReadOnly={false}
                     onNodesChangeCallback={handleNodesChange}
                     onEdgesChangeCallback={handleEdgesChange}
+                    onNodeDoubleClickCallback={handleNodeDoubleClick}
                     activeNodeIds={activeNodeIds}
                 />
             ) : (

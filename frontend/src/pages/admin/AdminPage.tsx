@@ -127,7 +127,11 @@ export default function AdminPage() {
                             />
                         </div>
                     ) : activeTab === 'workflows' ? (
-                        <AdminCommonWorkflowManagement onToggleSidebar={() => setIsSidebarOpen(true)} />
+                        <AdminCommonWorkflowManagement
+                            onToggleSidebar={() => setIsSidebarOpen(true)}
+                            onEditNode={handleOpenModal}
+                            refreshTrigger={refreshCount}
+                        />
                     ) : activeTab === 'ai-tasks' ? (
                         <div className="max-w-7xl mx-auto space-y-8">
                             <AITaskManagement activeClientId={null} />

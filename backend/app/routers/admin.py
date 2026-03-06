@@ -286,6 +286,14 @@ def list_node_types(db: Session = Depends(get_db), _=admin_only):
     return db.query(NodeType).all()
 
 
+@router.get("/node-types/{node_id}", response_model=NodeTypeOut)
+def get_node_type(node_id: uuid.UUID, db: Session = Depends(get_db), _=admin_only):
+    node = db.query(NodeType).filter(NodeType.id == node_id).first()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node type not found")
+    return node
+
+
 @router.post("/node-types", response_model=NodeTypeOut)
 def create_node_type(data: NodeTypeCreate, db: Session = Depends(get_db), _=admin_only):
     node_data = data.model_dump()

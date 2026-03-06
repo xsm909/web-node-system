@@ -84,17 +84,21 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                     {data.params && Object.keys(data.params).length > 0 && (
                         <div className="mt-4 space-y-1.5 opacity-80 overflow-hidden">
                             {Object.entries(data.params)
-                                .filter(([key]) => !(/^[A-Z0-9_]+$/.test(key)))
+                                .filter(([key]) => !(/^[A-Z0-9_]+$/.test(key)) && !key.startsWith('_DISPLAY_'))
                                 .map(([key, value]) => {
                                     // Find parameter info from node definition if available to check type
                                     const paramInfo = data.parameters?.find((p: any) => p.name === key);
                                     const isAny = paramInfo?.type === 'any';
 
+                                    // Prefer display value if it exists
+                                    const displayValue = data.params[`_DISPLAY_${key}`];
+                                    const finalValue = displayValue !== undefined ? displayValue : (isAny ? 'any' : String(value));
+
                                     return (
                                         <div key={key} className="flex items-baseline gap-2 min-w-0">
                                             <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider shrink-0">{key}:</span>
-                                            <span className="text-[10px] font-bold text-[var(--text-main)] truncate">
-                                                {isAny ? 'any' : String(value)}
+                                            <span className="text-[10px] font-bold text-[var(--text-main)] truncate" title={String(finalValue)}>
+                                                {String(finalValue)}
                                             </span>
                                         </div>
                                     );

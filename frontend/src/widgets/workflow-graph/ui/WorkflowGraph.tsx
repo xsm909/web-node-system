@@ -39,6 +39,7 @@ interface WorkflowGraphProps {
     isReadOnly?: boolean;
     onNodesChangeCallback?: (nodes: Node[]) => void;
     onEdgesChangeCallback?: (edges: Edge[]) => void;
+    onNodeDoubleClickCallback?: (event: React.MouseEvent, node: Node) => void;
     activeNodeIds?: string[];
 }
 
@@ -48,6 +49,7 @@ export function WorkflowGraph({
     isReadOnly = false,
     onNodesChangeCallback,
     onEdgesChangeCallback,
+    onNodeDoubleClickCallback,
     activeNodeIds = []
 }: WorkflowGraphProps) {
     const [nodes, setNodes, onNodesChangeRaw] = useNodesState([]);
@@ -452,7 +454,7 @@ export function WorkflowGraph({
     );
 
     // Inject isActive + maxThan (from nodeType definition) into each node's data
-    const renderedNodes = nodes.map(node => {
+    const renderedNodes = React.useMemo(() => nodes.map(node => {
         const ntDef = nodeTypes.find((t: NodeType) => {
             // Prefer looking up by UID
             if (node.data?.nodeTypeId && t.id === node.data.nodeTypeId) {
@@ -485,7 +487,7 @@ export function WorkflowGraph({
                 isRightInputProvider: rightConnectedSources.has(node.id)
             }
         };
-    });
+    }), [nodes, nodeTypes, activeNodeIds, rightConnectedSources]);
 
     return (
         <div className="flex-1 flex overflow-hidden relative">
@@ -497,6 +499,7 @@ export function WorkflowGraph({
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     onNodeClick={onNodeClick}
+                    onNodeDoubleClick={onNodeDoubleClickCallback}
                     onMouseMove={onMouseMove}
                     onNodeDragStart={() => setMenu(null)}
                     onNodesDelete={() => { setMenu(null); setSelectedNodeId(null); }}

@@ -7,7 +7,7 @@ import type { NodeType } from '../../../entities/node-type/model/types';
 import { useClientStore } from '../model/clientStore';
 import { getCookie, setCookie, eraseCookie } from '../../../shared/lib/cookieUtils';
 
-export function useWorkflowManagement() {
+export function useWorkflowManagement(refreshTrigger?: number) {
     const { user: currentUser } = useAuthStore();
     const { activeClientId, setAssignedUsers } = useClientStore();
     const [assignedUsers, setAssignedUsersState] = useState<AssignedUser[]>([]);
@@ -97,6 +97,12 @@ export function useWorkflowManagement() {
         };
         init();
     }, [currentUser?.id, currentUser?.role, loadWorkflowsForUser, setAssignedUsers]);
+
+    useEffect(() => {
+        if (refreshTrigger !== undefined && refreshTrigger > 0) {
+            apiClient.get('/workflows/node-types').then(res => setNodeTypes(res.data)).catch(console.error);
+        }
+    }, [refreshTrigger]);
 
     const loadWorkflow = (wf: Workflow) => {
         if (currentUser?.role === 'admin') {

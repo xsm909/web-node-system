@@ -43,6 +43,27 @@ def seed():
         # Node Types Seeding
         nodes_data = [
             {
+                "id": "23dc8df3-c1c3-48c1-8e0f-d0f5b746c942",
+                "name": "Clear analytics data",
+                "version": "1.0",
+                "description": "Clear answer of model",
+                "code": "class NodeParameters:\n    analytic_type:str = \"Mention\"\n    \ndef clear_answers_of_model (session_id, category, analytic_type):\n    query = f\"\"\"\n    DELETE FROM intermediate_results\n    WHERE session_id = '{session_id}' \n      AND sub_category = '{category}' \n      AND (category = 'Analytics|{analytic_type}')\n    \"\"\"\n    inner_database.unsafe_request(query)\n                              \n        \ndef run(inputs, params):\n    \n    runtime = libs.get_runtime_data()\n    client_id = runtime[\"_active_client_id\"]\n    session_id = runtime[\"_session_id\"]\n    category = runtime[\"_category\"]\n\n    clear_answers_of_model (session_id, category, params.anaytic_type)\n    \n    return inputs",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [
+                    {
+                        "name": "analytic_type",
+                        "type": "string",
+                        "label": "Analytic Type",
+                        "default": "Mention",
+                        "options_source": None
+                    }
+                ],
+                "category": "Database|Analytics",
+                "icon": "text",
+                "is_async": False
+            },
+            {
                 "id": "00b5baeb-c29d-4236-98d2-c06cb2e5b683",
                 "name": "Window Memory",
                 "version": "1.0",
@@ -813,6 +834,42 @@ def seed():
                 ],
                 "category": "Data|Runtime",
                 "icon": "text",
+                "is_async": False
+            },
+            {
+                "id": "bf9e371f-a0bb-494d-91ba-e9419e1032f6",
+                "name": "Getting analysis with AI",
+                "version": "1.0",
+                "description": "Get questions of clients' and answer",
+                "code": "class NodeParameters:\n    analytic_type:str = \"Mention\"\n    AI_Task:str #@table-AI_Tasks->id,AI_Tasks->description\n    \ndef get_answer_for_analys(session_id, category):\n    query = f\"\"\"\n    SELECT id, reference_id, data\n    FROM intermediate_results\n    WHERE session_id = '{session_id}'\n    AND sub_category = '{category}'\n    AND category like 'AI_Answer|%'\n    ORDER BY created_at\n    \"\"\"\n\n    return inner_database.unsafe_request(query)\n\ndef save_answer(question_id, answer, session_id, category, client_id, Analytic_type):\n\n    json_data = json.dumps({\"Answer\": answer}).replace(\"'\", \"''\")\n\n    query = f\"\"\"\n    INSERT INTO intermediate_results (\n        id,\n        session_id,\n        reference_id,\n        client_id,\n        category,\n        sub_category,\n        data,\n        created_at,\n        updated_at\n    )\n    VALUES (\n        gen_random_uuid(),\n        '{session_id}',\n        '{question_id}',\n        '{client_id}',\n        'AI_Answer|{AnswerAI}',\n        '{category}',\n        '{json_data}',\n        NOW(),\n        NOW()\n    );\n    \"\"\"\n\n    inner_database.unsafe_request(query)    \n\ndef process_questions(session_id, category, client_id, AnswerAI, Model, Additional_query):\n    questions = get_questions(session_id, category)\n    count_of_answer = 0\n    for question in questions:\n        count_of_answer=count_of_answer+1\n        \n        question_text = question[\"data\"].get(\"Question\")  \n        print (f'Ask {AnswerAI} {count_of_answer}: {question_text}')\n        \n        if AnswerAI == \"OpenAI\":\n            answer = openai.perform_web_search(question_text, Model)\n        elif AnswerAI == \"Gemini\":\n            answer = gemini.perform_web_search(question_text, Model)\n        elif AnswerAI == \"Perplexity\":\n            answer = perplexity.perform_web_search(question_text + Additional_query, Model)\n        else:\n            answer = \"Unknown AI\"\n        \n        print (f'Answer {AnswerAI} {count_of_answer}: {answer}')\n        save_answer(\n            question[\"id\"],\n            answer,\n            session_id,\n            category,\n            client_id,\n            AnswerAI\n        )   \n    return count_of_answer\n        \ndef run(inputs, params):\n    \n    runtime = libs.get_runtime_data()\n    client_id = runtime[\"_active_client_id\"]\n    session_id = runtime[\"_session_id\"]\n    Analytic_type = params.analytic_type\n    Category = runtime[\"_category\"]\n    \n    \n    answers = get_answer_for_analys (session_id, Category)\n    \n    \n    print ('---------------- AI Analysis ----------------')\n\n    print (answers)\n\n    \n    \"\"\"answers = process_questions(\n        session_id,\n        Category,\n        client_id, \n        AnswerAI, \n        Model,\n        Additional_query)\"\"\"\n    \n    #runtime[f'_answers_{AnswerAI}'] = answers\n\n    #libs.update_runtime_data(runtime)\n    return inputs",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [
+                    {
+                        "name": "analytic_type",
+                        "type": "string",
+                        "label": "Analytic Type",
+                        "default": "Mention",
+                        "options_source": None
+                    },
+                    {
+                        "name": "AI_Task",
+                        "type": "string",
+                        "label": "Ai Task",
+                        "default": None,
+                        "options_source": {
+                            "table": "AI_Tasks",
+                            "value_field": "id",
+                            "label_field": "description",
+                            "component": "ComboBox",
+                            "filters": {
+                                "owner_id": "AI_Task"
+                            }
+                        }
+                    }
+                ],
+                "category": "AI|Analysis",
+                "icon": "graph-2",
                 "is_async": False
             },
             {

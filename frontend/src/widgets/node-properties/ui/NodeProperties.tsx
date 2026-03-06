@@ -16,7 +16,7 @@ interface NodePropertiesProps {
 const ParameterRow: React.FC<{
     param: any;
     value: any;
-    onChange: (val: any) => void;
+    onChange: (updates: Record<string, any>) => void;
     isReadOnly: boolean;
 }> = ({ param, value, onChange, isReadOnly }) => {
     const [options, setOptions] = useState<Record<string, SelectionGroup>>({});
@@ -53,25 +53,11 @@ const ParameterRow: React.FC<{
                                     }
                                     return true;
                                 })
-                                .map((item: any) => {
-                                    const labelField = param.options_source.label_field;
-                                    let nameValue = item[labelField];
-
-                                    // Handle typo in marker (e.g. 'desription' instead of 'description')
-                                    if (nameValue === undefined && labelField === 'desription') {
-                                        nameValue = item['description'];
-                                    }
-
-                                    if (nameValue === undefined) {
-                                        nameValue = item.name || item.title || item.id || 'Unknown';
-                                    }
-
-                                    return {
-                                        id: String(item[param.options_source.value_field]),
-                                        name: String(nameValue),
-                                        icon: 'bolt'
-                                    };
-                                }),
+                                .map((item: any) => ({
+                                    id: String(item[param.options_source.value_field]),
+                                    name: String(item[param.options_source.label_field]),
+                                    icon: 'bolt'
+                                })),
                             children: {}
                         }
                     };
@@ -107,13 +93,13 @@ const ParameterRow: React.FC<{
                 {param.type === 'boolean' && (
                     <div
                         className={`relative inline-flex h-5 w-9 shrink-0 ${isReadOnly ? 'cursor-default opacity-50' : 'cursor-pointer'} items-center rounded-full transition-colors focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2 ${value ? 'bg-brand' : 'bg-[var(--border-base)]'}`}
-                        onClick={() => !isReadOnly && onChange(!(value ?? false))}
+                        onClick={() => !isReadOnly && onChange({ [param.name]: !(value ?? false) })}
                     >
                         <input
                             id={`param-${param.name}`}
                             type="checkbox"
                             checked={value ?? false}
-                            onChange={(e) => !isReadOnly && onChange(e.target.checked)}
+                            onChange={(e) => !isReadOnly && onChange({ [param.name]: e.target.checked })}
                             className="sr-only"
                             disabled={isReadOnly}
                         />
@@ -135,7 +121,13 @@ const ParameterRow: React.FC<{
                         icon="bolt"
                         placeholder={isLoading ? "Loading..." : `Select ${param.label.toLowerCase()}...`}
                         data={options}
-                        onSelect={(item) => onChange(item.id)}
+                        onSelect={(item) => {
+                            // Immediately call onChange with BOTH the real ID value and the display label
+                            onChange({
+                                [param.name]: item.id,
+                                [`_DISPLAY_${param.name}`]: item.name
+                            });
+                        }}
                         className="w-full"
                     />
                 ) : (
@@ -143,7 +135,10 @@ const ParameterRow: React.FC<{
                         id={`param-${param.name}`}
                         type={param.type === 'number' ? 'number' : 'text'}
                         value={value ?? ''}
-                        onChange={(e) => onChange(param.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
+                        onChange={(e) => {
+                            const val = param.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value;
+                            onChange({ [param.name]: val });
+                        }}
                         placeholder={`Enter ${param.label.toLowerCase()}...`}
                         className="w-full px-3 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-xs text-[var(--text-main)] placeholder:text-[var(--text-muted)] opacity-80 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         onKeyDown={(e) => {
@@ -177,9 +172,9 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
 
     if (parameters.length === 0) return null;
 
-    const handleChange = (name: string, value: any) => {
+    const handleChange = (updates: Record<string, any>) => {
         const currentParams = node.data.params || {};
-        const newParams = { ...currentParams, [name]: value };
+        const newParams = { ...currentParams, ...updates };
         onChange(node.id, newParams);
     };
 
@@ -213,7 +208,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({
                                     key={param.name}
                                     param={param}
                                     value={node.data.params?.[param.name]}
-                                    onChange={(val) => handleChange(param.name, val)}
+                                    onChange={(val) => handleChange(val)}
                                     isReadOnly={isReadOnly}
                                 />
                             ))}
