@@ -103,20 +103,22 @@ export default function ManagerPage() {
             isActive: activeTab === 'reports',
             onClick: () => setActiveTab('reports'),
         },
-        {
-            id: 'ai-tasks',
-            label: 'AI Tasks',
-            icon: 'bolt',
-            isActive: activeTab === 'ai-tasks',
-            onClick: () => setActiveTab('ai-tasks'),
-        },
-        {
-            id: 'client-metadata',
-            label: 'Client Metadata',
-            icon: 'dataset',
-            isActive: activeTab === 'client-metadata',
-            onClick: () => setActiveTab('client-metadata'),
-        }
+        ...(activeClientId ? [
+            {
+                id: 'ai-tasks',
+                label: 'AI Tasks',
+                icon: 'bolt',
+                isActive: activeTab === 'ai-tasks',
+                onClick: () => setActiveTab('ai-tasks'),
+            },
+            {
+                id: 'client-metadata',
+                label: 'Client Metadata',
+                icon: 'dataset',
+                isActive: activeTab === 'client-metadata',
+                onClick: () => setActiveTab('client-metadata'),
+            }
+        ] : []),
     ];
 
     const filteredUsers = activeClientId
