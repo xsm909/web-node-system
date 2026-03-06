@@ -88,6 +88,10 @@ export default function ManagerPage() {
 
     const { activeClientId } = useClientStore();
 
+    const { user: currentUser } = useAuthStore();
+    const isAdmin = currentUser?.role === 'admin';
+    const canSave = isAdmin || activeWorkflow?.owner_id !== 'common';
+
     const filteredNavItems = [
         {
             id: 'workflows',
@@ -103,14 +107,16 @@ export default function ManagerPage() {
             isActive: activeTab === 'reports',
             onClick: () => setActiveTab('reports'),
         },
-        ...(activeClientId ? [
+        ...((activeClientId || isAdmin) ? [
             {
                 id: 'ai-tasks',
                 label: 'AI Tasks',
                 icon: 'bolt',
                 isActive: activeTab === 'ai-tasks',
                 onClick: () => setActiveTab('ai-tasks'),
-            },
+            }
+        ] : []),
+        ...(activeClientId ? [
             {
                 id: 'client-metadata',
                 label: 'Client Metadata',
@@ -124,10 +130,6 @@ export default function ManagerPage() {
     const filteredUsers = activeClientId
         ? assignedUsers.filter(u => u.id === activeClientId)
         : assignedUsers;
-
-    const { user: currentUser } = useAuthStore();
-    const isAdmin = currentUser?.role === 'admin';
-    const canSave = isAdmin || activeWorkflow?.owner_id !== 'common';
 
     return (
         <div className="fixed inset-0 flex bg-[var(--bg-app)] text-[var(--text-main)] overflow-hidden font-sans">

@@ -12,13 +12,15 @@ import { Icon } from '../../shared/ui/icon';
 import { AppHeader } from '../../widgets/app-header';
 import { getCookie, setCookie } from '../../shared/lib/cookieUtils';
 
+import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskManagement';
+
 export default function AdminPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'credentials' | 'workflows'>(
+    const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'credentials' | 'workflows' | 'ai-tasks'>(
         (getCookie('active_admin_tab') as any) || 'users'
     );
 
-    const setActiveTab = (tab: 'users' | 'nodes' | 'credentials' | 'workflows') => {
+    const setActiveTab = (tab: 'users' | 'nodes' | 'credentials' | 'workflows' | 'ai-tasks') => {
         setCookie('active_admin_tab', tab);
         setActiveTabState(tab);
     };
@@ -77,6 +79,13 @@ export default function AdminPage() {
                         isActive: activeTab === 'workflows',
                         onClick: () => setActiveTab('workflows'),
                     },
+                    {
+                        id: 'ai-tasks',
+                        label: 'AI Tasks',
+                        icon: 'bolt',
+                        isActive: activeTab === 'ai-tasks',
+                        onClick: () => setActiveTab('ai-tasks'),
+                    },
                 ]}
             />
 
@@ -88,7 +97,8 @@ export default function AdminPage() {
                         leftContent={
                             <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
                                 {activeTab === 'users' ? 'User Management' :
-                                    activeTab === 'nodes' ? 'Node Library' : 'Credentials'}
+                                    activeTab === 'nodes' ? 'Node Library' :
+                                        activeTab === 'ai-tasks' ? 'AI Task Management' : 'Credentials'}
                             </h1>
                         }
                         rightContent={
@@ -118,6 +128,10 @@ export default function AdminPage() {
                         </div>
                     ) : activeTab === 'workflows' ? (
                         <AdminCommonWorkflowManagement onToggleSidebar={() => setIsSidebarOpen(true)} />
+                    ) : activeTab === 'ai-tasks' ? (
+                        <div className="max-w-7xl mx-auto space-y-8">
+                            <AITaskManagement activeClientId={null} />
+                        </div>
                     ) : (
                         <div className="max-w-7xl mx-auto space-y-8"><AdminCredentialManagement /></div>
                     )}

@@ -27,11 +27,13 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
     const [selectedTask, setSelectedTask] = useState<AITask | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    const categoryFilter = (!activeClientId && isAdmin) ? 'AI_Task' : 'AI_question';
+
     // Fetch data types to map data_type_id to names for the table
     const { data: dataTypes = [], isLoading: isDataTypesLoading } = useQuery({
-        queryKey: ['data-types', 'AI_question'],
+        queryKey: ['data-types', categoryFilter],
         queryFn: async () => {
-            const response = await apiClient.get<any[]>('/data-types/', { params: { category: 'AI_question' } });
+            const response = await apiClient.get<any[]>('/data-types/', { params: { category: categoryFilter } });
             return response.data;
         },
     });
@@ -45,7 +47,10 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
     });
 
     const tasks = useMemo(() => {
-        if (isAdmin) return allTasks;
+        if (isAdmin) {
+            if (!activeClientId) return allTasks.filter(t => t.owner_id === 'AI_Task');
+            return allTasks;
+        }
         if (!activeClientId) return []; // If manager but no client selected, show nothing as per user request ("only tasks of current client")
         return allTasks.filter(t => t.owner_id === activeClientId);
     }, [allTasks, isAdmin, activeClientId]);
@@ -61,15 +66,6 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
 
     const columns = useMemo(() => {
         const cols = [];
-
-        if (isAdmin) {
-            cols.push(
-                columnHelper.accessor('owner_id', {
-                    header: 'Owner',
-                    cell: info => <span className="font-medium text-[var(--text-main)]">{info.getValue()}</span>,
-                })
-            );
-        }
 
         cols.push(
             columnHelper.accessor('data_type_id', {
@@ -187,7 +183,8 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
                 }}
                 task={selectedTask}
                 onSave={refetch}
-                defaultOwnerId={activeClientId ?? undefined}
+                defaultOwnerId={activeClientId ?? (isAdmin ? 'AI_Task' : undefined)}
+                activeClientId={activeClientId}
                 dataTypes={dataTypes}
             />
         </div>

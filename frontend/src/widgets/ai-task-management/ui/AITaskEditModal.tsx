@@ -14,6 +14,7 @@ interface AITaskEditModalProps {
     task: AITask | null;
     onSave: () => void;
     defaultOwnerId?: string;
+    activeClientId?: string | null;
     dataTypes: any[];
 }
 
@@ -29,7 +30,7 @@ const MODEL_DATA: Record<string, SelectionGroup> = {
 import { ManagementModal } from '../../../shared/ui/management-modal';
 
 export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
-    isOpen, onClose, task, onSave, defaultOwnerId, dataTypes
+    isOpen, onClose, task, onSave, defaultOwnerId, activeClientId, dataTypes
 }) => {
     const queryClient = useQueryClient();
     const { user } = useAuthStore();
@@ -153,18 +154,6 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
             isSaving={mutation.isPending}
             saveDisabled={mutation.isPending || !dataTypeId}
         >
-            {isAdmin && (
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Owner ID (Client UID)</label>
-                    <input
-                        value={ownerId}
-                        onChange={(e) => setOwnerId(e.target.value)}
-                        className="w-full px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-medium focus:ring-2 focus:ring-brand outline-none transition-all"
-                        placeholder="e.g., UUID"
-                    />
-                </div>
-            )}
-
             <div className={`grid ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'} gap-6`}>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Category</label>
@@ -172,7 +161,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                         value={dataTypeId}
                         onChange={(val: string) => setDataTypeId(val)}
                         dataTypes={dataTypes}
-                        categoryFilter="AI_question"
+                        categoryFilter={(!activeClientId && isAdmin) ? 'AI_Task' : 'AI_question'}
                         valueProp="id"
                         className="w-full"
                     />
