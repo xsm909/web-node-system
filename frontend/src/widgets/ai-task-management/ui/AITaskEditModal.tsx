@@ -39,6 +39,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
     const [dataTypeId, setDataTypeId] = useState<string>('');
     const [model, setModel] = useState('');
     const [ownerId, setOwnerId] = useState('');
+    const [description, setDescription] = useState('');
 
     // State for single-line vs multiline task content
     const [singleValue, setSingleValue] = useState<string>('');
@@ -50,6 +51,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                 setOwnerId(task.owner_id || '');
                 setDataTypeId(String(task.data_type_id) || '');
                 setModel(task.ai_model || 'any');
+                setDescription(task.description || '');
 
                 const taskData = task.task || {};
 
@@ -67,6 +69,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                 setOwnerId(defaultOwnerId || '');
                 setDataTypeId('');
                 setModel('any');
+                setDescription('');
                 setSingleValue('');
                 setMultiValues(['']);
             }
@@ -94,6 +97,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                 owner_id: ownerId,
                 data_type_id: parseInt(dataTypeId, 10),
                 ai_model: model,
+                description: description,
                 task: taskContent
             };
 
@@ -181,6 +185,18 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                     </div>
                 )}
             </div>
+
+            {isAdmin && (
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Description</label>
+                    <input
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="w-full px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-medium focus:ring-2 focus:ring-brand outline-none transition-all"
+                        placeholder="Short description of this task..."
+                    />
+                </div>
+            )}
 
             <div className="space-y-2">
                 <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Task Content</label>

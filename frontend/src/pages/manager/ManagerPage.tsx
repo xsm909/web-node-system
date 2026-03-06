@@ -96,14 +96,14 @@ export default function ManagerPage() {
         {
             id: 'workflows',
             label: 'Workflows',
-            icon: 'account_tree',
+            icon: 'conversion',
             isActive: activeTab === 'workflows',
             onClick: () => setActiveTab('workflows'),
         },
         {
             id: 'reports',
             label: 'Reports',
-            icon: 'bar_chart',
+            icon: 'docs',
             isActive: activeTab === 'reports',
             onClick: () => setActiveTab('reports'),
         },
@@ -111,7 +111,7 @@ export default function ManagerPage() {
             {
                 id: 'ai-tasks',
                 label: 'AI Tasks',
-                icon: 'bolt',
+                icon: 'description',
                 isActive: activeTab === 'ai-tasks',
                 onClick: () => setActiveTab('ai-tasks'),
             }
@@ -120,7 +120,7 @@ export default function ManagerPage() {
             {
                 id: 'client-metadata',
                 label: 'Client Metadata',
-                icon: 'dataset',
+                icon: 'info',
                 isActive: activeTab === 'client-metadata',
                 onClick: () => setActiveTab('client-metadata'),
             }

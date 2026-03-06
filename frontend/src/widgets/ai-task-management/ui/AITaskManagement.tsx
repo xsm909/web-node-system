@@ -96,32 +96,50 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
             );
         }
 
-        cols.push(
-            columnHelper.accessor('task', {
-                header: 'Task Content',
-                cell: info => {
-                    const taskObj = info.getValue() as any;
-                    let content = 'No content';
-
-                    if (taskObj) {
-                        if (taskObj.values && Array.isArray(taskObj.values)) {
-                            content = taskObj.values.join(', ');
-                        } else if (taskObj.value) {
-                            content = taskObj.value;
-                        } else if (taskObj.Task) {
-                            content = taskObj.Task;
-                        } else {
-                            content = JSON.stringify(taskObj);
-                        }
-                    }
-
-                    return (
-                        <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80" title={content}>
-                            {content}
+        if (isAdmin) {
+            cols.push(
+                columnHelper.accessor('description', {
+                    header: 'Description',
+                    cell: info => (
+                        <div className="max-w-[200px] truncate text-sm text-[var(--text-main)]" title={info.getValue() || ''}>
+                            {info.getValue() || <span className="text-[var(--text-muted)] italic opacity-40">No description</span>}
                         </div>
-                    );
-                },
-            }),
+                    ),
+                })
+            );
+        }
+
+        if (!isAdmin) {
+            cols.push(
+                columnHelper.accessor('task', {
+                    header: 'Task Content',
+                    cell: info => {
+                        const taskObj = info.getValue() as any;
+                        let content = 'No content';
+
+                        if (taskObj) {
+                            if (taskObj.values && Array.isArray(taskObj.values)) {
+                                content = taskObj.values.join(', ');
+                            } else if (taskObj.value) {
+                                content = taskObj.value;
+                            } else if (taskObj.Task) {
+                                content = taskObj.Task;
+                            } else {
+                                content = JSON.stringify(taskObj);
+                            }
+                        }
+
+                        return (
+                            <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80" title={content}>
+                                {content}
+                            </div>
+                        );
+                    },
+                })
+            );
+        }
+
+        cols.push(
             columnHelper.display({
                 id: 'actions',
                 header: '',

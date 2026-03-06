@@ -15,6 +15,7 @@ class AI_Task(Base):
     updated_by = Column(UUID(as_uuid=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    description = Column(String(255), nullable=True)
     task = Column(JSON, nullable=True)
 
     __table_args__ = (

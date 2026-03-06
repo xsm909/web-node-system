@@ -75,14 +75,14 @@ export default function AdminPage() {
                     {
                         id: 'workflows',
                         label: 'Workflows',
-                        icon: 'arrow_split',
+                        icon: 'conversion',
                         isActive: activeTab === 'workflows',
                         onClick: () => setActiveTab('workflows'),
                     },
                     {
                         id: 'ai-tasks',
                         label: 'AI Tasks',
-                        icon: 'bolt',
+                        icon: 'description',
                         isActive: activeTab === 'ai-tasks',
                         onClick: () => setActiveTab('ai-tasks'),
                     },

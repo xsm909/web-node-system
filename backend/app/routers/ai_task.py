@@ -17,6 +17,7 @@ class AITaskBase(BaseModel):
     owner_id: str
     data_type_id: int
     ai_model: str = "any"
+    description: Optional[str] = None
     task: Optional[dict] = None
 
 class AITaskCreate(AITaskBase):
@@ -26,6 +27,7 @@ class AITaskUpdate(BaseModel):
     owner_id: Optional[str] = None
     data_type_id: Optional[int] = None
     ai_model: Optional[str] = None
+    description: Optional[str] = None
     task: Optional[dict] = None
 
 class AITaskOut(AITaskBase):
