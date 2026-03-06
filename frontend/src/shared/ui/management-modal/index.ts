@@ -1,0 +1,1 @@
+export { ManagementModal } from './ManagementModal';

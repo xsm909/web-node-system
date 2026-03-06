@@ -43,6 +43,37 @@ def json_sanitize(obj):
     return obj
 
 
+def _inplace_handler(op, target, *args):
+    """Handler for augmented assignments in RestrictedPython (e.g. +=, -=).
+    - _inplacevar_(op, target, expr) -> len(args) == 1
+    - _inplaceitem_(op, target, index, expr) -> len(args) == 2
+    """
+    if len(args) == 1:
+        expr = args[0]
+        val = target
+    elif len(args) == 2:
+        index = args[0]
+        expr = args[1]
+        val = target[index]
+    else:
+        return target
+
+    if op == '+=': return val + expr
+    if op == '-=': return val - expr
+    if op == '*=': return val * expr
+    if op == '@=': return val @ expr
+    if op == '/=': return val / expr
+    if op == '//=': return val // expr
+    if op == '%=': return val % expr
+    if op == '**=': return val ** expr
+    if op == '<<=': return val << expr
+    if op == '>>=': return val >> expr
+    if op == '&=': return val & expr
+    if op == '^=': return val ^ expr
+    if op == '|=': return val | expr
+    return val
+
+
 def custom_getattr(obj, name, *args, **kwargs):
     """Custom _getattr_ guard that extends safer_getattr to allow str.format methods.
     RestrictedPython blocks str.format and str.format_map by default, but they
@@ -86,6 +117,8 @@ SAFE_GLOBALS = {
         "_getitem_": lambda obj, key: obj[key],
         "_write_": lambda obj: obj,  # Allow attribute writes inside sandbox
         "_apply_": lambda f, *a, **kw: f(*a, **kw),  # Allow **kwargs unpacking in function calls
+        "_inplacevar_": _inplace_handler,
+        "_inplaceitem_": _inplace_handler,
     },
     "__metaclass__": type,
     "time": time,  # available without import

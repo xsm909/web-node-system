@@ -5,7 +5,6 @@ import { useAuthStore } from '../../../features/auth/store';
 import {
     useReactTable,
     getCoreRowModel,
-    flexRender,
     createColumnHelper,
 } from '@tanstack/react-table';
 import { apiClient } from '../../../shared/api/client';
@@ -18,6 +17,8 @@ interface AITaskManagementProps {
     activeClientId?: string | null;
 }
 
+import { ManagementTable } from '../../../shared/ui/management-table';
+
 export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClientId }) => {
     const queryClient = useQueryClient();
     const { user } = useAuthStore();
@@ -25,6 +26,15 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
 
     const [selectedTask, setSelectedTask] = useState<AITask | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Fetch data types to map data_type_id to names for the table
+    const { data: dataTypes = [], isLoading: isDataTypesLoading } = useQuery({
+        queryKey: ['data-types', 'AI_question'],
+        queryFn: async () => {
+            const response = await apiClient.get<any[]>('/data-types/', { params: { category: 'AI_question' } });
+            return response.data;
+        },
+    });
 
     const { data: allTasks = [], isLoading, refetch } = useQuery({
         queryKey: ['ai-tasks'],
@@ -62,13 +72,18 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
         }
 
         cols.push(
-            columnHelper.accessor('category', {
+            columnHelper.accessor('data_type_id', {
                 header: 'Category',
-                cell: info => (
-                    <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-                        {info.getValue()}
-                    </span>
-                ),
+                cell: info => {
+                    const dtId = info.getValue() as number;
+                    const dt = dataTypes.find((d: any) => d.id === dtId);
+                    const label = dt ? (dt.config?.Caption || dt.config?.caption || dt.type) : dtId;
+                    return (
+                        <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                            {label}
+                        </span>
+                    );
+                },
             })
         );
 
@@ -89,8 +104,21 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
             columnHelper.accessor('task', {
                 header: 'Task Content',
                 cell: info => {
-                    const taskObj = info.getValue();
-                    const content = taskObj?.Task || 'No content';
+                    const taskObj = info.getValue() as any;
+                    let content = 'No content';
+
+                    if (taskObj) {
+                        if (taskObj.values && Array.isArray(taskObj.values)) {
+                            content = taskObj.values.join(', ');
+                        } else if (taskObj.value) {
+                            content = taskObj.value;
+                        } else if (taskObj.Task) {
+                            content = taskObj.Task;
+                        } else {
+                            content = JSON.stringify(taskObj);
+                        }
+                    }
+
                     return (
                         <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80" title={content}>
                             {content}
@@ -121,7 +149,7 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
         );
 
         return cols;
-    }, [isAdmin, deleteMutation.isPending]);
+    }, [isAdmin, deleteMutation.isPending, dataTypes]);
 
     const table = useReactTable({
         data: tasks,
@@ -134,74 +162,22 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
         setIsModalOpen(true);
     };
 
-    if (isLoading && tasks.length === 0) {
-        return (
-            <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl">
-                <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
-            </div>
-        );
-    }
-
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-xl font-bold text-[var(--text-main)] tracking-tight">AI Tasks</h2>
-                    <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60">
-                        Manage and edit automated AI routines
-                    </p>
-                </div>
-                <button
-                    onClick={() => {
-                        setSelectedTask(null);
-                        setIsModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand/20 hover:brightness-110 active:scale-95 transition-all"
-                >
-                    <Icon name="add" size={16} />
-                    Create Task
-                </button>
-            </div>
-
-            <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/5">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            {table.getHeaderGroups().map(headerGroup => (
-                                <tr key={headerGroup.id} className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
-                                    {headerGroup.headers.map(header => (
-                                        <th key={header.id} className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(header.column.columnDef.header, header.getContext())}
-                                        </th>
-                                    ))}
-                                </tr>
-                            ))}
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-base)]">
-                            {table.getRowModel().rows.map(row => (
-                                <tr
-                                    key={row.id}
-                                    className="hover:bg-[var(--border-muted)]/50 transition-colors group cursor-pointer"
-                                    onClick={() => handleRowClick(row.original)}
-                                >
-                                    {row.getVisibleCells().map(cell => (
-                                        <td key={cell.id} className="px-6 py-4">
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                {tasks.length === 0 && (
-                    <div className="p-16 text-center text-[var(--text-muted)] text-sm opacity-40 font-medium italic">
-                        No AI Tasks found for this view.
-                    </div>
-                )}
-            </div>
+            <ManagementTable
+                title="AI Tasks"
+                description="Manage and edit automated AI routines"
+                addButtonText="Create Task"
+                onAdd={() => {
+                    setSelectedTask(null);
+                    setIsModalOpen(true);
+                }}
+                table={table}
+                isLoading={isLoading || isDataTypesLoading}
+                dataLength={tasks.length}
+                onRowClick={handleRowClick}
+                emptyMessage="No AI Tasks found for this view."
+            />
 
             <AITaskEditModal
                 isOpen={isModalOpen}
@@ -212,6 +188,7 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
                 task={selectedTask}
                 onSave={refetch}
                 defaultOwnerId={activeClientId ?? undefined}
+                dataTypes={dataTypes}
             />
         </div>
     );

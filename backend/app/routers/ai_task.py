@@ -15,7 +15,7 @@ manager_access = Depends(require_role("manager", "admin"))
 
 class AITaskBase(BaseModel):
     owner_id: str
-    category: str
+    data_type_id: int
     ai_model: str = "any"
     task: Optional[dict] = None
 
@@ -24,7 +24,7 @@ class AITaskCreate(AITaskBase):
 
 class AITaskUpdate(BaseModel):
     owner_id: Optional[str] = None
-    category: Optional[str] = None
+    data_type_id: Optional[int] = None
     ai_model: Optional[str] = None
     task: Optional[dict] = None
 
@@ -43,7 +43,7 @@ class AITaskOut(AITaskBase):
             try:
                 return json.loads(v)
             except:
-                return {"Task": v}
+                return {"value": v}
         return v
 
 @router.get("/", response_model=List[AITaskOut])
@@ -59,12 +59,11 @@ def list_tasks(db: Session = Depends(get_db), current_user: User = Depends(get_c
 @router.post("/", response_model=AITaskOut)
 def create_task(data: AITaskCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
     task_data = data.model_dump()
-    # Format task field as requested: {"Task": "input text"}
-    if task_data.get("task") and isinstance(task_data["task"], dict) and "Task" not in task_data["task"]:
-        # If it's a dict but doesn't have "Task" key, we might need to wrap it or handle it
-        # The user said save as {"Task": "input text"}
-        # If they send a string, we wrap it. If they send a dict, we ensure it's in the right format.
-        pass
+    
+    # User requested data goes in "value" or "values" instead of "Task"
+    if task_data.get("task") and isinstance(task_data["task"], dict):
+        if "value" not in task_data["task"] and "values" not in task_data["task"]:
+            pass # allow other keys if necessary, but frontend uses value/values
     
     task = AI_Task(
         **task_data,
@@ -86,14 +85,9 @@ def update_task(task_id: uuid.UUID, data: AITaskUpdate, db: Session = Depends(ge
     
     # Specific handling for task JSON field if provided
     if "task" in update_data and update_data["task"]:
-        # Ensure it's in {"Task": "..."} format if it's just a string or missing the key
         if isinstance(update_data["task"], str):
-             update_data["task"] = {"Task": update_data["task"]}
-        elif isinstance(update_data["task"], dict) and "Task" not in update_data["task"]:
-             # If it's a dict but has other fields, we might want to keep them or wrap them?
-             # User said {"Task" : "input text"}
-             pass
-
+             update_data["task"] = {"value": update_data["task"]}
+             
     for k, v in update_data.items():
         setattr(task, k, v)
     
