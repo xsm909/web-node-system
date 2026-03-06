@@ -98,30 +98,34 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, act
                                         });
                                     }
                                 }}
-                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] ${isActive
-                                    ? 'bg-brand text-white shadow-lg shadow-brand/20'
-                                    : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
+                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] border border-transparent flex-col justify-center ${isActive
+                                    ? 'bg-brand/10 border-brand/20 text-brand shadow-sm'
+                                    : isSelectable
+                                        ? 'text-[var(--text-muted)] hover:text-brand hover:bg-brand/5 hover:border-brand/10'
+                                        : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
                                     } ${!isSelectable && !isActive ? 'cursor-default' : ''}`}
                             >
-                                <div className="flex items-center gap-2 truncate pr-4">
-                                    {group.icon && (
-                                        <Icon name={group.icon} size={14} className={isActive ? 'text-white' : 'text-brand'} />
-                                    )}
-                                    <span className="truncate">{label}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    {isActive && effectiveGroupActions?.map(action => (
-                                        <button
-                                            key={action}
-                                            onClick={(e) => { e.stopPropagation(); onAction?.(action, group); }}
-                                            className="p-1 hover:bg-white/20 rounded-md transition-colors"
-                                        >
-                                            <Icon name={action === 'add' ? 'add' : action === 'delete' ? 'delete' : action === 'rename' ? 'edit' : 'content_copy'} size={12} />
-                                        </button>
-                                    ))}
-                                    {(hasChildren || group.items.length > 0) && (
-                                        <Icon name="chevron_right" size={12} className={`transition-transform duration-300 ${isActive ? 'translate-x-1' : 'opacity-40'}`} />
-                                    )}
+                                <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-2 truncate pr-4">
+                                        {group.icon && (
+                                            <Icon name={group.icon} size={14} className={isActive ? 'text-brand' : isSelectable ? 'text-brand/50 group-hover:text-brand' : 'text-brand'} />
+                                        )}
+                                        <span className="truncate">{label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        {isActive && effectiveGroupActions?.map(action => (
+                                            <button
+                                                key={action}
+                                                onClick={(e) => { e.stopPropagation(); onAction?.(action, group); }}
+                                                className="p-1 hover:bg-white/20 rounded-md transition-colors"
+                                            >
+                                                <Icon name={action === 'add' ? 'add' : action === 'delete' ? 'delete' : action === 'rename' ? 'edit' : 'content_copy'} size={12} />
+                                            </button>
+                                        ))}
+                                        {(hasChildren || group.items.length > 0) && (
+                                            <Icon name="chevron_right" size={12} className={`transition-transform duration-300 ${isActive ? 'translate-x-1' : 'opacity-40'}`} />
+                                        )}
+                                    </div>
                                 </div>
                             </button>
                         </div>
@@ -369,30 +373,34 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                                     });
                                                 }
                                             }}
-                                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] ${isActive
-                                                ? 'bg-brand text-white shadow-lg shadow-brand/20'
-                                                : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
+                                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] border border-transparent flex-col justify-center ${isActive
+                                                ? 'bg-brand/10 border-brand/20 text-brand shadow-sm'
+                                                : isSelectable
+                                                    ? 'text-[var(--text-muted)] hover:text-brand hover:bg-brand/5 hover:border-brand/10'
+                                                    : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
                                                 } ${!isSelectable && !isActive ? 'cursor-default' : ''}`}
                                         >
-                                            <div className="flex items-center gap-2 truncate pr-4">
-                                                {group.icon && (
-                                                    <Icon name={group.icon} size={14} className={isActive ? 'text-white' : 'text-brand'} />
-                                                )}
-                                                <span className="truncate">{label}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                {isActive && (group.groupActions ?? config.groupActions)?.map(action => (
-                                                    <button
-                                                        key={action}
-                                                        onClick={(e) => { e.stopPropagation(); onAction?.(action, group); }}
-                                                        className="p-1 hover:bg-white/20 rounded-md transition-colors"
-                                                    >
-                                                        <Icon name={action === 'add' ? 'add' : action === 'delete' ? 'delete' : action === 'rename' ? 'edit' : 'content_copy'} size={12} />
-                                                    </button>
-                                                ))}
-                                                {(hasChildren || group.items.length > 0) && (
-                                                    <Icon name="chevron_right" size={12} className={`transition-transform duration-300 ${isActive ? 'translate-x-1' : 'opacity-40'}`} />
-                                                )}
+                                            <div className="flex items-center justify-between w-full">
+                                                <div className="flex items-center gap-2 truncate pr-4">
+                                                    {group.icon && (
+                                                        <Icon name={group.icon} size={14} className={isActive ? 'text-brand' : isSelectable ? 'text-brand/50 group-hover:text-brand' : 'text-brand'} />
+                                                    )}
+                                                    <span className="truncate">{label}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    {isActive && (group.groupActions ?? config.groupActions)?.map(action => (
+                                                        <button
+                                                            key={action}
+                                                            onClick={(e) => { e.stopPropagation(); onAction?.(action, group); }}
+                                                            className="p-1 hover:bg-white/20 rounded-md transition-colors"
+                                                        >
+                                                            <Icon name={action === 'add' ? 'add' : action === 'delete' ? 'delete' : action === 'rename' ? 'edit' : 'content_copy'} size={12} />
+                                                        </button>
+                                                    ))}
+                                                    {(hasChildren || group.items.length > 0) && (
+                                                        <Icon name="chevron_right" size={12} className={`transition-transform duration-300 ${isActive ? 'translate-x-1' : 'opacity-40'}`} />
+                                                    )}
+                                                </div>
                                             </div>
                                         </button>
                                     </div>

@@ -35,7 +35,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
     const [ownerId, setOwnerId] = useState('');
 
     const { data: dataTypes = [], isLoading: isDataTypesLoading } = useQuery({
-        queryKey: ['data-types', 'AI_Question'],
+        queryKey: ['data-types', 'AI_question'],
         queryFn: async () => {
             const response = await apiClient.get<any[]>('/data-types/', { params: { category: 'AI_Question' } });
             return response.data;
@@ -44,16 +44,22 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
 
     const categoryData: Record<string, SelectionGroup> = useMemo(() => {
         const map: Record<string, SelectionGroup> = {};
-        dataTypes.forEach(dt => {
-            map[dt.type] = {
-                id: dt.type,
-                name: dt.type,
-                icon: dt.config?.icon || 'category',
-                selectable: true,
-                items: [],
-                children: {}
-            };
-        });
+
+        const items = dataTypes.map(dt => ({
+            id: dt.type,
+            name: dt.type,
+            icon: dt.config?.icon || 'category',
+            selectable: true
+        }));
+
+        map['all'] = {
+            id: 'all',
+            name: 'Available Categories',
+            icon: 'dataset',
+            selectable: false,
+            items: items,
+            children: {}
+        };
         return map;
     }, [dataTypes]);
 
@@ -103,13 +109,13 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
 
     // Helper to find label for ComboBox
     const getCategoryLabel = (id: string) => {
-        return Object.values(categoryData).find(g => g.id === id)?.name;
+        return dataTypes.find(dt => dt.type === id)?.type;
     };
     const getModelLabel = (id: string) => {
         return Object.values(MODEL_DATA).find(g => g.id === id)?.name;
     };
     const getCategoryIcon = (id: string) => {
-        return Object.values(categoryData).find(g => g.id === id)?.icon;
+        return dataTypes.find(dt => dt.type === id)?.config?.icon || 'category';
     };
     const getModelIcon = (id: string) => {
         return Object.values(MODEL_DATA).find(g => g.id === id)?.icon;

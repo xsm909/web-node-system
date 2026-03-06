@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Index, JSON, UUID, Integer, ForeignKey
+from sqlalchemy import Column, String, DateTime, Index, JSON, UUID, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.sql import func
 from ..core.database import Base
 import uuid
@@ -19,4 +19,5 @@ class ClientMetadata(Base):
         Index("idx_client_metadata_owner_id", "owner_id"),
         Index("idx_client_metadata_data_type_id", "data_type_id"),
         Index("idx_client_metadata_created_by", "created_by"),
+        UniqueConstraint("owner_id", "data_type_id", name="uq_client_metadata_owner_datatype"),
     )

@@ -9,6 +9,7 @@ import { ConfirmModal } from '../../shared/ui/confirm-modal';
 import { WorkflowGraph } from '../../widgets/workflow-graph';
 import { WorkflowDataEditorTabs } from '../../widgets/workflow-data-editor';
 import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskManagement';
+import { ClientMetadataManagement } from '../../widgets/client-metadata-management/ui/ClientMetadataManagement';
 import { useWorkflowOperations } from '../../features/workflow-operations';
 import { useWorkflowManagement } from '../../features/workflow-management';
 import { useAuthStore } from '../../features/auth/store';
@@ -23,7 +24,7 @@ export default function ManagerPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
-    const [activeTab, setActiveTab] = useState<'workflows' | 'reports' | 'ai-tasks'>('workflows');
+    const [activeTab, setActiveTab] = useState<'workflows' | 'reports' | 'ai-tasks' | 'client-metadata'>('workflows');
 
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -108,6 +109,13 @@ export default function ManagerPage() {
             icon: 'bolt',
             isActive: activeTab === 'ai-tasks',
             onClick: () => setActiveTab('ai-tasks'),
+        },
+        {
+            id: 'client-metadata',
+            label: 'Client Metadata',
+            icon: 'dataset',
+            isActive: activeTab === 'client-metadata',
+            onClick: () => setActiveTab('client-metadata'),
         }
     ];
 
@@ -296,6 +304,21 @@ export default function ManagerPage() {
                         />
                         <div className="flex-1 p-8 overflow-y-auto">
                             <AITaskManagement activeClientId={activeClientId} />
+                        </div>
+                    </div>
+                ) : activeTab === 'client-metadata' ? (
+                    <div className="flex-1 flex flex-col relative overflow-hidden">
+                        <AppHeader
+                            onToggleSidebar={toggleSidebar}
+                            isSidebarOpen={isSidebarOpen}
+                            leftContent={
+                                <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
+                                    Client Metadata
+                                </h1>
+                            }
+                        />
+                        <div className="flex-1 p-8 overflow-y-auto">
+                            <ClientMetadataManagement activeClientId={activeClientId} />
                         </div>
                     </div>
                 ) : (
