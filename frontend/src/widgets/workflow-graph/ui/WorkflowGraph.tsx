@@ -13,7 +13,8 @@ import type {
     Node,
     Edge,
     Connection,
-    OnConnectStartParams
+    OnConnectStartParams,
+    XYPosition
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -55,6 +56,8 @@ export function WorkflowGraph({
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const { screenToFlowPosition, setCenter } = useReactFlow();
     const centeredWorkflowId = React.useRef<string | null>(null);
+    const mousePosition = React.useRef<XYPosition>({ x: 0, y: 0 });
+    const [clipboard, setClipboard] = useState<{ nodes: Node[], edges: Edge[], center: XYPosition } | null>(null);
 
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
     const [addNodeMenu, setAddNodeMenu] = useState<{ x: number, y: number, clientX: number, clientY: number, connectionStart: OnConnectStartParams } | null>(null);
@@ -142,6 +145,113 @@ export function WorkflowGraph({
     useEffect(() => {
         if (onEdgesChangeCallback) onEdgesChangeCallback(edges);
     }, [edges, onEdgesChangeCallback]);
+
+    const handleCopy = useCallback(() => {
+        const selectedNodes = nodes.filter((node) => node.selected);
+        const selectedEdges = edges.filter((edge) => edge.selected);
+
+        if (selectedNodes.length === 0) return;
+
+        // Calculate center of selected nodes
+        const minX = Math.min(...selectedNodes.map(n => n.position.x));
+        const minY = Math.min(...selectedNodes.map(n => n.position.y));
+        const maxX = Math.max(...selectedNodes.map(n => n.position.x + (n.width || 250)));
+        const maxY = Math.max(...selectedNodes.map(n => n.position.y + (n.height || 100)));
+
+        const center = {
+            x: minX + (maxX - minX) / 2,
+            y: minY + (maxY - minY) / 2,
+        };
+
+        setClipboard({
+            nodes: selectedNodes.map(n => ({ ...n, selected: false })),
+            edges: selectedEdges.map(e => ({ ...e, selected: false })),
+            center,
+        });
+    }, [nodes, edges]);
+
+    const handlePaste = useCallback((useMouse: boolean = true) => {
+        if (!clipboard) return;
+
+        let offset: XYPosition;
+        if (useMouse) {
+            offset = {
+                x: mousePosition.current.x - clipboard.center.x,
+                y: mousePosition.current.y - clipboard.center.y,
+            };
+        } else {
+            // Paste nearby (offset from original position)
+            offset = { x: 40, y: 40 };
+        }
+
+        const nodeIdMap: Record<string, string> = {};
+
+        const newNodes = clipboard.nodes
+            .filter((node: any) => node.id !== 'node_start' && node.type !== 'start')
+            .map((node: any) => {
+                const newId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                nodeIdMap[node.id] = newId;
+
+                return {
+                    ...node,
+                    id: newId,
+                    position: {
+                        x: Math.round((node.position.x + offset.x) / 10) * 10,
+                        y: Math.round((node.position.y + offset.y) / 10) * 10,
+                    },
+                    selected: true,
+                };
+            });
+
+        const newEdges = clipboard.edges
+            .filter((edge: any) => nodeIdMap[edge.source] && nodeIdMap[edge.target])
+            .map((edge: any) => ({
+                ...edge,
+                id: `e_${nodeIdMap[edge.source]}-${nodeIdMap[edge.target]}-${Date.now()}`,
+                source: nodeIdMap[edge.source],
+                target: nodeIdMap[edge.target],
+                selected: true,
+            }));
+
+        // Deselect current nodes
+        setNodes((nds) => nds.map(n => ({ ...n, selected: false })).concat(newNodes));
+        setEdges((eds) => eds.map(e => ({ ...e, selected: false })).concat(newEdges));
+    }, [clipboard, setNodes, setEdges]);
+
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            const isCopy = (event.metaKey || event.ctrlKey) && (event.key.toLowerCase() === 'c' || event.code === 'KeyC');
+            const isPaste = (event.metaKey || event.ctrlKey) && (event.key.toLowerCase() === 'v' || event.code === 'KeyV');
+
+            if (isCopy) {
+                // Only copy if not focused on an input/textarea
+                const target = event.target as HTMLElement;
+                if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
+                event.preventDefault();
+                handleCopy();
+            }
+
+            if (isPaste) {
+                const target = event.target as HTMLElement;
+                if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
+                event.preventDefault();
+                handlePaste();
+            }
+        };
+
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [handleCopy, handlePaste]);
+
+    const onMouseMove = useCallback((event: React.MouseEvent) => {
+        const position = screenToFlowPosition({
+            x: event.clientX,
+            y: event.clientY,
+        });
+        mousePosition.current = position;
+    }, [screenToFlowPosition]);
 
     const onNodesChange = useCallback((changes: any) => {
         if (isReadOnly) return;
@@ -387,6 +497,7 @@ export function WorkflowGraph({
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     onNodeClick={onNodeClick}
+                    onMouseMove={onMouseMove}
                     onNodeDragStart={() => setMenu(null)}
                     onNodesDelete={() => { setMenu(null); setSelectedNodeId(null); }}
                     onMoveStart={() => setMenu(null)}
@@ -422,6 +533,23 @@ export function WorkflowGraph({
                             title="Selection tool"
                         >
                             Select
+                        </button>
+                        <div className="w-[1px] h-4 bg-[var(--border-base)] mx-1 self-center" />
+                        <button
+                            onClick={handleCopy}
+                            disabled={!nodes.some(n => n.selected)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 text-[var(--text-muted)] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Copy selected nodes"
+                        >
+                            Copy
+                        </button>
+                        <button
+                            onClick={() => handlePaste(false)}
+                            disabled={!clipboard}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 text-[var(--text-muted)] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Paste nodes nearby"
+                        >
+                            Paste
                         </button>
                     </Panel>
                     <Background
