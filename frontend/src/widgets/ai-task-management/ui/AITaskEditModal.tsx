@@ -37,7 +37,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
     const { data: dataTypes = [], isLoading: isDataTypesLoading } = useQuery({
         queryKey: ['data-types', 'AI_question'],
         queryFn: async () => {
-            const response = await apiClient.get<any[]>('/data-types/', { params: { category: 'AI_Question' } });
+            const response = await apiClient.get<any[]>('/data-types/', { params: { category: 'AI_question' } });
             return response.data;
         },
     });
@@ -45,21 +45,17 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({ isOpen, onClos
     const categoryData: Record<string, SelectionGroup> = useMemo(() => {
         const map: Record<string, SelectionGroup> = {};
 
-        const items = dataTypes.map(dt => ({
-            id: dt.type,
-            name: dt.type,
-            icon: dt.config?.icon || 'category',
-            selectable: true
-        }));
+        dataTypes.forEach(dt => {
+            map[dt.type] = {
+                id: dt.type,
+                name: dt.type,
+                icon: dt.config?.icon || 'category',
+                selectable: true,
+                items: [],
+                children: {}
+            };
+        });
 
-        map['all'] = {
-            id: 'all',
-            name: 'Available Categories',
-            icon: 'dataset',
-            selectable: false,
-            items: items,
-            children: {}
-        };
         return map;
     }, [dataTypes]);
 
