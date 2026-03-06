@@ -26,14 +26,14 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
 
     const [selectedTask, setSelectedTask] = useState<AITask | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const categoryFilter = isAdmin ? ['AI_Task', 'AI_question'] : 'AI_question';
 
-    const categoryFilter = (!activeClientId && isAdmin) ? 'AI_Task' : 'AI_question';
 
-    // Fetch data types to map data_type_id to names for the table
+    // Fetch all data types to map data_type_id to names for the table and pass to children
     const { data: dataTypes = [], isLoading: isDataTypesLoading } = useQuery({
-        queryKey: ['data-types', categoryFilter],
+        queryKey: ['data-types', 'all'],
         queryFn: async () => {
-            const response = await apiClient.get<any[]>('/data-types/', { params: { category: categoryFilter } });
+            const response = await apiClient.get<any[]>('/data-types/');
             return response.data;
         },
     });
@@ -202,7 +202,7 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
                 task={selectedTask}
                 onSave={refetch}
                 defaultOwnerId={activeClientId ?? (isAdmin ? 'AI_Task' : undefined)}
-                activeClientId={activeClientId}
+                categoryFilter={categoryFilter}
                 dataTypes={dataTypes}
             />
         </div>

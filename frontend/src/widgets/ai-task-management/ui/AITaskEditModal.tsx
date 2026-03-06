@@ -7,6 +7,7 @@ import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { DataTypeSelect } from '../../../shared/ui/data-type-select';
 import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
 import { Icon } from '../../../shared/ui/icon';
+import { ManagementModal } from '../../../shared/ui/management-modal';
 
 interface AITaskEditModalProps {
     isOpen: boolean;
@@ -14,23 +15,12 @@ interface AITaskEditModalProps {
     task: AITask | null;
     onSave: () => void;
     defaultOwnerId?: string;
-    activeClientId?: string | null;
+    categoryFilter: string | string[];
     dataTypes: any[];
 }
 
-// Categories fetched dynamically
-
-const MODEL_DATA: Record<string, SelectionGroup> = {
-    'Any Model': { id: 'any', name: 'Any Model', icon: 'auto_awesome', selectable: true, items: [], children: {} },
-    'GPT-4o': { id: 'gpt-4o', name: 'GPT-4o', icon: 'bolt', selectable: true, items: [], children: {} },
-    'Claude 3.5 Sonnet': { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', icon: 'smart_toy', selectable: true, items: [], children: {} },
-    'Gemini 1.5 Pro': { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', icon: 'tempest', selectable: true, items: [], children: {} },
-};
-
-import { ManagementModal } from '../../../shared/ui/management-modal';
-
 export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
-    isOpen, onClose, task, onSave, defaultOwnerId, activeClientId, dataTypes
+    isOpen, onClose, task, onSave, defaultOwnerId, categoryFilter, dataTypes
 }) => {
     const queryClient = useQueryClient();
     const { user } = useAuthStore();
@@ -55,8 +45,6 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
 
                 const taskData = task.task || {};
 
-                // For migration backwards compatibility, if it has 'Task' we use it as single value
-                // otherwise we use our new 'value' or 'values' standard format
                 if (taskData.values && Array.isArray(taskData.values)) {
                     setMultiValues(taskData.values.length > 0 ? taskData.values : ['']);
                     setSingleValue('');
@@ -76,11 +64,52 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
         }
     }, [isOpen, task, defaultOwnerId]);
 
-    // Determine current selected data type to see if it's multiline
+    // Determine current selected data type
     const selectedDataType = useMemo(() => {
         if (!dataTypeId) return null;
         return dataTypes.find(dt => String(dt.id) === dataTypeId) || null;
     }, [dataTypeId, dataTypes]);
+
+    // Generate dynamic model data from ALL DataTypes in 'AI' category, grouped by provider
+    const modelData = useMemo(() => {
+        const data: Record<string, SelectionGroup> = {
+            'any': { id: 'any', name: 'Any Model', icon: 'auto_awesome', selectable: true, items: [], children: {} }
+        };
+
+        // Find all data types in category 'AI'
+        const aiTypes = dataTypes.filter(dt => dt.category === 'AI');
+
+        aiTypes.forEach(dt => {
+            const providerName = dt.config?.Caption || dt.config?.caption || dt.type;
+            const models = Array.isArray(dt.config?.subselect) ? dt.config.subselect : [];
+
+            if (models.length > 0) {
+                // Create a group for the provider if it doesn't exist
+                if (!data[providerName]) {
+                    data[providerName] = {
+                        id: dt.type, // using type as ID for the group
+                        name: providerName,
+                        icon: dt.config?.icon || 'smart_toy',
+                        selectable: false,
+                        items: [],
+                        children: {}
+                    };
+                }
+
+                // Add models as items within the provider group
+                models.forEach((m: string) => {
+                    data[providerName].items.push({
+                        id: m,
+                        name: m,
+                        icon: 'bolt',
+                        selectable: true
+                    });
+                });
+            }
+        });
+
+        return data;
+    }, [dataTypes]);
 
     const isMultiline = selectedDataType?.config?.multiline === true;
 
@@ -122,11 +151,24 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
     const isEdit = !!task;
 
     const getModelLabel = (id: string) => {
-        return Object.values(MODEL_DATA).find(g => g.id === id)?.name;
+        if (id === 'any') return 'Any Model';
+        // Look in top-level and items within groups
+        for (const group of Object.values(modelData)) {
+            if (group.id === id) return group.name;
+            const item = group.items.find(i => i.id === id);
+            if (item) return item.name;
+        }
+        return id;
     };
 
     const getModelIcon = (id: string) => {
-        return Object.values(MODEL_DATA).find(g => g.id === id)?.icon;
+        if (id === 'any') return 'auto_awesome';
+        for (const group of Object.values(modelData)) {
+            if (group.id === id) return group.icon;
+            const item = group.items.find(i => i.id === id);
+            if (item) return item.icon;
+        }
+        return 'bolt';
     };
 
     const addRow = () => {
@@ -136,7 +178,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
     const removeRow = (index: number) => {
         const newVals = [...multiValues];
         newVals.splice(index, 1);
-        if (newVals.length === 0) newVals.push(''); // keep at least one row
+        if (newVals.length === 0) newVals.push('');
         setMultiValues(newVals);
     };
 
@@ -158,14 +200,14 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
             isSaving={mutation.isPending}
             saveDisabled={mutation.isPending || !dataTypeId}
         >
-            <div className={`grid ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'} gap-6`}>
+            <div className={isAdmin ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "space-y-6"}>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Category</label>
                     <DataTypeSelect
                         value={dataTypeId}
                         onChange={(val: string) => setDataTypeId(val)}
                         dataTypes={dataTypes}
-                        categoryFilter={(!activeClientId && isAdmin) ? 'AI_Task' : 'AI_question'}
+                        categoryFilter={categoryFilter}
                         valueProp="id"
                         className="w-full"
                     />
@@ -178,7 +220,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                             label={getModelLabel(model)}
                             icon={getModelIcon(model)}
                             placeholder="Select model..."
-                            data={MODEL_DATA}
+                            data={modelData}
                             onSelect={(item) => setModel(item.id)}
                             className="w-full"
                         />

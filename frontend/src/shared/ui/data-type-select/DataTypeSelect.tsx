@@ -14,7 +14,7 @@ export interface DataType {
 interface DataTypeSelectProps {
     value?: string;
     onChange: (value: string, dataType?: DataType) => void;
-    categoryFilter?: string;
+    categoryFilter?: string | string[];
     valueProp?: 'id' | 'type'; // 'id' for ClientMetadata, 'type' for AITask
     placeholder?: string;
     className?: string;
@@ -31,16 +31,21 @@ export const DataTypeSelect: React.FC<DataTypeSelectProps> = ({
     dataTypes: externalDataTypes
 }) => {
     const { data: fetchedDataTypes = [], isLoading } = useQuery({
-        queryKey: ['data-types', categoryFilter],
+        queryKey: ['data-types', 'all'],
         queryFn: async () => {
-            const params = categoryFilter ? { category: categoryFilter } : {};
-            const response = await apiClient.get<DataType[]>('/data-types/', { params });
+            const response = await apiClient.get<DataType[]>('/data-types/');
             return response.data;
         },
         enabled: !externalDataTypes
     });
 
-    const dataTypes = externalDataTypes || fetchedDataTypes;
+    const allDataTypes = externalDataTypes || fetchedDataTypes;
+
+    const dataTypes = useMemo(() => {
+        if (!categoryFilter) return allDataTypes;
+        const filters = Array.isArray(categoryFilter) ? categoryFilter : [categoryFilter];
+        return allDataTypes.filter(dt => filters.includes(dt.category));
+    }, [allDataTypes, categoryFilter]);
 
     const categoryData: Record<string, SelectionGroup> = useMemo(() => {
         const map: Record<string, SelectionGroup> = {};
