@@ -156,6 +156,43 @@ CREATE TABLE ai_tasks (
 CREATE INDEX idx_ai_task_owner_id ON ai_tasks(owner_id);
 CREATE INDEX idx_ai_task_category ON ai_tasks(category);
 CREATE INDEX idx_ai_task_created_by ON ai_tasks(created_by);
+
+CREATE TABLE data_types (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category VARCHAR(50) NOT NULL DEFAULT 'AI Task',
+    type VARCHAR(50) NOT NULL,
+    config JSON,
+    UNIQUE (category, type)
+);
+
+CREATE TABLE client_metadata (
+    id UUID NOT NULL PRIMARY KEY,
+    owner_id UUID NOT NULL,
+    data_type_id INTEGER NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    metadata JSON DEFAULT '{"multiline": false}',
+    FOREIGN KEY(owner_id) REFERENCES users(id),
+    FOREIGN KEY(data_type_id) REFERENCES data_types(id),
+    FOREIGN KEY(created_by) REFERENCES users(id),
+    FOREIGN KEY(updated_by) REFERENCES users(id)
+);
+
+CREATE TRIGGER trg_client_metadata_id
+AFTER INSERT ON client_metadata
+FOR EACH ROW
+WHEN NEW.id IS NULL
+BEGIN
+    UPDATE client_metadata SET id = lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))) WHERE rowid = NEW.rowid;
+END;
+
+CREATE INDEX idx_client_metadata_owner_id ON client_metadata(owner_id);
+CREATE INDEX idx_client_metadata_data_type_id ON client_metadata(data_type_id);
+CREATE INDEX idx_client_metadata_created_by ON client_metadata(created_by);
+
+
 """)
 
 conn.commit()

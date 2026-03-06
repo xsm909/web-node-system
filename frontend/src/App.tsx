@@ -26,6 +26,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ReactQueryDevtools initialIsOpen={true} />
       <Router />
     </QueryClientProvider>
   );
