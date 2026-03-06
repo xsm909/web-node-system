@@ -94,16 +94,19 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                     let content = 'No content';
                     if (md) {
                         if (md.values && Array.isArray(md.values)) {
-                            content = `[${md.values.length} items] ` + md.values.join(', ');
+                            content = md.values.join(', ');
                         } else if (md.value) {
                             content = md.value;
                         } else {
                             content = JSON.stringify(md);
                         }
                     }
+
+                    const displayContent = content.length > 100 ? content.slice(0, 100) + '...' : content;
+
                     return (
                         <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80" title={content}>
-                            {content}
+                            {displayContent}
                         </div>
                     );
                 },
