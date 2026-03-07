@@ -288,6 +288,11 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     
     SQL Query:
     {query_text}
+
+    Important: 
+    - If the SQL query returned is a single row with a JSON column (e.g., using `json_agg`), make sure to iterate over that specific column correctly in Jinja2 (e.g., `{{% for item in data[0].column_name %}}`).
+    - The `data` variable is always a list of dictionaries (rows). If the entire result is encapsulated in one JSON field of the first row, you must access it as `data[0].field_name`.
+    - Provide a clean, modern design with a focused structure.
     """
     
     response_text = openai_ask_single(prompt, "gpt-4o")

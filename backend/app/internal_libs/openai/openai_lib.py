@@ -33,7 +33,7 @@ def _make_request(api_key: str, messages: list, model: str, tools: Optional[List
         method="POST"
     )
     try:
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=30) as response:
             result = json.loads(response.read().decode("utf-8"))
             
             # Check for tool calls first (if we specifically requested them)
