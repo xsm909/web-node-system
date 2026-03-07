@@ -64,10 +64,36 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         setView('view');
     };
 
+    const [isGenerated, setIsGenerated] = useState(false);
+    const [currentParams, setCurrentParams] = useState<Record<string, any>>({});
+
     const handleBack = () => {
         setView('list');
         setSelectedReport(null);
+        setIsGenerated(false);
         setRefreshTrigger(prev => prev + 1);
+    };
+
+    const handleDownloadPdf = async () => {
+        if (!selectedReport) return;
+        try {
+            const res = await apiClient.post(`/reports/${selectedReport.id}/pdf`, {
+                parameters: currentParams
+            }, {
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `report_${selectedReport.name.replace(/\s+/g, '_')}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error("Failed to download PDF", err);
+            alert("Error downloading PDF");
+        }
     };
 
     if (isLoading) {
@@ -98,14 +124,25 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 }
                 rightContent={
                     view === 'view' && (
-                        <button
-                            onClick={() => reportViewerRef.current?.handleGenerate()}
-                            disabled={isGenerating}
-                            className="flex items-center gap-2 px-6 py-2 bg-brand text-white rounded-xl shadow-lg shadow-brand/20 hover:brightness-110 active:scale-95 transition-all font-bold text-sm disabled:opacity-50 disabled:pointer-events-none"
-                        >
-                            <Icon name="bolt" size={18} />
-                            {isGenerating ? 'Generating...' : 'Generate'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                            {isGenerated && (
+                                <button
+                                    onClick={handleDownloadPdf}
+                                    className="flex items-center gap-2 px-6 py-2 bg-[var(--bg-surface)] text-[var(--text-main)] border border-[var(--border-base)] rounded-xl shadow-sm hover:bg-[var(--bg-app)] active:scale-95 transition-all font-bold text-sm"
+                                >
+                                    <Icon name="docs" size={18} />
+                                    Save PDF
+                                </button>
+                            )}
+                            <button
+                                onClick={() => reportViewerRef.current?.handleGenerate()}
+                                disabled={isGenerating}
+                                className="flex items-center gap-2 px-6 py-2 bg-brand text-white rounded-xl shadow-lg shadow-brand/20 hover:brightness-110 active:scale-95 transition-all font-bold text-sm disabled:opacity-50 disabled:pointer-events-none"
+                            >
+                                <Icon name="bolt" size={18} />
+                                {isGenerating ? 'Generating...' : 'Generate'}
+                            </button>
+                        </div>
                     )
                 }
             />
@@ -136,6 +173,10 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                         ref={reportViewerRef}
                         report={selectedReport!}
                         onLoadingChange={setIsGenerating}
+                        onGenerated={(generated: boolean, params: Record<string, any>) => {
+                            setIsGenerated(generated);
+                            setCurrentParams(params);
+                        }}
                     />
                 )}
             </div>

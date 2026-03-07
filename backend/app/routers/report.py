@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from jinja2 import Environment, meta, Template
 from ..internal_libs.openai.openai_lib import openai_ask_single
 import re
+import io
+from fastapi.responses import Response
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -217,19 +219,17 @@ def delete_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_a
     db.commit()
     return {"status": "deleted"}
 
-@router.post("/{report_id}/generate", response_model=ReportGenerateResponse)
-def generate_report(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Session) -> str:
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
         
     # Validation: ensuring all required parameters are provided.
-    provided_params = data.parameters
+    provided_params = params
     
     # Execute Query
     try:
         # We need to execute the raw SQL query with mapped parameters.
-        # Ensure we only pass the parameters that exist in the query to avoid errors.
         exec_params = provided_params.copy()
         result_query = db.execute(text(report.query), exec_params)
         columns = result_query.keys()
@@ -258,19 +258,51 @@ def generate_report(report_id: uuid.UUID, data: ReportGenerateRequest, db: Sessi
         if default_style:
              css_content = default_style.css
              
-    final_html = f"<style>{css_content}</style>\n<div class='report-container'>\n{rendered_html}\n</div>"
+    final_html = f"<html><head><style>{css_content}</style></head><body><div class='report-container'>\n{rendered_html}\n</div></body></html>"
+    return final_html
+
+@router.post("/{report_id}/generate", response_model=ReportGenerateResponse)
+def generate_report(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    final_html = _generate_report_html(report_id, data.parameters, db)
 
     # Optional: Log the report run
     run = ReportRun(
-        report_id=report.id,
+        report_id=report_id,
         executed_by=current_user.id,
-        parameters_json=provided_params,
+        parameters_json=data.parameters,
         result_snapshot=None # Opting to not save full HTML to save space, but could if needed.
     )
     db.add(run)
     db.commit()
 
     return {"html": final_html}
+
+@router.post("/{report_id}/pdf")
+def generate_report_pdf(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    from weasyprint import HTML
+    final_html = _generate_report_html(report_id, data.parameters, db)
+    
+    # Convert HTML to PDF
+    pdf_bytes = io.BytesIO()
+    HTML(string=final_html).write_pdf(pdf_bytes)
+    
+    # Optional: Log the report run
+    run = ReportRun(
+        report_id=report_id,
+        executed_by=current_user.id,
+        parameters_json=data.parameters,
+        result_snapshot=None
+    )
+    db.add(run)
+    db.commit()
+
+    return Response(
+        content=pdf_bytes.getvalue(),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=report_{report_id}.pdf"
+        }
+    )
 
 @router.post("/generate-template", response_model=ReportTemplateGenerateResponse)
 def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_access):

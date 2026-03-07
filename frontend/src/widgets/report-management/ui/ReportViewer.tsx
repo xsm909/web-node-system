@@ -8,13 +8,14 @@ import { apiClient } from '../../../shared/api/client';
 interface ReportViewerProps {
     report: Report;
     onLoadingChange?: (loading: boolean) => void;
+    onGenerated?: (isGenerated: boolean, params: Record<string, any>) => void;
 }
 
 export interface ReportViewerRef {
     handleGenerate: () => void;
 }
 
-export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ report, onLoadingChange }, ref) => {
+export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ report, onLoadingChange, onGenerated }, ref) => {
     const [htmlData, setHtmlData] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [paramValues, setParamValues] = useState<Record<string, any>>({});
@@ -70,11 +71,13 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
 
         setIsLoading(true);
         setHtmlData(null);
+        onGenerated?.(false, {});
         try {
             const res = await apiClient.post(`/reports/${report.id}/generate`, {
                 parameters: paramValues
             });
             setHtmlData(res.data.html);
+            onGenerated?.(true, paramValues);
         } catch (err: any) {
             console.error("Failed to generate report", err);
             alert("Error generating report: " + (err.response?.data?.detail || err.message));
