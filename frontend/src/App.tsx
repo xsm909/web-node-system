@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Router from './app/Router';
 import { useThemeStore } from './shared/lib/theme/store';
 
@@ -26,7 +25,6 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ReactQueryDevtools initialIsOpen={true} />
       <Router />
     </QueryClientProvider>
   );
