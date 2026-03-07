@@ -64,3 +64,24 @@ def get_active_client() -> Dict[str, Any]:
         return {"id": None, "name": "Error", "error": str(e)}
     finally:
         db.close()
+
+
+def GetAIByModel(Model: str) -> str:
+    """
+    Returns the AI provider (Perplexity, Gemini, OpenAI) based on the model string.
+    """
+    model_lower = Model.lower()
+    
+    # Perplexity models
+    if "sonar" in model_lower or "perplexity" in model_lower:
+        return "Perplexity"
+        
+    # Gemini models
+    elif "gemini" in model_lower or "google" in model_lower:
+        return "Gemini"
+        
+    # OpenAI models
+    elif "gpt" in model_lower or "o1" in model_lower or "o3" in model_lower or "openai" in model_lower:
+        return "OpenAI"
+        
+    return "Unknown"

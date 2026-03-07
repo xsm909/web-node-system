@@ -6,7 +6,8 @@ from ..core.database import SessionLocal
 from ..models.client_metadata import ClientMetadata
 from ..models.data_type import DataType
 
-def process_analytics_request(clientid: str, request: str) -> str:
+def process_analytics_request(client_id: str, task_text: str) -> str:
+    
     """
     Counts company mention and replaces {@metadata@CompanyName} placeholders
     with actual metadata from the database.
@@ -18,10 +19,10 @@ def process_analytics_request(clientid: str, request: str) -> str:
     Returns:
         The processed string with metadata substituted.
     """
-    
+    print ('lqwdjklalskdj----------')
     # 1. Find all {@metadata@NAME} placeholders
     pattern = r'\{@metadata@([^}]+)\}'
-    placeholders = re.findall(pattern, request)
+    placeholders = re.findall(pattern, task_text)
     
     if not placeholders:
         return request
@@ -31,9 +32,9 @@ def process_analytics_request(clientid: str, request: str) -> str:
     
     try:
         # Convert clientid to UUID if it's a string
-        client_uuid = uuid.UUID(clientid) if isinstance(clientid, str) else clientid
+        client_uuid = uuid.UUID(client_id) if isinstance(client_id, str) else client_id
         
-        result_text = request
+        result_text = task_text
         
         # 3. Process each unique placeholder
         for name in set(placeholders):

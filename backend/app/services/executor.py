@@ -159,13 +159,15 @@ SAFE_GLOBALS = {
         perform_web_search=perplexity_perform_web_search,
     ),
     "common": SimpleNamespace(
-        get_active_client=common_lib.get_active_client
+        get_active_client=common_lib.get_active_client,
+        GetAIByModel=common_lib.GetAIByModel
     ),
     "inner_database": SimpleNamespace(
         unsafe_request=database_lib.unsafe_request
     ),
     "analytics": SimpleNamespace(
-        process_request=analytics.process_analytics_request
+        process_request=analytics.process_analytics_request,
+        process_analytics_request=analytics.process_analytics_request
     ),
     "workflow": None,  # Will be injected per-execution
 }
@@ -587,7 +589,8 @@ class WorkflowExecutor:
                 "openai": execution_openai,
                 "common": execution_common,
                 "analytics": SimpleNamespace(
-                    process_request=analytics.process_analytics_request
+                    process_request=analytics.process_analytics_request,
+                    process_analytics_request=analytics.process_analytics_request
                 ),
                 "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),
             }
