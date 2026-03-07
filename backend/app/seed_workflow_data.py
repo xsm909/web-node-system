@@ -281,6 +281,205 @@ WORKFLOWS_DATA = \
         "workflow_data": {}
     },
     {
+        "id": "6afe792b-843e-4e16-b30a-7c5b30defe11",
+        "name": "3.1: Analytics",
+        "owner_id": "common",
+        "category": "common",
+        "status": "draft",
+        "graph": {
+            "nodes": [
+                {
+                    "id": "node_start",
+                    "type": "start",
+                    "position": {
+                        "x": 90,
+                        "y": 180
+                    },
+                    "deletable": false,
+                    "data": {
+                        "label": "Start",
+                        "nodeType": "Start"
+                    },
+                    "width": 250,
+                    "height": 130,
+                    "selected": false,
+                    "dragging": false,
+                    "positionAbsolute": {
+                        "x": 90,
+                        "y": 180
+                    }
+                },
+                {
+                    "id": "node_1772810317685_a2qddesbo",
+                    "type": "action",
+                    "position": {
+                        "x": 90,
+                        "y": 340
+                    },
+                    "data": {
+                        "nodeTypeId": "2301f433-3341-44f2-a679-1bf841bb7202",
+                        "label": "Set value",
+                        "category": "Data|Runtime",
+                        "params": {
+                            "Name": "_category",
+                            "NewValue": "Q1",
+                            "Update": false
+                        },
+                        "icon": "task"
+                    },
+                    "width": 250,
+                    "height": 157,
+                    "selected": false,
+                    "positionAbsolute": {
+                        "x": 90,
+                        "y": 340
+                    },
+                    "dragging": false
+                },
+                {
+                    "id": "node_1772810317685_fo2qssfny",
+                    "type": "action",
+                    "position": {
+                        "x": 90,
+                        "y": 520
+                    },
+                    "data": {
+                        "nodeTypeId": "2301f433-3341-44f2-a679-1bf841bb7202",
+                        "label": "Set value",
+                        "category": "Data|Runtime",
+                        "params": {
+                            "Name": "_session_expires_in_days",
+                            "NewValue": "1",
+                            "Update": false
+                        },
+                        "icon": "task"
+                    },
+                    "width": 250,
+                    "height": 157,
+                    "selected": false,
+                    "positionAbsolute": {
+                        "x": 90,
+                        "y": 520
+                    },
+                    "dragging": false
+                },
+                {
+                    "id": "node_1772811443988",
+                    "type": "action",
+                    "position": {
+                        "x": 90,
+                        "y": 700
+                    },
+                    "data": {
+                        "nodeTypeId": "66171aa4-8781-4e88-bf92-ec2be6d01ba2",
+                        "label": "Create or get session ID",
+                        "category": "Database",
+                        "params": {},
+                        "icon": "text"
+                    },
+                    "width": 250,
+                    "height": 100,
+                    "selected": false,
+                    "positionAbsolute": {
+                        "x": 90,
+                        "y": 700
+                    },
+                    "dragging": false
+                },
+                {
+                    "id": "node_1772814560212",
+                    "type": "action",
+                    "position": {
+                        "x": 90,
+                        "y": 970
+                    },
+                    "data": {
+                        "nodeTypeId": "bf9e371f-a0bb-494d-91ba-e9419e1032f6",
+                        "label": "Getting analysis with AI",
+                        "category": "AI|Analysis",
+                        "params": {
+                            "analytic_type": "Mention",
+                            "AI_Task": "3198dc23-1f82-49f0-8968-e9090f1d972b",
+                            "_DISPLAY_AI_Task": "Count company mention"
+                        },
+                        "icon": "graph-2"
+                    },
+                    "width": 250,
+                    "height": 136,
+                    "selected": false,
+                    "dragging": false,
+                    "positionAbsolute": {
+                        "x": 90,
+                        "y": 970
+                    }
+                },
+                {
+                    "id": "node_1772815420377",
+                    "type": "action",
+                    "position": {
+                        "x": 90,
+                        "y": 830
+                    },
+                    "data": {
+                        "nodeTypeId": "23dc8df3-c1c3-48c1-8e0f-d0f5b746c942",
+                        "label": "Clear analytics data",
+                        "category": "Database|Analytics",
+                        "params": {
+                            "analytic_type": "Mention"
+                        },
+                        "icon": "text"
+                    },
+                    "width": 250,
+                    "height": 115,
+                    "selected": true,
+                    "dragging": false
+                }
+            ],
+            "edges": [
+                {
+                    "id": "e_node_1772810317685_a2qddesbo-node_1772810317685_fo2qssfny-1772810317686",
+                    "source": "node_1772810317685_a2qddesbo",
+                    "sourceHandle": "output",
+                    "target": "node_1772810317685_fo2qssfny",
+                    "targetHandle": "top",
+                    "selected": false
+                },
+                {
+                    "source": "node_start",
+                    "sourceHandle": "output",
+                    "target": "node_1772810317685_a2qddesbo",
+                    "targetHandle": "top",
+                    "id": "e_node_start-node_1772810317685_a2qddesbo-1772810347989",
+                    "selected": false
+                },
+                {
+                    "id": "e_node_1772810317685_fo2qssfny-node_1772811443988",
+                    "source": "node_1772810317685_fo2qssfny",
+                    "sourceHandle": "output",
+                    "target": "node_1772811443988",
+                    "targetHandle": "top",
+                    "selected": false
+                },
+                {
+                    "id": "e_node_1772811443988-node_1772815420377",
+                    "source": "node_1772811443988",
+                    "sourceHandle": "output",
+                    "target": "node_1772815420377",
+                    "targetHandle": "top",
+                    "selected": false
+                },
+                {
+                    "source": "node_1772815420377",
+                    "sourceHandle": "output",
+                    "target": "node_1772814560212",
+                    "targetHandle": "top",
+                    "id": "e_node_1772815420377-node_1772814560212-1772874172897"
+                }
+            ]
+        },
+        "workflow_data": {}
+    },
+    {
         "id": "ae49675d-ec0c-4c84-a680-c49793c0ace6",
         "name": "2: Get response of AI",
         "owner_id": "common",
@@ -310,33 +509,6 @@ WORKFLOWS_DATA = \
                     "dragging": false
                 },
                 {
-                    "id": "node_1772719677851",
-                    "type": "action",
-                    "position": {
-                        "x": 100,
-                        "y": 10
-                    },
-                    "data": {
-                        "nodeTypeId": "2301f433-3341-44f2-a679-1bf841bb7202",
-                        "label": "Set value",
-                        "category": "Data|Runtime",
-                        "params": {
-                            "Name": "_AIAnswer",
-                            "NewValue": "Perplexity",
-                            "Update": false
-                        },
-                        "icon": "task"
-                    },
-                    "width": 250,
-                    "height": 157,
-                    "selected": false,
-                    "positionAbsolute": {
-                        "x": 100,
-                        "y": 10
-                    },
-                    "dragging": false
-                },
-                {
                     "id": "node_1772719685596",
                     "type": "action",
                     "position": {
@@ -349,14 +521,14 @@ WORKFLOWS_DATA = \
                         "category": "Data|Runtime",
                         "params": {
                             "Name": "_AIModel",
-                            "NewValue": "sonar",
+                            "NewValue": "GPT-5",
                             "Update": false
                         },
                         "icon": "task"
                     },
                     "width": 250,
                     "height": 157,
-                    "selected": false,
+                    "selected": true,
                     "positionAbsolute": {
                         "x": 100,
                         "y": 190
@@ -395,7 +567,7 @@ WORKFLOWS_DATA = \
                     "type": "action",
                     "position": {
                         "x": 100,
-                        "y": 1340
+                        "y": 1280
                     },
                     "data": {
                         "nodeTypeId": "94a06316-3627-4ab2-b95e-36a26fc8839a",
@@ -409,7 +581,7 @@ WORKFLOWS_DATA = \
                     "selected": false,
                     "positionAbsolute": {
                         "x": 100,
-                        "y": 1340
+                        "y": 1280
                     },
                     "dragging": false
                 },
@@ -418,7 +590,7 @@ WORKFLOWS_DATA = \
                     "type": "action",
                     "position": {
                         "x": 100,
-                        "y": 1200
+                        "y": 1140
                     },
                     "data": {
                         "nodeTypeId": "21a0c4b5-f180-4072-aefc-a71be1193d3a",
@@ -432,7 +604,7 @@ WORKFLOWS_DATA = \
                     "selected": false,
                     "positionAbsolute": {
                         "x": 100,
-                        "y": 1200
+                        "y": 1140
                     },
                     "dragging": false
                 },
@@ -468,7 +640,7 @@ WORKFLOWS_DATA = \
                     "type": "action",
                     "position": {
                         "x": 100,
-                        "y": 1050
+                        "y": 990
                     },
                     "data": {
                         "nodeTypeId": "66171aa4-8781-4e88-bf92-ec2be6d01ba2",
@@ -482,16 +654,16 @@ WORKFLOWS_DATA = \
                     "selected": false,
                     "positionAbsolute": {
                         "x": 100,
-                        "y": 1050
+                        "y": 990
                     },
                     "dragging": false
                 },
                 {
-                    "id": "node_1772722236707",
+                    "id": "node_1772866876145",
                     "type": "action",
                     "position": {
                         "x": 100,
-                        "y": 790
+                        "y": 780
                     },
                     "data": {
                         "nodeTypeId": "2301f433-3341-44f2-a679-1bf841bb7202",
@@ -499,40 +671,28 @@ WORKFLOWS_DATA = \
                         "category": "Data|Runtime",
                         "params": {
                             "Name": "_additional_query",
-                            "NewValue": "With http links.",
-                            "Update": false
+                            "NewValue": "with http links",
+                            "Update": true
                         },
                         "icon": "task"
                     },
                     "width": 250,
                     "height": 157,
                     "selected": false,
+                    "positionAbsolute": {
+                        "x": 100,
+                        "y": 780
+                    },
                     "dragging": false
                 }
             ],
             "edges": [
-                {
-                    "id": "e_node_1772719677851-node_1772719685596",
-                    "source": "node_1772719677851",
-                    "sourceHandle": "output",
-                    "target": "node_1772719685596",
-                    "targetHandle": "top",
-                    "selected": false
-                },
                 {
                     "id": "e_node_1772719685596-node_1772720408927",
                     "source": "node_1772719685596",
                     "sourceHandle": "output",
                     "target": "node_1772720408927",
                     "targetHandle": "top",
-                    "selected": false
-                },
-                {
-                    "source": "node_start",
-                    "sourceHandle": "output",
-                    "target": "node_1772719677851",
-                    "targetHandle": "top",
-                    "id": "e_node_start-node_1772719677851-1772720616808",
                     "selected": false
                 },
                 {
@@ -551,14 +711,6 @@ WORKFLOWS_DATA = \
                     "targetHandle": "top"
                 },
                 {
-                    "id": "e_node_1772721473562-node_1772721492477",
-                    "source": "node_1772721473562",
-                    "sourceHandle": "output",
-                    "target": "node_1772721492477",
-                    "targetHandle": "top",
-                    "selected": false
-                },
-                {
                     "source": "node_1772721492477",
                     "sourceHandle": "output",
                     "target": "node_1772721156466",
@@ -567,11 +719,25 @@ WORKFLOWS_DATA = \
                     "selected": false
                 },
                 {
-                    "id": "e_node_1772721473562-node_1772722236707",
+                    "id": "e_node_1772721473562-node_1772866876145",
                     "source": "node_1772721473562",
                     "sourceHandle": "output",
-                    "target": "node_1772722236707",
+                    "target": "node_1772866876145",
                     "targetHandle": "top"
+                },
+                {
+                    "source": "node_1772866876145",
+                    "sourceHandle": "output",
+                    "target": "node_1772721492477",
+                    "targetHandle": "top",
+                    "id": "e_node_1772866876145-node_1772721492477-1772866925285"
+                },
+                {
+                    "source": "node_start",
+                    "sourceHandle": "output",
+                    "target": "node_1772719685596",
+                    "targetHandle": "top",
+                    "id": "e_node_start-node_1772719685596-1772867150283"
                 }
             ]
         },
