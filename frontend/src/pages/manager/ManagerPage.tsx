@@ -10,6 +10,7 @@ import { WorkflowGraph } from '../../widgets/workflow-graph';
 import { WorkflowDataEditorTabs } from '../../widgets/workflow-data-editor';
 import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskManagement';
 import { ClientMetadataManagement } from '../../widgets/client-metadata-management/ui/ClientMetadataManagement';
+import { ReportManagement } from '../../widgets/report-management';
 import { useWorkflowOperations } from '../../features/workflow-operations';
 import { useWorkflowManagement } from '../../features/workflow-management';
 import { useAuthStore } from '../../features/auth/store';
@@ -336,14 +337,8 @@ export default function ManagerPage() {
                                 </h1>
                             }
                         />
-                        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-balance overflow-y-auto">
-                            <div className="w-20 h-20 rounded-3xl bg-[var(--border-base)]/50 flex items-center justify-center mb-6 ring-8 ring-[var(--bg-app)]">
-                                <Icon name="bar_chart" size={40} className="text-[var(--text-muted)] opacity-50" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-[var(--text-main)] mb-3">Reports Dashboard</h2>
-                            <p className="text-[var(--text-muted)] max-w-md">
-                                Comprehensive analytics and insights for your workflows will be available here soon.
-                            </p>
+                        <div className="flex-1 overflow-hidden">
+                            <ReportManagement />
                         </div>
                     </div>
                 )}

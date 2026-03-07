@@ -13,14 +13,15 @@ import { AppHeader } from '../../widgets/app-header';
 import { getCookie, setCookie } from '../../shared/lib/cookieUtils';
 
 import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskManagement';
+import { ReportManagement } from '../../widgets/report-management';
 
 export default function AdminPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'credentials' | 'workflows' | 'ai-tasks'>(
+    const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports'>(
         (getCookie('active_admin_tab') as any) || 'users'
     );
 
-    const setActiveTab = (tab: 'users' | 'nodes' | 'credentials' | 'workflows' | 'ai-tasks') => {
+    const setActiveTab = (tab: 'users' | 'nodes' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports') => {
         setCookie('active_admin_tab', tab);
         setActiveTabState(tab);
     };
@@ -86,6 +87,13 @@ export default function AdminPage() {
                         isActive: activeTab === 'ai-tasks',
                         onClick: () => setActiveTab('ai-tasks'),
                     },
+                    {
+                        id: 'reports',
+                        label: 'Reports',
+                        icon: 'docs',
+                        isActive: activeTab === 'reports',
+                        onClick: () => setActiveTab('reports'),
+                    },
                 ]}
             />
 
@@ -98,7 +106,8 @@ export default function AdminPage() {
                             <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
                                 {activeTab === 'users' ? 'User Management' :
                                     activeTab === 'nodes' ? 'Node Library' :
-                                        activeTab === 'ai-tasks' ? 'AI Task Management' : 'Credentials'}
+                                        activeTab === 'ai-tasks' ? 'AI Task Management' :
+                                            activeTab === 'reports' ? 'Reports Management' : 'Credentials'}
                             </h1>
                         }
                         rightContent={
@@ -135,6 +144,10 @@ export default function AdminPage() {
                     ) : activeTab === 'ai-tasks' ? (
                         <div className="max-w-7xl mx-auto space-y-8">
                             <AITaskManagement activeClientId={null} />
+                        </div>
+                    ) : activeTab === 'reports' ? (
+                        <div className="max-w-7xl mx-auto h-full space-y-8">
+                            <ReportManagement />
                         </div>
                     ) : (
                         <div className="max-w-7xl mx-auto space-y-8"><AdminCredentialManagement /></div>

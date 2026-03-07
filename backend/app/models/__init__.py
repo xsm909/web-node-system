@@ -5,6 +5,7 @@ from .credential import Credential
 from .ai_task import AI_Task
 from .data_type import DataType
 from .client_metadata import ClientMetadata
+from .report import Report, ReportParameter, ReportStyle, ReportRun
 
 __all__ = [
     "User",
@@ -19,4 +20,8 @@ __all__ = [
     "AI_Task",
     "DataType",
     "ClientMetadata",
+    "Report",
+    "ReportParameter",
+    "ReportStyle",
+    "ReportRun",
 ]
