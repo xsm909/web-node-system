@@ -17,6 +17,7 @@ export function ReportViewer({ report }: ReportViewerProps) {
     const [selectedItems, setSelectedItems] = useState<Record<string, { value: string, label: string }>>({});
     const [options, setOptions] = useState<Record<string, { value: string, label: string }[]>>({});
     const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
+    const [isParamsExpanded, setIsParamsExpanded] = useState(true);
 
     useEffect(() => {
         // Fetch options for parameters with @table sources
@@ -71,71 +72,96 @@ export function ReportViewer({ report }: ReportViewerProps) {
 
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
-            <div className="flex-1 flex overflow-hidden">
-                {/* Parameters Sidebar */}
-                <div className="w-80 border-r border-[var(--border-base)] bg-[var(--bg-app)] flex flex-col z-10">
-                    <div className="p-4 border-b border-[var(--border-base)]">
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">Configuration</h3>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-5">
-                        {(!report.parameters || report.parameters.length === 0) ? (
-                            <p className="text-sm text-[var(--text-muted)] italic">No parameters required</p>
-                        ) : (
-                            report.parameters.map(param => (
-                                <div key={param.parameter_name} className="space-y-1.5">
-                                    <label className="text-sm font-bold text-[var(--text-main)] capitalize">
-                                        {param.parameter_name.replace(/_/g, ' ')}
-                                    </label>
+            <div className="flex-1 relative overflow-hidden flex flex-col items-center">
+                {/* Parameters Notch Overlay */}
+                <div
+                    className={`absolute top-0 w-full max-w-4xl z-20 flex flex-col items-center transition-all duration-300 ${!report.parameters || report.parameters.length === 0 ? 'hidden' : ''}`}
+                >
+                    <div
+                        className={`w-full bg-[var(--bg-surface)] border-x border-b border-[var(--border-base)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] rounded-b-2xl overflow-hidden transition-all duration-300 flex flex-col ${isParamsExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
+                        style={{ maxHeight: isParamsExpanded ? '80vh' : '0px' }}
+                    >
+                        <div className="p-4 flex flex-col max-h-[80vh]">
+                            <div className="flex items-center justify-between mb-2 px-2">
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">Configuration</h3>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 custom-scrollbar">
+                                {report.parameters && report.parameters.map(param => (
+                                    <div key={param.parameter_name} className="space-y-1.5 min-w-0">
+                                        <label className="text-sm font-bold text-[var(--text-main)] capitalize block truncate">
+                                            {param.parameter_name.replace(/_/g, ' ')}
+                                        </label>
 
-                                    {options[param.parameter_name] && options[param.parameter_name].length > 0 ? (
-                                        <ComboBox
-                                            value={paramValues[param.parameter_name]}
-                                            label={selectedItems[param.parameter_name]?.label || 'Select...'}
-                                            placeholder={param.parameter_name}
-                                            data={{
-                                                items: {
-                                                    id: 'items',
-                                                    name: 'Available Options',
-                                                    items: options[param.parameter_name].map(opt => ({
-                                                        id: opt.value,
-                                                        name: opt.label
-                                                    })),
-                                                    children: {}
-                                                }
-                                            }}
-                                            onSelect={(item) => {
-                                                handleParamChange(param.parameter_name, item.id);
-                                                setSelectedItems(prev => ({ ...prev, [param.parameter_name]: { value: item.id, label: item.name } }));
-                                            }}
-                                            variant="primary"
-                                            className="w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl"
-                                        />
-                                    ) : (
-                                        <input
-                                            type="text"
-                                            value={paramValues[param.parameter_name] || ''}
-                                            onChange={(e) => handleParamChange(param.parameter_name, e.target.value)}
-                                            className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
-                                            placeholder={`Enter ${param.parameter_name}...`}
-                                        />
-                                    )}
-                                </div>
-                            ))
-                        )}
+                                        {options[param.parameter_name] && options[param.parameter_name].length > 0 ? (
+                                            <ComboBox
+                                                value={paramValues[param.parameter_name]}
+                                                label={selectedItems[param.parameter_name]?.label || 'Select...'}
+                                                placeholder={param.parameter_name}
+                                                data={{
+                                                    items: {
+                                                        id: 'items',
+                                                        name: 'Available Options',
+                                                        items: options[param.parameter_name].map(opt => ({
+                                                            id: opt.value,
+                                                            name: opt.label
+                                                        })),
+                                                        children: {}
+                                                    }
+                                                }}
+                                                onSelect={(item) => {
+                                                    handleParamChange(param.parameter_name, item.id);
+                                                    setSelectedItems(prev => ({ ...prev, [param.parameter_name]: { value: item.id, label: item.name } }));
+                                                }}
+                                                variant="primary"
+                                                className="w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl"
+                                            />
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                value={paramValues[param.parameter_name] || ''}
+                                                onChange={(e) => handleParamChange(param.parameter_name, e.target.value)}
+                                                className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
+                                                placeholder={`Enter ${param.parameter_name}...`}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="p-4 border-t border-[var(--border-base)] mt-4 flex justify-end gap-3">
+                                <button
+                                    onClick={() => {
+                                        setIsParamsExpanded(false);
+                                    }}
+                                    className="px-6 py-2.5 rounded-xl text-[var(--text-main)] hover:bg-[var(--border-muted)] bg-[var(--bg-app)] border border-[var(--border-base)] font-medium transition-colors"
+                                >
+                                    Hide
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        handleGenerate();
+                                        setIsParamsExpanded(false);
+                                    }}
+                                    disabled={isLoading}
+                                    className="px-8 py-2.5 rounded-xl bg-brand text-white font-bold transition-all hover:brightness-110 active:scale-95 shadow-md shadow-brand/20 disabled:opacity-50 disabled:pointer-events-none"
+                                >
+                                    {isLoading ? 'Generating...' : 'Generate Report'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div className="p-4 border-t border-[var(--border-base)] bg-[var(--bg-surface)]">
-                        <button
-                            onClick={handleGenerate}
-                            disabled={isLoading}
-                            className="w-full py-3 rounded-xl bg-brand text-white font-bold transition-all hover:brightness-110 active:scale-95 shadow-lg shadow-brand/20 disabled:opacity-50 disabled:pointer-events-none"
-                        >
-                            {isLoading ? 'Generating...' : 'Generate Report'}
-                        </button>
-                    </div>
+
+                    {/* Notch Toggle Handle */}
+                    <button
+                        onClick={() => setIsParamsExpanded(!isParamsExpanded)}
+                        className={`bg-[var(--bg-surface)] border border-t-0 border-[var(--border-base)] shadow-md rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors hover:bg-[var(--bg-app)] cursor-pointer mt-[-1px] ${isParamsExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 backdrop-blur-md bg-[var(--bg-surface)]/90'}`}
+                    >
+                        <span className="text-xs font-bold mr-1.5 uppercase tracking-wider">Parameters</span>
+                        <Icon name="down" size={16} />
+                    </button>
                 </div>
 
                 {/* Report Output Area */}
-                <div className="flex-1 bg-white relative overflow-auto p-8 rounded-tl-xl border-l border-t border-[var(--border-base)] mt-[-1px] ml-[-1px] shadow-sm">
+                <div className={`flex-1 w-full bg-white relative overflow-auto p-8 z-0 transition-all duration-300 custom-scrollbar ${(report.parameters && report.parameters.length > 0) ? 'pt-16' : ''}`}>
                     {isLoading ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-brand bg-white/50 backdrop-blur-sm z-20">
                             <div className="w-8 h-8 rounded-full border-t-2 border-brand animate-spin mb-4" />
@@ -143,7 +169,7 @@ export function ReportViewer({ report }: ReportViewerProps) {
                         </div>
                     ) : htmlData ? (
                         <div
-                            className="report-output-wrap text-black w-full"
+                            className="report-output-wrap text-black w-full max-w-7xl mx-auto"
                             dangerouslySetInnerHTML={{ __html: htmlData }}
                         />
                     ) : (
