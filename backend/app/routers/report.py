@@ -224,16 +224,11 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
         
-    # Validation: ensuring all required parameters are provided.
-    provided_params = params
-    
     # Execute Query
     try:
-        # We need to execute the raw SQL query with mapped parameters.
-        exec_params = provided_params.copy()
+        exec_params = params.copy()
         result_query = db.execute(text(report.query), exec_params)
         columns = result_query.keys()
-        # Convert ResultSet to List of dictionaries
         sql_result = [dict(zip(columns, row)) for row in result_query.fetchall()]
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error executing SQL: {str(e)}")
@@ -241,24 +236,60 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
     # Jinja2 Rendering
     try:
         jinja_template = Template(report.template)
-        # Pass result list as 'data' and parameters as 'params' to jinja context
-        rendered_html = jinja_template.render(data=sql_result, params=provided_params)
+        rendered_html = jinja_template.render(data=sql_result, params=params)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error rendering template: {str(e)}")
         
-    # Embed CSS
+    # CSS logic
     css_content = ""
     if report.style_id:
         style = db.query(ReportStyle).filter(ReportStyle.id == report.style_id).first()
         if style:
             css_content = style.css
     else:
-        # Use default style
         default_style = db.query(ReportStyle).filter(ReportStyle.is_default == True).first()
         if default_style:
              css_content = default_style.css
              
-    final_html = f"<html><head><style>{css_content}</style></head><body><div class='report-container'>\n{rendered_html}\n</div></body></html>"
+    # Base PDF CSS
+    base_pdf_css = """
+    @page {
+        margin: 1.5cm;
+        size: A4;
+    }
+    html, body {
+        background-color: white !important;
+        font-size: 10pt !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+        line-height: 1.5;
+        color: #000 !important;
+        margin: 0;
+        padding: 0;
+    }
+    .report-container {
+        width: 100%;
+        background-color: white !important;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    table {
+        font-size: 10pt !important;
+        width: 100% !important;
+        border-collapse: collapse;
+    }
+    """
+    
+    # We want to inject our base CSS and the report-specific CSS.
+    if "<html" in rendered_html.lower():
+        # Inject CSS into <head>
+        full_css = f"<style>{base_pdf_css}\n{css_content}</style>"
+        if "</head>" in rendered_html:
+            final_html = rendered_html.replace("</head>", f"{full_css}\n</head>")
+        else:
+            final_html = f"<html><head>{full_css}</head><body>{rendered_html}</body></html>"
+    else:
+        final_html = f"<!DOCTYPE html><html><head><style>{base_pdf_css}\n{css_content}</style></head><body><div class='report-container'>\n{rendered_html}\n</div></body></html>"
+        
     return final_html
 
 @router.post("/{report_id}/generate", response_model=ReportGenerateResponse)

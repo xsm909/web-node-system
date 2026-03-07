@@ -167,16 +167,17 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                 </div>
 
                 {/* Report Output Area */}
-                <div className={`flex-1 w-full bg-white relative overflow-auto p-8 z-0 transition-all duration-300 custom-scrollbar ${(report.parameters && report.parameters.length > 0) ? 'pt-16' : ''}`}>
+                <div className={`flex-1 w-full bg-[#f8f9fa] relative overflow-hidden z-0 transition-all duration-300 ${(report.parameters && report.parameters.length > 0) ? 'pt-12' : ''}`}>
                     {isLoading ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-brand bg-white/50 backdrop-blur-sm z-20">
                             <div className="w-8 h-8 rounded-full border-t-2 border-brand animate-spin mb-4" />
                             <p className="font-bold text-sm">Processing Data...</p>
                         </div>
                     ) : htmlData ? (
-                        <div
-                            className="report-output-wrap text-black w-full max-w-7xl mx-auto"
-                            dangerouslySetInnerHTML={{ __html: htmlData }}
+                        <iframe
+                            title="Report Preview"
+                            srcDoc={htmlData}
+                            className="w-full h-full border-none bg-white shadow-inner"
                         />
                     ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 bg-gray-50/50">
