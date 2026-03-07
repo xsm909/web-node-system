@@ -144,6 +144,22 @@ Never using regular id in table of data base using UID (UUID)
 
 This approach makes nodes extremely powerful and flexible, turning the platform into a general-purpose low-code automation / integration tool — while shifting security responsibility to the platform administrator and trusted managers.
 
+### 4.4 Reporting System
+
+- **Administrator (/admin)**
+  - Full CRUD access to create and manage reports and report styles (CSS).
+  - Define custom SQL queries with parameterized inputs.
+  - Define Jinja2 templates to heavily customize the HTML output.
+  - Configure dynamic data sources for parameters (e.g., fetching dropdown options directly from database tables using `@table-name->value,label` syntax).
+- **Manager (/manager)**
+  - Read-only access to available reports (Global or assigned).
+  - Can select parameters and generate reports.
+  - Strictly restricted from viewing or editing underlying SQL queries, templates, or styles.
+- **Reporting Engine**
+  - Server-side execution of SQL queries mapping to Jinja2 context variables.
+  - Pre-compilation of user parameters and custom CSS injections.
+  - Audit logging of generated reports (`ReportRun`).
+
 ## 5. Security Requirements
 
 - Strict RBAC enforcement  
