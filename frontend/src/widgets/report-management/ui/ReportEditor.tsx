@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Report, ReportParameter, ReportStyle, ReportType } from '../../../entities/report/model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { apiClient } from '../../../shared/api/client';
+import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
 
 interface ReportEditorProps {
     report?: Report | null;
@@ -21,6 +22,10 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
     const [template, setTemplate] = useState(report?.template || '');
     const [styleId, setStyleId] = useState(report?.style_id || '');
     const [parameters, setParameters] = useState<ReportParameter[]>(report?.parameters || []);
+
+    // Auto-generate Template State
+    const [isAutoGenerateModalOpen, setIsAutoGenerateModalOpen] = useState(false);
+    const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
 
     const handleAddParameter = () => {
         setParameters([
@@ -68,6 +73,29 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
             alert("Failed to save report. Check console for details.");
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleAutoGenerateTemplate = async () => {
+        if (!query) {
+            alert("Please enter a SQL query first.");
+            setIsAutoGenerateModalOpen(false);
+            return;
+        }
+
+        setIsGeneratingTemplate(true);
+        setIsAutoGenerateModalOpen(false);
+
+        try {
+            const response = await apiClient.post('/reports/generate-template', { query });
+            if (response.data && response.data.template) {
+                setTemplate(response.data.template);
+            }
+        } catch (error) {
+            console.error("Failed to generate template", error);
+            alert("Error generating template. Check console for details.");
+        } finally {
+            setIsGeneratingTemplate(false);
         }
     };
 
@@ -166,7 +194,17 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
                         {/* Template Editor */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">Jinja2 Template *</h3>
+                                <div className="flex items-center gap-4">
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">Jinja2 Template *</h3>
+                                    <button
+                                        onClick={() => setIsAutoGenerateModalOpen(true)}
+                                        disabled={isGeneratingTemplate}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-brand text-white rounded-lg shadow-md shadow-brand/10 hover:brightness-110 active:scale-95 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50 disabled:pointer-events-none"
+                                    >
+                                        <Icon name="bolt" size={12} />
+                                        {isGeneratingTemplate ? 'Generating...' : 'Auto-generate'}
+                                    </button>
+                                </div>
                                 <div className="w-1/3">
                                     <select
                                         value={styleId}
@@ -262,6 +300,17 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
                     </div>
                 )}
             </div>
-        </div>
+
+            <ConfirmModal
+                isOpen={isAutoGenerateModalOpen}
+                title="Auto-generate Template"
+                description="Are you sure? If you continue, the current template will be replaced with one generated based on the SQL query."
+                confirmLabel="Generate"
+                cancelLabel="Cancel"
+                variant="warning"
+                onConfirm={handleAutoGenerateTemplate}
+                onCancel={() => setIsAutoGenerateModalOpen(false)}
+            />
+        </div >
     );
 }

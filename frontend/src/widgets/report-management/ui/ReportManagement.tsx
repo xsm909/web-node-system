@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '../../../shared/api/client';
 import type { Report, ReportStyle } from '../../../entities/report/model/types';
 import { useAuthStore } from '../../../features/auth/store';
@@ -7,7 +7,7 @@ import { Icon } from '../../../shared/ui/icon';
 
 import { ReportList } from './ReportList';
 import { ReportEditor } from './ReportEditor';
-import { ReportViewer } from './ReportViewer';
+import { ReportViewer, type ReportViewerRef } from './ReportViewer';
 
 interface ReportManagementProps {
     onToggleSidebar?: () => void;
@@ -24,7 +24,10 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const [styles, setStyles] = useState<ReportStyle[]>([]);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const reportViewerRef = useRef<ReportViewerRef>(null);
 
     useEffect(() => {
         const fetchReports = async () => {
@@ -93,6 +96,18 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                         </h1>
                     </div>
                 }
+                rightContent={
+                    view === 'view' && (
+                        <button
+                            onClick={() => reportViewerRef.current?.handleGenerate()}
+                            disabled={isGenerating}
+                            className="flex items-center gap-2 px-6 py-2 bg-brand text-white rounded-xl shadow-lg shadow-brand/20 hover:brightness-110 active:scale-95 transition-all font-bold text-sm disabled:opacity-50 disabled:pointer-events-none"
+                        >
+                            <Icon name="bolt" size={18} />
+                            {isGenerating ? 'Generating...' : 'Generate'}
+                        </button>
+                    )
+                }
             />
 
             <div className="flex-1 overflow-hidden">
@@ -118,7 +133,9 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
 
                 {view === 'view' && (
                     <ReportViewer
+                        ref={reportViewerRef}
                         report={selectedReport!}
+                        onLoadingChange={setIsGenerating}
                     />
                 )}
             </div>

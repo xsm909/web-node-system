@@ -10,6 +10,8 @@ from ..models.user import User
 from ..models.report import Report, ReportTypeEnum, ReportParameter, ReportStyle, ReportRun
 from pydantic import BaseModel
 from jinja2 import Environment, meta, Template
+from ..internal_libs.openai.openai_lib import openai_ask_single
+import re
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -85,6 +87,12 @@ class ReportGenerateRequest(BaseModel):
 
 class ReportGenerateResponse(BaseModel):
     html: str
+
+class ReportTemplateGenerateRequest(BaseModel):
+    query: str
+
+class ReportTemplateGenerateResponse(BaseModel):
+    template: str
 
 # --- Routes for Report Styles ---
 
@@ -263,6 +271,39 @@ def generate_report(report_id: uuid.UUID, data: ReportGenerateRequest, db: Sessi
     db.commit()
 
     return {"html": final_html}
+
+@router.post("/generate-template", response_model=ReportTemplateGenerateResponse)
+def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_access):
+    query_text = data.query
+    if not query_text:
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+        
+    prompt = f"""
+    You are an expert report template designer. 
+    Please create a stylish Jinja2 template in HTML for the following SQL query. 
+    The context passed to your template will contain a variable called `data`, which is a list of dictionaries representing the rows of the SQL query result.
+    Provide ONLY the raw template code, without any markdown formatting or explanations.
+    If you use styling, prefer inline CSS or a clean `<style>` block.
+    Ensure all text in the template is in English.
+    
+    SQL Query:
+    {query_text}
+    """
+    
+    response_text = openai_ask_single(prompt, "gpt-4o")
+    if response_text.startswith("Error:") or response_text.startswith("HTTPError"):
+        raise HTTPException(status_code=500, detail=response_text)
+        
+    # Remove markdown code formatting if present
+    template_text = response_text
+    template_text = re.sub(r'^```html\n', '', template_text, flags=re.MULTILINE)
+    template_text = re.sub(r'^```jinja2\n', '', template_text, flags=re.MULTILINE)
+    template_text = re.sub(r'^```j2\n', '', template_text, flags=re.MULTILINE)
+    template_text = re.sub(r'^```\n', '', template_text, flags=re.MULTILINE)
+    template_text = re.sub(r'```$', '', template_text, flags=re.MULTILINE)
+    template_text = template_text.strip()
+    
+    return {"template": template_text}
 
 @router.get("/{report_id}/options")
 def get_report_parameter_options(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):

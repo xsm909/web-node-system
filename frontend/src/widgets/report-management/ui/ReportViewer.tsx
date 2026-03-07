@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import type { Report } from '../../../entities/report/model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
@@ -7,9 +7,14 @@ import { apiClient } from '../../../shared/api/client';
 
 interface ReportViewerProps {
     report: Report;
+    onLoadingChange?: (loading: boolean) => void;
 }
 
-export function ReportViewer({ report }: ReportViewerProps) {
+export interface ReportViewerRef {
+    handleGenerate: () => void;
+}
+
+export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ report, onLoadingChange }, ref) => {
     const [htmlData, setHtmlData] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [paramValues, setParamValues] = useState<Record<string, any>>({});
@@ -18,6 +23,14 @@ export function ReportViewer({ report }: ReportViewerProps) {
     const [options, setOptions] = useState<Record<string, { value: string, label: string }[]>>({});
     const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
     const [isParamsExpanded, setIsParamsExpanded] = useState(true);
+
+    useImperativeHandle(ref, () => ({
+        handleGenerate
+    }));
+
+    useEffect(() => {
+        onLoadingChange?.(isLoading);
+    }, [isLoading, onLoadingChange]);
 
     useEffect(() => {
         // Fetch options for parameters with @table sources
@@ -132,19 +145,9 @@ export function ReportViewer({ report }: ReportViewerProps) {
                                     onClick={() => {
                                         setIsParamsExpanded(false);
                                     }}
-                                    className="px-6 py-2.5 rounded-xl text-[var(--text-main)] hover:bg-[var(--border-muted)] bg-[var(--bg-app)] border border-[var(--border-base)] font-medium transition-colors"
+                                    className="px-6 py-2.5 rounded-xl text-[var(--text-main)] hover:bg-[var(--border-muted)] bg-[var(--bg-app)] border border-[var(--border-base)] font-medium transition-colors w-full"
                                 >
                                     Hide
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        handleGenerate();
-                                        setIsParamsExpanded(false);
-                                    }}
-                                    disabled={isLoading}
-                                    className="px-8 py-2.5 rounded-xl bg-brand text-white font-bold transition-all hover:brightness-110 active:scale-95 shadow-md shadow-brand/20 disabled:opacity-50 disabled:pointer-events-none"
-                                >
-                                    {isLoading ? 'Generating...' : 'Generate Report'}
                                 </button>
                             </div>
                         </div>
@@ -193,4 +196,4 @@ export function ReportViewer({ report }: ReportViewerProps) {
             />
         </div>
     );
-}
+});
