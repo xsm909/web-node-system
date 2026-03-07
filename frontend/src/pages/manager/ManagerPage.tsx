@@ -327,20 +327,10 @@ export default function ManagerPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col relative">
-                        <AppHeader
-                            onToggleSidebar={toggleSidebar}
-                            isSidebarOpen={isSidebarOpen}
-                            leftContent={
-                                <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
-                                    Reports
-                                </h1>
-                            }
-                        />
-                        <div className="flex-1 overflow-hidden">
-                            <ReportManagement />
-                        </div>
-                    </div>
+                    <ReportManagement
+                        onToggleSidebar={toggleSidebar}
+                        isSidebarOpen={isSidebarOpen}
+                    />
                 )}
             </main>
         </div >

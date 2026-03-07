@@ -7,10 +7,9 @@ import { apiClient } from '../../../shared/api/client';
 
 interface ReportViewerProps {
     report: Report;
-    onBack: () => void;
 }
 
-export function ReportViewer({ report, onBack }: ReportViewerProps) {
+export function ReportViewer({ report }: ReportViewerProps) {
     const [htmlData, setHtmlData] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [paramValues, setParamValues] = useState<Record<string, any>>({});
@@ -72,21 +71,6 @@ export function ReportViewer({ report, onBack }: ReportViewerProps) {
 
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-base)] shrink-0 bg-[var(--bg-surface)]">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={onBack}
-                        className="p-2 -ml-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors"
-                    >
-                        <Icon name="chevron_left" size={24} />
-                    </button>
-                    <div>
-                        <h2 className="text-lg font-bold leading-tight">{report.name}</h2>
-                        <p className="text-xs text-[var(--text-muted)]">{report.description}</p>
-                    </div>
-                </div>
-            </div>
-
             <div className="flex-1 flex overflow-hidden">
                 {/* Parameters Sidebar */}
                 <div className="w-80 border-r border-[var(--border-base)] bg-[var(--bg-app)] flex flex-col z-10">

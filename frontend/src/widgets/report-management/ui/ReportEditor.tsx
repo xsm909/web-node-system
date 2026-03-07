@@ -73,18 +73,7 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
 
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)]">
-            <div className="flex items-center justify-between p-4 border-b border-[var(--border-base)] shrink-0 bg-[var(--bg-surface)]">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={onBack}
-                        className="p-2 -ml-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors"
-                    >
-                        <Icon name="chevron_left" size={24} />
-                    </button>
-                    <h2 className="text-lg font-bold">
-                        {report ? `Edit Report: ${report.name}` : 'Create New Report'}
-                    </h2>
-                </div>
+            <div className="flex justify-end p-4 border-b border-[var(--border-base)] shrink-0 bg-[var(--bg-surface)]">
                 <div className="flex items-center gap-4">
                     <div className="flex gap-1 bg-[var(--border-muted)] p-1 rounded-xl">
                         <button

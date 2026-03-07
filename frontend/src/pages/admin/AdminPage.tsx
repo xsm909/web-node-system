@@ -98,7 +98,7 @@ export default function AdminPage() {
             />
 
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                {activeTab !== 'workflows' && (
+                {activeTab !== 'workflows' && activeTab !== 'reports' && (
                     <AppHeader
                         onToggleSidebar={() => setIsSidebarOpen(true)}
                         isSidebarOpen={isSidebarOpen}
@@ -106,8 +106,7 @@ export default function AdminPage() {
                             <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
                                 {activeTab === 'users' ? 'User Management' :
                                     activeTab === 'nodes' ? 'Node Library' :
-                                        activeTab === 'ai-tasks' ? 'AI Task Management' :
-                                            activeTab === 'reports' ? 'Reports Management' : 'Credentials'}
+                                        activeTab === 'ai-tasks' ? 'AI Task Management' : 'Credentials'}
                             </h1>
                         }
                         rightContent={
@@ -146,9 +145,10 @@ export default function AdminPage() {
                             <AITaskManagement activeClientId={null} />
                         </div>
                     ) : activeTab === 'reports' ? (
-                        <div className="max-w-7xl mx-auto h-full space-y-8">
-                            <ReportManagement />
-                        </div>
+                        <ReportManagement
+                            onToggleSidebar={() => setIsSidebarOpen(true)}
+                            isSidebarOpen={isSidebarOpen}
+                        />
                     ) : (
                         <div className="max-w-7xl mx-auto space-y-8"><AdminCredentialManagement /></div>
                     )}

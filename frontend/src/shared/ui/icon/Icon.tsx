@@ -12,6 +12,7 @@ const nodeIconModules = import.meta.glob('../../../assets/node_icons/*.svg', { q
 
 export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, className = '', ...props }) => {
     const [svgContent, setSvgContent] = useState<string | null>(null);
+    const [viewBox, setViewBox] = useState<string>("0 -960 960 960");
 
     useEffect(() => {
         const modules = dir === 'icons' ? iconModules : nodeIconModules;
@@ -29,6 +30,11 @@ export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, clas
             const svgElement = doc.querySelector('svg');
             if (svgElement) {
                 setSvgContent(svgElement.innerHTML);
+                if (svgElement.getAttribute('viewBox')) {
+                    setViewBox(svgElement.getAttribute('viewBox')!);
+                } else {
+                    setViewBox("0 -960 960 960");
+                }
             }
         } else {
             console.error(`Failed to load icon: ${name} from ${dir} at ${path}`);
@@ -41,7 +47,7 @@ export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, clas
         <svg
             width={size}
             height={size}
-            viewBox="0 -960 960 960"
+            viewBox={viewBox}
             fill="currentColor"
             className={`icon icon-${name} ${className}`}
             dangerouslySetInnerHTML={{ __html: svgContent }}
