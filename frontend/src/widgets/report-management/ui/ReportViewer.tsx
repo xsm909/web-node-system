@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Report } from '../../../entities/report/model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
+import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
 import { apiClient } from '../../../shared/api/client';
 
 interface ReportViewerProps {
@@ -16,6 +17,7 @@ export function ReportViewer({ report, onBack }: ReportViewerProps) {
     // Store selected item locally for ComboBox to render label correctly
     const [selectedItems, setSelectedItems] = useState<Record<string, { value: string, label: string }>>({});
     const [options, setOptions] = useState<Record<string, { value: string, label: string }[]>>({});
+    const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
 
     useEffect(() => {
         // Fetch options for parameters with @table sources
@@ -45,6 +47,14 @@ export function ReportViewer({ report, onBack }: ReportViewerProps) {
     };
 
     const handleGenerate = async () => {
+        if (report.parameters && report.parameters.length > 0) {
+            const hasEmptyParam = report.parameters.some(p => !paramValues[p.parameter_name] || String(paramValues[p.parameter_name]).trim() === '');
+            if (hasEmptyParam) {
+                setIsValidationModalOpen(true);
+                return;
+            }
+        }
+
         setIsLoading(true);
         setHtmlData(null);
         try {
@@ -160,6 +170,17 @@ export function ReportViewer({ report, onBack }: ReportViewerProps) {
                     )}
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={isValidationModalOpen}
+                title="Missing Parameters"
+                description="Please fill in all required parameters before generating the report."
+                confirmLabel="OK"
+                showCancel={false}
+                variant="warning"
+                onConfirm={() => setIsValidationModalOpen(false)}
+                onCancel={() => setIsValidationModalOpen(false)}
+            />
         </div>
     );
 }

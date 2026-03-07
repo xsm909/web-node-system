@@ -8,6 +8,7 @@ interface ConfirmModalProps {
     description: string;
     confirmLabel?: string;
     cancelLabel?: string;
+    showCancel?: boolean;
     variant?: ConfirmModalVariant;
     children?: React.ReactNode;
     onConfirm: () => void;
@@ -71,6 +72,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     description,
     confirmLabel = 'Confirm',
     cancelLabel = 'Cancel',
+    showCancel = true,
     variant = 'danger',
     children,
     onConfirm,
@@ -103,12 +105,14 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 {children && <div className="mb-8">{children}</div>}
 
                 <div className="flex items-center gap-3">
-                    <button
-                        className="flex-1 px-4 py-4 rounded-2xl text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] border border-[var(--border-base)] transition-all uppercase tracking-widest active:scale-95"
-                        onClick={onCancel}
-                    >
-                        {cancelLabel}
-                    </button>
+                    {showCancel && (
+                        <button
+                            className="flex-1 px-4 py-4 rounded-2xl text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] border border-[var(--border-base)] transition-all uppercase tracking-widest active:scale-95"
+                            onClick={onCancel}
+                        >
+                            {cancelLabel}
+                        </button>
+                    )}
                     <button
                         className={`flex-1 px-4 py-4 rounded-2xl text-xs font-bold text-white shadow-xl transition-all active:scale-95 uppercase tracking-widest ${styles.buttonBg} ${styles.buttonShadow}`}
                         onClick={onConfirm}
