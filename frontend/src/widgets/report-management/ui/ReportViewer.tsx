@@ -170,22 +170,28 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                 </div>
 
                 {/* Report Output Area */}
-                <div className={`flex-1 w-full bg-[#f8f9fa] relative overflow-hidden z-0 transition-all duration-300`}>
+                <div className={`flex-1 w-full bg-[var(--bg-app)] relative overflow-hidden z-0 transition-all duration-300`}>
                     {isLoading ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-brand bg-white/50 backdrop-blur-sm z-20">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-brand bg-[var(--bg-app)]/50 backdrop-blur-sm z-20">
                             <div className="w-8 h-8 rounded-full border-t-2 border-brand animate-spin mb-4" />
-                            <p className="font-bold text-sm">Processing Data...</p>
+                            <p className="font-bold text-sm tracking-wide text-[var(--text-main)]">Generating Report...</p>
                         </div>
                     ) : htmlData ? (
                         <iframe
                             title="Report Preview"
                             srcDoc={htmlData}
-                            className="w-full h-full border-none bg-white shadow-inner"
+                            className="w-full h-full border-none bg-white shadow-2xl"
                         />
                     ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 bg-gray-50/50">
-                            <Icon name="bar_chart" size={48} className="opacity-20 mb-4" />
-                            <p className="text-sm font-medium">Configure parameters and generate the report</p>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--text-muted)] p-8 text-center">
+                            <div className="relative mb-6">
+                                <div className="absolute inset-0 bg-brand/10 blur-3xl rounded-full scale-150 animate-pulse" />
+                                <div className="relative mb-6 opacity-10">
+                                    <Icon name="docs" size={150} className="text-[var(--text-muted)]" />
+                                </div>
+                            </div>
+                            <h4 className="text-lg font-bold text-[var(--text-main)] mb-2">Ready to Generate</h4>
+                            <p className="max-w-xs text-sm opacity-60">Configure the parameters on the left and click generate to view your report.</p>
                         </div>
                     )}
                 </div>
