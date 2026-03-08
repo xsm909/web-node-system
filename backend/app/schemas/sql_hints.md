@@ -1,0 +1,67 @@
+# Database Schema Hints for SQL AI Generation (ACCURATE)
+
+CRITICAL: Session data is stored ONLY in `intermediate_results`. Values like "AI type" are stored INSIDE the `category` column using a pipe separator (`|`).
+
+## Table: `intermediate_results`
+
+### Columns:
+- **id**: (UUID)
+- **session_id**: (UUID)
+- **reference_id**: (UUID) - Links to parent row's `id`.
+- **category**: (String) - Combined type and subtype. EXAMPLES:
+    - `'AI_Question'`: Root question.
+    - `'AI_Answer|Perplexity'`, `'AI_Answer|OpenAI'`, `'AI_Answer|Gemini'`: Answers from specific AIs.
+    - `'Analysis|Mention'`: Analysis results (points to an `AI_Answer|...` row).
+- **sub_category**: (String) - Label for the step (e.g., `'Q1'`, `'Q2'`).
+- **data**: (JSON) - Content. Use `data->>'value'` for numbers, `data->>'content'` for text.
+
+### Hierarchy & Joins:
+1. **Analysis** -> **Answer**: 
+   `Analysis|Mention` (reference_id) -> `AI_Answer|...` (id)
+2. **Answer** -> **Question**:
+   `AI_Answer|...` (reference_id) -> `AI_Question` (id)
+
+## Example Queries
+
+### 1. Questions from a specific session
+```sql
+SELECT * FROM intermediate_results 
+WHERE category = 'AI_Question' 
+  AND session_id = :session_id;
+```
+
+### 2. Analytics by Mention for all AIs
+To get the AI name from an answer: `split_part(ans.category, '|', 2)`
+```sql
+SELECT 
+    split_part(ans.category, '|', 2) as ai_vendor,
+    (anl.data->>'value')::numeric as mention_value,
+    anl.session_id,
+    anl.created_at
+FROM intermediate_results anl
+JOIN intermediate_results ans ON anl.reference_id = ans.id
+WHERE anl.category = 'Analysis|Mention'
+  AND ans.category LIKE 'AI_Answer|%'
+ORDER BY anl.created_at DESC;
+```
+
+### 3. Grouping by AI with Aggregation
+To count mentions or sum values per AI vendor:
+```sql
+SELECT 
+    split_part(ans.category, '|', 2) as ai_vendor,
+    count(*) as total_mentions,
+    sum((anl.data->>'value')::numeric) as total_value
+FROM intermediate_results anl
+JOIN intermediate_results ans ON anl.reference_id = ans.id
+WHERE anl.category = 'Analysis|Mention'
+  AND ans.category LIKE 'AI_Answer|%'
+GROUP BY 1
+ORDER BY total_value DESC;
+```
+
+## Rules:
+1. DO NOT use table named `questions`.
+2. USE `category = 'Analysis|Mention'` for analysis of mentions.
+3. USE `category LIKE 'AI_Answer|%'` to find any AI answer.
+4. Extract vendor name using `split_part(category, '|', 2)`.

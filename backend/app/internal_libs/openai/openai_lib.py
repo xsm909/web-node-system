@@ -13,7 +13,7 @@ _system_prompts: Dict[str, str] = {}
 def _get_api_key() -> Optional[str]:
     return get_credential_by_key("OPENAI_API_KEY")
 
-def _make_request(api_key: str, messages: list, model: str, tools: Optional[List[Dict]] = None) -> str:
+def _make_request(api_key: str, messages: list, model: str, tools: Optional[List[Dict]] = None, timeout: int = 60) -> str:
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
@@ -33,7 +33,7 @@ def _make_request(api_key: str, messages: list, model: str, tools: Optional[List
         method="POST"
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as response:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
             result = json.loads(response.read().decode("utf-8"))
             
             # Check for tool calls first (if we specifically requested them)
@@ -96,7 +96,7 @@ def openai_ask_chat(conversation_id: str, text: str, model: str = "gpt-5.2") -> 
         
     return answer
 
-def openai_ask_single(text: str, model: str = "gpt-4o-mini") -> str:
+def openai_ask_single(text: str, model: str = "gpt-4o-mini", timeout: int = 60) -> str:
     """
     Simple version to ask AI a single question without conversation history.
     """
@@ -105,7 +105,7 @@ def openai_ask_single(text: str, model: str = "gpt-4o-mini") -> str:
         return "Error: OPENAI_API_KEY not found in credentials."
         
     messages = [{"role": "user", "content": text}]
-    return _make_request(api_key, messages, model)
+    return _make_request(api_key, messages, model, timeout=timeout)
 
 def openai_perform_web_search(query: str, model: str = "gpt-5.2") -> str:
     

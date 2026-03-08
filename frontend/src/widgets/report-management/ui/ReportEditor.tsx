@@ -3,6 +3,8 @@ import type { Report, ReportParameter, ReportStyle, ReportType } from '../../../
 import { Icon } from '../../../shared/ui/icon';
 import { apiClient } from '../../../shared/api/client';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
+import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
+import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
 
 interface ReportEditorProps {
     report?: Report | null;
@@ -27,6 +29,12 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
     const [isAutoGenerateModalOpen, setIsAutoGenerateModalOpen] = useState(false);
     const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
     const [additionalInfo, setAdditionalInfo] = useState('');
+
+    // Auto-generate SQL State
+    const [isSqlAutoGenerateModalOpen, setIsSqlAutoGenerateModalOpen] = useState(false);
+    const [isGeneratingSql, setIsGeneratingSql] = useState(false);
+    const [sqlPrompt, setSqlPrompt] = useState('');
+    const [selectedModel, setSelectedModel] = useState('gpt-4o');
 
     const handleAddParameter = () => {
         setParameters([
@@ -100,6 +108,44 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
             alert("Error generating template. Check console for details.");
         } finally {
             setIsGeneratingTemplate(false);
+        }
+    };
+
+    const handleAutoGenerateSql = async () => {
+        if (!sqlPrompt) {
+            alert("Please enter a prompt for the AI.");
+            return;
+        }
+
+        setIsGeneratingSql(true);
+        setIsSqlAutoGenerateModalOpen(false);
+
+        try {
+            const response = await apiClient.post('/reports/generate-sql', {
+                prompt: sqlPrompt,
+                model: selectedModel
+            });
+            if (response.data && response.data.query) {
+                setQuery(response.data.query);
+            }
+        } catch (error) {
+            console.error("Failed to generate SQL", error);
+            alert("Error generating SQL. Check console for details.");
+        } finally {
+            setIsGeneratingSql(false);
+        }
+    };
+    const modelData: Record<string, SelectionGroup> = {
+        items: {
+            id: 'models',
+            name: 'Models',
+            items: [
+                { id: 'gpt-4o', name: 'gpt-4o' },
+                { id: 'gpt-5o', name: 'gpt-5o' },
+                { id: 'gpt-5.2', name: 'gpt-5.2' },
+            ],
+            children: {},
+            selectable: false
         }
     };
 
@@ -180,7 +226,17 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
                         {/* Query Editor */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">SQL Query *</h3>
+                                <div className="flex items-center gap-4">
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">SQL Query *</h3>
+                                    <button
+                                        onClick={() => setIsSqlAutoGenerateModalOpen(true)}
+                                        disabled={isGeneratingSql}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-brand text-white rounded-lg shadow-md shadow-brand/10 hover:brightness-110 active:scale-95 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50 disabled:pointer-events-none"
+                                    >
+                                        <Icon name="bolt" size={12} />
+                                        {isGeneratingSql ? 'Generating...' : 'AI Auto-generate'}
+                                    </button>
+                                </div>
                             </div>
                             <textarea
                                 value={query}
@@ -329,6 +385,47 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
                     />
                 </div>
             </ConfirmModal>
-        </div >
+
+            <ConfirmModal
+                isOpen={isSqlAutoGenerateModalOpen}
+                title="Auto-generate SQL Query"
+                description="Describe what data you want to fetch. The AI will generate a SQL query based on your description and schema hints."
+                confirmLabel="Generate"
+                cancelLabel="Cancel"
+                variant="warning"
+                onConfirm={handleAutoGenerateSql}
+                onCancel={() => {
+                    setIsSqlAutoGenerateModalOpen(false);
+                }}
+            >
+                <div className="mt-6 space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                            AI Prompt (e.g. "get session data with hierarchy")
+                        </label>
+                        <textarea
+                            value={sqlPrompt}
+                            onChange={(e) => setSqlPrompt(e.target.value)}
+                            placeholder="Describe your requirements..."
+                            className="w-full px-4 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand transition-all resize-none h-32"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                            AI Model
+                        </label>
+                        <ComboBox
+                            value={selectedModel}
+                            label={selectedModel}
+                            placeholder="Select AI Model..."
+                            data={modelData}
+                            onSelect={(item) => setSelectedModel(item.id)}
+                            className="w-full"
+                            icon="smart_toy"
+                        />
+                    </div>
+                </div>
+            </ConfirmModal>
+        </div>
     );
 }

@@ -4,6 +4,7 @@ from sqlalchemy import text
 from typing import List, Optional, Any, Dict
 import uuid
 import json
+import os
 from ..core.database import get_db
 from ..core.security import require_role, get_current_user
 from ..models.user import User
@@ -96,6 +97,14 @@ class ReportTemplateGenerateRequest(BaseModel):
 
 class ReportTemplateGenerateResponse(BaseModel):
     template: str
+
+class ReportSQLGenerateRequest(BaseModel):
+    prompt: str
+    model: str = "gpt-4o"
+    additional_info: Optional[str] = None
+
+class ReportSQLGenerateResponse(BaseModel):
+    query: str
 
 # --- Routes for Report Styles ---
 
@@ -382,6 +391,65 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     template_text = template_text.strip()
     
     return {"template": template_text}
+
+@router.post("/generate-sql", response_model=ReportSQLGenerateResponse)
+def generate_report_sql(data: ReportSQLGenerateRequest, _=manager_access):
+    prompt_text = data.prompt
+    if not prompt_text:
+        raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+        
+    # Read context from sql_hints.md
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    hints_path = os.path.join(current_dir, "..", "schemas", "sql_hints.md")
+    hints_content = ""
+    try:
+        with open(hints_path, "r") as f:
+            hints_content = f.read()
+    except Exception as e:
+        print(f"Warning: Could not read sql_hints.md at {hints_path}: {e}")
+        hints_content = "No specific schema hints provided."
+
+    additional_context = ""
+    if data.additional_info:
+        additional_context = f"USER ADDITIONAL REQUIREMENTS: {data.additional_info}"
+
+    ai_prompt = f"""
+    You are an expert SQL query generator for a PostgreSQL database.
+    
+    ### CRITICAL INSTRUCTION:
+    - Use ONLY the tables and columns defined in the DATABASE SCHEMA HINTS below.
+    - DO NOT use tables that are not listed (e.g., DO NOT use 'questions', 'answers', 'sessions').
+    - If the user asks for "questions", use the `intermediate_results` table with `category = 'AI_Question'`.
+    - Provide ONLY the raw SQL query, without any markdown formatting, explanations, or 'sql' code blocks.
+    - The query will be used in a report builder that supports Jinja2-style parameters like :ParamName.
+
+    DATABASE SCHEMA HINTS:
+    {hints_content}
+
+    USER PROMPT:
+    {prompt_text}
+
+    {additional_context}
+
+    Important: 
+    - Output ONLY the SQL string.
+    - Do not wrap in ```sql ... ```.
+    - If the user asks for variables, use the :VariableName syntax.
+    """
+    
+    response_text = openai_ask_single(ai_prompt, data.model, timeout=120)
+    
+    if response_text.startswith("Error:") or response_text.startswith("HTTPError"):
+        raise HTTPException(status_code=500, detail=response_text)
+        
+    # Clean up response
+    query_text = response_text
+    query_text = re.sub(r'^```sql\n', '', query_text, flags=re.MULTILINE)
+    query_text = re.sub(r'^```\n', '', query_text, flags=re.MULTILINE)
+    query_text = re.sub(r'```$', '', query_text, flags=re.MULTILINE)
+    query_text = query_text.strip()
+    
+    return {"query": query_text}
 
 @router.get("/{report_id}/options")
 def get_report_parameter_options(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
