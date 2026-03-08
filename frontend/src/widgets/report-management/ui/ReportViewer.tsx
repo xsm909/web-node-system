@@ -95,7 +95,7 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
             <div className="flex-1 relative overflow-hidden flex flex-col items-center">
                 {/* Parameters Top Overlay (Left-Aligned with Offset) */}
                 <div
-                    className={`absolute top-0 left-0 w-full z-20 flex flex-col items-start transition-all duration-300 pl-[50px] ${!report.parameters || report.parameters.length === 0 ? 'hidden' : ''}`}
+                    className={`absolute top-0 left-0 w-full z-20 flex flex-col items-start transition-all duration-300 pl-[20px] ${!report.parameters || report.parameters.length === 0 ? 'hidden' : ''}`}
                 >
                     <div
                         className={`w-[350px] bg-[var(--bg-surface)] border-x border-b border-[var(--border-base)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] rounded-br-2xl rounded-bl-none overflow-visible transition-all duration-300 flex flex-col ${isParamsExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
@@ -103,7 +103,7 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                     >
                         <div className="p-4 flex flex-col max-h-[80vh] relative">
                             <div className="flex items-center justify-between mb-3 px-2">
-                                <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">Parameters</h3>
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">Report Parameters</h3>
                             </div>
                             <div className="flex-1 overflow-y-auto px-2 pb-4 flex flex-col space-y-5 custom-scrollbar">
                                 {report.parameters && report.parameters.map(param => (
