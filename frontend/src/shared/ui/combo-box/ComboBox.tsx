@@ -13,6 +13,9 @@ interface ComboBoxProps {
     onSelect: (item: SelectionItem) => void;
     onAction?: (action: SelectionAction, target: SelectionItem | SelectionGroup) => void;
     className?: string;
+    triggerClassName?: string;
+    labelClassName?: string;
+    iconSize?: number;
     variant?: 'primary' | 'ghost' | 'sidebar' | 'brand';
     searchPlaceholder?: string;
 }
@@ -28,6 +31,9 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     onSelect,
     onAction,
     className = '',
+    triggerClassName = '',
+    labelClassName = '',
+    iconSize = 16,
     variant = 'primary',
     searchPlaceholder,
 }) => {
@@ -52,9 +58,9 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
 
     const triggerClasses = `flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all ${isSidebar ? 'w-full justify-between' : 'max-w-full justify-start'
         } ${isBrand
-            ? 'bg-brand text-white shadow-md shadow-brand/10 hover:brightness-110'
+            ? 'bg-brand text-white shadow-md shadow-brand/10 hover:brightness-110 active:scale-95'
             : isOpen ? 'bg-[var(--border-base)] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
-        }`;
+        } ${triggerClassName}`;
 
     return (
         <div className={`relative ${isSidebar ? 'w-full' : ''} ${className}`}>
@@ -67,13 +73,13 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
                     {icon && (
                         <Icon
                             name={icon}
-                            size={16}
+                            size={iconSize}
                             className={isBrand ? 'text-white' : (isOpen || value ? 'text-brand' : '')}
                         />
                     )}
                     <div className="flex flex-col items-start min-w-0">
                         {label && (
-                            <span className="text-sm font-semibold truncate w-full">
+                            <span className={`text-sm font-semibold truncate w-full ${labelClassName}`}>
                                 {label}
                             </span>
                         )}

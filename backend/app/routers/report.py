@@ -14,7 +14,8 @@ from jinja2 import Environment, meta, Template
 from ..internal_libs.openai.openai_lib import openai_ask_single
 import re
 import io
-from fastapi.responses import Response
+import csv
+from fastapi.responses import Response, StreamingResponse
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -344,6 +345,69 @@ def generate_report_pdf(report_id: uuid.UUID, data: ReportGenerateRequest, db: S
         media_type="application/pdf",
         headers={
             "Content-Disposition": f"attachment; filename=report_{report_id}.pdf"
+        }
+    )
+
+@router.post("/{report_id}/csv")
+def generate_report_csv(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+        
+    try:
+        exec_params = data.parameters.copy()
+        result_query = db.execute(text(report.query), exec_params)
+        columns = result_query.keys()
+        rows = result_query.fetchall()
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(columns)
+        writer.writerows(rows)
+        
+        # Log the report run
+        run = ReportRun(
+            report_id=report_id,
+            executed_by=current_user.id,
+            parameters_json=data.parameters,
+            result_snapshot=None
+        )
+        db.add(run)
+        db.commit()
+
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=report_{report.name.replace(' ', '_')}.csv"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error generating CSV: {str(e)}")
+
+@router.post("/{report_id}/html-file")
+def generate_report_html_file(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+        
+    final_html = _generate_report_html(report_id, data.parameters, db)
+    
+    # Log the report run
+    run = ReportRun(
+        report_id=report_id,
+        executed_by=current_user.id,
+        parameters_json=data.parameters,
+        result_snapshot=None
+    )
+    db.add(run)
+    db.commit()
+
+    return Response(
+        content=final_html,
+        media_type="text/html",
+        headers={
+            "Content-Disposition": f"attachment; filename=report_{report.name.replace(' ', '_')}.html"
         }
     )
 

@@ -4,6 +4,7 @@ import type { Report, ReportStyle } from '../../../entities/report/model/types';
 import { useAuthStore } from '../../../features/auth/store';
 import { AppHeader } from '../../app-header';
 import { Icon } from '../../../shared/ui/icon';
+import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 
 import { ReportList } from './ReportList';
 import { ReportEditor } from './ReportEditor';
@@ -96,6 +97,50 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         }
     };
 
+    const handleDownloadCsv = async () => {
+        if (!selectedReport) return;
+        try {
+            const res = await apiClient.post(`/reports/${selectedReport.id}/csv`, {
+                parameters: currentParams
+            }, {
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `report_${selectedReport.name.replace(/\s+/g, '_')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error("Failed to download CSV", err);
+            alert("Error downloading CSV");
+        }
+    };
+
+    const handleDownloadHtml = async () => {
+        if (!selectedReport) return;
+        try {
+            const res = await apiClient.post(`/reports/${selectedReport.id}/html-file`, {
+                parameters: currentParams
+            }, {
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `report_${selectedReport.name.replace(/\s+/g, '_')}.html`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error("Failed to download HTML", err);
+            alert("Error downloading HTML");
+        }
+    };
+
     if (isLoading) {
         return <div className="p-8 text-center text-[var(--text-muted)]">Loading reports...</div>;
     }
@@ -126,13 +171,31 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     view === 'view' && (
                         <div className="flex items-center gap-3">
                             {isGenerated && (
-                                <button
-                                    onClick={handleDownloadPdf}
-                                    className="flex items-center gap-2 px-6 py-2 bg-[var(--bg-surface)] text-[var(--text-main)] border border-[var(--border-base)] rounded-xl shadow-sm hover:bg-[var(--bg-app)] active:scale-95 transition-all font-bold text-sm"
-                                >
-                                    <Icon name="docs" size={18} />
-                                    Save PDF
-                                </button>
+                                <ComboBox
+                                    label="Export"
+                                    icon="docs"
+                                    iconSize={18}
+                                    data={{
+                                        items: {
+                                            id: 'formats',
+                                            name: 'Export Format',
+                                            items: [
+                                                { id: 'pdf', name: 'Save as PDF' },
+                                                { id: 'csv', name: 'Save as CSV' },
+                                                { id: 'html', name: 'Save as HTML' }
+                                            ],
+                                            children: {}
+                                        }
+                                    }}
+                                    onSelect={(item) => {
+                                        if (item.id === 'pdf') handleDownloadPdf();
+                                        else if (item.id === 'csv') handleDownloadCsv();
+                                        else if (item.id === 'html') handleDownloadHtml();
+                                    }}
+                                    variant="brand"
+                                    triggerClassName="px-6 py-2 shadow-lg shadow-brand/20"
+                                    labelClassName="font-bold text-sm"
+                                />
                             )}
                             <button
                                 onClick={() => reportViewerRef.current?.handleGenerate()}
