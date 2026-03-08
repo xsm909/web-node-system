@@ -12,6 +12,7 @@ CRITICAL: Session data is stored ONLY in `intermediate_results`. Values like "AI
     - `'AI_Question'`: Root question.
     - `'AI_Answer|Perplexity'`, `'AI_Answer|OpenAI'`, `'AI_Answer|Gemini'`: Answers from specific AIs.
     - `'Analysis|Mention'`: Analysis results (points to an `AI_Answer|...` row).
+    - `'Analysis|SoV'`: Share of Voice percentage (points to an `AI_Answer|...` row).
 - **sub_category**: (String) - Label for the step (e.g., `'Q1'`, `'Q2'`).
 - **data**: (JSON) - Content. Use `data->>'value'` for numbers, `data->>'content'` for text.
 
@@ -60,8 +61,24 @@ GROUP BY 1
 ORDER BY total_value DESC;
 ```
 
+### 4. Share of Voice (SoV) Analysis
+To get the percentage of mentions (SoV) for a company relative to competitors, grouped by session and AI vendor:
+```sql
+SELECT 
+    anl.session_id,
+    split_part(ans.category, '|', 2) as ai_vendor,
+    avg((anl.data->>'value')::numeric) as sov_percentage
+FROM intermediate_results anl
+JOIN intermediate_results ans ON anl.reference_id = ans.id
+WHERE anl.category = 'Analysis|SoV'
+  AND ans.category LIKE 'AI_Answer|%'
+GROUP BY 1, 2
+ORDER BY anl.session_id, sov_percentage DESC;
+```
+
 ## Rules:
 1. DO NOT use table named `questions`.
 2. USE `category = 'Analysis|Mention'` for analysis of mentions.
-3. USE `category LIKE 'AI_Answer|%'` to find any AI answer.
-4. Extract vendor name using `split_part(category, '|', 2)`.
+3. USE `category = 'Analysis|SoV'` for Share of Voice analysis.
+4. USE `category LIKE 'AI_Answer|%'` to find any AI answer.
+5. Extract vendor name using `split_part(category, '|', 2)`.
