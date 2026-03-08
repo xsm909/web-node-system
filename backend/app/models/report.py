@@ -29,6 +29,7 @@ class Report(Base):
     query = Column(Text, nullable=False)
     template = Column(Text, nullable=False)
     style_id = Column(UUID(as_uuid=True), ForeignKey("report_styles.id"), nullable=True)
+    meta = Column(JSON, nullable=True, default={})
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)

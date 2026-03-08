@@ -64,6 +64,7 @@ class ReportBase(BaseModel):
     query: str
     template: str
     style_id: Optional[uuid.UUID] = None
+    meta: Optional[Dict[str, Any]] = {}
 
 class ReportCreate(ReportBase):
     parameters: Optional[List[ReportParameterCreate]] = []
@@ -75,6 +76,7 @@ class ReportUpdate(BaseModel):
     query: Optional[str] = None
     template: Optional[str] = None
     style_id: Optional[uuid.UUID] = None
+    meta: Optional[Dict[str, Any]] = None
     parameters: Optional[List[ReportParameterCreate]] = None
 
 class ReportOut(ReportBase):

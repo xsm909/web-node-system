@@ -25,4 +25,5 @@ export interface Report {
     style_id?: string;
     created_by: string;
     parameters: ReportParameter[];
+    meta?: Record<string, any>;
 }

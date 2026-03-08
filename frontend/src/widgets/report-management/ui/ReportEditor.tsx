@@ -24,11 +24,12 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
     const [template, setTemplate] = useState(report?.template || '');
     const [styleId, setStyleId] = useState(report?.style_id || '');
     const [parameters, setParameters] = useState<ReportParameter[]>(report?.parameters || []);
+    const meta = report?.meta || {};
 
     // Auto-generate Template State
     const [isAutoGenerateModalOpen, setIsAutoGenerateModalOpen] = useState(false);
     const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
-    const [additionalInfo, setAdditionalInfo] = useState('');
+    const [additionalInfo, setAdditionalInfo] = useState(report?.meta?.template_prompt || '');
 
     // Auto-generate SQL State
     const [isSqlAutoGenerateModalOpen, setIsSqlAutoGenerateModalOpen] = useState(false);
@@ -68,6 +69,10 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
             query,
             template,
             style_id: styleId || null,
+            meta: {
+                ...meta,
+                template_prompt: additionalInfo
+            },
             parameters: parameters.map(({ id, ...rest }) => rest) // strip local id
         };
 
