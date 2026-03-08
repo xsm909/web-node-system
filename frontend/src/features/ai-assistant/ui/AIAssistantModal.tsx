@@ -27,6 +27,13 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
     const [prompt, setPrompt] = useState(initialPrompt);
     const [selectedModel, setSelectedModel] = useState('gpt-4o');
 
+    // Sync prompt with initialPrompt when modal opens or initialPrompt changes
+    React.useEffect(() => {
+        if (isOpen) {
+            setPrompt(initialPrompt);
+        }
+    }, [isOpen, initialPrompt]);
+
     const handleConfirm = () => {
         onConfirm(prompt, selectedModel);
         setPrompt('');

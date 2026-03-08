@@ -10,7 +10,7 @@ CRITICAL: Session data is stored ONLY in `intermediate_results`. Values like "AI
 - Output ONLY the SQL string. Do not wrap in ```sql ... ```.
 - If the user asks for variables, use the :VariableName syntax.
 - NEVER output multiple `SELECT` statements in one response. The backend only captures the result of the LAST query.
-- If multiple separate datasets (e.g., two different tables) are requested, you MUST combine them into a single response using `json_build_object`.
+- If multiple separate datasets (e.g., two different tables) are requested, you MUST combine them into a single response using `json_build_object` AND ALIAS it as `result` (e.g., `SELECT json_build_object(...) AS result;`).
 - Ensure the entire query returns exactly ONE result set.
 
 ## Table: `intermediate_results`

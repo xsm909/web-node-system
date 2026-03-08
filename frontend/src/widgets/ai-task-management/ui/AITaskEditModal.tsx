@@ -192,7 +192,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
         setMultiValues(newVals);
     };
 
-    const handleAiResult = (result: any) => {
+    const handleAiResult = (result: any, prompt: string) => {
         if (result && typeof result === 'object') {
             if (result.values && Array.isArray(result.values)) {
                 setMultiValues(result.values.length > 0 ? result.values : ['']);

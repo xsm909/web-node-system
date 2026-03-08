@@ -44,7 +44,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     const [template, setTemplate] = useState(report?.template || '');
     const [styleId, setStyleId] = useState(report?.style_id || '');
     const [parameters, setParameters] = useState<ReportParameter[]>(report?.parameters || []);
-    const meta = report?.meta || {};
+    const [meta, setMeta] = useState<Record<string, any>>(report?.meta || {});
 
     const handleAddParameter = () => {
         setParameters([
@@ -96,15 +96,17 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
         }
     };
 
-    const handleAutoGenerateTemplate = async (result: any) => {
-        if (result && result.template) {
-            setTemplate(result.template);
+    const handleAutoGenerateTemplate = async (result: any, prompt: string) => {
+        if (typeof result === 'string') {
+            setTemplate(result);
+            setMeta(prev => ({ ...prev, template_prompt: prompt }));
         }
     };
 
-    const handleAutoGenerateSql = (result: any) => {
+    const handleAutoGenerateSql = (result: any, prompt: string) => {
         if (typeof result === 'string') {
             setQuery(result);
+            setMeta(prev => ({ ...prev, sql_prompt: prompt }));
         }
     };
     const modelData: Record<string, SelectionGroup> = {
@@ -180,6 +182,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                             isEmpty={!query}
                                             context={query ? { existing_query: query } : null}
                                             modelData={modelData}
+                                            initialPrompt={meta.sql_prompt}
                                         />
                                     </div>
                                 </div>
@@ -216,6 +219,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                             isEmpty={!template}
                                             context={{ query }}
                                             modelData={modelData}
+                                            initialPrompt={meta.template_prompt}
                                         />
                                     </div>
                                     <div className="w-1/3">

@@ -172,6 +172,15 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 }
                 rightContent={
                     <div className="flex items-center gap-3">
+                        {view === 'view' && (
+                            <button
+                                onClick={() => reportViewerRef.current?.handleGenerate()}
+                                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
+                            >
+                                <Icon name="play" size={16} className="-ml-1" />
+                                Generate Report
+                            </button>
+                        )}
                         {view === 'view' && isGenerated && (
                             <ComboBox
                                 label="Export"

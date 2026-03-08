@@ -18,6 +18,8 @@ interface ComboBoxProps {
     iconSize?: number;
     variant?: 'primary' | 'ghost' | 'sidebar' | 'brand';
     searchPlaceholder?: string;
+    disabled?: boolean;
+    iconClassName?: string;
 }
 
 export const ComboBox: React.FC<ComboBoxProps> = ({
@@ -36,6 +38,8 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     iconSize = 16,
     variant = 'primary',
     searchPlaceholder,
+    disabled,
+    iconClassName,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
@@ -60,7 +64,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
         } ${isBrand
             ? 'bg-brand text-white shadow-md shadow-brand/10 hover:brightness-110 active:scale-95'
             : isOpen ? 'bg-[var(--border-base)] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
-        } ${triggerClassName}`;
+        } ${disabled ? 'opacity-50 pointer-events-none' : ''} ${triggerClassName}`;
 
     return (
         <div className={`relative ${isSidebar ? 'w-full' : ''} ${className}`}>
@@ -68,13 +72,14 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
                 ref={triggerRef}
                 onClick={() => setIsOpen(!isOpen)}
                 className={triggerClasses}
+                disabled={disabled}
             >
                 <div className="flex items-center gap-3 min-w-0">
                     {icon && (
                         <Icon
                             name={icon}
                             size={iconSize}
-                            className={isBrand ? 'text-white' : (isOpen || value ? 'text-brand' : '')}
+                            className={`${isBrand ? 'text-white' : (isOpen || value ? 'text-brand' : '')} ${iconClassName || ''}`}
                         />
                     )}
                     <div className="flex flex-col items-start min-w-0">

@@ -7,11 +7,12 @@ import { generateAIContent } from '../api';
 
 interface AIAssistantButtonProps {
     hintType: string;
-    onResult: (result: any) => void;
+    onResult: (result: any, prompt: string) => void;
     context?: any;
     isEmpty?: boolean;
     label?: string;
     modelData: Record<string, SelectionGroup>;
+    initialPrompt?: string;
 }
 
 export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
@@ -20,7 +21,8 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
     context,
     isEmpty = true,
     label = "AI Assistant",
-    modelData
+    modelData,
+    initialPrompt = ''
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -38,7 +40,7 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
                 is_modify: mode === 'modify',
                 context
             });
-            onResult(data.result);
+            onResult(data.result, prompt);
         } catch (error) {
             console.error('AI Generation failed', error);
             alert('AI Generation failed');
@@ -71,7 +73,7 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
                     disabled={isGenerating}
                     className="flex items-center gap-2 px-3 py-1.5 bg-brand text-white rounded-lg shadow-md shadow-brand/10 hover:brightness-110 active:scale-95 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50 disabled:pointer-events-none"
                 >
-                    <Icon name="bolt" size={12} />
+                    <Icon name={isGenerating ? "refresh" : "bolt"} size={12} className={isGenerating ? "animate-spin" : ""} />
                     {isGenerating ? 'Generating...' : label}
                 </button>
             ) : (
@@ -81,10 +83,12 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
                         setMode(item.id === 'modify' ? 'modify' : 'generate');
                         setIsModalOpen(true);
                     }}
-                    label={label}
-                    icon="bolt"
+                    label={isGenerating ? 'Generating...' : label}
+                    icon={isGenerating ? "refresh" : "bolt"}
+                    iconClassName={isGenerating ? "animate-spin" : ""}
                     variant="brand"
                     className="!py-0"
+                    disabled={isGenerating}
                 />
             )}
 
@@ -99,6 +103,7 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
                 confirmLabel={mode === 'modify' ? "Modify" : "Generate"}
                 onConfirm={handleConfirm}
                 modelData={modelData}
+                initialPrompt={initialPrompt}
             />
         </div>
     );
