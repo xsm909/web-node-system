@@ -374,8 +374,13 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     {query_text}
 
     Important: 
-    - If the SQL query returned is a single row with a JSON column (e.g., using `json_agg`), make sure to iterate over that specific column correctly in Jinja2 (e.g., `{{% for item in data[0].column_name %}}`).
+    - If the SQL query returned is a single row with a JSON column (e.g., using `json_agg` or `json_build_object`), make sure to iterate over the nested data correctly in Jinja2.
     - The `data` variable is always a list of dictionaries (rows). If the entire result is encapsulated in one JSON field of the first row, you must access it as `data[0].field_name`.
+    - CRITICAL: When iterating over a list, check if the items are STRINGS or OBJECTS.
+      - If it's a list of strings: `{{% for item in list %}}{{{{ item }}}}{{% endfor %}}`.
+      - If it's a list of objects (dictionaries): `{{% for item in list %}}{{{{ item.property_name }}}}{{% endfor %}}`.
+    - Handle potential `None` or missing numeric values using the `default` filter before applying numeric filters like `round`. 
+    - CRITICAL: Use `{{{{ item.value | default(0) | round(2) }}}}` instead of `{{{{ item.value | round(2) }}}}` to avoid "Undefined doesn't define __round__ method" errors.
     - Provide a clean, modern design with a focused structure.
     """
     
@@ -437,6 +442,10 @@ def generate_report_sql(data: ReportSQLGenerateRequest, _=manager_access):
     - Output ONLY the SQL string.
     - Do not wrap in ```sql ... ```.
     - If the user asks for variables, use the :VariableName syntax.
+    - NEVER output multiple `SELECT` statements in one response. The backend only captures the result of the LAST query.
+    - If multiple separate datasets (e.g., two different tables) are requested, you MUST combine them into a single response using `json_build_object`.
+    - Example for multiple datasets: `SELECT json_build_object('table1', (SELECT json_agg(t1) FROM ...), 'table2', (SELECT json_agg(t2) FROM ...)) as combined_data;`
+    - Ensure the entire query returns exactly ONE result set.
     """
     
     response_text = openai_ask_single(ai_prompt, data.model, timeout=120)
