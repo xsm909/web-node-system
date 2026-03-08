@@ -69,6 +69,10 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
             }
         }
 
+        setIsParamsExpanded(false);
+        // wait for collapse animation
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         setIsLoading(true);
         setHtmlData(null);
         onGenerated?.(false, {});
