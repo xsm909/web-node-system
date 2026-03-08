@@ -93,12 +93,12 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
             <div className="flex-1 relative overflow-hidden flex flex-col items-center">
-                {/* Parameters Top Overlay (Left-Aligned with Offset) */}
+                {/* Parameters Top Overlay (Right-Aligned with Offset) */}
                 <div
-                    className={`absolute top-0 left-0 w-full z-20 flex flex-col items-start transition-all duration-300 pl-[20px] ${!report.parameters || report.parameters.length === 0 ? 'hidden' : ''}`}
+                    className={`absolute top-0 right-0 w-full z-20 flex flex-col items-end transition-all duration-300 pr-[20px] ${!report.parameters || report.parameters.length === 0 ? 'hidden' : ''}`}
                 >
                     <div
-                        className={`w-[350px] bg-[var(--bg-surface)] border-x border-b border-[var(--border-base)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] rounded-br-2xl rounded-bl-none overflow-visible transition-all duration-300 flex flex-col ${isParamsExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
+                        className={`w-[350px] bg-[var(--bg-surface)] border-x border-b border-[var(--border-base)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] rounded-bl-2xl rounded-br-none overflow-visible transition-all duration-300 flex flex-col ${isParamsExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
                         style={{ maxHeight: isParamsExpanded ? '80vh' : '0px' }}
                     >
                         <div className="p-4 flex flex-col max-h-[80vh] relative">
@@ -151,7 +151,7 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                             {/* Hide Notch (visible when expanded) */}
                             <button
                                 onClick={() => setIsParamsExpanded(false)}
-                                className={`absolute bottom-0 left-[-1px] translate-y-full bg-[var(--bg-surface)] border border-t-0 border-[var(--border-base)] shadow-md rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors hover:bg-[var(--bg-app)] cursor-pointer z-30 ${isParamsExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                                className={`absolute bottom-0 right-[-1px] translate-y-full bg-[var(--bg-surface)] border border-t-0 border-[var(--border-base)] shadow-md rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors hover:bg-[var(--bg-app)] cursor-pointer z-30 ${isParamsExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                             >
                                 <span className="text-xs font-bold mr-1.5 uppercase tracking-wider">Hide</span>
                                 <Icon name="up" size={16} />
@@ -159,10 +159,10 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                         </div>
                     </div>
 
-                    {/* Left-Aligned Parameters Notch (visible when collapsed) */}
+                    {/* Right-Aligned Parameters Notch (visible when collapsed) */}
                     <button
                         onClick={() => setIsParamsExpanded(!isParamsExpanded)}
-                        className={`bg-[var(--bg-surface)]/80 backdrop-blur-md border border-t-0 border-[var(--border-base)] shadow-md rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors hover:bg-[var(--bg-app)] cursor-pointer mt-[-1px] ml-[-1px] ${isParamsExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                        className={`bg-[var(--bg-surface)]/80 backdrop-blur-md border border-t-0 border-[var(--border-base)] shadow-md rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors hover:bg-[var(--bg-app)] cursor-pointer mt-[-1px] mr-[-1px] ${isParamsExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                     >
                         <span className="text-xs font-bold mr-1.5 uppercase tracking-wider">Parameters</span>
                         <Icon name="down" size={16} />
@@ -191,7 +191,7 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                                 </div>
                             </div>
                             <h4 className="text-lg font-bold text-[var(--text-main)] mb-2">Ready to Generate</h4>
-                            <p className="max-w-xs text-sm opacity-60">Configure the parameters on the left and click generate to view your report.</p>
+                            <p className="max-w-xs text-sm opacity-60">Configure the parameters on the right and click generate to view your report.</p>
                         </div>
                     )}
                 </div>
