@@ -49,13 +49,13 @@ export function ReportList({ reports, isAdmin, onCreate, onEdit, onView }: Repor
                                     key={report.id}
                                     className="group relative flex flex-col p-6 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] shadow-sm hover:shadow-md transition-all hover:border-[var(--brand)]/30"
                                 >
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center text-brand">
+                                    <div className="flex items-start justify-between mb-4 min-w-0">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="w-10 h-10 rounded-xl bg-brand/10 flex-shrink-0 flex items-center justify-center text-brand">
                                                 <Icon name="bar_chart" size={20} />
                                             </div>
-                                            <div>
-                                                <h3 className="font-bold text-[var(--text-main)] truncate max-w-[150px]" title={report.name}>
+                                            <div className="min-w-0">
+                                                <h3 className="font-bold text-[var(--text-main)] truncate" title={report.name}>
                                                     {report.name}
                                                 </h3>
                                                 <span className="text-[10px] uppercase font-black tracking-wider text-[var(--text-muted)] px-2 py-0.5 rounded-full bg-[var(--border-muted)]">
