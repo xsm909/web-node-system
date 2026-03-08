@@ -5,9 +5,10 @@ import { apiClient } from '../../../shared/api/client';
 import type { AITask } from '../../../entities/ai-task/model/types';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { DataTypeSelect } from '../../../shared/ui/data-type-select';
-import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
 import { Icon } from '../../../shared/ui/icon';
 import { ManagementModal } from '../../../shared/ui/management-modal';
+import { AIAssistantButton } from '../../../features/ai-assistant/ui/AIAssistantButton';
+import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
 
 interface AITaskEditModalProps {
     isOpen: boolean;
@@ -182,10 +183,25 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
         setMultiValues(newVals);
     };
 
+    const isAnalyticsCategory = selectedDataType?.type === 'Analytics';
+    const showAiAssistant = isAdmin && isAnalyticsCategory;
+
     const updateRow = (index: number, val: string) => {
         const newVals = [...multiValues];
         newVals[index] = val;
         setMultiValues(newVals);
+    };
+
+    const handleAiResult = (result: any) => {
+        if (result && typeof result === 'object') {
+            if (result.values && Array.isArray(result.values)) {
+                setMultiValues(result.values.length > 0 ? result.values : ['']);
+                setSingleValue('');
+            } else if (result.value) {
+                setSingleValue(result.value);
+                setMultiValues(['']);
+            }
+        }
     };
 
     return (
@@ -200,6 +216,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
             isSaving={mutation.isPending}
             saveDisabled={mutation.isPending || !dataTypeId}
         >
+
             <div className={isAdmin ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "space-y-6"}>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Category</label>
@@ -240,8 +257,22 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                 </div>
             )}
 
-            <div className="space-y-2">
-                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Task Content</label>
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Task Content</label>
+                    {showAiAssistant && (
+                        <AIAssistantButton
+                            hintType="task_analytics"
+                            onResult={handleAiResult}
+                            label="Task Assistant"
+                            isEmpty={!singleValue && (multiValues.length === 1 && !multiValues[0])}
+                            context={!singleValue && (multiValues.length === 1 && !multiValues[0]) ? null : {
+                                existing_task: isMultiline ? { values: multiValues } : { value: singleValue }
+                            }}
+                            modelData={modelData}
+                        />
+                    )}
+                </div>
 
                 {isMultiline ? (
                     <div className="space-y-3 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-2xl p-4">
@@ -249,10 +280,11 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                             <div key={idx} className="flex items-center gap-3">
                                 <div className="flex-1">
                                     <input
+                                        type="text"
                                         value={val}
                                         onChange={(e) => updateRow(idx, e.target.value)}
-                                        className="w-full px-4 py-2.5 rounded-xl bg-surface-800 border border-[var(--border-base)] text-[var(--text-main)] text-sm focus:ring-2 focus:ring-brand outline-none transition-all"
-                                        placeholder={`Row ${idx + 1}...`}
+                                        placeholder={`Step ${idx + 1}`}
+                                        className="flex-1 bg-transparent text-sm focus:outline-none"
                                     />
                                 </div>
                                 <button

@@ -471,7 +471,7 @@ def generate_report_sql(data: ReportSQLGenerateRequest, _=manager_access):
         
     # Read context from sql_hints.md
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    hints_path = os.path.join(current_dir, "..", "schemas", "sql_hints.md")
+    hints_path = os.path.join(current_dir, "..", "schemas", "ai_hints", "sql.md")
     hints_content = ""
     try:
         with open(hints_path, "r") as f:

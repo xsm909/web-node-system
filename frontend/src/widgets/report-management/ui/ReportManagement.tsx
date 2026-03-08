@@ -7,7 +7,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 
 import { ReportList } from './ReportList';
-import { ReportEditor } from './ReportEditor';
+import { ReportEditor, type ReportEditorRef } from './ReportEditor';
 import { ReportViewer, type ReportViewerRef } from './ReportViewer';
 
 interface ReportManagementProps {
@@ -21,14 +21,16 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
 
     type ViewState = 'list' | 'edit' | 'view';
     const [view, setView] = useState<ViewState>('list');
+    const [activeTab, setActiveTab] = useState<'details' | 'builder'>('details');
     const [reports, setReports] = useState<Report[]>([]);
     const [styles, setStyles] = useState<ReportStyle[]>([]);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isGenerating, setIsGenerating] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const reportViewerRef = useRef<ReportViewerRef>(null);
+    const reportEditorRef = useRef<ReportEditorRef>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         const fetchReports = async () => {
@@ -72,6 +74,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         setView('list');
         setSelectedReport(null);
         setIsGenerated(false);
+        setActiveTab('details');
         setRefreshTrigger(prev => prev + 1);
     };
 
@@ -168,45 +171,64 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     </div>
                 }
                 rightContent={
-                    view === 'view' && (
-                        <div className="flex items-center gap-3">
-                            {isGenerated && (
-                                <ComboBox
-                                    label="Export"
-                                    icon="docs"
-                                    iconSize={18}
-                                    data={{
-                                        items: {
-                                            id: 'formats',
-                                            name: 'Export Format',
-                                            items: [
-                                                { id: 'pdf', name: 'Save as PDF' },
-                                                { id: 'csv', name: 'Save as CSV' },
-                                                { id: 'html', name: 'Save as HTML' }
-                                            ],
-                                            children: {}
-                                        }
+                    <div className="flex items-center gap-3">
+                        {view === 'view' && isGenerated && (
+                            <ComboBox
+                                label="Export"
+                                icon="docs"
+                                iconSize={18}
+                                data={{
+                                    items: {
+                                        id: 'formats',
+                                        name: 'Export Format',
+                                        items: [
+                                            { id: 'pdf', name: 'Save as PDF' },
+                                            { id: 'csv', name: 'Save as CSV' },
+                                            { id: 'html', name: 'Save as HTML' }
+                                        ],
+                                        children: {}
+                                    }
+                                }}
+                                onSelect={(item) => {
+                                    if (item.id === 'pdf') handleDownloadPdf();
+                                    else if (item.id === 'csv') handleDownloadCsv();
+                                    else if (item.id === 'html') handleDownloadHtml();
+                                }}
+                                variant="brand"
+                                triggerClassName="px-6 py-2 shadow-lg shadow-brand/20"
+                                labelClassName="font-bold text-sm"
+                            />
+                        )}
+                        {view === 'edit' && (
+                            <div className="flex items-center gap-4">
+                                <div className="flex bg-[var(--bg-app)] p-1 rounded-xl border border-[var(--border-base)] shadow-sm">
+                                    <button
+                                        onClick={() => setActiveTab('details')}
+                                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'details' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                                    >
+                                        Details
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('builder')}
+                                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'builder' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                                    >
+                                        Builder
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setIsSaving(true);
+                                        reportEditorRef.current?.handleSave().finally(() => setIsSaving(false));
                                     }}
-                                    onSelect={(item) => {
-                                        if (item.id === 'pdf') handleDownloadPdf();
-                                        else if (item.id === 'csv') handleDownloadCsv();
-                                        else if (item.id === 'html') handleDownloadHtml();
-                                    }}
-                                    variant="brand"
-                                    triggerClassName="px-6 py-2 shadow-lg shadow-brand/20"
-                                    labelClassName="font-bold text-sm"
-                                />
-                            )}
-                            <button
-                                onClick={() => reportViewerRef.current?.handleGenerate()}
-                                disabled={isGenerating}
-                                className="flex items-center gap-2 px-6 py-2 bg-brand text-white rounded-xl shadow-lg shadow-brand/20 hover:brightness-110 active:scale-95 transition-all font-bold text-sm disabled:opacity-50 disabled:pointer-events-none"
-                            >
-                                <Icon name="bolt" size={18} />
-                                {isGenerating ? 'Generating...' : 'Generate'}
-                            </button>
-                        </div>
-                    )
+                                    disabled={isSaving}
+                                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-brand/20 active:scale-95"
+                                >
+                                    <Icon name={isSaving ? "sync" : "save"} size={18} className={isSaving ? "animate-spin" : ""} />
+                                    {isSaving ? "Saving..." : "Save Report"}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 }
             />
 
@@ -225,9 +247,11 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
 
                 {view === 'edit' && isAdmin && (
                     <ReportEditor
+                        ref={reportEditorRef}
                         report={selectedReport}
                         styles={styles}
                         onBack={handleBack}
+                        activeTab={activeTab}
                     />
                 )}
 
@@ -235,7 +259,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     <ReportViewer
                         ref={reportViewerRef}
                         report={selectedReport!}
-                        onLoadingChange={setIsGenerating}
+                        onLoadingChange={() => { }}
                         onGenerated={(generated: boolean, params: Record<string, any>) => {
                             setIsGenerated(generated);
                             setCurrentParams(params);
