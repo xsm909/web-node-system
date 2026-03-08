@@ -35,6 +35,7 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
     const [isGeneratingSql, setIsGeneratingSql] = useState(false);
     const [sqlPrompt, setSqlPrompt] = useState('');
     const [selectedModel, setSelectedModel] = useState('gpt-4o');
+    const [sqlGenMode, setSqlGenMode] = useState<'generate' | 'modify'>('generate');
 
     const handleAddParameter = () => {
         setParameters([
@@ -121,8 +122,12 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
         setIsSqlAutoGenerateModalOpen(false);
 
         try {
+            const prompt = sqlGenMode === 'modify'
+                ? `EXISTING QUERY: ${query}\n\nUSER MODIFICATION REQUEST: ${sqlPrompt}`
+                : sqlPrompt;
+
             const response = await apiClient.post('/reports/generate-sql', {
-                prompt: sqlPrompt,
+                prompt,
                 model: selectedModel
             });
             if (response.data && response.data.query) {
@@ -143,6 +148,19 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
                 { id: 'gpt-4o', name: 'gpt-4o' },
                 { id: 'gpt-5o', name: 'gpt-5o' },
                 { id: 'gpt-5.2', name: 'gpt-5.2' },
+            ],
+            children: {},
+            selectable: false
+        }
+    };
+
+    const sqlMenuData: Record<string, SelectionGroup> = {
+        items: {
+            id: 'sql_menu',
+            name: 'AI Actions',
+            items: [
+                { id: 'modify', name: 'Modify Query', icon: 'edit' },
+                { id: 're-generate', name: 'RE-Generate', icon: 'refresh' },
             ],
             children: {},
             selectable: false
@@ -228,14 +246,35 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-4">
                                     <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">SQL Query *</h3>
-                                    <button
-                                        onClick={() => setIsSqlAutoGenerateModalOpen(true)}
-                                        disabled={isGeneratingSql}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-brand text-white rounded-lg shadow-md shadow-brand/10 hover:brightness-110 active:scale-95 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50 disabled:pointer-events-none"
-                                    >
-                                        <Icon name="bolt" size={12} />
-                                        {isGeneratingSql ? 'Generating...' : 'AI Auto-generate'}
-                                    </button>
+                                    {!query ? (
+                                        <button
+                                            onClick={() => {
+                                                setSqlGenMode('generate');
+                                                setIsSqlAutoGenerateModalOpen(true);
+                                            }}
+                                            disabled={isGeneratingSql}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-brand text-white rounded-lg shadow-md shadow-brand/10 hover:brightness-110 active:scale-95 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50 disabled:pointer-events-none"
+                                        >
+                                            <Icon name="bolt" size={12} />
+                                            {isGeneratingSql ? 'Generating...' : 'AI Auto-generate'}
+                                        </button>
+                                    ) : (
+                                        <ComboBox
+                                            data={sqlMenuData}
+                                            onSelect={(item) => {
+                                                if (item.id === 'modify') {
+                                                    setSqlGenMode('modify');
+                                                } else {
+                                                    setSqlGenMode('generate');
+                                                }
+                                                setIsSqlAutoGenerateModalOpen(true);
+                                            }}
+                                            label="AI"
+                                            icon="bolt"
+                                            variant="primary"
+                                            className="!py-0"
+                                        />
+                                    )}
                                 </div>
                             </div>
                             <textarea
@@ -388,9 +427,12 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
 
             <ConfirmModal
                 isOpen={isSqlAutoGenerateModalOpen}
-                title="Auto-generate SQL Query"
-                description="Describe what data you want to fetch. The AI will generate a SQL query based on your description and schema hints."
-                confirmLabel="Generate"
+                title={sqlGenMode === 'modify' ? "Modify SQL Query" : "Auto-generate SQL Query"}
+                description={sqlGenMode === 'modify'
+                    ? "Describe how you want to modify the existing query. The AI will update it based on your instructions."
+                    : "Describe what data you want to fetch. The AI will generate a SQL query based on your description and schema hints."
+                }
+                confirmLabel={sqlGenMode === 'modify' ? "Modify" : "Generate"}
                 cancelLabel="Cancel"
                 variant="warning"
                 onConfirm={handleAutoGenerateSql}
@@ -401,12 +443,12 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
                 <div className="mt-6 space-y-4">
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                            AI Prompt (e.g. "get session data with hierarchy")
+                            {sqlGenMode === 'modify' ? "Modification Prompt" : "AI Prompt"} (e.g. "get session data with hierarchy")
                         </label>
                         <textarea
                             value={sqlPrompt}
                             onChange={(e) => setSqlPrompt(e.target.value)}
-                            placeholder="Describe your requirements..."
+                            placeholder={sqlGenMode === 'modify' ? "e.g. 'remove column X', 'add filter by Y'..." : "Describe your requirements..."}
                             className="w-full px-4 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand transition-all resize-none h-32"
                         />
                     </div>
