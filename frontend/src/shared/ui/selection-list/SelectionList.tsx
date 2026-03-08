@@ -368,8 +368,8 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                         <div className="max-h-[320px] overflow-y-auto space-y-0.5 custom-scrollbar pr-1 relative">
                             {(() => {
                                 const entries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b));
-                                // If there's only one group and its key is empty, skip group selection and show items
-                                if (entries.length === 1 && entries[0][0] === '') {
+                                // If there's only one group and its key is empty or 'items', skip group selection and show items
+                                if (entries.length === 1 && (entries[0][0] === '' || entries[0][0] === 'items')) {
                                     const group = entries[0][1];
                                     if (group.items.length > 0) {
                                         return group.items.sort((a, b) => a.name.localeCompare(b.name)).map(item => {
