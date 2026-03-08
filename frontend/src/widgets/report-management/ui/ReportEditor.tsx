@@ -26,6 +26,7 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
     // Auto-generate Template State
     const [isAutoGenerateModalOpen, setIsAutoGenerateModalOpen] = useState(false);
     const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
+    const [additionalInfo, setAdditionalInfo] = useState('');
 
     const handleAddParameter = () => {
         setParameters([
@@ -87,7 +88,10 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
         setIsAutoGenerateModalOpen(false);
 
         try {
-            const response = await apiClient.post('/reports/generate-template', { query });
+            const response = await apiClient.post('/reports/generate-template', {
+                query,
+                additional_info: additionalInfo
+            });
             if (response.data && response.data.template) {
                 setTemplate(response.data.template);
             }
@@ -202,7 +206,7 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
                                         className="flex items-center gap-2 px-3 py-1.5 bg-brand text-white rounded-lg shadow-md shadow-brand/10 hover:brightness-110 active:scale-95 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50 disabled:pointer-events-none"
                                     >
                                         <Icon name="bolt" size={12} />
-                                        {isGeneratingTemplate ? 'Generating...' : 'Auto-generate'}
+                                        {isGeneratingTemplate ? 'Generating...' : 'AI Auto-generate'}
                                     </button>
                                 </div>
                                 <div className="w-1/3">
@@ -309,8 +313,22 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
                 cancelLabel="Cancel"
                 variant="warning"
                 onConfirm={handleAutoGenerateTemplate}
-                onCancel={() => setIsAutoGenerateModalOpen(false)}
-            />
+                onCancel={() => {
+                    setIsAutoGenerateModalOpen(false);
+                }}
+            >
+                <div className="mt-6 space-y-2">
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                        Additional Information (Optional)
+                    </label>
+                    <textarea
+                        value={additionalInfo}
+                        onChange={(e) => setAdditionalInfo(e.target.value)}
+                        placeholder="e.g. style requirements, custom headers, footers, etc. Leave empty for a strict minimal report."
+                        className="w-full px-4 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand transition-all resize-none h-32"
+                    />
+                </div>
+            </ConfirmModal>
         </div >
     );
 }

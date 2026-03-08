@@ -92,6 +92,7 @@ class ReportGenerateResponse(BaseModel):
 
 class ReportTemplateGenerateRequest(BaseModel):
     query: str
+    additional_info: Optional[str] = None
 
 class ReportTemplateGenerateResponse(BaseModel):
     template: str
@@ -341,13 +342,22 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     if not query_text:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
         
+    additional_context = ""
+    if data.additional_info:
+        additional_context = f"USER ADDITIONAL REQUIREMENTS: {data.additional_info}"
+    else:
+        additional_context = "If no additional requirements are provided, the report MUST BE STRICT AND MINIMAL in terms of design and formatting (clean black and white table, no fancy colors)."
+
     prompt = f"""
     You are an expert report template designer. 
-    Please create a stylish Jinja2 template in HTML for the following SQL query. 
+    Please create a Jinja2 template in HTML for the following SQL query. 
     The context passed to your template will contain a variable called `data`, which is a list of dictionaries representing the rows of the SQL query result.
     Provide ONLY the raw template code, without any markdown formatting or explanations.
     If you use styling, prefer inline CSS or a clean `<style>` block.
     Ensure all text in the template is in English.
+
+    STYLE GUIDELINE:
+    {additional_context}
     
     SQL Query:
     {query_text}
