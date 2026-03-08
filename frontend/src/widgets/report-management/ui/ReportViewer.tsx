@@ -89,19 +89,19 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
             <div className="flex-1 relative overflow-hidden flex flex-col items-center">
-                {/* Parameters Notch Overlay */}
+                {/* Parameters Top Overlay (Left-Aligned) */}
                 <div
-                    className={`absolute top-0 w-full max-w-4xl z-20 flex flex-col items-center transition-all duration-300 ${!report.parameters || report.parameters.length === 0 ? 'hidden' : ''}`}
+                    className={`absolute top-0 left-0 w-full z-20 flex flex-col items-start transition-all duration-300 ${!report.parameters || report.parameters.length === 0 ? 'hidden' : ''}`}
                 >
                     <div
-                        className={`w-full bg-[var(--bg-surface)] border-x border-b border-[var(--border-base)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] rounded-b-2xl overflow-hidden transition-all duration-300 flex flex-col ${isParamsExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
+                        className={`w-[250px] bg-[var(--bg-surface)] border-r border-b border-[var(--border-base)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] rounded-br-2xl overflow-visible transition-all duration-300 flex flex-col ${isParamsExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
                         style={{ maxHeight: isParamsExpanded ? '80vh' : '0px' }}
                     >
-                        <div className="p-4 flex flex-col max-h-[80vh]">
-                            <div className="flex items-center justify-between mb-2 px-2">
+                        <div className="p-4 flex flex-col max-h-[80vh] relative">
+                            <div className="flex items-center justify-between mb-3 px-2">
                                 <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">Configuration</h3>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-4 grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto px-2 pb-4 flex flex-col space-y-5 custom-scrollbar">
                                 {report.parameters && report.parameters.map(param => (
                                     <div key={param.parameter_name} className="space-y-1.5 min-w-0">
                                         <label className="text-sm font-bold text-[var(--text-main)] capitalize block truncate">
@@ -143,23 +143,22 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                                     </div>
                                 ))}
                             </div>
-                            <div className="p-4 border-t border-[var(--border-base)] mt-4 flex justify-end gap-3">
-                                <button
-                                    onClick={() => {
-                                        setIsParamsExpanded(false);
-                                    }}
-                                    className="px-6 py-2.5 rounded-xl text-[var(--text-main)] hover:bg-[var(--border-muted)] bg-[var(--bg-app)] border border-[var(--border-base)] font-medium transition-colors w-full"
-                                >
-                                    Hide
-                                </button>
-                            </div>
+
+                            {/* Hide Notch (visible when expanded) */}
+                            <button
+                                onClick={() => setIsParamsExpanded(false)}
+                                className={`absolute bottom-0 left-0 translate-y-full ml-4 bg-[var(--bg-surface)] border border-t-0 border-[var(--border-base)] shadow-md rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors hover:bg-[var(--bg-app)] cursor-pointer z-30 ${isParamsExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                            >
+                                <span className="text-xs font-bold mr-1.5 uppercase tracking-wider">Hide</span>
+                                <Icon name="up" size={16} />
+                            </button>
                         </div>
                     </div>
 
-                    {/* Notch Toggle Handle */}
+                    {/* Left-Aligned Parameters Notch (visible when collapsed) */}
                     <button
                         onClick={() => setIsParamsExpanded(!isParamsExpanded)}
-                        className={`bg-[var(--bg-surface)] border border-t-0 border-[var(--border-base)] shadow-md rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors hover:bg-[var(--bg-app)] cursor-pointer mt-[-1px] ${isParamsExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100 backdrop-blur-md bg-[var(--bg-surface)]/90'}`}
+                        className={`bg-[var(--bg-surface)]/80 backdrop-blur-md border border-t-0 border-[var(--border-base)] shadow-md rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors hover:bg-[var(--bg-app)] cursor-pointer mt-[-1px] ml-4 ${isParamsExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                     >
                         <span className="text-xs font-bold mr-1.5 uppercase tracking-wider">Parameters</span>
                         <Icon name="down" size={16} />
@@ -167,7 +166,7 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                 </div>
 
                 {/* Report Output Area */}
-                <div className={`flex-1 w-full bg-[#f8f9fa] relative overflow-hidden z-0 transition-all duration-300 ${(report.parameters && report.parameters.length > 0) ? 'pt-12' : ''}`}>
+                <div className={`flex-1 w-full bg-[#f8f9fa] relative overflow-hidden z-0 transition-all duration-300`}>
                     {isLoading ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-brand bg-white/50 backdrop-blur-sm z-20">
                             <div className="w-8 h-8 rounded-full border-t-2 border-brand animate-spin mb-4" />
