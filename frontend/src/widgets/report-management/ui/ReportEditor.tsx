@@ -276,7 +276,7 @@ export function ReportEditor({ report, styles, onBack }: ReportEditorProps) {
                                             }}
                                             label="AI"
                                             icon="bolt"
-                                            variant="primary"
+                                            variant="brand"
                                             className="!py-0"
                                         />
                                     )}

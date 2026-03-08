@@ -13,7 +13,7 @@ interface ComboBoxProps {
     onSelect: (item: SelectionItem) => void;
     onAction?: (action: SelectionAction, target: SelectionItem | SelectionGroup) => void;
     className?: string;
-    variant?: 'primary' | 'ghost' | 'sidebar';
+    variant?: 'primary' | 'ghost' | 'sidebar' | 'brand';
     searchPlaceholder?: string;
 }
 
@@ -48,9 +48,12 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     };
 
     const isSidebar = variant === 'sidebar';
+    const isBrand = variant === 'brand';
 
     const triggerClasses = `flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all ${isSidebar ? 'w-full justify-between' : 'max-w-full justify-start'
-        } ${isOpen ? 'bg-[var(--border-base)] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
+        } ${isBrand
+            ? 'bg-brand text-white shadow-md shadow-brand/10 hover:brightness-110'
+            : isOpen ? 'bg-[var(--border-base)] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
         }`;
 
     return (
@@ -65,7 +68,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
                         <Icon
                             name={icon}
                             size={16}
-                            className={isOpen || value ? 'text-brand' : ''}
+                            className={isBrand ? 'text-white' : (isOpen || value ? 'text-brand' : '')}
                         />
                     )}
                     <div className="flex flex-col items-start min-w-0">
