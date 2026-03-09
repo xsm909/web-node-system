@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUpdateRecord } from '../../../entities/record/api';
+import { useSchemas } from '../../../entities/schema/api';
 import { Icon } from '../../../shared/ui/icon';
 import { RjsfForm } from '../../../features/data-editor/RjsfForm';
 
@@ -15,6 +16,7 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
     assignment,
 }) => {
     const updateMutation = useUpdateRecord();
+    const { data: schemas } = useSchemas();
     const [formData, setFormData] = useState<any>(undefined);
     const [isValid, setIsValid] = useState(true);
 
@@ -37,7 +39,7 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
     };
 
     const schemaRaw = assignment?.record?.schema?.content;
-    const schemaContent = safeParse(schemaRaw) || {};
+    const schemaContent = React.useMemo(() => safeParse(schemaRaw) || {}, [schemaRaw]);
     const schemaType = schemaContent.type || 'object';
 
     useEffect(() => {
@@ -73,6 +75,14 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
             onSuccess: () => onClose(),
         });
     };
+
+    const extraSchemas = React.useMemo(() => {
+        if (!schemas) return {};
+        return schemas.reduce((acc: any, s) => {
+            acc[s.key] = safeParse(s.content);
+            return acc;
+        }, {});
+    }, [schemas]);
 
     return (
         <div className="fixed inset-0 z-[100] flex justify-end overflow-hidden">
@@ -118,6 +128,7 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
                                 setFormData(data);
                                 setIsValid(valid);
                             }}
+                            extraSchemas={extraSchemas}
                         />
                     </div>
                 </div>
