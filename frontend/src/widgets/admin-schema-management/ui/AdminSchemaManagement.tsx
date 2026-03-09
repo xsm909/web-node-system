@@ -326,11 +326,11 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
                 <td colSpan={4} className="px-6 py-2" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
                     <div className="flex items-center gap-2">
                         <Icon
-                            name={isExpanded ? 'expand_more' : 'chevron_right'}
-                            size={16}
-                            className="text-gray-500"
+                            name={isExpanded ? 'down' : 'play'}
+                            size={14}
+                            className="text-gray-500 opacity-60"
                         />
-                        <Icon name="folder" size={16} className="text-brand/60" />
+                        <Icon name="folder_code" size={16} className="text-brand/70" />
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{name}</span>
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-gray-500 border border-gray-600/50 font-mono">
                             {node.nodes.length + Object.keys(node.children).length}

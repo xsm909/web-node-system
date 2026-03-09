@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
+import { Icon } from '../../../shared/ui/icon/Icon';
+import { buildCategoryTree } from '../../../shared/lib/categoryUtils';
+import type { CategoryTreeNode } from '../../../shared/lib/categoryUtils';
 
 interface NodeLibraryProps {
     nodeTypes: NodeType[];
@@ -7,36 +10,190 @@ interface NodeLibraryProps {
 }
 
 export const NodeLibrary: React.FC<NodeLibraryProps> = ({ nodeTypes, onAddNode }) => {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+    const toggleCategory = (path: string) => {
+        setExpandedCategories(prev => {
+            const next = new Set(prev);
+            if (next.has(path)) next.delete(path);
+            else next.add(path);
+            return next;
+        });
+    };
+
+    const filteredNodes = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return nodeTypes;
+
+        return nodeTypes.filter(n => {
+            const inName = n.name.toLowerCase().includes(q);
+            const inDesc = n.description?.toLowerCase().includes(q);
+            const inCategory = n.category?.toLowerCase().includes(q);
+            return inName || inDesc || inCategory;
+        });
+    }, [nodeTypes, searchQuery]);
+
+    const nodeTree = useMemo(() => {
+        if (searchQuery.trim()) return null;
+        return buildCategoryTree(nodeTypes);
+    }, [nodeTypes, searchQuery]);
+
     return (
         <div className="space-y-6">
-            <h3 className="px-1 text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">Available Nodes</h3>
-            <div className="grid grid-cols-1 gap-2">
-                {nodeTypes.map((n) => (
-                    <button
-                        key={n.id}
-                        className="group flex items-center gap-3 p-3 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 transition-all text-left active:scale-[0.98]"
-                        onClick={() => onAddNode(n)}
-                        title={n.description}
-                    >
-                        <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-                            📦
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-white/90 truncate group-hover:text-white transition-colors">{n.name}</div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[10px] font-mono text-brand/60 uppercase tracking-tight">v{n.version}</span>
-                                {n.category && (
-                                    <>
-                                        <span className="text-white/10">•</span>
-                                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest truncate">{n.category}</span>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </button>
-                ))}
+            <div className="flex justify-between items-center px-1">
+                <div className="flex items-center gap-4 flex-1">
+                    <h2 className="text-xl font-bold tracking-tight whitespace-nowrap">Node Library</h2>
+                    <div className="relative flex-1 max-w-lg">
+                        <Icon name="search" size={14} className="absolute left-4 top-1/2 -translate-y-1/2 opacity-40 text-[var(--text-main)]" />
+                        <input
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            placeholder="Search nodes by name, category or description..."
+                            className="w-full bg-surface-800 border border-gray-700 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/40 transition-all shadow-inner"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-surface-800 rounded-2xl border border-gray-700/50 overflow-hidden shadow-xl shadow-black/10">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="border-b border-gray-700 bg-surface-900/50">
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Name</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700/50">
+                        {searchQuery.trim() ? (
+                            filteredNodes.map(node => (
+                                <NodeRow key={node.id} node={node} onClick={onAddNode} />
+                            ))
+                        ) : (
+                            nodeTree && Object.entries(nodeTree).map(([name, node]) => (
+                                <CategoryRows
+                                    key={name}
+                                    name={name}
+                                    node={node}
+                                    path={name}
+                                    level={0}
+                                    expandedCategories={expandedCategories}
+                                    onToggle={toggleCategory}
+                                    onClickNode={onAddNode}
+                                />
+                            ))
+                        )}
+                        {filteredNodes.length === 0 && (
+                            <tr>
+                                <td className="px-6 py-12 text-center text-gray-500 italic text-sm">
+                                    No nodes matching your criteria.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
 };
+
+interface NodeRowProps {
+    node: NodeType;
+    onClick: (node: NodeType) => void;
+    level?: number;
+}
+
+const NodeRow: React.FC<NodeRowProps> = ({ node, onClick, level = 0 }) => (
+    <tr
+        onClick={() => onClick(node)}
+        className="group hover:bg-brand/5 transition-colors cursor-pointer"
+    >
+        <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
+            <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-surface-700 text-brand group-hover:bg-brand group-hover:text-white transition-colors">
+                    <Icon name={node.icon || 'extension'} size={18} />
+                </div>
+                <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
+                        {node.name}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-muted)] truncate opacity-60">
+                        {node.description}
+                    </span>
+                </div>
+            </div>
+        </td>
+    </tr>
+);
+
+interface CategoryRowsProps {
+    name: string;
+    node: CategoryTreeNode<NodeType>;
+    path: string;
+    level: number;
+    expandedCategories: Set<string>;
+    onToggle: (path: string) => void;
+    onClickNode: (node: NodeType) => void;
+}
+
+const CategoryRows: React.FC<CategoryRowsProps> = ({
+    name,
+    node,
+    path,
+    level,
+    expandedCategories,
+    onToggle,
+    onClickNode
+}) => {
+    const isExpanded = expandedCategories.has(path);
+
+    return (
+        <>
+            <tr
+                className="bg-surface-900/30 hover:bg-surface-700/50 cursor-pointer transition-colors border-l-2 border-brand/30"
+                onClick={() => onToggle(path)}
+            >
+                <td className="px-6 py-2" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
+                    <div className="flex items-center gap-2">
+                        <Icon
+                            name={isExpanded ? 'down' : 'play'}
+                            size={14}
+                            className="text-gray-500 opacity-60"
+                        />
+                        <Icon name="folder_code" size={16} className="text-brand/70" />
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{name}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-gray-500 border border-gray-600/50 font-mono">
+                            {node.nodes.length + Object.keys(node.children).length}
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            {isExpanded && (
+                <>
+                    {Object.entries(node.children).map(([childName, childNode]) => (
+                        <CategoryRows
+                            key={childName}
+                            name={childName}
+                            node={childNode}
+                            path={`${path}|${childName}`}
+                            level={level + 1}
+                            expandedCategories={expandedCategories}
+                            onToggle={onToggle}
+                            onClickNode={onClickNode}
+                        />
+                    ))}
+                    {node.nodes.map(node => (
+                        <NodeRow
+                            key={node.id}
+                            node={node}
+                            onClick={onClickNode}
+                            level={level + 1}
+                        />
+                    ))}
+                </>
+            )}
+        </>
+    );
+};
+
+
 
