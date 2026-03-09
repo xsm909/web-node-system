@@ -21,8 +21,8 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
     const safeParse = (val: any) => {
         if (val === null || val === undefined) return val;
         if (typeof val === 'string') {
-            // Check if it looks like a JSON object or array
             const trimmed = val.trim();
+            // Only parse if it looks like a JSON structure
             if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
                 (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
                 try {
@@ -36,22 +36,30 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
         return val;
     };
 
+    const schemaRaw = assignment?.record?.schema?.content;
+    const schemaContent = safeParse(schemaRaw) || {};
+    const schemaType = schemaContent.type || 'object';
+
     useEffect(() => {
         if (isOpen && assignment?.record) {
-            console.log('Modal Assignment:', assignment);
             const rawData = assignment.record.data;
-            const data = safeParse(rawData);
-            console.log('Parsed Data:', { raw: rawData, parsed: data, type: typeof data });
+            let data = safeParse(rawData);
+
+            // Critical fix: if data is empty/null but schema is primitive, 
+            // DON'T initialize as {} which causes validation error
+            if (data === null || data === undefined || (typeof data === 'object' && Object.keys(data).length === 0)) {
+                if (schemaType === 'string') data = '';
+                else if (schemaType === 'number' || schemaType === 'integer') data = 0;
+                else if (schemaType === 'boolean') data = false;
+                else data = {}; // Default to object only if type is object or unknown
+            }
+
             setFormData(data);
             setIsValid(true);
         }
-    }, [isOpen, assignment]);
+    }, [isOpen, assignment, schemaType]);
 
     if (!isOpen || !assignment) return null;
-
-    const schemaRaw = assignment.record?.schema?.content;
-    const schemaContent = safeParse(schemaRaw) || {};
-    console.log('Parsed Schema:', { raw: schemaRaw, parsed: schemaContent });
 
     const schemaTitle = schemaContent?.title
         || assignment.record?.schema?.key

@@ -81,6 +81,7 @@ export const useUpdateRecord = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['records'] });
+            queryClient.invalidateQueries({ queryKey: ['meta_assignments'] });
         },
     });
 };

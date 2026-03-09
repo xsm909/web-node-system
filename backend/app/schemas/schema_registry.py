@@ -33,13 +33,13 @@ class SchemaResponse(SchemaBase):
 # --- Records (Validated Data Payloads) ---
 class RecordBase(BaseModel):
     schema_id: UUID
-    data: Dict[str, Any]
+    data: Any
 
 class RecordCreate(RecordBase):
     pass
 
 class RecordUpdate(BaseModel):
-    data: Optional[Dict[str, Any]] = None
+    data: Optional[Any] = None
 
 class RecordResponse(RecordBase):
     id: UUID
