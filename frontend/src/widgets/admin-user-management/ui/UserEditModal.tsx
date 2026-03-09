@@ -6,6 +6,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { ComboBox } from '../../../shared/ui/combo-box';
 import type { SelectionGroup } from '../../../shared/ui/selection-list';
 import { ClientMetadataManagement } from '../../client-metadata-management/ui/ClientMetadataManagement';
+import { FormField } from '../../../shared/ui/form-field';
 
 interface UserEditModalProps {
     isOpen: boolean;
@@ -107,14 +108,12 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
 
                 <div className="p-10 space-y-8">
                     <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Username</label>
+                        <FormField label="Username">
                             <div className="px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-bold">
                                 {user.username}
                             </div>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Role</label>
+                        </FormField>
+                        <FormField label="Role">
                             <div className="px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)]">
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 ring-inset ${user.role === 'admin'
                                     ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-indigo-500/20'
@@ -125,23 +124,24 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
                                     {user.role}
                                 </span>
                             </div>
-                        </div>
+                        </FormField>
                     </div>
 
                     {user.role === 'client' && (
-                        <>
+                        <div className="space-y-6">
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Responsible Manager</label>
-                                <ComboBox
-                                    value={selectedManagerId}
-                                    label={selectedManager?.username || 'Select Manager...'}
-                                    placeholder="Select Manager..."
-                                    data={managersData}
-                                    onSelect={(item) => setSelectedManagerId(item.id)}
-                                    variant="primary"
-                                    className="w-full"
-                                    config={{ groupActions: [] }}
-                                />
+                                <FormField label="Responsible Manager">
+                                    <ComboBox
+                                        value={selectedManagerId}
+                                        label={selectedManager?.username || 'Select Manager...'}
+                                        placeholder="Select Manager..."
+                                        data={managersData}
+                                        onSelect={(item) => setSelectedManagerId(item.id)}
+                                        variant="primary"
+                                        className="w-full"
+                                        config={{ groupActions: [] }}
+                                    />
+                                </FormField>
                                 {selectedManagerId && (
                                     <button
                                         onClick={() => setSelectedManagerId('')}
@@ -155,7 +155,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
                             <div className="pt-4 border-t border-[var(--border-base)]">
                                 <ClientMetadataManagement activeClientId={user.id} />
                             </div>
-                        </>
+                        </div>
                     )}
                 </div>
 
@@ -175,6 +175,6 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

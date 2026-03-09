@@ -3,6 +3,9 @@ import { useSchemas, useCreateSchema, useUpdateSchema, useDeleteSchema } from '.
 import type { Schema } from '../../../entities/schema/api';
 import { SchemaEditor } from '../../../features/schema-editor/SchemaEditor';
 import { Icon } from '../../../shared/ui/icon';
+import { buildCategoryTree } from '../../../shared/lib/categoryUtils';
+import type { CategoryTreeNode } from '../../../shared/lib/categoryUtils';
+import { getCookie, setCookie } from '../../../shared/lib/cookieUtils';
 
 export const AdminSchemaManagement: React.FC = () => {
     const { data: schemas = [], isLoading } = useSchemas();
@@ -19,6 +22,23 @@ export const AdminSchemaManagement: React.FC = () => {
     const [category, setCategory] = useState('');
     const [content, setContent] = useState('{\n  "type": "object",\n  "properties": {}\n}');
     const [isSystem, setIsSystem] = useState(false);
+
+    // Persistence for expanded categories (collapsed by default)
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => {
+        const saved = getCookie('schema_expanded_categories');
+        if (saved) return new Set(JSON.parse(saved));
+        return new Set(); // Empty means all collapsed by default
+    });
+
+    const toggleCategory = (path: string) => {
+        setExpandedCategories(prev => {
+            const next = new Set(prev);
+            if (next.has(path)) next.delete(path);
+            else next.add(path);
+            setCookie('schema_expanded_categories', JSON.stringify(Array.from(next)));
+            return next;
+        });
+    };
 
     const handleEdit = (schema: Schema) => {
         setSelectedSchema(schema);
@@ -78,10 +98,16 @@ export const AdminSchemaManagement: React.FC = () => {
 
         return schemas.filter(s => {
             const inKey = s.key.toLowerCase().includes(q);
+            const inTitle = s.content?.title?.toLowerCase().includes(q);
             const inCategory = s.category?.toLowerCase().includes(q);
             const inTags = s.meta?.tags?.some((tag: string) => tag.toLowerCase().includes(q));
-            return inKey || inCategory || inTags;
+            return inKey || inTitle || inCategory || inTags;
         });
+    }, [schemas, searchQuery]);
+
+    const schemaTree = useMemo(() => {
+        if (searchQuery.trim()) return null;
+        return buildCategoryTree(schemas);
     }, [schemas, searchQuery]);
 
     if (isLoading) return <div className="p-8 text-gray-400">Loading schemas...</div>;
@@ -171,66 +197,31 @@ export const AdminSchemaManagement: React.FC = () => {
                     <thead>
                         <tr className="border-b border-gray-700 bg-surface-900/50">
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Category / Tags</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Tags</th>
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Updated</th>
                             <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700/50">
-                        {filteredSchemas.map(schema => (
-                            <tr
-                                key={schema.id}
-                                onClick={() => handleEdit(schema)}
-                                className="group hover:bg-brand/5 transition-colors cursor-pointer"
-                            >
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 rounded-lg bg-surface-700 text-brand group-hover:bg-brand group-hover:text-white transition-colors">
-                                            <Icon name="data_object" size={18} />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-semibold text-gray-200 group-hover:text-brand transition-colors">{schema.key}</span>
-                                            {schema.is_system && (
-                                                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-tighter">System Schema</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex flex-wrap gap-1">
-                                        {schema.category && (
-                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-700 text-gray-400 border border-gray-600">
-                                                {schema.category}
-                                            </span>
-                                        )}
-                                        {schema.meta?.tags?.map((tag: string) => (
-                                            <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-brand/10 text-brand border border-brand/20">
-                                                {tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className="text-xs text-gray-500">
-                                        {new Date(schema.updated_at).toLocaleString()}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    {!schema.is_system && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDelete(schema.id, schema.is_system);
-                                            }}
-                                            className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400 opacity-0 group-hover:opacity-100"
-                                            title="Delete"
-                                        >
-                                            <Icon name="delete" size={16} />
-                                        </button>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
+                        {searchQuery.trim() ? (
+                            filteredSchemas.map(schema => (
+                                <SchemaRow key={schema.id} schema={schema} onEdit={handleEdit} onDelete={handleDelete} />
+                            ))
+                        ) : (
+                            schemaTree && Object.entries(schemaTree).map(([name, node]) => (
+                                <CategoryRows
+                                    key={name}
+                                    name={name}
+                                    node={node}
+                                    path={name}
+                                    level={0}
+                                    expandedCategories={expandedCategories}
+                                    onToggle={toggleCategory}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDelete}
+                                />
+                            ))
+                        )}
                         {filteredSchemas.length === 0 && (
                             <tr>
                                 <td colSpan={4} className="px-6 py-12 text-center text-gray-500 italic">
@@ -242,5 +233,137 @@ export const AdminSchemaManagement: React.FC = () => {
                 </table>
             </div>
         </div>
+    );
+};
+
+interface SchemaRowProps {
+    schema: Schema;
+    onEdit: (schema: Schema) => void;
+    onDelete: (id: string, is_system: boolean) => void;
+    level?: number;
+}
+
+const SchemaRow: React.FC<SchemaRowProps> = ({ schema, onEdit, onDelete, level = 0 }) => (
+    <tr
+        onClick={() => onEdit(schema)}
+        className="group hover:bg-brand/5 transition-colors cursor-pointer"
+    >
+        <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
+            <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-surface-700 text-brand group-hover:bg-brand group-hover:text-white transition-colors">
+                    <Icon name="data_object" size={18} />
+                </div>
+                <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
+                        {schema.content?.title || schema.key}
+                    </span>
+                    {schema.is_system && (
+                        <span className="text-[9px] font-black text-blue-400 uppercase tracking-tighter mt-0.5 opacity-60">System Schema</span>
+                    )}
+                </div>
+            </div>
+        </td>
+        <td className="px-6 py-4">
+            <div className="flex flex-wrap gap-1">
+                {schema.meta?.tags?.map((tag: string) => (
+                    <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-brand/10 text-brand border border-brand/20 font-bold uppercase tracking-widest">
+                        {tag}
+                    </span>
+                ))}
+            </div>
+        </td>
+        <td className="px-6 py-4">
+            <span className="text-xs text-gray-500">
+                {new Date(schema.updated_at).toLocaleString()}
+            </span>
+        </td>
+        <td className="px-6 py-4 text-right">
+            {!schema.is_system && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(schema.id, schema.is_system);
+                    }}
+                    className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400 opacity-0 group-hover:opacity-100"
+                    title="Delete"
+                >
+                    <Icon name="delete" size={16} />
+                </button>
+            )}
+        </td>
+    </tr>
+);
+
+interface CategoryRowsProps {
+    name: string;
+    node: CategoryTreeNode<Schema>;
+    path: string;
+    level: number;
+    expandedCategories: Set<string>;
+    onToggle: (path: string) => void;
+    onEdit: (schema: Schema) => void;
+    onDelete: (id: string, is_system: boolean) => void;
+}
+
+const CategoryRows: React.FC<CategoryRowsProps> = ({
+    name,
+    node,
+    path,
+    level,
+    expandedCategories,
+    onToggle,
+    onEdit,
+    onDelete
+}) => {
+    const isExpanded = expandedCategories.has(path);
+
+    return (
+        <>
+            <tr
+                className="bg-surface-900/30 hover:bg-surface-700/50 cursor-pointer transition-colors border-l-2 border-brand/30"
+                onClick={() => onToggle(path)}
+            >
+                <td colSpan={4} className="px-6 py-2" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
+                    <div className="flex items-center gap-2">
+                        <Icon
+                            name={isExpanded ? 'expand_more' : 'chevron_right'}
+                            size={16}
+                            className="text-gray-500"
+                        />
+                        <Icon name="folder" size={16} className="text-brand/60" />
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{name}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-gray-500 border border-gray-600/50 font-mono">
+                            {node.nodes.length + Object.keys(node.children).length}
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            {isExpanded && (
+                <>
+                    {Object.entries(node.children).map(([childName, childNode]) => (
+                        <CategoryRows
+                            key={childName}
+                            name={childName}
+                            node={childNode}
+                            path={`${path}|${childName}`}
+                            level={level + 1}
+                            expandedCategories={expandedCategories}
+                            onToggle={onToggle}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                        />
+                    ))}
+                    {node.nodes.map(schema => (
+                        <SchemaRow
+                            key={schema.id}
+                            schema={schema}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                            level={level + 1}
+                        />
+                    ))}
+                </>
+            )}
+        </>
     );
 };
