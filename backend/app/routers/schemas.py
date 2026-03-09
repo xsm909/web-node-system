@@ -33,6 +33,8 @@ def create_schema(
     new_schema = Schema(
         key=schema_in.key,
         content=schema_in.content,
+        category=schema_in.category,
+        meta=schema_in.meta,
         is_system=schema_in.is_system
     )
     db.add(new_schema)
@@ -66,6 +68,17 @@ def update_schema(
     
     if schema_in.content is not None:
         schema.content = schema_in.content
+    if schema_in.category is not None:
+        schema.category = schema_in.category
+        # Auto-update tags if category changed and meta is being updated or exists
+        if schema.meta is None:
+            schema.meta = {}
+        tags = [t.strip().lower() for t in schema_in.category.split('|') if t.strip()]
+        schema.meta = {**schema.meta, "tags": tags}
+    
+    if schema_in.meta is not None:
+        schema.meta = schema_in.meta
+        
     if schema_in.is_system is not None:
         schema.is_system = schema_in.is_system
 

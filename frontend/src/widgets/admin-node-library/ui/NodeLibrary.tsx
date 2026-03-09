@@ -17,7 +17,7 @@ interface AdminNodeLibraryProps {
 interface CategorySectionProps {
     path: string;         // full path, e.g. "AI|Chat"
     label: string;        // last segment, e.g. "Chat"
-    node: CategoryTreeNode;
+    node: CategoryTreeNode<NodeType>;
     depth: number;
     onEditNode: (n: NodeType) => void;
     onDuplicateNode: (n: NodeType) => void;
@@ -166,7 +166,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
     );
 };
 
-function countNodes(node: CategoryTreeNode): number {
+function countNodes(node: CategoryTreeNode<NodeType>): number {
     let count = node.nodes.length;
     for (const child of Object.values(node.children)) count += countNodes(child);
     return count;
@@ -274,7 +274,7 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, 
 
     useEffect(() => { fetchData(); }, [refreshTrigger]);
 
-    const categoryTree = useMemo(() => buildCategoryTree(nodeTypes), [nodeTypes]);
+    const categoryTree = useMemo(() => buildCategoryTree<NodeType>(nodeTypes), [nodeTypes]);
 
     const searchResults = useMemo(() => {
         if (!searchQuery.trim()) return [];

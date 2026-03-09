@@ -7,6 +7,8 @@ from datetime import datetime
 class SchemaBase(BaseModel):
     key: str
     content: Dict[str, Any]
+    category: Optional[str] = None
+    meta: Optional[Dict[str, Any]] = None
     is_system: bool = False
 
 class SchemaCreate(SchemaBase):
@@ -15,6 +17,8 @@ class SchemaCreate(SchemaBase):
 class SchemaUpdate(BaseModel):
     key: Optional[str] = None
     content: Optional[Dict[str, Any]] = None
+    category: Optional[str] = None
+    meta: Optional[Dict[str, Any]] = None
     is_system: Optional[bool] = None
 
 class SchemaResponse(SchemaBase):

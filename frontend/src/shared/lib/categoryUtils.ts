@@ -1,32 +1,33 @@
-import type { NodeType } from '../../entities/node-type/model/types';
-
-export interface CategoryTreeNode {
-    nodes: NodeType[];
-    children: Record<string, CategoryTreeNode>;
+export interface CategoryTreeNode<T> {
+    nodes: T[];
+    children: Record<string, CategoryTreeNode<T>>;
 }
 
-export type CategoryTree = Record<string, CategoryTreeNode>;
+export type CategoryTree<T> = Record<string, CategoryTreeNode<T>>;
 
-function makeEmptyNode(): CategoryTreeNode {
+function makeEmptyNode<T>(): CategoryTreeNode<T> {
     return { nodes: [], children: {} };
 }
 
 /**
- * Builds a recursive tree from a flat list of NodeType objects.
+ * Builds a recursive tree from a flat list of objects with a 'category' property.
  * Category paths use '|' as the separator (e.g. "AI|Chat|Gemini").
  */
-export function buildCategoryTree(nodes: NodeType[]): CategoryTree {
-    const root: CategoryTree = {};
+export function buildCategoryTree<T extends { category?: string | null }>(nodes: T[]): CategoryTree<T> {
+    const root: CategoryTree<T> = {};
 
     for (const node of nodes) {
         const parts = (node.category || 'Uncategorized').split('|').map(p => p.trim()).filter(Boolean);
         let current = root;
         for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
-            if (!current[part]) current[part] = makeEmptyNode();
+
+            // If we're at a leaf node and the path is finished
             if (i === parts.length - 1) {
+                if (!current[part]) current[part] = makeEmptyNode<T>();
                 current[part].nodes.push(node);
             } else {
+                if (!current[part]) current[part] = makeEmptyNode<T>();
                 current = current[part].children;
             }
         }
@@ -36,9 +37,9 @@ export function buildCategoryTree(nodes: NodeType[]): CategoryTree {
 }
 
 /**
- * Returns a sorted array of unique full category paths from a list of nodes.
+ * Returns a sorted array of unique full category paths from a list of objects with a 'category' property.
  */
-export function getUniqueCategoryPaths(nodes: NodeType[]): string[] {
+export function getUniqueCategoryPaths<T extends { category?: string | null }>(nodes: T[]): string[] {
     const paths = new Set<string>();
     for (const node of nodes) {
         if (node.category) {

@@ -11,6 +11,8 @@ class Schema(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     key = Column(String, unique=True, nullable=False, index=True) # Unique identifier like 'client-profile'
     content = Column(JSON, nullable=False) # The actual JSON Schema
+    category = Column(String, nullable=True, index=True) # Groups like 'Common|Info'
+    meta = Column(JSON, nullable=True) # Additional metadata like {"tags": ["common", "info"]}
     is_system = Column(Boolean, default=False) # Only Admins can edit if true
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

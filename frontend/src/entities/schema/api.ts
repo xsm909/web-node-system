@@ -5,6 +5,8 @@ export interface Schema {
     id: string;
     key: string;
     content: any; // The JSON schema object
+    category?: string | null;
+    meta?: any;
     is_system: boolean;
     created_at: string;
     updated_at: string;
@@ -13,12 +15,16 @@ export interface Schema {
 export interface CreateSchemaDto {
     key: string;
     content: any;
+    category?: string | null;
+    meta?: any;
     is_system: boolean;
 }
 
 export interface UpdateSchemaDto {
     key?: string;
     content?: any;
+    category?: string | null;
+    meta?: any;
     is_system?: boolean;
 }
 
