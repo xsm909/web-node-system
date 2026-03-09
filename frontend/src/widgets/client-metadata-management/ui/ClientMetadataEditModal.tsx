@@ -1,208 +1,106 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuthStore } from '../../../features/auth/store';
-import { apiClient } from '../../../shared/api/client';
-import type { ClientMetadata } from '../../../entities/client-metadata/model/types';
+import React, { useState, useEffect } from 'react';
+import { useUpdateRecord } from '../../../entities/record/api';
 import { Icon } from '../../../shared/ui/icon';
-import { DataTypeSelect } from '../../../shared/ui/data-type-select';
+import { DataEditor } from '../../../features/data-editor/DataEditor';
+
 interface ClientMetadataEditModalProps {
     isOpen: boolean;
     onClose: () => void;
-    metadata: ClientMetadata | null;
-    onSave: () => void;
-    defaultOwnerId?: string;
-    dataTypes: any[];
+    assignment: any; // MetaAssignment response containing nested record and schema
 }
 
-import { ManagementModal } from '../../../shared/ui/management-modal';
-
 export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = ({
-    isOpen, onClose, metadata, onSave, defaultOwnerId, dataTypes
+    isOpen,
+    onClose,
+    assignment,
 }) => {
-    const queryClient = useQueryClient();
-    const { user } = useAuthStore();
-    const isAdmin = user?.role === 'admin';
-
-    const [dataTypeId, setDataTypeId] = useState<string>('');
-    const [ownerId, setOwnerId] = useState<string>('');
-
-    // State for single-line vs multiline
-    const [singleValue, setSingleValue] = useState<string>('');
-    const [multiValues, setMultiValues] = useState<string[]>(['']);
-
-
+    const updateMutation = useUpdateRecord();
+    const [editorData, setEditorData] = useState<any>(null);
+    const [isValid, setIsValid] = useState(true);
 
     useEffect(() => {
-        if (isOpen) {
-            if (metadata) {
-                setOwnerId(metadata.owner_id || '');
-                setDataTypeId(String(metadata.data_type_id) || '');
-
-                const md = metadata.meta_data || {};
-                if (md.values && Array.isArray(md.values)) {
-                    setMultiValues(md.values.length > 0 ? md.values : ['']);
-                    setSingleValue('');
-                } else {
-                    setSingleValue(md.value || '');
-                    setMultiValues(['']);
-                }
-            } else {
-                setOwnerId(defaultOwnerId || '');
-                setDataTypeId('');
-                setSingleValue('');
-                setMultiValues(['']);
-            }
+        if (isOpen && assignment?.record) {
+            setEditorData(assignment.record.data || {});
+            setIsValid(true);
         }
-    }, [isOpen, metadata, defaultOwnerId]);
+    }, [isOpen, assignment]);
 
-    // Determine current selected data type to see if it's multiline
-    const selectedDataType = useMemo(() => {
-        if (!dataTypeId) return null;
-        return dataTypes.find(dt => String(dt.id) === dataTypeId) || null;
-    }, [dataTypeId, dataTypes]);
+    if (!isOpen || !assignment) return null;
 
-    const isMultiline = selectedDataType?.config?.multiline === true;
+    const schemaKey = assignment.record?.schema?.key || 'Unknown Schema';
+    const schemaContent = assignment.record?.schema?.content || {};
+    const recordId = assignment.record?.id;
 
-    const mutation = useMutation({
-        mutationFn: async () => {
-            if (!dataTypeId) throw new Error('Data Type is required');
-
-            // Build meta_data payload
-            const meta_data = isMultiline
-                ? { values: multiValues.filter(v => v.trim() !== '') }
-                : { value: singleValue };
-
-            const payload = {
-                owner_id: ownerId,
-                data_type_id: parseInt(dataTypeId, 10),
-                meta_data
-            };
-
-            if (metadata) {
-                await apiClient.put(`/client-metadata/${metadata.id}`, payload);
-            } else {
-                await apiClient.post('/client-metadata/', payload);
+    const handleSave = () => {
+        if (!isValid) return;
+        updateMutation.mutate({
+            id: recordId,
+            data: editorData
+        }, {
+            onSuccess: () => {
+                onClose();
             }
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['client-metadata'] });
-            onSave();
-            onClose();
-        },
-        onError: (error: any) => {
-            console.error('Failed to update Client Metadata', error);
-            // Alert user so they know why the modal remains open (e.g. constraints, invalid UUID)
-            const detail = error.response?.data?.detail || error.message;
-            alert(`Error saving metadata: ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`);
-        }
-    });
-
-    const isEdit = !!metadata;
-
-    const addRow = () => {
-        setMultiValues([...multiValues, '']);
-    };
-
-    const removeRow = (index: number) => {
-        const newVals = [...multiValues];
-        newVals.splice(index, 1);
-        if (newVals.length === 0) newVals.push(''); // keep at least one row
-        setMultiValues(newVals);
-    };
-
-    const updateRow = (index: number, val: string) => {
-        const newVals = [...multiValues];
-        newVals[index] = val;
-        setMultiValues(newVals);
+        });
     };
 
     return (
-        <ManagementModal
-            isOpen={isOpen}
-            onClose={onClose}
-            icon={isEdit ? "edit" : "add"}
-            title={isEdit ? 'Edit Client Metadata' : 'Create Client Metadata'}
-            description={isEdit ? 'Update metadata properties' : 'Add new specialized metadata'}
-            onSave={() => mutation.mutate()}
-            saveButtonText={isEdit ? 'Save Changes' : 'Create Metadata'}
-            isSaving={mutation.isPending}
-            saveDisabled={mutation.isPending || !dataTypeId}
-        >
-            {isAdmin && (
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Owner ID (Client UID)</label>
-                    <input
-                        value={ownerId}
-                        onChange={(e) => setOwnerId(e.target.value)}
-                        className="w-full px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-medium focus:ring-2 focus:ring-brand outline-none transition-all"
-                        placeholder="e.g., UUID"
-                    />
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-6">
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Data Type</label>
-                    <DataTypeSelect
-                        value={dataTypeId}
-                        onChange={(val: string) => setDataTypeId(val)}
-                        dataTypes={dataTypes}
-                        valueProp="id"
-                        className="w-full"
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Metadata Content</label>
-
-                {isMultiline ? (
-                    <div className="space-y-3 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-2xl p-4">
-                        {multiValues.map((val, idx) => (
-                            <div key={idx} className="flex items-center gap-3">
-                                <div className="flex-1">
-                                    <input
-                                        value={val}
-                                        onChange={(e) => updateRow(idx, e.target.value)}
-                                        className="w-full px-4 py-2.5 rounded-xl bg-surface-800 border border-[var(--border-base)] text-[var(--text-main)] text-sm focus:ring-2 focus:ring-brand outline-none transition-all"
-                                        placeholder={`Row ${idx + 1}...`}
-                                    />
-                                </div>
-                                <button
-                                    onClick={() => removeRow(idx)}
-                                    className="p-2.5 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all flex-shrink-0"
-                                    title="Remove Row"
-                                >
-                                    <Icon name="delete" size={18} />
-                                </button>
-                            </div>
-                        ))}
-
-                        <button
-                            onClick={addRow}
-                            className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-brand hover:bg-brand/10 transition-colors"
-                        >
-                            <Icon name="add" size={16} />
-                            Add Row
-                        </button>
-                        <p className="text-[10px] text-[var(--text-muted)] italic opacity-60 mt-4">
-                            Saved as {"{ \"values\": [\"...\"] }"}
-                        </p>
-                    </div>
-                ) : (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="relative w-full max-w-4xl max-h-full bg-surface-900 rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-700">
+                <div className="flex justify-between items-center p-6 border-b border-gray-800 bg-surface-800/50">
                     <div>
-                        <input
-                            value={singleValue}
-                            onChange={(e) => setSingleValue(e.target.value)}
-                            className="w-full px-5 py-4 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-medium focus:ring-2 focus:ring-brand outline-none transition-all"
-                            placeholder="Enter single line value..."
-                        />
-                        <p className="text-[10px] text-[var(--text-muted)] italic opacity-60 ml-1 mt-2">
-                            Saved as {"{ \"value\": \"...\" }"}
+                        <h2 className="text-xl font-bold tracking-tight flex items-center gap-3">
+                            <Icon name="edit_document" className="text-brand" size={24} />
+                            Edit Record Data
+                        </h2>
+                        <p className="text-sm text-gray-400 mt-1 flex items-center gap-2">
+                            Schema: <span className="text-gray-200 font-mono bg-surface-700 px-2 py-0.5 rounded-md">{schemaKey}</span>
                         </p>
                     </div>
-                )}
+                    <button
+                        className="p-2 hover:bg-gray-800 rounded-xl transition-colors shrink-0 text-gray-400 hover:text-white"
+                        onClick={onClose}
+                    >
+                        <Icon name="close" size={24} />
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-surface-950">
+                    {/* JSON Editor dynamically rendered here */}
+                    <div className="bg-surface-800 rounded-xl border border-gray-700 overflow-hidden">
+                        <DataEditor
+                            schema={schemaContent}
+                            initialData={editorData}
+                            onChange={(data, valid) => {
+                                setEditorData(data);
+                                setIsValid(valid);
+                            }}
+                        />
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-3 p-6 border-t border-gray-800 bg-surface-900">
+                    <button
+                        onClick={onClose}
+                        className="px-6 py-2.5 rounded-xl font-semibold text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={updateMutation.isPending || !isValid}
+                        className="px-6 py-2.5 rounded-xl bg-brand hover:brightness-110 active:scale-95 text-white font-bold transition-all shadow-lg shadow-brand/20 disabled:opacity-50 flex items-center gap-2"
+                    >
+                        {updateMutation.isPending && (
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                        )}
+                        <Icon name="save" size={18} />
+                        Save Record
+                    </button>
+                </div>
             </div>
-        </ManagementModal>
+        </div>
     );
 };

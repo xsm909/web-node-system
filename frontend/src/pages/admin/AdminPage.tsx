@@ -14,14 +14,15 @@ import { getCookie, setCookie } from '../../shared/lib/cookieUtils';
 
 import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskManagement';
 import { ReportManagement } from '../../widgets/report-management';
+import { AdminSchemaManagement } from '../../widgets/admin-schema-management/ui/AdminSchemaManagement';
 
 export default function AdminPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports'>(
+    const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports'>(
         (getCookie('active_admin_tab') as any) || 'users'
     );
 
-    const setActiveTab = (tab: 'users' | 'nodes' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports') => {
+    const setActiveTab = (tab: 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports') => {
         setCookie('active_admin_tab', tab);
         setActiveTabState(tab);
     };
@@ -81,6 +82,13 @@ export default function AdminPage() {
                         onClick: () => setActiveTab('workflows'),
                     },
                     {
+                        id: 'schemas',
+                        label: 'Schemas',
+                        icon: 'data_object',
+                        isActive: activeTab === 'schemas',
+                        onClick: () => setActiveTab('schemas'),
+                    },
+                    {
                         id: 'ai-tasks',
                         label: 'AI Tasks',
                         icon: 'description',
@@ -106,7 +114,8 @@ export default function AdminPage() {
                             <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
                                 {activeTab === 'users' ? 'User Management' :
                                     activeTab === 'nodes' ? 'Node Library' :
-                                        activeTab === 'ai-tasks' ? 'AI Task Management' : 'Credentials'}
+                                        activeTab === 'ai-tasks' ? 'AI Task Management' :
+                                            activeTab === 'schemas' ? 'Schema Registry' : 'Credentials'}
                             </h1>
                         }
                         rightContent={
@@ -140,6 +149,8 @@ export default function AdminPage() {
                             onEditNode={handleOpenModal}
                             refreshTrigger={refreshCount}
                         />
+                    ) : activeTab === 'schemas' ? (
+                        <div className="max-w-7xl mx-auto space-y-8"><AdminSchemaManagement /></div>
                     ) : activeTab === 'ai-tasks' ? (
                         <div className="max-w-7xl mx-auto space-y-8">
                             <AITaskManagement activeClientId={null} />

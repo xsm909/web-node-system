@@ -6,6 +6,7 @@ from .ai_task import AI_Task
 from .data_type import DataType
 from .client_metadata import ClientMetadata
 from .report import Report, ReportParameter, ReportStyle, ReportRun
+from .schema import Schema, Record, MetaAssignment, ExternalSchemaCache
 
 __all__ = [
     "User",
@@ -24,4 +25,8 @@ __all__ = [
     "ReportParameter",
     "ReportStyle",
     "ReportRun",
+    "Schema",
+    "Record",
+    "MetaAssignment",
+    "ExternalSchemaCache",
 ]

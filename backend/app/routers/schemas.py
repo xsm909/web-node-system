@@ -1,0 +1,106 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+from uuid import UUID
+
+from ..core.database import get_db
+from ..core.security import get_current_user
+from ..models import User, RoleEnum
+from ..models.schema import Schema, ExternalSchemaCache
+from ..schemas.schema_registry import SchemaCreate, SchemaUpdate, SchemaResponse, ExternalSchemaCacheResponse
+from ..services.cache_manager import fetch_and_cache_external_schema
+
+router = APIRouter(prefix="/schemas", tags=["schemas"])
+
+def check_admin(user: User):
+    if user.role != RoleEnum.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not an admin")
+
+@router.get("/", response_model=List[SchemaResponse])
+def get_schemas(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return db.query(Schema).all()
+
+@router.post("/", response_model=SchemaResponse)
+def create_schema(
+    schema_in: SchemaCreate, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    check_admin(current_user)
+    if db.query(Schema).filter(Schema.key == schema_in.key).first():
+        raise HTTPException(status_code=400, detail="Schema key already exists")
+    
+    new_schema = Schema(
+        key=schema_in.key,
+        content=schema_in.content,
+        is_system=schema_in.is_system
+    )
+    db.add(new_schema)
+    db.commit()
+    db.refresh(new_schema)
+    return new_schema
+
+@router.get("/{schema_id}", response_model=SchemaResponse)
+def get_schema(schema_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    schema = db.query(Schema).filter(Schema.id == schema_id).first()
+    if not schema:
+        raise HTTPException(status_code=404, detail="Schema not found")
+    return schema
+
+@router.put("/{schema_id}", response_model=SchemaResponse)
+def update_schema(
+    schema_id: UUID, 
+    schema_in: SchemaUpdate, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    check_admin(current_user)
+    schema = db.query(Schema).filter(Schema.id == schema_id).first()
+    if not schema:
+        raise HTTPException(status_code=404, detail="Schema not found")
+
+    if schema_in.key and schema_in.key != schema.key:
+        if db.query(Schema).filter(Schema.key == schema_in.key).first():
+            raise HTTPException(status_code=400, detail="Schema key already exists")
+        schema.key = schema_in.key
+    
+    if schema_in.content is not None:
+        schema.content = schema_in.content
+    if schema_in.is_system is not None:
+        schema.is_system = schema_in.is_system
+
+    db.commit()
+    db.refresh(schema)
+    return schema
+
+@router.delete("/{schema_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_schema(
+    schema_id: UUID, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    check_admin(current_user)
+    schema = db.query(Schema).filter(Schema.id == schema_id).first()
+    if not schema:
+        raise HTTPException(status_code=404, detail="Schema not found")
+    
+    if schema.is_system:
+        raise HTTPException(status_code=400, detail="Cannot delete a system schema")
+
+    db.delete(schema)
+    db.commit()
+
+# --- Cache Endpoints ---
+@router.post("/cache/refresh", response_model=ExternalSchemaCacheResponse)
+async def refresh_external_schema(
+    url: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    check_admin(current_user)
+    try:
+        content = await fetch_and_cache_external_schema(db, url, force_refresh=True)
+        cached = db.query(ExternalSchemaCache).filter(ExternalSchemaCache.url == url).first()
+        return cached
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -5,6 +5,7 @@ import type { User } from '../../../entities/user/model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { ComboBox } from '../../../shared/ui/combo-box';
 import type { SelectionGroup } from '../../../shared/ui/selection-list';
+import { ClientMetadataManagement } from '../../client-metadata-management/ui/ClientMetadataManagement';
 
 interface UserEditModalProps {
     isOpen: boolean;
@@ -85,8 +86,8 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
 
     return (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="w-full max-w-lg bg-surface-800 border border-[var(--border-base)] rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden ring-1 ring-black/5 dark:ring-white/5 animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 ease-out">
-                <header className="px-10 py-8 border-b border-[var(--border-base)] flex items-center justify-between">
+            <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-surface-800 border border-[var(--border-base)] rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] ring-1 ring-black/5 dark:ring-white/5 animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 ease-out custom-scrollbar">
+                <header className="px-10 py-8 border-b border-[var(--border-base)] flex items-center justify-between sticky top-0 bg-surface-800 z-10">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-brand/10 flex items-center justify-center text-brand border border-brand/20">
                             <Icon name="person" size={24} />
@@ -128,27 +129,33 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ isOpen, onClose, u
                     </div>
 
                     {user.role === 'client' && (
-                        <div className="space-y-3">
-                            <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Responsible Manager</label>
-                            <ComboBox
-                                value={selectedManagerId}
-                                label={selectedManager?.username || 'Select Manager...'}
-                                placeholder="Select Manager..."
-                                data={managersData}
-                                onSelect={(item) => setSelectedManagerId(item.id)}
-                                variant="primary"
-                                className="w-full"
-                                config={{ groupActions: [] }}
-                            />
-                            {selectedManagerId && (
-                                <button
-                                    onClick={() => setSelectedManagerId('')}
-                                    className="text-[10px] font-bold text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-colors ml-1"
-                                >
-                                    Clear Assignment
-                                </button>
-                            )}
-                        </div>
+                        <>
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">Responsible Manager</label>
+                                <ComboBox
+                                    value={selectedManagerId}
+                                    label={selectedManager?.username || 'Select Manager...'}
+                                    placeholder="Select Manager..."
+                                    data={managersData}
+                                    onSelect={(item) => setSelectedManagerId(item.id)}
+                                    variant="primary"
+                                    className="w-full"
+                                    config={{ groupActions: [] }}
+                                />
+                                {selectedManagerId && (
+                                    <button
+                                        onClick={() => setSelectedManagerId('')}
+                                        className="text-[10px] font-bold text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-colors ml-1"
+                                    >
+                                        Clear Assignment
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="pt-4 border-t border-[var(--border-base)]">
+                                <ClientMetadataManagement activeClientId={user.id} />
+                            </div>
+                        </>
                     )}
                 </div>
 
