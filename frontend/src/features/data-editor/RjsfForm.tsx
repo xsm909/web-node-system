@@ -183,7 +183,45 @@ function ObjectFieldTemplate(props: ObjectFieldTemplateProps) {
     );
 }
 
+// ─── Array Field Item Template ────────────────────────────────────────────────
+// In RJSF v6, ArrayFieldTemplate.items are pre-rendered React elements produced
+// by ArrayFieldItemTemplate. We style each individual item here.
+function ArrayFieldItemTemplate(props: any) {
+    const {
+        children,
+        hasMoveUp, hasMoveDown, hasRemove,
+        index,
+        onReorderClick, onDropIndexClick,
+    } = props;
+    return (
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-surface-900/50 border border-gray-700/50">
+            <div className="flex-1">{children}</div>
+            <div className="flex gap-1 mt-1 shrink-0">
+                {hasMoveUp && (
+                    <button type="button" onClick={onReorderClick(index, index - 1)}
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--text-main)] hover:bg-surface-700 transition-colors">
+                        <Icon name="up" size={14} />
+                    </button>
+                )}
+                {hasMoveDown && (
+                    <button type="button" onClick={onReorderClick(index, index + 1)}
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--text-main)] hover:bg-surface-700 transition-colors">
+                        <Icon name="down" size={14} />
+                    </button>
+                )}
+                {hasRemove && (
+                    <button type="button" onClick={onDropIndexClick(index)}
+                        className="p-1.5 rounded-lg text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-colors">
+                        <Icon name="delete" size={14} />
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
 // ─── Array Field Template ──────────────────────────────────────────────────────
+// items here are already-rendered React elements from ArrayFieldItemTemplate
 function ArrayFieldTemplate(props: ArrayFieldTemplateProps) {
     const { title, items, canAdd, onAddClick } = props;
     return (
@@ -206,37 +244,59 @@ function ArrayFieldTemplate(props: ArrayFieldTemplateProps) {
                 )}
             </div>
             <div className="space-y-2">
-                {items.map((item: any) => (
-                    <div key={item.key} className="flex items-start gap-2 p-3 rounded-xl bg-surface-900/50 border border-gray-700/50">
-                        <div className="flex-1">{item.children}</div>
-                        <div className="flex gap-1 mt-1 shrink-0">
-                            {item.hasMoveUp && (
-                                <button type="button" onClick={item.onReorderClick(item.index, item.index - 1)}
-                                    className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--text-main)] hover:bg-surface-700 transition-colors">
-                                    <Icon name="up" size={14} />
-                                </button>
-                            )}
-                            {item.hasMoveDown && (
-                                <button type="button" onClick={item.onReorderClick(item.index, item.index + 1)}
-                                    className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--text-main)] hover:bg-surface-700 transition-colors">
-                                    <Icon name="down" size={14} />
-                                </button>
-                            )}
-                            {item.hasRemove && (
-                                <button type="button" onClick={item.onDropIndexClick(item.index)}
-                                    className="p-1.5 rounded-lg text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-colors">
-                                    <Icon name="delete" size={14} />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                {items.map((item: any) => item)}
             </div>
             {items.length === 0 && (
                 <div className="text-xs text-[var(--text-muted)] italic opacity-50 px-1">No items yet</div>
             )}
         </div>
     );
+}
+
+// ─── Deep Ref Inliner ──────────────────────────────────────────────────────────
+/**
+ * Fully resolves all $ref occurrences by inlining the referenced schema.
+ * Supports:
+ *   - bare key:              "$ref": "goody"
+ *   - $defs pointer:         "$ref": "#/$defs/goody"
+ *   - definitions pointer:   "$ref": "#/definitions/goody"
+ * Strips $schema / $id from sub-schemas so AJV8 doesn't get confused by
+ * draft version declarations inside defs.
+ * Uses a visited set to prevent infinite recursion in circular schemas.
+ */
+function inlineRefs(
+    node: any,
+    defs: Record<string, any>,
+    visited = new Set<string>(),
+): any {
+    if (!node || typeof node !== 'object') return node;
+    if (Array.isArray(node)) return node.map((n) => inlineRefs(n, defs, visited));
+
+    if ('$ref' in node && typeof node.$ref === 'string') {
+        const ref = node.$ref as string;
+        let key: string | null = null;
+        if (ref.startsWith('#/$defs/')) key = ref.slice(8);
+        else if (ref.startsWith('#/definitions/')) key = ref.slice(14);
+        else if (!ref.startsWith('#') && !ref.startsWith('http')) key = ref;
+
+        if (key && defs[key] && !visited.has(key)) {
+            const next = new Set(visited);
+            next.add(key);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { $schema: _s, $id: _i, ...defBody } = defs[key];
+            // Merge sibling properties from the $ref node (rare but valid JSON-Schema)
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { $ref: _r, ...siblings } = node;
+            return inlineRefs({ ...defBody, ...siblings }, defs, next);
+        }
+    }
+
+    // Walk all keys, but skip $defs/$definitions (we handle refs ourselves)
+    const result: any = {};
+    for (const k of Object.keys(node)) {
+        result[k] = inlineRefs(node[k], defs, visited);
+    }
+    return result;
 }
 
 // ─── Main RjsfForm Component ───────────────────────────────────────────────────
@@ -246,6 +306,8 @@ interface RjsfFormProps {
     formData: unknown;
     onChange: (data: unknown, isValid: boolean) => void;
     readOnly?: boolean;
+    /** Map of schemaKey → parsed schema content for resolving $ref */
+    extraSchemas?: Record<string, any>;
 }
 
 export const RjsfForm: React.FC<RjsfFormProps> = ({
@@ -254,6 +316,7 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
     formData,
     onChange,
     readOnly = false,
+    extraSchemas = {},
 }) => {
     // Interop safety: check if Form component is valid
     if (typeof Form !== 'function' && typeof Form !== 'object') {
@@ -270,7 +333,18 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
         ...uiSchema,
     };
 
-    const safeSchema = schema && typeof schema === 'object' ? schema : { type: 'object' };
+    // Build the defs map: merge $defs from the schema itself + all extraSchemas
+    const safeSchema = React.useMemo(() => {
+        const base = schema && typeof schema === 'object' ? schema : { type: 'object' };
+
+        // Collect all known defs from the root schema + extraSchemas
+        const rootDefs = (base.$defs as any) || (base as any).definitions || {};
+        const allDefs: Record<string, any> = { ...rootDefs, ...extraSchemas };
+
+        // Fully inline every $ref so RJSF never has to resolve references itself
+        const inlined = inlineRefs(base, allDefs);
+        return inlined;
+    }, [schema, extraSchemas]);
 
     return (
         <>
@@ -284,6 +358,7 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
                     FieldTemplate,
                     ObjectFieldTemplate,
                     ArrayFieldTemplate,
+                    ArrayFieldItemTemplate,
                 }}
                 widgets={{
                     TextareaWidget,
@@ -298,9 +373,11 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
                 liveValidate={false}
                 showErrorList={false}
             />
-            <div className="mt-4 p-2 text-[10px] text-gray-500 border-t border-gray-800 font-mono break-all line-clamp-2 overflow-hidden hover:line-clamp-none transition-all cursor-help opacity-30">
-                DEBUG Schema: {JSON.stringify(safeSchema)} | Data type: {typeof formData}
-            </div>
+            {import.meta.env.DEV && (
+                <div className="mt-4 p-2 text-[10px] text-gray-500 border-t border-gray-800 font-mono break-all line-clamp-2 overflow-hidden hover:line-clamp-none transition-all cursor-help opacity-30">
+                    DEBUG Schema: {JSON.stringify(safeSchema)} | Data type: {typeof formData}
+                </div>
+            )}
         </>
     );
 };
