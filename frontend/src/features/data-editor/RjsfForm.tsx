@@ -288,6 +288,14 @@ function inlineRefs(
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { $ref: _r, ...siblings } = node;
             return inlineRefs({ ...defBody, ...siblings }, defs, next);
+        } else if (key && !defs[key]) {
+            console.warn(`RjsfForm: Could not find a definition for ${ref}. Definitions available:`, Object.keys(defs));
+            return {
+                type: 'string',
+                title: `Error: Reference not found (${ref})`,
+                readOnly: true,
+                default: `Error: Reference "${ref}" could not be resolved.`
+            };
         }
     }
 

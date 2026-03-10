@@ -16,7 +16,7 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
     assignment,
 }) => {
     const updateMutation = useUpdateRecord();
-    const { data: schemas } = useSchemas();
+    const { data: schemas, isLoading: isSchemasLoading } = useSchemas();
     const [formData, setFormData] = useState<any>(undefined);
     const [isValid, setIsValid] = useState(true);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -79,6 +79,8 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
     }, [isOpen, assignment?.record?.id, schemaType]);
 
     if (!isOpen || !assignment) return null;
+
+    const isLoading = isSchemasLoading && !schemas;
 
     const schemaTitle = schemaContent?.title
         || assignment.record?.schema?.key
@@ -144,16 +146,25 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
 
                 {/* Body */}
                 <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-surface-950">
-                    <div className="max-w-2xl mx-auto">
-                        <RjsfForm
-                            schema={schemaContent}
-                            formData={formData}
-                            onChange={(data, valid) => {
-                                setFormData(data);
-                                setIsValid(valid);
-                            }}
-                            extraSchemas={extraSchemas}
-                        />
+                    <div className="max-w-2xl mx-auto h-full">
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center h-64 gap-4">
+                                <div className="w-10 h-10 border-4 border-brand/20 border-t-brand rounded-full animate-spin" />
+                                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest animate-pulse">
+                                    Loading Schemas...
+                                </p>
+                            </div>
+                        ) : (
+                            <RjsfForm
+                                schema={schemaContent}
+                                formData={formData}
+                                onChange={(data, valid) => {
+                                    setFormData(data);
+                                    setIsValid(valid);
+                                }}
+                                extraSchemas={extraSchemas}
+                            />
+                        )}
                     </div>
                 </div>
 
@@ -173,7 +184,7 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={updateMutation.isPending || !isValid}
+                            disabled={updateMutation.isPending || !isValid || isLoading}
                             className="px-8 py-3 rounded-2xl bg-brand hover:brightness-110 active:scale-95 text-white text-sm font-black transition-all shadow-xl shadow-brand/20 disabled:opacity-40 disabled:active:scale-100 flex items-center gap-3"
                         >
                             {updateMutation.isPending ? (
