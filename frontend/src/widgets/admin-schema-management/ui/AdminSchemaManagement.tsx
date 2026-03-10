@@ -346,17 +346,6 @@ interface CategoryRowsProps {
     onDuplicate: (schema: Schema) => void;
 }
 
-/**
- * Recursively counts all nodes in a category tree node.
- */
-function countTotalNodes<T>(node: CategoryTreeNode<T>): number {
-    let count = node.nodes.length;
-    for (const child of Object.values(node.children)) {
-        count += countTotalNodes(child);
-    }
-    return count;
-}
-
 const CategoryRows: React.FC<CategoryRowsProps> = ({
     name,
     node,
@@ -370,7 +359,6 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
 }) => {
     const isRoot = name === "Uncategorized";
     const isExpanded = name === "Uncategorized" || expandedCategories.has(path);
-    const totalCount = countTotalNodes(node);
 
     if (isRoot) {
         return (
@@ -428,9 +416,6 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
                         />
                         <Icon name="folder_code" size={16} className="text-brand/70" />
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{node.name}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-gray-400 border border-gray-600/50 font-mono">
-                            {totalCount}
-                        </span>
                     </div>
                 </td>
             </tr>
