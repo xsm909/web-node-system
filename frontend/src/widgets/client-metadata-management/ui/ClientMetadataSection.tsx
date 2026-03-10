@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useEntityMetadata, useUnassignMetadata, useCreateRecord, useAssignMetadata } from '../../../entities/record/api';
+import { useEntityMetadata, useUnassignMetadata, useCreateRecord, useAssignMetadata, useDeleteRecord } from '../../../entities/record/api';
 import { useSchemas } from '../../../entities/schema/api';
 import type { Schema } from '../../../entities/schema/api';
 import { useAuthStore } from '../../../features/auth/store';
@@ -9,6 +9,7 @@ import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { buildCategoryTree } from '../../../shared/lib/categoryUtils';
 import type { CategoryTreeNode } from '../../../shared/lib/categoryUtils';
 import type { SelectionGroup } from '../../../shared/ui/selection-list';
+import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
 
 
@@ -50,11 +51,13 @@ export const ClientMetadataSection: React.FC = () => {
     const entityId = user?.id;
 
     const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
+    const [assignmentToDelete, setAssignmentToDelete] = useState<any | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [nestingParentId, setNestingParentId] = useState<string | null>(null);
 
     const { data: assignments = [], isLoading, refetch } = useEntityMetadata('client', entityId);
     const unassignMutation = useUnassignMetadata();
+    const deleteRecordMutation = useDeleteRecord();
     const createRecordMutation = useCreateRecord();
     const assignMetadataMutation = useAssignMetadata();
     const { data: schemas = [] } = useSchemas();
@@ -250,9 +253,7 @@ export const ClientMetadataSection: React.FC = () => {
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                if (window.confirm('Delete this metadata and all its children?')) {
-                                                                    unassignMutation.mutate({ assignmentId: item.id });
-                                                                }
+                                                                setAssignmentToDelete(item);
                                                             }}
                                                             className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all"
                                                             title="Delete"
@@ -297,7 +298,41 @@ export const ClientMetadataSection: React.FC = () => {
                 />
             )}
 
-            {/* Removed ClientMetadataCreateModal as creation is now handled by ComboBox */}
+            <ConfirmModal
+                isOpen={!!assignmentToDelete}
+                title="Remove Schema"
+                description={`Are you sure you want to remove the metadata from your profile? All sub-elements will also be deleted.`}
+                confirmLabel="Remove"
+                isLoading={unassignMutation.isPending || deleteRecordMutation.isPending}
+                onConfirm={() => {
+                    if (assignmentToDelete) {
+                        const isRootAssignment = !!assignmentToDelete.entity_id;
+
+                        if (isRootAssignment) {
+                            unassignMutation.mutate(
+                                { assignmentId: assignmentToDelete.id },
+                                {
+                                    onSuccess: () => {
+                                        setAssignmentToDelete(null);
+                                        refetch();
+                                    }
+                                }
+                            );
+                        } else {
+                            deleteRecordMutation.mutate(
+                                assignmentToDelete.id,
+                                {
+                                    onSuccess: () => {
+                                        setAssignmentToDelete(null);
+                                        refetch();
+                                    }
+                                }
+                            );
+                        }
+                    }
+                }}
+                onCancel={() => setAssignmentToDelete(null)}
+            />
         </>
     );
 };

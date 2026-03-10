@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Icon } from '../../../shared/ui/icon';
 import { useAuthStore } from '../../../features/auth/store';
-import { useEntityMetadata, useUnassignMetadata, useCreateRecord, useAssignMetadata } from '../../../entities/record/api';
+import { useEntityMetadata, useUnassignMetadata, useCreateRecord, useAssignMetadata, useDeleteRecord } from '../../../entities/record/api';
 import { useSchemas } from '../../../entities/schema/api';
 import type { Schema } from '../../../entities/schema/api';
 import { ClientMetadataEditModal } from './ClientMetadataEditModal';
@@ -27,6 +27,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     const [nestingParentId, setNestingParentId] = useState<string | null>(null);
 
     const unassignMutation = useUnassignMetadata();
+    const deleteRecordMutation = useDeleteRecord();
     const createRecordMutation = useCreateRecord();
     const assignMetadataMutation = useAssignMetadata();
     const { data: schemas = [] } = useSchemas();
@@ -292,14 +293,29 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 isLoading={unassignMutation.isPending}
                 onConfirm={() => {
                     if (assignmentToDelete) {
-                        unassignMutation.mutate(
-                            { assignmentId: assignmentToDelete.id },
-                            {
-                                onSuccess: () => {
-                                    setAssignmentToDelete(null);
+                        const isRootAssignment = !!assignmentToDelete.entity_id;
+
+                        if (isRootAssignment) {
+                            unassignMutation.mutate(
+                                { assignmentId: assignmentToDelete.id },
+                                {
+                                    onSuccess: () => {
+                                        setAssignmentToDelete(null);
+                                        refetch();
+                                    }
                                 }
-                            }
-                        );
+                            );
+                        } else {
+                            deleteRecordMutation.mutate(
+                                assignmentToDelete.id,
+                                {
+                                    onSuccess: () => {
+                                        setAssignmentToDelete(null);
+                                        refetch();
+                                    }
+                                }
+                            );
+                        }
                     }
                 }}
                 onCancel={() => setAssignmentToDelete(null)}
