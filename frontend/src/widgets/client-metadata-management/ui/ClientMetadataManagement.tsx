@@ -1,30 +1,40 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Icon } from '../../../shared/ui/icon';
 import { useAuthStore } from '../../../features/auth/store';
 import { useEntityMetadata, useUnassignMetadata, useCreateRecord, useAssignMetadata, useDeleteRecord } from '../../../entities/record/api';
 import { useSchemas } from '../../../entities/schema/api';
 import type { Schema } from '../../../entities/schema/api';
-import { ClientMetadataEditModal } from './ClientMetadataEditModal';
+import { ClientMetadataEditor, type ClientMetadataEditorRef } from './ClientMetadataEditor';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { buildCategoryTree } from '../../../shared/lib/categoryUtils';
 import type { CategoryTreeNode } from '../../../shared/lib/categoryUtils';
 import type { SelectionGroup } from '../../../shared/ui/selection-list';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
-
-
+import { SlidePanel } from '../../../shared/ui/slide-panel';
+import { AppHeader } from '../../app-header';
 
 interface ClientMetadataManagementProps {
     activeClientId?: string | null;
+    onToggleSidebar?: () => void;
+    isSidebarOpen?: boolean;
+    hideHeader?: boolean;
 }
 
-export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> = ({ activeClientId }) => {
+export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> = ({
+    activeClientId,
+    onToggleSidebar,
+    isSidebarOpen,
+    hideHeader = false
+}) => {
     const { user } = useAuthStore();
     const isAdmin = user?.role === 'admin';
 
+    const [view, setView] = useState<'list' | 'edit'>('list');
     const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
     const [assignmentToDelete, setAssignmentToDelete] = useState<any | null>(null);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [nestingParentId, setNestingParentId] = useState<string | null>(null);
+
+    const editorRef = useRef<ClientMetadataEditorRef>(null);
 
     const unassignMutation = useUnassignMetadata();
     const deleteRecordMutation = useDeleteRecord();
@@ -100,20 +110,20 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
 
     const enrichedAssignments = useMemo(() => enrichWithSchemas(assignments), [assignments, schemas]);
 
-
-
-
-
     const handleRowClick = (item: any) => {
         if (!item.record?.schema) {
             console.warn("Cannot edit record without schema", item);
             return;
         }
         setSelectedAssignment(item);
-        setIsEditModalOpen(true);
+        setView('edit');
     };
 
-
+    const handleBack = () => {
+        setView('list');
+        setSelectedAssignment(null);
+        refetch();
+    };
 
     const handleSchemaSelect = async (schemaItem: any) => {
         if (!activeClientId) return;
@@ -136,9 +146,9 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
             }
 
             // Refresh list
-            refetch();
+            await refetch();
 
-            // Open edit modal
+            // Open edit modal (now via SlidePanel)
             setSelectedAssignment({
                 id: 'new',
                 record: {
@@ -146,7 +156,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                     schema: schemas.find(s => s.id === newRecord.schema_id)
                 }
             });
-            setIsEditModalOpen(true);
+            setView('edit');
             setNestingParentId(null);
         } catch (e) {
             console.error("Failed to create record:", e);
@@ -161,167 +171,213 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
         );
     }
 
-    return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-xl font-bold text-[var(--text-main)] tracking-tight">Client Metadata</h2>
-                    <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60">
-                        Manage semantic datasets attached to this client.
-                    </p>
-                </div>
+    const content = (
+        <>
+            <div className="space-y-6">
+                {!hideHeader && (
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-[var(--text-main)] tracking-tight">Client Metadata</h2>
+                            <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60">
+                                Manage semantic datasets attached to this client.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {isAdmin && activeClientId && (
-                    <div onClick={(e) => { e.stopPropagation(); setNestingParentId(null); }}>
-                        <ComboBox
-                            data={comboData}
-                            onSelect={handleSchemaSelect}
-                            placeholder="Assign Schema"
-                            icon="add"
-                            variant="brand"
-                            triggerClassName="px-6 py-3 rounded-2xl !text-[10px] !font-black !uppercase !tracking-widest shadow-xl shadow-brand/20"
-                        />
+                    <div className="flex justify-start">
+                        <div onClick={(e) => { e.stopPropagation(); setNestingParentId(null); }}>
+                            <ComboBox
+                                data={comboData}
+                                onSelect={handleSchemaSelect}
+                                placeholder="Assign Schema"
+                                icon="add"
+                                variant="brand"
+                                triggerClassName="px-6 py-3 rounded-2xl !text-[10px] !font-black !uppercase !tracking-widest shadow-xl shadow-brand/20"
+                            />
+                        </div>
                     </div>
                 )}
-            </div>
 
-            <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/5">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[700px]">
-                        <thead>
-                            <tr className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
-                                <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
-                                    Schema
-                                </th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
-                                    Record Data
-                                </th>
-                                <th className="px-6 py-4 text-right" />
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-base)]">
-                            {(() => {
-                                const renderRows = (data: any[], depth = 0) => {
-                                    return data.map((item) => (
-                                        <React.Fragment key={item.id || item.record?.id}>
-                                            <tr
-                                                className="hover:bg-[var(--border-muted)]/5 group cursor-pointer"
-                                                onClick={() => handleRowClick(item)}
-                                            >
-                                                <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + depth * 2}rem` }}>
-                                                    <div className="flex items-center gap-3">
-                                                        {depth > 0 && (
-                                                            <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
-                                                        )}
-                                                        <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
-                                                            {depth > 0 && <Icon name="arrow_split" size={12} />}
-                                                            {item.record?.schema?.key || 'Unknown'}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono">
-                                                        {JSON.stringify(item.record?.data || {})}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex justify-end items-center gap-2">
-                                                        {isAdmin && (
-                                                            <div
-                                                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                                                onClick={(e) => { e.stopPropagation(); setNestingParentId(item.record?.id); }}
-                                                            >
-                                                                <ComboBox
-                                                                    data={comboData}
-                                                                    onSelect={handleSchemaSelect}
-                                                                    placeholder="Sub"
-                                                                    icon="add"
-                                                                    triggerClassName="!p-1.5 !rounded-lg !bg-brand/10 !text-brand hover:!brightness-125 !text-[10px] !font-bold !uppercase"
-                                                                />
-                                                            </div>
-                                                        )}
-
-                                                        {isAdmin && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setAssignmentToDelete(item);
-                                                                }}
-                                                                className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                                                title="Delete"
-                                                            >
-                                                                <Icon name="delete" size={14} />
-                                                            </button>
-                                                        )}
-
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            {item.record?.children && item.record.children.length > 0 &&
-                                                renderRows(item.record.children, depth + 1)
-                                            }
-                                        </React.Fragment>
-                                    ));
-                                };
-                                return renderRows(enrichedAssignments);
-                            })()}
-                        </tbody>
-                    </table>
+                <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/5">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[700px]">
+                            <thead>
+                                <tr className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
+                                    <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60 w-24">
+                                        Sub
+                                    </th>
+                                    <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                                        Schema
+                                    </th>
+                                    <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                                        Record Data
+                                    </th>
+                                    <th className="px-6 py-4 text-right text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                                        Action
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--border-base)]">
+                                {(() => {
+                                    const renderRows = (data: any[], depth = 0) => {
+                                        return data.map((item) => (
+                                            <React.Fragment key={item.id || item.record?.id}>
+                                                <tr
+                                                    className="hover:bg-[var(--border-muted)]/5 group cursor-pointer"
+                                                    onClick={() => handleRowClick(item)}
+                                                >
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center">
+                                                            {isAdmin && (
+                                                                <div
+                                                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                                    onClick={(e) => { e.stopPropagation(); setNestingParentId(item.record?.id); }}
+                                                                >
+                                                                    <ComboBox
+                                                                        data={comboData}
+                                                                        onSelect={handleSchemaSelect}
+                                                                        placeholder="Sub"
+                                                                        icon="add"
+                                                                        triggerClassName="!p-1.5 !rounded-lg !bg-brand/10 !text-brand hover:!brightness-125 !text-[10px] !font-bold !uppercase"
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + depth * 2}rem` }}>
+                                                        <div className="flex items-center gap-3">
+                                                            {depth > 0 && (
+                                                                <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
+                                                            )}
+                                                            <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
+                                                                {depth > 0 && <Icon name="arrow_split" size={12} />}
+                                                                {item.record?.schema?.key || 'Unknown'}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono">
+                                                            {JSON.stringify(item.record?.data || {})}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex justify-end">
+                                                            {isAdmin && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setAssignmentToDelete(item);
+                                                                    }}
+                                                                    className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                                    title="Delete"
+                                                                >
+                                                                    <Icon name="delete" size={14} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {item.record?.children && item.record.children.length > 0 &&
+                                                    renderRows(item.record.children, depth + 1)
+                                                }
+                                            </React.Fragment>
+                                        ));
+                                    };
+                                    return renderRows(enrichedAssignments);
+                                })()}
+                            </tbody>
+                        </table>
+                    </div>
+                    {assignments.length === 0 && !isLoading && (
+                        <div className="p-16 text-center text-[var(--text-muted)] text-sm opacity-40 font-medium italic">
+                            No Schemas assigned to this client yet.
+                        </div>
+                    )}
                 </div>
-                {assignments.length === 0 && !isLoading && (
-                    <div className="p-16 text-center text-[var(--text-muted)] text-sm opacity-40 font-medium italic">
-                        No Schemas assigned to this client yet.
-                    </div>
-                )}
+
+                <ConfirmModal
+                    isOpen={!!assignmentToDelete}
+                    title="Remove Schema"
+                    description={`Are you sure you want to remove the '${assignmentToDelete?.record?.schema?.key}' schema from this client?`}
+                    confirmLabel="Remove"
+                    isLoading={unassignMutation.isPending}
+                    onConfirm={() => {
+                        if (assignmentToDelete) {
+                            const isRootAssignment = !!assignmentToDelete.entity_id;
+
+                            if (isRootAssignment) {
+                                unassignMutation.mutate(
+                                    { assignmentId: assignmentToDelete.id },
+                                    {
+                                        onSuccess: () => {
+                                            setAssignmentToDelete(null);
+                                            refetch();
+                                        }
+                                    }
+                                );
+                            } else {
+                                deleteRecordMutation.mutate(
+                                    assignmentToDelete.id,
+                                    {
+                                        onSuccess: () => {
+                                            setAssignmentToDelete(null);
+                                            refetch();
+                                        }
+                                    }
+                                );
+                            }
+                        }
+                    }}
+                    onCancel={() => setAssignmentToDelete(null)}
+                />
             </div>
 
-            {selectedAssignment && (
-                <ClientMetadataEditModal
-                    isOpen={isEditModalOpen}
-                    onClose={() => {
-                        setIsEditModalOpen(false);
-                        setSelectedAssignment(null);
-                    }}
-                    assignment={selectedAssignment}
-                />
-            )}
+            <SlidePanel
+                isOpen={view === 'edit' && !!selectedAssignment}
+                onClose={handleBack}
+                title={selectedAssignment?.record?.schema?.key || 'Metadata'}
+                subtitle="Configure and save detailed metadata for this record."
+                footer={
+                    <div className="flex justify-end">
+                        <button
+                            onClick={() => editorRef.current?.handleSave()}
+                            className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand/20 hover:brightness-110 active:scale-95 transition-all"
+                        >
+                            <Icon name="save" size={16} />
+                            Save Changes
+                        </button>
+                    </div>
+                }
+            >
+                {selectedAssignment && (
+                    <ClientMetadataEditor
+                        ref={editorRef}
+                        assignment={selectedAssignment}
+                        onSaveSuccess={handleBack}
+                    />
+                )}
+            </SlidePanel>
+        </>
+    );
 
-            {/* Removed AssignSchemaModal as root creation is now handled by ComboBox */}
+    if (hideHeader) return content;
 
-            <ConfirmModal
-                isOpen={!!assignmentToDelete}
-                title="Remove Schema"
-                description={`Are you sure you want to remove the '${assignmentToDelete?.record?.schema?.key}' schema from this client?`}
-                confirmLabel="Remove"
-                isLoading={unassignMutation.isPending}
-                onConfirm={() => {
-                    if (assignmentToDelete) {
-                        const isRootAssignment = !!assignmentToDelete.entity_id;
-
-                        if (isRootAssignment) {
-                            unassignMutation.mutate(
-                                { assignmentId: assignmentToDelete.id },
-                                {
-                                    onSuccess: () => {
-                                        setAssignmentToDelete(null);
-                                        refetch();
-                                    }
-                                }
-                            );
-                        } else {
-                            deleteRecordMutation.mutate(
-                                assignmentToDelete.id,
-                                {
-                                    onSuccess: () => {
-                                        setAssignmentToDelete(null);
-                                        refetch();
-                                    }
-                                }
-                            );
-                        }
-                    }
-                }}
-                onCancel={() => setAssignmentToDelete(null)}
+    return (
+        <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
+            <AppHeader
+                onToggleSidebar={onToggleSidebar || (() => { })}
+                isSidebarOpen={isSidebarOpen}
+                leftContent={
+                    <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
+                        Client Metadata
+                    </h1>
+                }
             />
+            <div className="flex-1 p-8 overflow-y-auto">
+                {content}
+            </div>
         </div>
     );
 };

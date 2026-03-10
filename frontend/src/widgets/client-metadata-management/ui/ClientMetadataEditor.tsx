@@ -1,0 +1,131 @@
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useUpdateRecord } from '../../../entities/record/api';
+import { useSchemas } from '../../../entities/schema/api';
+import { RjsfForm } from '../../../features/data-editor/RjsfForm';
+
+interface ClientMetadataEditorProps {
+    assignment: any; // MetaAssignment response containing nested record and schema
+    onSaveSuccess?: () => void;
+}
+
+export interface ClientMetadataEditorRef {
+    handleSave: () => void;
+    isSaving: boolean;
+    isValid: boolean;
+}
+
+export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMetadataEditorProps>(({
+    assignment,
+    onSaveSuccess,
+}, ref) => {
+    const updateMutation = useUpdateRecord();
+    const { data: schemas, isLoading: isSchemasLoading } = useSchemas();
+    const [formData, setFormData] = useState<any>(undefined);
+    const [isValid, setIsValid] = useState(true);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const seededRecordId = useRef<string | null>(null);
+
+    const safeParse = (val: any) => {
+        if (val === null || val === undefined) return val;
+        if (typeof val === 'string') {
+            const trimmed = val.trim();
+            if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+                (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+                try {
+                    return JSON.parse(val);
+                } catch (e) {
+                    return val;
+                }
+            }
+            return val;
+        }
+        return val;
+    };
+
+    const schemaRaw = assignment?.record?.schema?.content;
+    const schemaContent = React.useMemo(() => safeParse(schemaRaw) || {}, [schemaRaw]);
+    const schemaType = schemaContent.type || 'object';
+
+    useEffect(() => {
+        const currentRecordId = assignment?.record?.id ?? null;
+        if (currentRecordId !== seededRecordId.current) {
+            seededRecordId.current = currentRecordId;
+            const rawData = assignment?.record?.data;
+            let data = safeParse(rawData);
+
+            if (data === null || data === undefined || (typeof data === 'object' && Object.keys(data).length === 0)) {
+                if (schemaType === 'string') data = '';
+                else if (schemaType === 'number' || schemaType === 'integer') data = 0;
+                else if (schemaType === 'boolean') data = false;
+                else data = {};
+            }
+
+            setFormData(data);
+            setIsValid(true);
+            setSaveError(null);
+        }
+    }, [assignment?.record?.id, schemaType]);
+
+    const handleSaveInternal = () => {
+        if (!isValid || !assignment?.record?.id) return;
+        setSaveError(null);
+        updateMutation.mutate({ id: assignment.record.id, data: { data: formData } }, {
+            onSuccess: () => onSaveSuccess?.(),
+            onError: (err: any) => {
+                const detail = err?.response?.data?.detail
+                    || err?.message
+                    || 'Failed to save. Please check all required fields.';
+                setSaveError(String(detail));
+            },
+        });
+    };
+
+    useImperativeHandle(ref, () => ({
+        handleSave: handleSaveInternal,
+        isSaving: updateMutation.isPending,
+        isValid
+    }));
+
+    const isLoading = isSchemasLoading && !schemas;
+
+    const extraSchemas = React.useMemo(() => {
+        if (!schemas) return {};
+        return schemas.reduce((acc: any, s) => {
+            acc[s.key] = safeParse(s.content);
+            return acc;
+        }, {});
+    }, [schemas]);
+
+    return (
+        <div className="flex flex-col h-full">
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-surface-950/20 rounded-3xl border border-[var(--border-base)]">
+                <div className="max-w-3xl mx-auto">
+                    {saveError && (
+                        <div className="mb-6 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-medium flex items-center gap-3">
+                            <span className="text-lg">⚠</span> {saveError}
+                        </div>
+                    )}
+
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center h-64 gap-4">
+                            <div className="w-10 h-10 border-4 border-brand/20 border-t-brand rounded-full animate-spin" />
+                            <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest animate-pulse">
+                                Loading Schemas...
+                            </p>
+                        </div>
+                    ) : (
+                        <RjsfForm
+                            schema={schemaContent}
+                            formData={formData}
+                            onChange={(data, valid) => {
+                                setFormData(data);
+                                setIsValid(valid);
+                            }}
+                            extraSchemas={extraSchemas}
+                        />
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+});

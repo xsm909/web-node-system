@@ -106,16 +106,15 @@ export default function AdminPage() {
             />
 
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                {activeTab !== 'workflows' && activeTab !== 'reports' && (
+                {activeTab !== 'workflows' && activeTab !== 'reports' && activeTab !== 'users' && (
                     <AppHeader
                         onToggleSidebar={() => setIsSidebarOpen(true)}
                         isSidebarOpen={isSidebarOpen}
                         leftContent={
                             <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
-                                {activeTab === 'users' ? 'User Management' :
-                                    activeTab === 'nodes' ? 'Node Library' :
-                                        activeTab === 'ai-tasks' ? 'AI Task Management' :
-                                            activeTab === 'schemas' ? 'Schema Registry' : 'Credentials'}
+                                {activeTab === 'nodes' ? 'Node Library' :
+                                    activeTab === 'ai-tasks' ? 'AI Task Management' :
+                                        activeTab === 'schemas' ? 'Schema Registry' : 'Credentials'}
                             </h1>
                         }
                         rightContent={
@@ -134,7 +133,12 @@ export default function AdminPage() {
 
                 <div className={`flex-1 overflow-y-auto custom-scrollbar ${activeTab === 'workflows' ? '' : 'p-8'}`}>
                     {activeTab === 'users' ? (
-                        <div className="max-w-7xl mx-auto space-y-8"><AdminUserManagement /></div>
+                        <div className="max-w-7xl mx-auto space-y-8">
+                            <AdminUserManagement
+                                onToggleSidebar={() => setIsSidebarOpen(true)}
+                                isSidebarOpen={isSidebarOpen}
+                            />
+                        </div>
                     ) : activeTab === 'nodes' ? (
                         <div className="max-w-7xl mx-auto space-y-8">
                             <AdminNodeLibrary

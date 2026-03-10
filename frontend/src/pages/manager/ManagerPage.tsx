@@ -312,20 +312,11 @@ export default function ManagerPage() {
                         </div>
                     </div>
                 ) : activeTab === 'client-metadata' ? (
-                    <div className="flex-1 flex flex-col relative overflow-hidden">
-                        <AppHeader
-                            onToggleSidebar={toggleSidebar}
-                            isSidebarOpen={isSidebarOpen}
-                            leftContent={
-                                <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
-                                    Client Metadata
-                                </h1>
-                            }
-                        />
-                        <div className="flex-1 p-8 overflow-y-auto">
-                            <ClientMetadataManagement activeClientId={activeClientId} />
-                        </div>
-                    </div>
+                    <ClientMetadataManagement
+                        activeClientId={activeClientId}
+                        onToggleSidebar={toggleSidebar}
+                        isSidebarOpen={isSidebarOpen}
+                    />
                 ) : (
                     <ReportManagement
                         onToggleSidebar={toggleSidebar}

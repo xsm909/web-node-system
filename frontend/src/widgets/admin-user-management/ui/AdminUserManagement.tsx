@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     useReactTable,
@@ -8,13 +8,22 @@ import {
 } from '@tanstack/react-table';
 import { apiClient } from '../../../shared/api/client';
 import type { User } from '../../../entities/user/model/types';
-import { UserEditModal } from './UserEditModal';
+import { UserEditor, type UserEditorRef } from './UserEditor';
+import { AppHeader } from '../../app-header';
+import { Icon } from '../../../shared/ui/icon';
 
 const columnHelper = createColumnHelper<User>();
 
-export const AdminUserManagement: React.FC = () => {
+interface AdminUserManagementProps {
+    onToggleSidebar?: () => void;
+    isSidebarOpen?: boolean;
+}
+
+export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onToggleSidebar, isSidebarOpen }) => {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [view, setView] = useState<'list' | 'edit'>('list');
+    const [activeTab, setActiveTab] = useState<'common' | 'metadata'>('common');
+    const editorRef = useRef<UserEditorRef>(null);
 
     const { data: users = [], isLoading, refetch } = useQuery({
         queryKey: ['admin-users'],
@@ -77,69 +86,134 @@ export const AdminUserManagement: React.FC = () => {
 
     const handleRowClick = (user: User) => {
         setSelectedUser(user);
-        setIsModalOpen(true);
+        setView('edit');
+        setActiveTab('common');
     };
 
-    if (isLoading && users.length === 0) {
-        return (
-            <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5">
-                <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
-            </div>
-        );
-    }
+    const handleBack = () => {
+        setView('list');
+        setSelectedUser(null);
+        setActiveTab('common');
+        refetch();
+    };
+
+    const isSaving = editorRef.current?.isSaving;
 
     return (
-        <>
-            <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            {table.getHeaderGroups().map(headerGroup => (
-                                <tr key={headerGroup.id} className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
-                                    {headerGroup.headers.map(header => (
-                                        <th key={header.id} className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
-                                        </th>
-                                    ))}
-                                </tr>
-                            ))}
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-base)]">
-                            {table.getRowModel().rows.map(row => (
-                                <tr
-                                    key={row.id}
-                                    className="hover:bg-[var(--border-muted)]/50 transition-colors group cursor-pointer"
-                                    onClick={() => handleRowClick(row.original)}
-                                >
-                                    {row.getVisibleCells().map(cell => (
-                                        <td key={cell.id} className="px-6 py-4 text-sm">
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                {users.length === 0 && (
-                    <div className="p-16 text-center text-[var(--text-muted)] text-sm opacity-40 font-medium">
-                        No users detected in the system.
+        <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
+            <AppHeader
+                onToggleSidebar={onToggleSidebar || (() => { })}
+                isSidebarOpen={isSidebarOpen}
+                leftContent={
+                    <div className="flex items-center gap-3">
+                        {view !== 'list' && (
+                            <button
+                                onClick={handleBack}
+                                className="p-2 -ml-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors"
+                            >
+                                <Icon name="back" size={24} />
+                            </button>
+                        )}
+                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 px-2 lg:px-0">
+                            {view === 'list' ? 'User Management' : (
+                                <span><span className="opacity-40 font-normal">User / </span>{selectedUser?.username}</span>
+                            )}
+                        </h1>
                     </div>
-                )}
-            </div>
-
-            <UserEditModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                user={selectedUser}
-                onSave={refetch}
+                }
+                rightContent={
+                    view === 'edit' && (
+                        <div className="flex items-center gap-4">
+                            <div className="flex bg-[var(--bg-app)] p-1 rounded-xl border border-[var(--border-base)] shadow-sm">
+                                <button
+                                    onClick={() => setActiveTab('common')}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'common' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                                >
+                                    Common
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('metadata')}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'metadata' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                                >
+                                    Client Metadata
+                                </button>
+                            </div>
+                            <button
+                                onClick={() => editorRef.current?.handleSave()}
+                                disabled={isSaving}
+                                className="flex items-center gap-2 px-8 py-2.5 rounded-2xl bg-brand text-white font-black text-[10px] uppercase tracking-widest hover:brightness-110 disabled:opacity-50 transition-all shadow-xl shadow-brand/20 active:scale-95 whitespace-nowrap"
+                            >
+                                <Icon name={isSaving ? "sync" : "save"} size={16} className={isSaving ? "animate-spin" : ""} />
+                                {isSaving ? "Saving..." : "Save Changes"}
+                            </button>
+                        </div>
+                    )
+                }
             />
-        </>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+                <div className="max-w-7xl mx-auto h-full">
+                    {isLoading && users.length === 0 ? (
+                        <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl">
+                            <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
+                        </div>
+                    ) : view === 'list' ? (
+                        <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/5 animate-in fade-in duration-500">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        {table.getHeaderGroups().map(headerGroup => (
+                                            <tr key={headerGroup.id} className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
+                                                {headerGroup.headers.map(header => (
+                                                    <th key={header.id} className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                                                        {header.isPlaceholder
+                                                            ? null
+                                                            : flexRender(
+                                                                header.column.columnDef.header,
+                                                                header.getContext()
+                                                            )}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </thead>
+                                    <tbody className="divide-y divide-[var(--border-base)]">
+                                        {table.getRowModel().rows.map(row => (
+                                            <tr
+                                                key={row.id}
+                                                className="hover:bg-[var(--border-muted)]/50 transition-colors group cursor-pointer"
+                                                onClick={() => handleRowClick(row.original)}
+                                            >
+                                                {row.getVisibleCells().map(cell => (
+                                                    <td key={cell.id} className="px-6 py-4 text-sm">
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {users.length === 0 && (
+                                <div className="p-16 text-center text-[var(--text-muted)] text-sm opacity-40 font-medium">
+                                    No users detected in the system.
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        selectedUser && (
+                            <UserEditor
+                                ref={editorRef}
+                                user={selectedUser}
+                                onSaveSuccess={handleBack}
+                                activeTab={activeTab}
+                            />
+                        )
+                    )}
+                </div>
+            </div>
+        </div>
     );
 };
+
 

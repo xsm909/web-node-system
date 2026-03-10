@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../features/auth/store';
 import { apiClient } from '../../shared/api/client';
 import { ThemeToggle } from '../../shared/ui/theme-toggle/ThemeToggle';
-import { ClientMetadataSection } from '../../widgets/client-metadata-management/ui/ClientMetadataSection';
+import { ClientMetadataManagement } from '../../widgets/client-metadata-management/ui/ClientMetadataManagement';
 import { Icon } from '../../shared/ui/icon';
 
 interface WorkflowResult {
@@ -83,7 +83,7 @@ export default function ClientPage() {
                             </p>
                         </div>
                     </div>
-                    <ClientMetadataSection />
+                    <ClientMetadataManagement activeClientId={user?.id} hideHeader={true} />
                 </section>
 
                 {/* ─── My Workflows ─── */}
