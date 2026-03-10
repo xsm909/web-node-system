@@ -225,15 +225,20 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-end items-center gap-2">
-                                                        <div onClick={(e) => { e.stopPropagation(); setNestingParentId(item.record?.id); }}>
-                                                            <ComboBox
-                                                                data={comboData}
-                                                                onSelect={handleSchemaSelect}
-                                                                placeholder="Sub"
-                                                                icon="add"
-                                                                triggerClassName="!p-1.5 !rounded-lg !bg-brand/10 !text-brand hover:!brightness-125 !text-[10px] !font-bold !uppercase"
-                                                            />
-                                                        </div>
+                                                        {isAdmin && (
+                                                            <div
+                                                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                                onClick={(e) => { e.stopPropagation(); setNestingParentId(item.record?.id); }}
+                                                            >
+                                                                <ComboBox
+                                                                    data={comboData}
+                                                                    onSelect={handleSchemaSelect}
+                                                                    placeholder="Sub"
+                                                                    icon="add"
+                                                                    triggerClassName="!p-1.5 !rounded-lg !bg-brand/10 !text-brand hover:!brightness-125 !text-[10px] !font-bold !uppercase"
+                                                                />
+                                                            </div>
+                                                        )}
 
                                                         {isAdmin && (
                                                             <button
@@ -241,16 +246,13 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                                                     e.stopPropagation();
                                                                     setAssignmentToDelete(item);
                                                                 }}
-                                                                className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                                                className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                                                                 title="Delete"
                                                             >
                                                                 <Icon name="delete" size={14} />
                                                             </button>
                                                         )}
 
-                                                        <div className="p-1.5 text-brand opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
-                                                            <Icon name="chevron_right" size={14} />
-                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
