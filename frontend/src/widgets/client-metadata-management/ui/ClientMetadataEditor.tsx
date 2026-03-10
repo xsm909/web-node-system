@@ -76,7 +76,16 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
     }, [assignment?.record?.id, schemaType]);
 
     const handleSaveInternal = () => {
-        if (!isValid || !assignment?.record?.id) return;
+        if (!isValid) {
+            setSaveError("Form has validation errors. Please check all fields.");
+            return;
+        }
+
+        if (!assignment?.record?.id) {
+            setSaveError("Record ID is missing. Cannot save.");
+            return;
+        }
+
         setSaveError(null);
         updateMutation.mutate({ id: assignment.record.id, data: { data: formData } }, {
             onSuccess: () => onSaveSuccess?.(),
