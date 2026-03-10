@@ -136,3 +136,26 @@ def get_entity_metadata(
     ).all()
     
     return assignments
+
+
+@router.delete("/assign/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def unassign_metadata(
+    assignment_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    check_admin(current_user)
+    
+    assignment = db.query(MetaAssignment).filter(MetaAssignment.id == assignment_id).first()
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    
+    # We delete the record, which cascades to the assignment
+    record = db.query(Record).filter(Record.id == assignment.record_id).first()
+    if record:
+        db.delete(record)
+    else:
+        # Fallback: if record is already gone, just delete the assignment
+        db.delete(assignment)
+        
+    db.commit()

@@ -6,6 +6,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { buildCategoryTree } from '../../../shared/lib/categoryUtils';
 import type { CategoryTreeNode } from '../../../shared/lib/categoryUtils';
 import { getCookie, setCookie } from '../../../shared/lib/cookieUtils';
+import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
 export const AdminSchemaManagement: React.FC = () => {
     const { data: schemas = [], isLoading } = useSchemas();
@@ -16,6 +17,8 @@ export const AdminSchemaManagement: React.FC = () => {
     const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
+    const [idToDelete, setIdToDelete] = useState<string | null>(null);
 
     // Form State
     const [key, setKey] = useState('');
@@ -87,9 +90,7 @@ export const AdminSchemaManagement: React.FC = () => {
             alert("Cannot delete system schemas.");
             return;
         }
-        if (confirm("Are you sure you want to delete this schema?")) {
-            deleteMutation.mutate(id);
-        }
+        setIdToDelete(id);
     };
 
     const filteredSchemas = useMemo(() => {
@@ -232,6 +233,22 @@ export const AdminSchemaManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            <ConfirmModal
+                isOpen={!!idToDelete}
+                title="Delete Schema"
+                description="Are you sure you want to delete this schema? This action cannot be undone."
+                confirmLabel="Delete"
+                isLoading={deleteMutation.isPending}
+                onConfirm={() => {
+                    if (idToDelete) {
+                        deleteMutation.mutate(idToDelete, {
+                            onSuccess: () => setIdToDelete(null)
+                        });
+                    }
+                }}
+                onCancel={() => setIdToDelete(null)}
+            />
         </div>
     );
 };

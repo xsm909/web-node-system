@@ -4,10 +4,13 @@ import type { Credential } from '../../../entities/credential/model/types';
 
 
 import { Icon } from '../../../shared/ui/icon';
+import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
 export const AdminCredentialManagement: React.FC = () => {
     const [credentials, setCredentials] = useState<Credential[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const [credentialToDelete, setCredentialToDelete] = useState<Credential | null>(null);
 
     const fetchData = async () => {
         setLoading(true);
@@ -61,13 +64,19 @@ export const AdminCredentialManagement: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this credential?')) return;
+    const handleDelete = (credential: Credential) => {
+        setCredentialToDelete(credential);
+    };
+
+    const confirmDelete = async () => {
+        if (!credentialToDelete) return;
         try {
-            await apiClient.delete(`/admin/credentials/${id}`);
+            await apiClient.delete(`/admin/credentials/${credentialToDelete.id}`);
             fetchData();
         } catch {
             alert('Failed to delete credential');
+        } finally {
+            setCredentialToDelete(null);
         }
     };
 
@@ -214,7 +223,7 @@ export const AdminCredentialManagement: React.FC = () => {
                                             <Icon name="edit" size={14} />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(c.id)}
+                                            onClick={() => handleDelete(c)}
                                             className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
                                             title="Delete Credential"
                                         >
@@ -234,6 +243,16 @@ export const AdminCredentialManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            <ConfirmModal
+                isOpen={!!credentialToDelete}
+                title="Delete Credential"
+                description={`Are you sure you want to delete the credential '${credentialToDelete?.key}'? This action cannot be undone.`}
+                confirmLabel="Delete"
+                isLoading={loading && !!credentialToDelete}
+                onConfirm={confirmDelete}
+                onCancel={() => setCredentialToDelete(null)}
+            />
         </div>
     );
 };

@@ -10,6 +10,7 @@ import { useEntityMetadata, useUnassignMetadata } from '../../../entities/record
 import { ClientMetadataEditModal } from './ClientMetadataEditModal';
 import { AssignSchemaModal } from './AssignSchemaModal';
 import { ManagementTable } from '../../../shared/ui/management-table';
+import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
 const columnHelper = createColumnHelper<any>();
 
@@ -22,6 +23,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     const isAdmin = user?.role === 'admin';
 
     const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
+    const [assignmentToDelete, setAssignmentToDelete] = useState<any | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
@@ -79,9 +81,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    if (window.confirm(`Are you sure you want to remove the '${info.row.original.record?.schema?.key}' schema from this client?`)) {
-                                        unassignMutation.mutate({ assignmentId: info.row.original.id });
-                                    }
+                                    setAssignmentToDelete(info.row.original);
                                 }}
                                 disabled={unassignMutation.isPending}
                                 className="p-2 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
@@ -145,6 +145,27 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                     activeClientId={activeClientId}
                 />
             )}
+
+            <ConfirmModal
+                isOpen={!!assignmentToDelete}
+                title="Remove Schema"
+                description={`Are you sure you want to remove the '${assignmentToDelete?.record?.schema?.key}' schema from this client?`}
+                confirmLabel="Remove"
+                isLoading={unassignMutation.isPending}
+                onConfirm={() => {
+                    if (assignmentToDelete) {
+                        unassignMutation.mutate(
+                            { assignmentId: assignmentToDelete.id },
+                            {
+                                onSuccess: () => {
+                                    setAssignmentToDelete(null);
+                                }
+                            }
+                        );
+                    }
+                }}
+                onCancel={() => setAssignmentToDelete(null)}
+            />
         </div>
     );
 };

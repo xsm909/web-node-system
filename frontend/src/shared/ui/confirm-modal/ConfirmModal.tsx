@@ -13,6 +13,7 @@ interface ConfirmModalProps {
     children?: React.ReactNode;
     onConfirm: () => void;
     onCancel: () => void;
+    isLoading?: boolean;
 }
 
 const variantStyles: Record<ConfirmModalVariant, {
@@ -77,6 +78,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     children,
     onConfirm,
     onCancel,
+    isLoading = false,
 }) => {
     if (!isOpen) return null;
 
@@ -86,7 +88,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-                onClick={onCancel}
+                onClick={isLoading ? undefined : onCancel}
             />
 
             <div
@@ -107,17 +109,20 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 <div className="flex items-center gap-3">
                     {showCancel && (
                         <button
-                            className="flex-1 px-4 py-4 rounded-2xl text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] border border-[var(--border-base)] transition-all uppercase tracking-widest active:scale-95"
+                            className="flex-1 px-4 py-4 rounded-2xl text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] border border-[var(--border-base)] transition-all uppercase tracking-widest active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                             onClick={onCancel}
+                            disabled={isLoading}
                         >
                             {cancelLabel}
                         </button>
                     )}
                     <button
-                        className={`flex-1 px-4 py-4 rounded-2xl text-xs font-bold text-white shadow-xl transition-all active:scale-95 uppercase tracking-widest ${styles.buttonBg} ${styles.buttonShadow}`}
+                        className={`flex-1 px-4 py-4 rounded-2xl text-xs font-bold text-white shadow-xl transition-all active:scale-95 uppercase tracking-widest ${styles.buttonBg} ${styles.buttonShadow} disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2`}
                         onClick={onConfirm}
+                        disabled={isLoading}
                     >
-                        {confirmLabel}
+                        {isLoading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                        {isLoading ? 'Processing...' : confirmLabel}
                     </button>
                 </div>
             </div>

@@ -10,6 +10,8 @@ import {
 import { apiClient } from '../../../shared/api/client';
 import type { AITask } from '../../../entities/ai-task/model/types';
 import { AITaskEditModal } from './AITaskEditModal';
+import { ManagementTable } from '../../../shared/ui/management-table';
+import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
 const columnHelper = createColumnHelper<AITask>();
 
@@ -17,14 +19,13 @@ interface AITaskManagementProps {
     activeClientId?: string | null;
 }
 
-import { ManagementTable } from '../../../shared/ui/management-table';
-
 export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClientId }) => {
     const queryClient = useQueryClient();
     const { user } = useAuthStore();
     const isAdmin = user?.role === 'admin';
 
     const [selectedTask, setSelectedTask] = useState<AITask | null>(null);
+    const [taskToDelete, setTaskToDelete] = useState<AITask | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const categoryFilter = isAdmin ? ['AI_Task', 'AI_question'] : 'AI_question';
 
@@ -148,9 +149,7 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm('Are you sure you want to delete this task?')) {
-                                    deleteMutation.mutate(info.row.original.id);
-                                }
+                                setTaskToDelete(info.row.original);
                             }}
                             disabled={deleteMutation.isPending}
                             className="p-2 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
@@ -204,6 +203,22 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
                 defaultOwnerId={activeClientId ?? (isAdmin ? 'AI_Task' : undefined)}
                 categoryFilter={categoryFilter}
                 dataTypes={dataTypes}
+            />
+
+            <ConfirmModal
+                isOpen={!!taskToDelete}
+                title="Delete AI Task"
+                description="Are you sure you want to delete this task? This action cannot be undone."
+                confirmLabel="Delete"
+                isLoading={deleteMutation.isPending}
+                onConfirm={() => {
+                    if (taskToDelete) {
+                        deleteMutation.mutate(taskToDelete.id, {
+                            onSuccess: () => setTaskToDelete(null)
+                        });
+                    }
+                }}
+                onCancel={() => setTaskToDelete(null)}
             />
         </div>
     );
