@@ -12,6 +12,7 @@ interface ComboBoxProps {
     config?: SelectionListConfig;
     onSelect: (item: SelectionItem) => void;
     onAction?: (action: SelectionAction, target: SelectionItem | SelectionGroup) => void;
+    onOpenChange?: (open: boolean) => void;
     className?: string;
     triggerClassName?: string;
     labelClassName?: string;
@@ -32,6 +33,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     config,
     onSelect,
     onAction,
+    onOpenChange,
     className = '',
     triggerClassName = '',
     labelClassName = '',
@@ -44,9 +46,16 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     const [isOpen, setIsOpen] = useState(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
 
+    const toggleOpen = () => {
+        const nextOpen = !isOpen;
+        setIsOpen(nextOpen);
+        if (onOpenChange) onOpenChange(nextOpen);
+    };
+
     const handleSelect = (item: SelectionItem) => {
         onSelect(item);
         setIsOpen(false);
+        if (onOpenChange) onOpenChange(false);
     };
 
     const handleAction = (action: SelectionAction, target: SelectionItem | SelectionGroup) => {
@@ -55,6 +64,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
         }
         // Common behavior: close on action (like rename/add)
         setIsOpen(false);
+        if (onOpenChange) onOpenChange(false);
     };
 
     const isSidebar = variant === 'sidebar';
@@ -70,7 +80,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
         <div className={`relative ${isSidebar ? 'w-full' : ''} ${className}`}>
             <button
                 ref={triggerRef}
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={toggleOpen}
                 className={triggerClasses}
                 disabled={disabled}
             >
@@ -112,7 +122,10 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
                     activeItemId={value}
                     onSelect={handleSelect}
                     onAction={handleAction}
-                    onClose={() => setIsOpen(false)}
+                    onClose={() => {
+                        setIsOpen(false);
+                        if (onOpenChange) onOpenChange(false);
+                    }}
                     searchPlaceholder={searchPlaceholder}
                     position={triggerRef.current ? {
                         x: triggerRef.current.getBoundingClientRect().left,

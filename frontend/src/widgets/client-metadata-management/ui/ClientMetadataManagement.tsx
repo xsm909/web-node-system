@@ -33,6 +33,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
     const [assignmentToDelete, setAssignmentToDelete] = useState<any | null>(null);
     const [nestingParentId, setNestingParentId] = useState<string | null>(null);
+    const [openSubMenuId, setOpenSubMenuId] = useState<string | null>(null);
 
     const editorRef = useRef<ClientMetadataEditorRef>(null);
 
@@ -232,13 +233,14 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                                         <div className="flex items-center">
                                                             {isAdmin && (
                                                                 <div
-                                                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                                    className={`transition-opacity duration-200 ${openSubMenuId === item.record?.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                                                     onClick={(e) => { e.stopPropagation(); setNestingParentId(item.record?.id); }}
                                                                 >
                                                                     <ComboBox
                                                                         data={comboData}
                                                                         onSelect={handleSchemaSelect}
-                                                                        placeholder="Sub"
+                                                                        onOpenChange={(open) => setOpenSubMenuId(open ? item.record?.id : null)}
+                                                                        placeholder=""
                                                                         icon="add"
                                                                         triggerClassName="!p-1.5 !rounded-lg !bg-brand/10 !text-brand hover:!brightness-125 !text-[10px] !font-bold !uppercase"
                                                                     />
