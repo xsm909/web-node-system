@@ -33,6 +33,7 @@ class SchemaResponse(SchemaBase):
 # --- Records (Validated Data Payloads) ---
 class RecordBase(BaseModel):
     schema_id: UUID
+    parent_id: Optional[UUID] = None
     data: Any
 
 class RecordCreate(RecordBase):
@@ -45,6 +46,7 @@ class RecordResponse(RecordBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
+    children: Optional[List['RecordResponse']] = []
 
     class Config:
         from_attributes = True

@@ -27,12 +27,15 @@ class Record(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     schema_id = Column(UUID(as_uuid=True), ForeignKey('schemas.id', ondelete='CASCADE'), nullable=False, index=True)
+    parent_id = Column(UUID(as_uuid=True), ForeignKey('records.id', ondelete='CASCADE'), nullable=True, index=True)
     data = Column(JSON, nullable=False) # The validated payload
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
     schema = relationship("Schema", back_populates="records")
+    parent = relationship("Record", remote_side=[id], back_populates="children")
+    children = relationship("Record", back_populates="parent", cascade="all, delete-orphan")
     meta_assignments = relationship("MetaAssignment", back_populates="record", cascade="all, delete-orphan")
 
 

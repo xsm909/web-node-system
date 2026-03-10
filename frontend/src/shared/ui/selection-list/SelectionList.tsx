@@ -45,23 +45,37 @@ interface SelectionListProps {
     position?: { x: number, y: number };
 }
 
-// --- Recursive Panel ---
-interface GroupPanelProps {
-    groups: Record<string, SelectionGroup>;
+// --- Unified Selection List Content ---
+interface SelectionListContentProps {
+    groups?: Record<string, SelectionGroup>;
+    items?: SelectionItem[];
     breadcrumb: string[];
     config: SelectionListConfig;
-    activeDescendant: string[];
-    onNavigate: (path: string[], top: number) => void;
+    activeDescendant?: string[]; // For highlighting hovered path in groups
+    activeItemId?: string;      // For highlighting active item
+    onNavigate?: (path: string[], top: number) => void;
     onSelect: (item: SelectionItem) => void;
     onAction?: (action: SelectionAction, target: SelectionItem | SelectionGroup) => void;
 }
 
-const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, activeDescendant, onNavigate, onSelect, onAction }) => {
-    const entries = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+const SelectionListContent: React.FC<SelectionListContentProps> = ({
+    groups = {},
+    items = [],
+    breadcrumb,
+    config,
+    activeDescendant = [],
+    activeItemId,
+    onNavigate,
+    onSelect,
+    onAction
+}) => {
+    const groupEntries = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+    const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
+    const hasVisibleBreadcrumb = breadcrumb.some(seg => seg.trim() !== '');
 
     return (
-        <div className="w-64 border border-[var(--border-base)] rounded-2xl p-2 flex flex-col gap-1 backdrop-blur-xl bg-[var(--bg-app)]/80 animate-in slide-in-from-left-2 duration-200">
-            {breadcrumb.length > 0 && (
+        <div className="flex flex-col gap-1">
+            {hasVisibleBreadcrumb && (
                 <div className="px-3 py-2 text-[10px] font-black text-brand uppercase tracking-widest opacity-50 mb-1 flex items-center gap-1 flex-wrap">
                     {breadcrumb.map((seg, i) => (
                         <React.Fragment key={i}>
@@ -72,33 +86,33 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, act
                 </div>
             )}
             <div className="max-h-[320px] overflow-y-auto space-y-0.5 custom-scrollbar pr-1">
-                {entries.map(([label, group]) => {
+                {/* Render Groups (Categories) */}
+                {groupEntries.map(([label, group]) => {
                     const hasChildren = Object.keys(group.children).length > 0;
                     const fullPath = [...breadcrumb, label];
                     const isActive = activeDescendant[breadcrumb.length] === label;
                     const isSelectable = group.selectable ?? false;
-                    // Use group-level override if set, otherwise fall back to global config
                     const effectiveGroupActions = group.groupActions ?? config.groupActions;
 
                     return (
-                        <div key={label} className="group/item relative">
+                        <div key={`group-${label}`} className="group/item relative">
                             <button
                                 onMouseEnter={(e) => {
                                     const rect = e.currentTarget.getBoundingClientRect();
                                     const containerRect = e.currentTarget.closest('.selection-list-inner')?.getBoundingClientRect();
-                                    const top = rect.top - (containerRect?.top || 0);
-                                    onNavigate(fullPath, top);
+                                    const top = rect.top - (containerRect?.top || 0) - 48; // Adjust for search bar height
+                                    onNavigate?.(fullPath, top);
                                 }}
                                 onClick={() => {
                                     if (isSelectable) {
                                         onSelect({
                                             id: group.id,
                                             name: group.name,
-                                            parentId: group.id // Or empty if top level
+                                            parentId: group.id
                                         });
                                     }
                                 }}
-                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] border border-transparent flex-col justify-center ${isActive
+                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] border border-transparent ${isActive
                                     ? 'bg-brand/10 border-brand/20 text-brand shadow-sm'
                                     : isSelectable
                                         ? 'text-[var(--text-muted)] hover:text-brand hover:bg-brand/5 hover:border-brand/10'
@@ -107,9 +121,7 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, act
                             >
                                 <div className="flex items-center justify-between w-full">
                                     <div className="flex items-center gap-2 truncate pr-4">
-                                        {group.icon && (
-                                            <Icon name={group.icon} size={14} className={isActive ? 'text-brand' : isSelectable ? 'text-brand/50 group-hover:text-brand' : 'text-brand'} />
-                                        )}
+                                        <Icon name={group.icon || "folder_code"} size={14} className={isActive ? 'text-brand' : isSelectable ? 'text-brand/50 group-hover:text-brand' : 'text-brand/40'} />
                                         <span className="truncate">{label}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
@@ -131,50 +143,24 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ groups, breadcrumb, config, act
                         </div>
                     );
                 })}
-            </div>
-        </div>
-    );
-};
 
-// --- Item List Panel ---
-interface ItemListPanelProps {
-    items: SelectionItem[];
-    breadcrumb: string[];
-    config: SelectionListConfig;
-    activeItemId?: string;
-    /** Per-group override of which actions are allowed on items. */
-    groupItemActions?: SelectionAction[];
-    onSelect: (item: SelectionItem) => void;
-    onAction?: (action: SelectionAction, target: SelectionItem) => void;
-}
+                {/* Optional Separator if both groups and items exist */}
+                {groupEntries.length > 0 && sortedItems.length > 0 && (
+                    <div className="h-px bg-[var(--border-base)] mx-2 my-1 opacity-50" />
+                )}
 
-const ItemListPanel: React.FC<ItemListPanelProps> = ({ items, breadcrumb, config, activeItemId, onSelect, onAction, groupItemActions }) => {
-    const hasVisibleBreadcrumb = breadcrumb.some(seg => seg.trim() !== '');
-
-    return (
-        <div className="w-64 border border-[var(--border-base)] rounded-2xl p-2 flex flex-col gap-1 backdrop-blur-xl bg-[var(--bg-app)]/80 animate-in slide-in-from-left-2 duration-200">
-            {hasVisibleBreadcrumb && (
-                <div className="px-3 py-2 text-[10px] font-black text-brand uppercase tracking-widest opacity-50 mb-1 flex items-center gap-1 flex-wrap">
-                    {breadcrumb.map((seg, i) => (
-                        <React.Fragment key={i}>
-                            {i > 0 && <span className="opacity-50">›</span>}
-                            <span>{seg}</span>
-                        </React.Fragment>
-                    ))}
-                </div>
-            )}
-            <div className="max-h-[320px] overflow-y-auto pr-1 space-y-0.5 custom-scrollbar">
-                {items.sort((a, b) => a.name.localeCompare(b.name)).map(item => {
+                {/* Render Items (Schemas) */}
+                {sortedItems.map(item => {
                     const isActive = item.id === activeItemId;
                     const isSelectable = item.selectable ?? true;
-                    // Use group-level item action overrides if set
-                    const canRename = groupItemActions ? groupItemActions.includes('rename') : config.allowRename;
-                    const canDuplicate = groupItemActions ? groupItemActions.includes('duplicate') : config.allowDuplicate;
-                    const canDelete = groupItemActions ? groupItemActions.includes('delete') : config.allowDelete;
 
                     return (
-                        <div key={item.id} className="group/item relative">
+                        <div key={`item-${item.id}`} className="group/item relative">
                             <button
+                                onMouseEnter={() => {
+                                    // Clearing sub-panels at deeper levels when hovering an item
+                                    onNavigate?.([...breadcrumb, ''], 0);
+                                }}
                                 onClick={() => isSelectable && onSelect(item)}
                                 className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all border border-transparent flex flex-col justify-center min-h-[40px] ${isActive
                                     ? 'bg-brand/10 border-brand/20 text-brand'
@@ -185,30 +171,25 @@ const ItemListPanel: React.FC<ItemListPanelProps> = ({ items, breadcrumb, config
                             >
                                 <div className="flex justify-between items-center w-full">
                                     <div className="flex items-center gap-2 truncate flex-1 pr-2">
-                                        {item.icon && (
-                                            <Icon name={item.icon} size={14} className={isActive ? 'text-brand' : 'text-brand/50'} />
-                                        )}
+                                        <Icon name={item.icon || "data_object"} size={14} className={isActive ? 'text-brand' : 'text-brand/50'} />
                                         <span className={`truncate ${isActive ? 'text-brand' : 'text-[var(--text-main)] group-hover/item:text-brand'}`}>{item.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                        {canRename && (
-                                            <button onClick={(e) => { e.stopPropagation(); onAction?.('rename', item); }} className="p-1 hover:bg-brand/10 rounded-md"><Icon name="edit" size={12} /></button>
-                                        )}
-                                        {canDuplicate && (
-                                            <button onClick={(e) => { e.stopPropagation(); onAction?.('duplicate', item); }} className="p-1 hover:bg-brand/10 rounded-md"><Icon name="content_copy" size={12} /></button>
-                                        )}
-                                        {canDelete && (
-                                            <button onClick={(e) => { e.stopPropagation(); onAction?.('delete', item); }} className="p-1 hover:bg-red-500/10 text-red-500 rounded-md"><Icon name="delete" size={12} /></button>
-                                        )}
                                     </div>
                                 </div>
                                 {item.description && (
-                                    <div className="text-[10px] opacity-40 group-hover/item:opacity-60 font-mono mt-0.5 line-clamp-1">{item.description}</div>
+                                    <div className="text-[10px] opacity-40 group-hover/item:opacity-60 font-mono mt-0.5 line-clamp-1 truncate max-w-full">
+                                        {item.description}
+                                    </div>
                                 )}
                             </button>
                         </div>
                     );
                 })}
+
+                {groupEntries.length === 0 && sortedItems.length === 0 && (
+                    <div className="px-3 py-8 text-center text-[10px] text-[var(--text-muted)] italic opacity-40">
+                        Empty
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -365,117 +346,17 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                     </div>
 
                     {!isSearching && (
-                        <div className="max-h-[320px] overflow-y-auto space-y-0.5 custom-scrollbar pr-1 relative">
-                            {(() => {
-                                const entries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b));
-                                // If there's only one group and its key is empty or 'items', skip group selection and show items
-                                if (entries.length === 1 && (entries[0][0] === '' || entries[0][0] === 'items')) {
-                                    const group = entries[0][1];
-                                    if (group.items.length > 0) {
-                                        return group.items.sort((a, b) => a.name.localeCompare(b.name)).map(item => {
-                                            const isActive = item.id === activeItemId;
-                                            const isSelectable = item.selectable ?? true;
-                                            const canRename = group.itemActions ? group.itemActions.includes('rename') : config.allowRename;
-                                            const canDuplicate = group.itemActions ? group.itemActions.includes('duplicate') : config.allowDuplicate;
-                                            const canDelete = group.itemActions ? group.itemActions.includes('delete') : config.allowDelete;
-                                            const description = item.description === 'undefined' ? undefined : item.description;
-
-                                            return (
-                                                <div key={item.id} className="group/item relative">
-                                                    <button
-                                                        onClick={() => isSelectable && onSelect(item)}
-                                                        className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all border border-transparent flex flex-col justify-center min-h-[40px] ${isActive
-                                                            ? 'bg-brand/10 border-brand/20 text-brand'
-                                                            : isSelectable
-                                                                ? 'text-[var(--text-muted)] hover:text-brand hover:bg-brand/10 hover:border-brand/20'
-                                                                : 'text-[var(--text-muted)] cursor-default'
-                                                            }`}
-                                                    >
-                                                        <div className="flex justify-between items-center w-full">
-                                                            <div className="flex items-center gap-2 truncate flex-1 pr-2">
-                                                                {item.icon && (
-                                                                    <Icon name={item.icon} size={14} className={isActive ? 'text-brand' : 'text-brand/50'} />
-                                                                )}
-                                                                <span className={`truncate ${isActive ? 'text-brand' : 'text-[var(--text-main)] group-hover/item:text-brand'}`}>{item.name}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                                                {canRename && (
-                                                                    <button onClick={(e) => { e.stopPropagation(); onAction?.('rename', item); }} className="p-1 hover:bg-brand/10 rounded-md"><Icon name="edit" size={12} /></button>
-                                                                )}
-                                                                {canDuplicate && (
-                                                                    <button onClick={(e) => { e.stopPropagation(); onAction?.('duplicate', item); }} className="p-1 hover:bg-brand/10 rounded-md"><Icon name="content_copy" size={12} /></button>
-                                                                )}
-                                                                {canDelete && (
-                                                                    <button onClick={(e) => { e.stopPropagation(); onAction?.('delete', item); }} className="p-1 hover:bg-red-500/10 text-red-500 rounded-md"><Icon name="delete" size={12} /></button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        {description && (
-                                                            <div className="text-[10px] opacity-40 group-hover/item:opacity-60 font-mono mt-0.5 line-clamp-1">{description}</div>
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            );
-                                        });
-                                    }
-                                }
-
-                                return entries.map(([label, group]) => {
-                                    const hasChildren = Object.keys(group.children).length > 0;
-                                    const isActive = hoveredPath[0] === label;
-                                    const isSelectable = group.selectable ?? false;
-                                    return (
-                                        <div key={label} className="group/item relative">
-                                            <button
-                                                onMouseEnter={(e) => {
-                                                    const rect = e.currentTarget.getBoundingClientRect();
-                                                    const containerRect = e.currentTarget.closest('.selection-list-inner')?.getBoundingClientRect();
-                                                    const top = rect.top - (containerRect?.top || 0);
-                                                    handleNavigate([label], top);
-                                                }}
-                                                onClick={() => {
-                                                    if (isSelectable) {
-                                                        onSelect({
-                                                            id: group.id,
-                                                            name: group.name,
-                                                            parentId: group.id
-                                                        });
-                                                    }
-                                                }}
-                                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all min-h-[40px] border border-transparent flex-col justify-center ${isActive
-                                                    ? 'bg-brand/10 border-brand/20 text-brand shadow-sm'
-                                                    : isSelectable
-                                                        ? 'text-[var(--text-muted)] hover:text-brand hover:bg-brand/5 hover:border-brand/10'
-                                                        : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
-                                                    } ${!isSelectable && !isActive ? 'cursor-default' : ''}`}
-                                            >
-                                                <div className="flex items-center justify-between w-full">
-                                                    <div className="flex items-center gap-2 truncate pr-4">
-                                                        {group.icon && (
-                                                            <Icon name={group.icon} size={14} className={isActive ? 'text-brand' : isSelectable ? 'text-brand/50 group-hover:text-brand' : 'text-brand'} />
-                                                        )}
-                                                        <span className="truncate">{label}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        {isActive && (group.groupActions ?? config.groupActions)?.map(action => (
-                                                            <button
-                                                                key={action}
-                                                                onClick={(e) => { e.stopPropagation(); onAction?.(action, group); }}
-                                                                className="p-1 hover:bg-white/20 rounded-md transition-colors"
-                                                            >
-                                                                <Icon name={action === 'add' ? 'add' : action === 'delete' ? 'delete' : action === 'rename' ? 'edit' : 'content_copy'} size={12} />
-                                                            </button>
-                                                        ))}
-                                                        {(hasChildren || group.items.length > 0) && (
-                                                            <Icon name="chevron_right" size={12} className={`transition-transform duration-300 ${isActive ? 'translate-x-1' : 'opacity-40'}`} />
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        </div>
-                                    );
-                                });
-                            })()}
+                        <div className="max-h-[320px] overflow-y-auto space-y-0.5 custom-scrollbar relative">
+                            <SelectionListContent
+                                groups={data}
+                                breadcrumb={[]}
+                                config={config}
+                                activeDescendant={hoveredPath}
+                                activeItemId={activeItemId}
+                                onNavigate={handleNavigate}
+                                onSelect={onSelect}
+                                onAction={onAction}
+                            />
                         </div>
                     )}
 
@@ -497,13 +378,11 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                             }`}
                                     >
                                         <div className="flex items-center gap-2 truncate">
-                                            {item.icon && (
-                                                <Icon name={item.icon} size={14} className={isHighlighted ? 'text-brand' : 'text-brand/50'} />
-                                            )}
+                                            <Icon name={item.icon || "data_object"} size={14} className={isHighlighted ? 'text-brand' : 'text-brand/50'} />
                                             <span className={`truncate transition-colors ${isHighlighted ? 'text-brand' : 'group-hover:text-brand'}`}>{item.name}</span>
                                         </div>
                                         {item.description && (
-                                            <span className={`text-[10px] font-mono mt-0.5 ml-0 line-clamp-1 transition-opacity ${isHighlighted ? 'opacity-70' : 'opacity-40 group-hover:opacity-60'}`} style={{ paddingLeft: item.icon ? '22px' : '0' }}>
+                                            <span className={`text-[10px] font-mono mt-0.5 ml-0 line-clamp-1 transition-opacity ${isHighlighted ? 'opacity-70' : 'opacity-40 group-hover:opacity-60'}`} style={{ paddingLeft: '22px' }}>
                                                 {item.description}
                                             </span>
                                         )}
@@ -522,53 +401,46 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                     for (const seg of hoveredPath) {
                         const group = cur[seg];
                         if (!group) break;
-                        const childKeys = Object.keys(group.children);
 
                         const topOffset = hoveredTops[depth - 1] || 0;
-
                         const panelStyle = {
                             position: 'absolute' as const,
-                            left: `${depth * 80}px`,
+                            left: `${depth * 65}px`, // Adjusted offset to 65px as requested
                             top: `${topOffset + 35}px`,
                             zIndex: depth + 1,
                         };
 
                         const hasItems = group.items.length > 0;
-                        const hasChildren = childKeys.length > 0;
+                        const hasChildren = Object.keys(group.children).length > 0;
 
-                        if (hasChildren) {
+                        if (hasChildren || hasItems) {
                             subPanels.push(
-                                <div key={`group-${depth}`} style={panelStyle} className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
-                                    <GroupPanel
+                                <div
+                                    key={`panel-${depth}`}
+                                    style={panelStyle}
+                                    className="pointer-events-auto border border-[var(--border-base)] rounded-2xl p-2 flex flex-col gap-1 backdrop-blur-xl bg-[var(--bg-app)]/80 shadow-2xl animate-in slide-in-from-left-2 duration-200"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <SelectionListContent
                                         groups={group.children}
+                                        items={group.items}
                                         breadcrumb={hoveredPath.slice(0, depth)}
                                         config={config}
                                         activeDescendant={hoveredPath}
+                                        activeItemId={activeItemId}
                                         onNavigate={handleNavigate}
                                         onSelect={onSelect}
                                         onAction={onAction}
                                     />
                                 </div>
                             );
-                            cur = group.children;
-                            depth++;
-                        } else if (hasItems) {
-                            subPanels.push(
-                                <div key={`items-${depth}`} style={panelStyle} className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
-                                    <ItemListPanel
-                                        items={group.items}
-                                        breadcrumb={hoveredPath.slice(0, depth)}
-                                        config={config}
-                                        activeItemId={activeItemId}
-                                        onSelect={onSelect}
-                                        onAction={onAction}
-                                        groupItemActions={group.itemActions}
-                                    />
-                                </div>
-                            );
-                            break;
+                            if (hasChildren) {
+                                cur = group.children;
+                                depth++;
+                            } else {
+                                break;
+                            }
                         } else {
-                            // No children and no items: don't show a sub-panel
                             break;
                         }
                     }

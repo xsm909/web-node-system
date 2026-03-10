@@ -1,18 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { Icon } from '../../../shared/ui/icon';
 import { useAuthStore } from '../../../features/auth/store';
-import {
-    useReactTable,
-    getCoreRowModel,
-    createColumnHelper,
-} from '@tanstack/react-table';
-import { useEntityMetadata, useUnassignMetadata } from '../../../entities/record/api';
+import { useEntityMetadata, useUnassignMetadata, useCreateRecord, useAssignMetadata } from '../../../entities/record/api';
+import { useSchemas } from '../../../entities/schema/api';
+import type { Schema } from '../../../entities/schema/api';
 import { ClientMetadataEditModal } from './ClientMetadataEditModal';
-import { AssignSchemaModal } from './AssignSchemaModal';
-import { ManagementTable } from '../../../shared/ui/management-table';
+import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
+import { buildCategoryTree } from '../../../shared/lib/categoryUtils';
+import type { CategoryTreeNode } from '../../../shared/lib/categoryUtils';
+import type { SelectionGroup } from '../../../shared/ui/selection-list';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
-const columnHelper = createColumnHelper<any>();
+
 
 interface ClientMetadataManagementProps {
     activeClientId?: string | null;
@@ -25,107 +24,252 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
     const [assignmentToDelete, setAssignmentToDelete] = useState<any | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [nestingParentId, setNestingParentId] = useState<string | null>(null);
 
     const unassignMutation = useUnassignMetadata();
+    const createRecordMutation = useCreateRecord();
+    const assignMetadataMutation = useAssignMetadata();
+    const { data: schemas = [] } = useSchemas();
 
     // Fetch assignments for this specific client
-    const { data: assignments = [], isLoading } = useEntityMetadata('client', activeClientId || undefined);
+    const { data: assignments = [], isLoading, refetch } = useEntityMetadata('client', activeClientId || undefined);
 
-    const columns = useMemo(() => {
-        const cols = [];
+    const comboData = useMemo(() => {
+        if (!schemas.length) return {};
 
-        cols.push(
-            columnHelper.accessor((row: any) => row.record?.schema?.key || 'Unknown', {
-                id: 'schema_key',
-                header: 'Schema',
-                cell: info => {
-                    return (
-                        <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-                            {info.getValue()}
-                        </span>
-                    );
-                },
-            })
-        );
+        const tree = buildCategoryTree(schemas);
 
-        cols.push(
-            columnHelper.accessor((row: any) => row.record?.data, {
-                id: 'data',
-                header: 'Record Data',
-                cell: info => {
-                    const data = info.getValue();
-                    let content = 'No content';
-                    if (data) {
-                        content = JSON.stringify(data);
-                    }
+        const mapNode = (node: CategoryTreeNode<Schema>): Record<string, SelectionGroup> => {
+            const groups: Record<string, SelectionGroup> = {};
 
-                    const displayContent = content.length > 100 ? content.slice(0, 100) + '...' : content;
+            Object.entries(node.children).forEach(([key, childNode]) => {
+                groups[childNode.name] = {
+                    id: key,
+                    name: childNode.name,
+                    items: childNode.nodes.map(s => ({
+                        id: s.id,
+                        name: s.content?.title || s.key,
+                        description: s.key,
+                        icon: 'data_object'
+                    })),
+                    children: mapNode(childNode)
+                };
+            });
 
-                    return (
-                        <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono" title={content}>
-                            {displayContent}
-                        </div>
-                    );
-                },
-            })
-        );
+            return groups;
+        };
 
-        if (isAdmin) {
-            cols.push(
-                columnHelper.display({
-                    id: 'actions',
-                    header: '',
-                    cell: info => (
-                        <div className="flex justify-end gap-2 pr-4">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setAssignmentToDelete(info.row.original);
-                                }}
-                                disabled={unassignMutation.isPending}
-                                className="p-2 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                            >
-                                <Icon name="delete" size={18} />
-                            </button>
-                        </div>
-                    ),
-                })
-            );
+        const result = mapNode(tree);
+
+        if (tree.nodes.length > 0) {
+            const hasOtherCategories = Object.keys(tree.children).length > 0;
+            const rootGroupName = hasOtherCategories ? 'General' : '';
+            result[rootGroupName] = {
+                id: 'root',
+                name: rootGroupName,
+                items: tree.nodes.map(s => ({
+                    id: s.id,
+                    name: s.content?.title || s.key,
+                    description: s.key,
+                    icon: 'data_object'
+                })),
+                children: {}
+            };
         }
 
-        return cols;
-    }, [isAdmin, unassignMutation]);
+        return result;
+    }, [schemas]);
 
-    const table = useReactTable({
-        data: assignments,
-        columns,
-        getCoreRowModel: getCoreRowModel(),
-    });
+    const enrichWithSchemas = (items: any[]): any[] => {
+        return items.map(item => {
+            const record = item.record || item;
+            const schema = schemas.find(s => s.id === record.schema_id);
+            const children = record.children ? enrichWithSchemas(record.children) : [];
 
-    const handleRowClick = (assignment: any) => {
-        if (!assignment.record?.schema) return; // Cannot edit without schema
-        setSelectedAssignment(assignment);
+            return {
+                ...item,
+                record: {
+                    ...record,
+                    schema: schema || record.schema,
+                    children
+                }
+            };
+        });
+    };
+
+    const enrichedAssignments = useMemo(() => enrichWithSchemas(assignments), [assignments, schemas]);
+
+
+
+
+
+    const handleRowClick = (item: any) => {
+        if (!item.record?.schema) {
+            console.warn("Cannot edit record without schema", item);
+            return;
+        }
+        setSelectedAssignment(item);
         setIsEditModalOpen(true);
     };
 
+
+
+    const handleSchemaSelect = async (schemaItem: any) => {
+        if (!activeClientId) return;
+
+        try {
+            const newRecord = await createRecordMutation.mutateAsync({
+                schema_id: schemaItem.id,
+                parent_id: nestingParentId || undefined,
+                data: {}, // Initialize with empty data as requested
+            });
+
+            // If it's a root record, we need to assign it to the entity
+            if (!nestingParentId) {
+                await assignMetadataMutation.mutateAsync({
+                    record_id: newRecord.id,
+                    entity_type: 'client',
+                    entity_id: activeClientId,
+                    owner_id: activeClientId
+                });
+            }
+
+            // Refresh list
+            refetch();
+
+            // Open edit modal
+            setSelectedAssignment({
+                id: 'new',
+                record: {
+                    ...newRecord,
+                    schema: schemas.find(s => s.id === newRecord.schema_id)
+                }
+            });
+            setIsEditModalOpen(true);
+            setNestingParentId(null);
+        } catch (e) {
+            console.error("Failed to create record:", e);
+        }
+    };
+
+    if (isLoading && assignments.length === 0) {
+        return (
+            <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl">
+                <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
-            <ManagementTable
-                title="Client Metadata"
-                description="Manage semantic datasets attached to this client."
-                addButtonText={isAdmin && activeClientId ? "Assign Schema" : undefined}
-                onAdd={() => {
-                    if (isAdmin && activeClientId) {
-                        setIsAssignModalOpen(true);
-                    }
-                }}
-                table={table}
-                isLoading={isLoading}
-                dataLength={assignments.length}
-                onRowClick={handleRowClick}
-                emptyMessage="No Schemas assigned to this client yet."
-            />
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-xl font-bold text-[var(--text-main)] tracking-tight">Client Metadata</h2>
+                    <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60">
+                        Manage semantic datasets attached to this client.
+                    </p>
+                </div>
+                {isAdmin && activeClientId && (
+                    <div onClick={(e) => { e.stopPropagation(); setNestingParentId(null); }}>
+                        <ComboBox
+                            data={comboData}
+                            onSelect={handleSchemaSelect}
+                            placeholder="Assign Schema"
+                            icon="add"
+                            variant="brand"
+                            triggerClassName="px-6 py-3 rounded-2xl !text-[10px] !font-black !uppercase !tracking-widest shadow-xl shadow-brand/20"
+                        />
+                    </div>
+                )}
+            </div>
+
+            <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/5">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[700px]">
+                        <thead>
+                            <tr className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
+                                <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                                    Schema
+                                </th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                                    Record Data
+                                </th>
+                                <th className="px-6 py-4 text-right" />
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--border-base)]">
+                            {(() => {
+                                const renderRows = (data: any[], depth = 0) => {
+                                    return data.map((item) => (
+                                        <React.Fragment key={item.id || item.record?.id}>
+                                            <tr
+                                                className="hover:bg-[var(--border-muted)]/5 group cursor-pointer"
+                                                onClick={() => handleRowClick(item)}
+                                            >
+                                                <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + depth * 2}rem` }}>
+                                                    <div className="flex items-center gap-3">
+                                                        {depth > 0 && (
+                                                            <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
+                                                        )}
+                                                        <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
+                                                            {depth > 0 && <Icon name="arrow_split" size={12} />}
+                                                            {item.record?.schema?.key || 'Unknown'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono">
+                                                        {JSON.stringify(item.record?.data || {})}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex justify-end items-center gap-2">
+                                                        <div onClick={(e) => { e.stopPropagation(); setNestingParentId(item.record?.id); }}>
+                                                            <ComboBox
+                                                                data={comboData}
+                                                                onSelect={handleSchemaSelect}
+                                                                placeholder="Sub"
+                                                                icon="add"
+                                                                triggerClassName="!p-1.5 !rounded-lg !bg-brand/10 !text-brand hover:!brightness-125 !text-[10px] !font-bold !uppercase"
+                                                            />
+                                                        </div>
+
+                                                        {isAdmin && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setAssignmentToDelete(item);
+                                                                }}
+                                                                className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                                                title="Delete"
+                                                            >
+                                                                <Icon name="delete" size={14} />
+                                                            </button>
+                                                        )}
+
+                                                        <div className="p-1.5 text-brand opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                                                            <Icon name="chevron_right" size={14} />
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {item.record?.children && item.record.children.length > 0 &&
+                                                renderRows(item.record.children, depth + 1)
+                                            }
+                                        </React.Fragment>
+                                    ));
+                                };
+                                return renderRows(enrichedAssignments);
+                            })()}
+                        </tbody>
+                    </table>
+                </div>
+                {assignments.length === 0 && !isLoading && (
+                    <div className="p-16 text-center text-[var(--text-muted)] text-sm opacity-40 font-medium italic">
+                        No Schemas assigned to this client yet.
+                    </div>
+                )}
+            </div>
 
             {selectedAssignment && (
                 <ClientMetadataEditModal
@@ -138,13 +282,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 />
             )}
 
-            {activeClientId && isAdmin && (
-                <AssignSchemaModal
-                    isOpen={isAssignModalOpen}
-                    onClose={() => setIsAssignModalOpen(false)}
-                    activeClientId={activeClientId}
-                />
-            )}
+            {/* Removed AssignSchemaModal as root creation is now handled by ComboBox */}
 
             <ConfirmModal
                 isOpen={!!assignmentToDelete}

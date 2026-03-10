@@ -42,6 +42,7 @@ def create_record(
 
     new_record = Record(
         schema_id=record_in.schema_id,
+        parent_id=record_in.parent_id,
         data=record_in.data
     )
     db.add(new_record)
@@ -129,7 +130,8 @@ def get_entity_metadata(
     # Returns metadata assigned to a specific entity
     # Ideally should join with records and schemas, returning a richer structure
     assignments = db.query(MetaAssignment).options(
-        joinedload(MetaAssignment.record).joinedload(Record.schema)
+        joinedload(MetaAssignment.record).joinedload(Record.schema),
+        joinedload(MetaAssignment.record).selectinload(Record.children) # Use selectinload for children
     ).filter(
         MetaAssignment.entity_type == entity_type,
         MetaAssignment.entity_id == entity_id

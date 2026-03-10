@@ -4,9 +4,11 @@ import { apiClient } from '../../shared/api/client';
 export interface Record {
     id: string;
     schema_id: string;
+    parent_id?: string | null;
     data: any;
     created_at: string;
     updated_at: string;
+    children?: Record[];
 }
 
 export interface MetaAssignment {
@@ -21,6 +23,7 @@ export interface MetaAssignment {
 
 export interface CreateRecordDto {
     schema_id: string;
+    parent_id?: string | null;
     data: any;
 }
 

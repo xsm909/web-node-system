@@ -52,7 +52,7 @@ export const AssignSchemaModal: React.FC<AssignSchemaModalProps> = ({
             <div className="relative w-full max-w-md bg-surface-900 rounded-2xl shadow-2xl flex flex-col border border-gray-700">
                 <div className="flex justify-between items-center p-5 border-b border-gray-800">
                     <h2 className="text-lg font-bold flex items-center gap-2 text-[var(--text-main)]">
-                        <Icon name="add_link" className="text-brand" size={20} />
+                        <Icon name="link_add" className="text-brand" size={20} />
                         Assign Schema to Client
                     </h2>
                     <button
