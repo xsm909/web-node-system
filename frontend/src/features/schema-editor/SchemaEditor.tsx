@@ -10,10 +10,10 @@ interface SchemaEditorProps {
   readOnly?: boolean;
 }
 
-export const SchemaEditor: React.FC<SchemaEditorProps> = ({ 
-  initialValue, 
-  onChange, 
-  readOnly = false 
+export const SchemaEditor: React.FC<SchemaEditorProps> = ({
+  initialValue,
+  onChange,
+  readOnly = false
 }) => {
   const [code, setCode] = useState(initialValue);
 
@@ -29,10 +29,10 @@ export const SchemaEditor: React.FC<SchemaEditorProps> = ({
 
   return (
     <div className="w-full h-full border border-gray-700 rounded-lg overflow-hidden flex flex-col">
-      <div className="bg-gray-800 text-gray-200 text-xs px-3 py-1 flex justify-between items-center border-b border-gray-700">
+      <div className="bg-gray-00 text-gray-200 text-xs px-3 py-1 flex justify-between items-center border-b border-gray-700">
         <span>JSON Schema Editor</span>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-h-0">
         <CodeMirror
           value={code}
           height="100%"
@@ -45,6 +45,27 @@ export const SchemaEditor: React.FC<SchemaEditorProps> = ({
           onChange={handleChange}
           readOnly={readOnly}
           className="h-full font-mono text-sm"
+          basicSetup={{
+            lineNumbers: true,
+            foldGutter: true,
+            dropCursor: true,
+            allowMultipleSelections: true,
+            indentOnInput: true,
+            syntaxHighlighting: true,
+            bracketMatching: true,
+            autocompletion: true,
+            rectangularSelection: true,
+            crosshairCursor: true,
+            highlightSelectionMatches: true,
+            closeBrackets: true,
+            autofocus: false,
+            defaultKeymap: true,
+            searchKeymap: true,
+            historyKeymap: true,
+            foldKeymap: true,
+            completionKeymap: true,
+            lintKeymap: true,
+          }}
         />
       </div>
     </div>

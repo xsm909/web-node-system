@@ -169,7 +169,7 @@ export const AdminSchemaManagement: React.FC = () => {
                         </button>
                     </div>
                 </div>
-                <div className="flex-1 p-4 bg-surface-950">
+                <div className="flex-1 p-4 bg-surface-950 min-h-0">
                     <SchemaEditor
                         initialValue={content}
                         onChange={setContent}
