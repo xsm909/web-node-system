@@ -218,3 +218,8 @@ The system supports 4 static node types and 1 dynamic behavior based on graph co
 5. **Dynamic Provider Node (Right-Connected)**: When a Regular node is connected to the right-side input of a Special node, it dynamically adapts its UI:
    - *Inputs*: Hidden (it acts purely as a data provider).
    - *Outputs*: Moved to the Left edge to naturally wire into the Special node's right edge.
+## 11. UI Standards for Tables and Forms
+
+- **Library Usage**: Use TanStack libraries (e.g., @tanstack/react-table) for all data tables and forms.
+- **Category Grouping**: If a table contains items that can be categorized, implement grouping by category.
+- **Reference**: Use the **Schema Registry** (AdminSchemaManagement) as the visual and functional reference for table layouts and grouping logic.
