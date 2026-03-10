@@ -4,6 +4,7 @@ from .openai import openai_lib
 from .gemini import gemini_lib
 from .perplexity import perplexity_lib
 from .logger_lib import system_log
+from . import metadata_lib
 
 def agent_run(model_config, memory_config, tools, prompt, inputs=None, execution_id=None):
     """
@@ -41,6 +42,7 @@ def agent_run(model_config, memory_config, tools, prompt, inputs=None, execution
         "read_workflow_data": tools_lib.read_workflow_data,
         "read_runtime_data": tools_lib.read_runtime_data,
         "write_runtime_data": tools_lib.write_runtime_data,
+        "get_metadata": metadata_lib.get_metadata,
     }
     
     # Flatten and Construct tool descriptions for the system prompt
@@ -80,6 +82,7 @@ def agent_run(model_config, memory_config, tools, prompt, inputs=None, execution
         "read_workflow_data": tools_lib.read_workflow_data,
         "read_runtime_data": tools_lib.read_runtime_data,
         "write_runtime_data": tools_lib.write_runtime_data,
+        "get_metadata": metadata_lib.get_metadata,
     }
     
     # Only expose internal tools that are explicitly in the allowed list

@@ -29,6 +29,7 @@ from ..internal_libs.tools_lib import (
 )
 from ..internal_libs import database_lib
 from ..internal_libs import analytics
+from ..internal_libs import metadata_lib
 from ..internal_libs.logger_lib import executor_logger
 from ..internal_libs.context_lib import execution_context
 
@@ -168,6 +169,9 @@ SAFE_GLOBALS = {
     "analytics": SimpleNamespace(
         process_request=analytics.process_analytics_request,
         process_analytics_request=analytics.process_analytics_request
+    ),
+    "metadata": SimpleNamespace(
+        get_metadata=metadata_lib.get_metadata
     ),
     "workflow": None,  # Will be injected per-execution
 }
@@ -591,6 +595,9 @@ class WorkflowExecutor:
                 "analytics": SimpleNamespace(
                     process_request=analytics.process_analytics_request,
                     process_analytics_request=analytics.process_analytics_request
+                ),
+                "metadata": SimpleNamespace(
+                    get_metadata=metadata_lib.get_metadata
                 ),
                 "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),
             }

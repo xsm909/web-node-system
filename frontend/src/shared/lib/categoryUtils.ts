@@ -15,7 +15,7 @@ function makeEmptyNode<T>(name: string = ''): CategoryTreeNode<T> {
  * Category paths use '|' as the separator (e.g. "AI|Chat|Gemini").
  * Returns a single root node containing all schemas and sub-categories.
  */
-export function buildCategoryTree<T extends { category?: string | null, key: string, content?: any }>(nodes: T[]): CategoryTreeNode<T> {
+export function buildCategoryTree<T extends { category?: string | null, key?: string, name?: string, content?: any }>(nodes: T[]): CategoryTreeNode<T> {
     const root = makeEmptyNode<T>('Uncategorized');
 
     // First pass: build the tree structure
@@ -46,20 +46,26 @@ export function buildCategoryTree<T extends { category?: string | null, key: str
 
     // Second pass: recursive sort
     const sortNode = (node: CategoryTreeNode<T>) => {
+        if (!node) return;
+
         // Sort schemas within this node
-        node.nodes.sort((a, b) => {
-            const titleA = (a.content?.title || a.key).toLowerCase();
-            const titleB = (b.content?.title || b.key).toLowerCase();
+        node.nodes?.sort((a, b) => {
+            const titleA = (a?.content?.title || a?.name || a?.key || '').toLowerCase();
+            const titleB = (b?.content?.title || b?.name || b?.key || '').toLowerCase();
             return titleA.localeCompare(titleB);
         });
 
         // Sort sub-categories by name and recurse
         const sortedChildren: Record<string, CategoryTreeNode<T>> = {};
-        const sortedKeys = Object.keys(node.children).sort((a, b) => a.localeCompare(b));
+        const children = node.children || {};
+        const sortedKeys = Object.keys(children).sort((a, b) => a.localeCompare(b));
 
         for (const key of sortedKeys) {
-            sortNode(node.children[key]);
-            sortedChildren[key] = node.children[key];
+            const child = children[key];
+            if (child) {
+                sortNode(child);
+                sortedChildren[key] = child;
+            }
         }
         node.children = sortedChildren;
     };
