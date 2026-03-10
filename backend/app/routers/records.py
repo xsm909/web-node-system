@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional
 from uuid import UUID
 
@@ -9,9 +9,11 @@ from ..models import User, RoleEnum
 from ..models.schema import Record, Schema, MetaAssignment
 from ..schemas.schema_registry import (
     RecordCreate, RecordUpdate, RecordResponse, 
-    MetaAssignmentCreate, MetaAssignmentResponse
+    MetaAssignmentCreate, MetaAssignmentResponse,
+    MetaAssignmentDetailResponse
 )
 from ..services.validator import validate_json_data
+from ..internal_libs.logger_lib import system_log
 
 router = APIRouter(prefix="/records", tags=["records"])
 
@@ -117,8 +119,17 @@ def assign_metadata(
     db.refresh(new_assign)
     return new_assign
 
-from sqlalchemy.orm import joinedload
-from ..schemas.schema_registry import MetaAssignmentDetailResponse
+def get_recursive_record(db: Session, record_id: UUID, depth=0) -> Record:
+    """Helper to load a record with its schema and ALL descendants recursively."""
+    record = db.query(Record).options(
+        joinedload(Record.schema),
+        selectinload(Record.children)
+    ).filter(Record.id == record_id).first()
+    
+    if record and record.children:
+        for child in record.children:
+            get_recursive_record(db, child.id, depth + 1)
+    return record
 
 @router.get("/entity/{entity_type}/{entity_id}", response_model=List[MetaAssignmentDetailResponse])
 def get_entity_metadata(
@@ -128,16 +139,82 @@ def get_entity_metadata(
     current_user: User = Depends(get_current_user)
 ):
     # Returns metadata assigned to a specific entity
-    # Ideally should join with records and schemas, returning a richer structure
-    assignments = db.query(MetaAssignment).options(
-        joinedload(MetaAssignment.record).joinedload(Record.schema),
-        joinedload(MetaAssignment.record).selectinload(Record.children) # Use selectinload for children
-    ).filter(
+    # Fetch root assignments
+    assignments = db.query(MetaAssignment).filter(
         MetaAssignment.entity_type == entity_type,
         MetaAssignment.entity_id == entity_id
     ).all()
     
+    # Refresh/load each assigned record tree recursively
+    for assignment in assignments:
+        get_recursive_record(db, assignment.record_id)
+        
     return assignments
+
+
+from sqlalchemy import text
+
+@router.get("/references/{record_id}", response_model=List[RecordResponse])
+def get_references(
+    record_id: UUID,
+    schema_key: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    1) Find target schema_id by schema_key.
+    2) Find root parent for the current record.
+    3) Identify the entity (entity_type, entity_id) this root belongs to.
+    4) Find all OTHER roots assigned to the SAME entity.
+    5) Return all records in all those trees that match the target schema.
+    """
+    query_sql = text("""
+WITH target_schema AS (
+    SELECT id FROM schemas WHERE key = :schema_key
+),
+current_tree AS (
+    -- Get root of the provided record
+    WITH RECURSIVE up AS (
+        SELECT id, parent_id FROM records WHERE id = :record_id
+        UNION ALL
+        SELECT r.id, r.parent_id FROM records r JOIN up ON r.id = up.parent_id
+    )
+    SELECT id FROM up WHERE parent_id IS NULL LIMIT 1
+),
+current_entity AS (
+    -- Find what entity this root is assigned to
+    SELECT entity_type, entity_id FROM meta_assignments 
+    WHERE record_id = (SELECT id FROM current_tree)
+),
+all_entity_roots AS (
+    -- Find all roots assigned to this same entity
+    SELECT record_id FROM meta_assignments
+    WHERE (entity_type, entity_id) = (SELECT entity_type, entity_id FROM current_entity)
+),
+all_records AS (
+    -- Get all records in all trees for this entity
+    WITH RECURSIVE down AS (
+        SELECT r.id, r.parent_id, r.schema_id FROM records r
+        JOIN all_entity_roots aer ON r.id = aer.record_id
+        UNION ALL
+        SELECT r.id, r.parent_id, r.schema_id FROM records r
+        JOIN down ON r.parent_id = down.id
+    )
+    SELECT DISTINCT id, schema_id FROM down
+)
+SELECT id FROM all_records WHERE schema_id = (SELECT id FROM target_schema);
+    """)
+
+    matching_rows = db.execute(query_sql, {
+        "record_id": str(record_id),
+        "schema_key": schema_key
+    }).all()
+    
+    if not matching_rows:
+        return []
+    
+    ids = [r[0] for r in matching_rows]
+    return db.query(Record).filter(Record.id.in_(ids)).all()
 
 
 @router.delete("/assign/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT)

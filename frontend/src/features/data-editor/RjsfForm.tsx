@@ -10,6 +10,8 @@ import type {
 } from '@rjsf/utils';
 import { getInputProps } from '@rjsf/utils';
 import { Icon } from '../../shared/ui/icon';
+import { ComboBox } from '../../shared/ui/combo-box/ComboBox';
+import { apiClient } from '../../shared/api/client';
 
 // ─── Interop Handles ───────────────────────────────────────────────────────────
 const getInterop = (mod: any) => mod?.default || mod;
@@ -72,6 +74,85 @@ function TextareaWidget(props: WidgetProps) {
             onFocus={(e) => onFocus(id, e.target.value)}
             className="w-full bg-surface-950 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition-all resize-none disabled:opacity-50"
         />
+    );
+}
+
+// ─── Reference Widget ────────────────────────────────────────────────────────
+function ReferenceWidget(props: WidgetProps) {
+    const { value, onChange, schema, formContext, registry, disabled, readonly, placeholder } = props;
+    const recordId = formContext?.recordId || (registry as any)?.formContext?.recordId;
+
+    const schemaKey = (schema as any)['x-schema-key'];
+    const displayField = (schema as any)['x-display'] || 'id';
+    const valueField = (schema as any)['x-reference-field'] || 'id';
+
+    const [references, setReferences] = React.useState<any[]>([]);
+    const [isLoading, setIsLoading] = React.useState(false);
+
+    const fetchReferences = React.useCallback(async () => {
+        if (!recordId || !schemaKey) {
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const response = await apiClient.get(`/records/references/${recordId}`, {
+                params: { schema_key: schemaKey }
+            });
+            setReferences(response.data || []);
+        } catch (error: any) {
+        } finally {
+            setIsLoading(false);
+        }
+    }, [recordId, schemaKey]);
+
+    const handleOpenChange = (open: boolean) => {
+        if (open) {
+            fetchReferences();
+        }
+    };
+
+    const items = React.useMemo(() => {
+        console.log("[ReferenceWidget] Processing references count:", references.length);
+
+        return references.map((r: any) => {
+            let label = String(r.id);
+            const data = r.data || {};
+
+            if (data && typeof data === 'object') {
+                label = data[displayField] || data.name || data.title || data.key || data.description || String(r.id);
+            }
+
+            return {
+                id: String(r[valueField] || r.id),
+                name: String(label),
+                description: r.schema?.key || r.schema_id,
+                icon: 'link'
+            };
+        });
+    }, [references, displayField, valueField]);
+
+    const selectedItem = React.useMemo(() => {
+        return items.find(i => i.id === String(value)) || null;
+    }, [items, value]);
+
+    const isLoadingState = isLoading;
+
+    return (
+        <div className="w-full">
+            <ComboBox
+                items={items}
+                onSelect={(item: any) => onChange(item.id)}
+                onOpenChange={handleOpenChange}
+                value={value ? String(value) : undefined}
+                label={selectedItem?.name}
+                placeholder={isLoadingState ? "Loading..." : placeholder || "Select reference..."}
+                searchPlaceholder="Search records..."
+                icon="link"
+                className="w-full"
+                disabled={disabled || readonly}
+            />
+        </div>
     );
 }
 
@@ -272,21 +353,36 @@ function inlineRefs(
     if (!node || typeof node !== 'object') return node;
     if (Array.isArray(node)) return node.map((n) => inlineRefs(n, defs, visited));
 
-    if ('$ref' in node && typeof node.$ref === 'string') {
-        const ref = node.$ref as string;
-        let key: string | null = null;
+    // IMPORTANT: Strip $schema and $id from every object node.
+    // AJV 8 (used by @rjsf/validator-ajv8) often errors out if it encounters
+    // $schema draft URLs it doesn't recognize (like Draft 2020-12).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { $schema: _s, $id: _i, ...cleanNode } = node;
+
+    if ('$ref' in cleanNode && typeof cleanNode.$ref === 'string') {
+        const ref = cleanNode.$ref;
+        if (visited.has(ref)) {
+            // Found circularity
+            return { type: 'object', title: `Circular reference (${ref})` };
+        }
+        const next = new Set(visited);
+        next.add(ref);
+
+        // Simple bare-key ref: "goody"
+        // Pointer ref: "#/$defs/goody" or "#/definitions/goody"
+        let key = ref;
         if (ref.startsWith('#/$defs/')) key = ref.slice(8);
         else if (ref.startsWith('#/definitions/')) key = ref.slice(14);
-        else if (!ref.startsWith('#') && !ref.startsWith('http')) key = ref;
+        else if (ref.startsWith('#')) {
+            const parts = ref.split('/');
+            key = parts[parts.length - 1];
+        }
 
-        if (key && defs[key] && !visited.has(key)) {
-            const next = new Set(visited);
-            next.add(key);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { $schema: _s, $id: _i, ...defBody } = defs[key];
+        if (key && defs[key]) {
+            const defBody = defs[key];
             // Merge sibling properties from the $ref node (rare but valid JSON-Schema)
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { $ref: _r, ...siblings } = node;
+            const { $ref: _r, ...siblings } = cleanNode;
             return inlineRefs({ ...defBody, ...siblings }, defs, next);
         } else if (key && !defs[key]) {
             console.warn(`RjsfForm: Could not find a definition for ${ref}. Definitions available:`, Object.keys(defs));
@@ -301,10 +397,41 @@ function inlineRefs(
 
     // Walk all keys, but skip $defs/$definitions (we handle refs ourselves)
     const result: any = {};
-    for (const k of Object.keys(node)) {
-        result[k] = inlineRefs(node[k], defs, visited);
+    for (const k of Object.keys(cleanNode)) {
+        if (k === '$defs' || k === 'definitions') continue;
+        result[k] = inlineRefs(cleanNode[k], defs, visited);
     }
     return result;
+}
+
+/**
+ * Traverses the schema and collects ui:widget for properties that have x-reference: "record".
+ */
+function extractUiSchema(schema: any): any {
+    if (!schema || typeof schema !== 'object' || schema.type !== 'object' || !schema.properties) {
+        return {};
+    }
+
+    const uiSchema: any = {};
+    for (const [key, prop] of Object.entries(schema.properties)) {
+        const p = prop as any;
+        if (p['x-reference'] === 'record') {
+            uiSchema[key] = {
+                'ui:widget': 'ReferenceWidget'
+            };
+        } else if (p.type === 'object' && p.properties) {
+            const subUi = extractUiSchema(p);
+            if (Object.keys(subUi).length > 0) {
+                uiSchema[key] = subUi;
+            }
+        } else if (p.type === 'array' && p.items) {
+            const subUi = extractUiSchema(p.items);
+            if (Object.keys(subUi).length > 0) {
+                uiSchema[key] = { items: subUi };
+            }
+        }
+    }
+    return uiSchema;
 }
 
 // ─── Main RjsfForm Component ───────────────────────────────────────────────────
@@ -316,6 +443,9 @@ interface RjsfFormProps {
     readOnly?: boolean;
     /** Map of schemaKey → parsed schema content for resolving $ref */
     extraSchemas?: Record<string, any>;
+    activeClientId?: string;
+    assignments?: any[];
+    recordId?: string;
 }
 
 export const RjsfForm: React.FC<RjsfFormProps> = ({
@@ -325,7 +455,17 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
     onChange,
     readOnly = false,
     extraSchemas = {},
+    activeClientId,
+    assignments = [],
+    recordId,
 }) => {
+    console.log("[RjsfForm] Render:", {
+        activeClientId,
+        recordId,
+        assignmentsCount: assignments.length,
+        hasSchema: !!schema
+    });
+
     // Interop safety: check if Form component is valid
     if (typeof Form !== 'function' && typeof Form !== 'object') {
         return (
@@ -334,12 +474,6 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
             </div>
         );
     }
-
-    const resolvedUiSchema: Record<string, unknown> = {
-        'ui:submitButtonOptions': { norender: true },
-        ...(readOnly ? { 'ui:readonly': true } : {}),
-        ...uiSchema,
-    };
 
     // Build the defs map: merge $defs from the schema itself + all extraSchemas.
     // IMPORTANT: use JSON.stringify as the memo key so we only recompute when the
@@ -356,12 +490,21 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
         const allDefs: Record<string, any> = { ...rootDefs, ...extraSchemas };
 
         // Fully inline every $ref so RJSF never has to resolve references itself
-        const inlined = inlineRefs(base, allDefs);
-        return inlined;
+        return inlineRefs(base, allDefs);
         // Stringify deps so memo is stable across equal-content-but-different-reference props
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [JSON.stringify(schema), JSON.stringify(extraSchemas)]);
 
+    const extraUiSchema = React.useMemo(() => {
+        return extractUiSchema(safeSchema);
+    }, [safeSchema]);
+
+    const resolvedUiSchema: Record<string, unknown> = {
+        'ui:submitButtonOptions': { norender: true },
+        ...(readOnly ? { 'ui:readonly': true } : {}),
+        ...extraUiSchema,
+        ...uiSchema,
+    };
     return (
         <>
             <Form
@@ -379,7 +522,13 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
                 widgets={{
                     TextareaWidget,
                     SelectWidget,
+                    ReferenceWidget,
                     CheckboxWidget,
+                }}
+                formContext={{
+                    activeClientId,
+                    assignments,
+                    recordId
                 }}
                 onChange={(e: any) => {
                     const errors = e.errors ?? [];

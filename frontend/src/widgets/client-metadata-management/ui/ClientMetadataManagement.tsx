@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon } from '../../../shared/ui/icon';
 import { useAuthStore } from '../../../features/auth/store';
 import { useEntityMetadata, useUnassignMetadata, useCreateRecord, useAssignMetadata, useDeleteRecord } from '../../../entities/record/api';
@@ -27,6 +27,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     hideHeader = false
 }) => {
     const { user } = useAuthStore();
+    const { data: schemas = [], isLoading: isSchemasLoading } = useSchemas();
     const isAdmin = user?.role === 'admin';
 
     const [view, setView] = useState<'list' | 'edit'>('list');
@@ -41,10 +42,18 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     const deleteRecordMutation = useDeleteRecord();
     const createRecordMutation = useCreateRecord();
     const assignMetadataMutation = useAssignMetadata();
-    const { data: schemas = [] } = useSchemas();
 
     // Fetch assignments for this specific client
-    const { data: assignments = [], isLoading, refetch } = useEntityMetadata('client', activeClientId || undefined);
+    const { data: assignments = [], isLoading: isAssignmentsLoading, refetch } = useEntityMetadata('client', activeClientId || undefined);
+
+    const isLoading = isSchemasLoading || isAssignmentsLoading;
+
+    useEffect(() => {
+        console.log("[ClientMetadataManagement] activeClientId:", activeClientId);
+        if (assignments.length > 0) {
+            console.log("[ClientMetadataManagement] Raw assignments from API:", assignments);
+        }
+    }, [assignments, activeClientId]);
 
     const comboData = useMemo(() => {
         if (!schemas.length) return {};
@@ -94,17 +103,24 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
 
     const enrichWithSchemas = (items: any[]): any[] => {
         return items.map(item => {
-            const record = item.record || item;
+            // Determine if this is a MetaAssignment (has record field) or a direct Record
+            const record = item.record || (item.schema_id ? item : null);
+
+            if (!record) return item;
+
             const schema = schemas.find(s => s.id === record.schema_id);
             const children = record.children ? enrichWithSchemas(record.children) : [];
 
+            const enrichedRecord = {
+                ...record,
+                schema: schema || record.schema,
+                children
+            };
+
+            // Return consistently wrapped structure: everything must have a .record for the UI
             return {
                 ...item,
-                record: {
-                    ...record,
-                    schema: schema || record.schema,
-                    children
-                }
+                record: enrichedRecord
             };
         });
     };
@@ -357,6 +373,8 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                     <ClientMetadataEditor
                         ref={editorRef}
                         assignment={selectedAssignment}
+                        assignments={assignments}
+                        activeClientId={activeClientId || undefined}
                         onSaveSuccess={handleBack}
                     />
                 )}

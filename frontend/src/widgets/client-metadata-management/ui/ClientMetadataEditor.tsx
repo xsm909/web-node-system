@@ -5,6 +5,8 @@ import { RjsfForm } from '../../../features/data-editor/RjsfForm';
 
 interface ClientMetadataEditorProps {
     assignment: any; // MetaAssignment response containing nested record and schema
+    assignments: any[]; // Full list of assignments for the client
+    activeClientId?: string;
     onSaveSuccess?: () => void;
 }
 
@@ -16,6 +18,8 @@ export interface ClientMetadataEditorRef {
 
 export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMetadataEditorProps>(({
     assignment,
+    assignments,
+    activeClientId,
     onSaveSuccess,
 }, ref) => {
     const updateMutation = useUpdateRecord();
@@ -63,6 +67,11 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
             setFormData(data);
             setIsValid(true);
             setSaveError(null);
+            console.log("[ClientMetadataEditor] SEEDED:", {
+                recordId: currentRecordId,
+                assignmentId: assignment?.id,
+                recordIdFallback: assignment?.record_id
+            });
         }
     }, [assignment?.record?.id, schemaType]);
 
@@ -122,6 +131,9 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
                                 setIsValid(valid);
                             }}
                             extraSchemas={extraSchemas}
+                            activeClientId={activeClientId}
+                            assignments={assignments}
+                            recordId={assignment?.record?.id || assignment?.record_id || assignment?.id}
                         />
                     )}
                 </div>

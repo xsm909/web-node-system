@@ -8,7 +8,8 @@ interface ComboBoxProps {
     subLabel?: string;
     icon?: string;
     placeholder?: string;
-    data: Record<string, SelectionGroup>;
+    data?: Record<string, SelectionGroup>;
+    items?: SelectionItem[];
     config?: SelectionListConfig;
     onSelect: (item: SelectionItem) => void;
     onAction?: (action: SelectionAction, target: SelectionItem | SelectionGroup) => void;
@@ -29,7 +30,8 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     subLabel,
     icon,
     placeholder = 'Select...',
-    data,
+    data = {},
+    items,
     config,
     onSelect,
     onAction,
@@ -118,6 +120,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
             {isOpen && (
                 <SelectionList
                     data={data}
+                    items={items}
                     config={config}
                     activeItemId={value}
                     onSelect={handleSelect}

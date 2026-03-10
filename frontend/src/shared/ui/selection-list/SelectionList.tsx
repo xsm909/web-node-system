@@ -36,6 +36,7 @@ export interface SelectionListConfig {
 
 interface SelectionListProps {
     data: Record<string, SelectionGroup>;
+    items?: SelectionItem[];
     config?: SelectionListConfig;
     activeItemId?: string;
     onSelect: (item: SelectionItem) => void;
@@ -198,6 +199,7 @@ const SelectionListContent: React.FC<SelectionListContentProps> = ({
 // --- Main SelectionList ---
 export const SelectionList: React.FC<SelectionListProps> = ({
     data,
+    items = [],
     config = {},
     activeItemId,
     onSelect,
@@ -206,6 +208,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
     searchPlaceholder = "Search...",
     position
 }) => {
+    console.log("[SelectionList] Render - data keys:", Object.keys(data), "items count:", items.length);
     const [searchQuery, setSearchQuery] = useState('');
     const [highlightedIndex, setHighlightedIndex] = useState(0);
     const [hoveredPath, setHoveredPath] = useState<string[]>([]);
@@ -214,7 +217,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
     const searchResultsRef = useRef<HTMLDivElement>(null);
 
     const flatItems = useMemo(() => {
-        const items: SelectionItem[] = [];
+        const result: SelectionItem[] = [...items];
         const traverse = (groups: Record<string, SelectionGroup>) => {
             Object.values(groups).forEach(g => {
                 const hasChildren = Object.keys(g.children).length > 0;
@@ -222,20 +225,20 @@ export const SelectionList: React.FC<SelectionListProps> = ({
 
                 // If group is a leaf (selectable as a group), add it as an item for search
                 if (!hasChildren && !hasItems) {
-                    items.push({
+                    result.push({
                         id: g.id,
                         name: g.name,
                         parentId: g.id
                     });
                 }
 
-                items.push(...g.items);
+                result.push(...g.items);
                 traverse(g.children);
             });
         };
         traverse(data);
-        return items;
-    }, [data]);
+        return result;
+    }, [data, items]);
 
     const searchResults = useMemo(() => {
         if (!searchQuery.trim()) return [];
@@ -349,6 +352,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                         <div className="max-h-[320px] overflow-y-auto space-y-0.5 custom-scrollbar relative">
                             <SelectionListContent
                                 groups={data}
+                                items={items}
                                 breadcrumb={[]}
                                 config={config}
                                 activeDescendant={hoveredPath}
