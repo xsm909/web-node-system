@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { Icon } from '../../../shared/ui/icon/Icon';
-import { buildCategoryTree } from '../../../shared/lib/categoryUtils';
-import type { CategoryTreeNode } from '../../../shared/lib/categoryUtils';
+import { buildCategoryTree, type CategoryTreeNode } from '../../../shared/lib/categoryUtils';
+import { getCookie, setCookie } from '../../../shared/lib/cookieUtils';
 
 interface NodeLibraryProps {
     nodeTypes: NodeType[];
@@ -11,13 +11,20 @@ interface NodeLibraryProps {
 
 export const NodeLibrary: React.FC<NodeLibraryProps> = ({ nodeTypes, onAddNode }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => {
+        const saved = getCookie('manager_node_expanded_categories');
+        if (saved) return new Set(JSON.parse(saved));
+        return new Set();
+    });
 
     const toggleCategory = (path: string) => {
         setExpandedCategories(prev => {
             const next = new Set(prev);
-            if (next.has(path)) next.delete(path);
-            else next.add(path);
+            const p = path.toLowerCase();
+            if (next.has(p)) next.delete(p);
+            else next.add(p);
+            setCookie('manager_node_expanded_categories', JSON.stringify(Array.from(next)));
             return next;
         });
     };
@@ -36,14 +43,14 @@ export const NodeLibrary: React.FC<NodeLibraryProps> = ({ nodeTypes, onAddNode }
 
     const nodeTree = useMemo(() => {
         if (searchQuery.trim()) return null;
-        return buildCategoryTree(nodeTypes);
+        return buildCategoryTree<NodeType>(nodeTypes);
     }, [nodeTypes, searchQuery]);
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center px-1">
                 <div className="flex items-center gap-4 flex-1">
-                    <h2 className="text-xl font-bold tracking-tight whitespace-nowrap">Node Library</h2>
+                    <h2 className="text-xl font-bold tracking-tight whitespace-nowrap text-[var(--text-main)]">Node Library</h2>
                     <div className="relative flex-1 max-w-lg">
                         <Icon name="search" size={14} className="absolute left-4 top-1/2 -translate-y-1/2 opacity-40 text-[var(--text-main)]" />
                         <input
@@ -69,18 +76,17 @@ export const NodeLibrary: React.FC<NodeLibraryProps> = ({ nodeTypes, onAddNode }
                                 <NodeRow key={node.id} node={node} onClick={onAddNode} />
                             ))
                         ) : (
-                            nodeTree && Object.entries(nodeTree).map(([name, node]) => (
+                            nodeTree && (
                                 <CategoryRows
-                                    key={name}
-                                    name={name}
-                                    node={node}
-                                    path={name}
-                                    level={0}
+                                    name="Uncategorized"
+                                    node={nodeTree}
+                                    path=""
+                                    level={-1}
                                     expandedCategories={expandedCategories}
                                     onToggle={toggleCategory}
                                     onClickNode={onAddNode}
                                 />
-                            ))
+                            )
                         )}
                         {filteredNodes.length === 0 && (
                             <tr>
@@ -144,7 +150,45 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
     onToggle,
     onClickNode
 }) => {
-    const isExpanded = expandedCategories.has(path);
+    const isRoot = name === "Uncategorized";
+    const isExpanded = isRoot || expandedCategories.has(path.toLowerCase());
+
+    if (isRoot) {
+        return (
+            <>
+                {Object.entries(node.children).map(([childKey, childNode]) => (
+                    <CategoryRows
+                        key={childKey}
+                        name={childNode.name}
+                        node={childNode}
+                        path={childNode.name}
+                        level={0}
+                        expandedCategories={expandedCategories}
+                        onToggle={onToggle}
+                        onClickNode={onClickNode}
+                    />
+                ))}
+                {node.nodes.length > 0 && (
+                    <tr className="bg-surface-900/10 border-l-2 border-gray-700/30">
+                        <td className="px-6 py-1.5 opacity-40">
+                            <div className="flex items-center gap-2">
+                                <Icon name="folder_open" size={14} />
+                                <span className="text-[10px] font-bold uppercase tracking-widest">Uncategorized</span>
+                            </div>
+                        </td>
+                    </tr>
+                )}
+                {node.nodes.map(node => (
+                    <NodeRow
+                        key={node.id}
+                        node={node}
+                        onClick={onClickNode}
+                        level={0}
+                    />
+                ))}
+            </>
+        );
+    }
 
     return (
         <>
@@ -155,26 +199,27 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
                 <td className="px-6 py-2" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
                     <div className="flex items-center gap-2">
                         <Icon
-                            name={isExpanded ? 'down' : 'play'}
+                            name={isExpanded ? 'expand_more' : 'chevron_right'}
                             size={14}
                             className="text-gray-500 opacity-60"
                         />
                         <Icon name="folder_code" size={16} className="text-brand/70" />
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{name}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-gray-500 border border-gray-600/50 font-mono">
-                            {node.nodes.length + Object.keys(node.children).length}
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{node.name}</span>
+                        <div className="h-px flex-1 bg-gray-700 opacity-30 mx-2" />
+                        <span className="text-[9px] font-bold text-gray-500 opacity-50 tabular-nums">
+                            {countNodes(node)}
                         </span>
                     </div>
                 </td>
             </tr>
             {isExpanded && (
                 <>
-                    {Object.entries(node.children).map(([childName, childNode]) => (
+                    {Object.entries(node.children).map(([childKey, childNode]) => (
                         <CategoryRows
-                            key={childName}
-                            name={childName}
+                            key={childKey}
+                            name={childNode.name}
                             node={childNode}
-                            path={`${path}|${childName}`}
+                            path={`${path}|${childNode.name}`}
                             level={level + 1}
                             expandedCategories={expandedCategories}
                             onToggle={onToggle}
@@ -194,6 +239,15 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
         </>
     );
 };
+
+function countNodes(node: CategoryTreeNode<NodeType>): number {
+    let count = (node?.nodes || []).length;
+    const children = node?.children || {};
+    for (const child of Object.values(children)) {
+        if (child) count += countNodes(child);
+    }
+    return count;
+}
 
 
 

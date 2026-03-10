@@ -12,237 +12,6 @@ interface AdminNodeLibraryProps {
     refreshTrigger?: number;
 }
 
-// --- Recursive category section -----------------------------------------------
-
-interface CategorySectionProps {
-    path: string;         // full path, e.g. "AI|Chat"
-    label: string;        // last segment, e.g. "Chat"
-    node: CategoryTreeNode<NodeType>;
-    depth: number;
-    onEditNode: (n: NodeType) => void;
-    onDuplicateNode: (n: NodeType) => void;
-    onDeleteNode: (n: NodeType) => void;
-    selectedNodeId: string | null;
-    onSelectNode: (id: string) => void;
-    searchQuery: string;
-}
-
-const CategorySection: React.FC<CategorySectionProps> = ({
-    path, label, node, depth, onEditNode, onDuplicateNode, onDeleteNode,
-    selectedNodeId, onSelectNode, searchQuery,
-}) => {
-    const [collapsed, setCollapsed] = useState(() => {
-        return localStorage.getItem(`cat_collapsed_${path}`) === 'true';
-    });
-
-    const toggleCollapsed = () => {
-        setCollapsed(prev => {
-            const next = !prev;
-            localStorage.setItem(`cat_collapsed_${path}`, String(next));
-            return next;
-        });
-    };
-
-    const hasChildren = Object.keys(node.children).length > 0;
-    const hasNodes = node.nodes.length > 0;
-    const isRoot = depth === 0;
-
-    const indentPx = depth * 20;
-
-    return (
-        <div className="space-y-2">
-            {/* Category header */}
-            <button
-                className="flex items-center gap-3 w-full text-left px-2 py-1 rounded-xl hover:bg-[var(--border-muted)]/50 transition-colors group"
-                style={{ paddingLeft: `${indentPx + 8}px` }}
-                onClick={toggleCollapsed}
-            >
-                <span
-                    className={`transition-transform duration-200 ${collapsed ? '-rotate-90' : ''} opacity-40 group-hover:opacity-80`}
-                >
-                    <Icon name="expand_more" size={14} />
-                </span>
-                <h2 className={`font-bold uppercase tracking-[0.15em] ${isRoot
-                    ? 'text-[11px] text-brand'
-                    : 'text-[10px] text-[var(--text-muted)]'
-                    }`}>
-                    {label}
-                </h2>
-                <div className="h-px flex-1 bg-[var(--border-base)] opacity-30" />
-                <span className="text-[9px] font-bold text-[var(--text-muted)] opacity-30 tabular-nums">
-                    {countNodes(node)}
-                </span>
-            </button>
-
-            {/* Content - animated collapse */}
-            <div
-                className="overflow-hidden transition-all duration-300 ease-in-out"
-                style={{ maxHeight: collapsed ? 0 : '9999px', opacity: collapsed ? 0 : 1 }}
-            >
-                {/* Subcategories */}
-                {hasChildren && (
-                    <div className={`space-y-3 ${hasNodes ? 'mb-4' : ''}`}>
-                        {Object.entries(node.children)
-                            .sort(([a], [b]) => a.localeCompare(b))
-                            .map(([childLabel, childNode]) => (
-                                <CategorySection
-                                    key={`${path}|${childLabel}`}
-                                    path={`${path}|${childLabel}`}
-                                    label={childLabel}
-                                    node={childNode}
-                                    depth={depth + 1}
-                                    onEditNode={onEditNode}
-                                    onDuplicateNode={onDuplicateNode}
-                                    onDeleteNode={onDeleteNode}
-                                    selectedNodeId={selectedNodeId}
-                                    onSelectNode={onSelectNode}
-                                    searchQuery={searchQuery}
-                                />
-                            ))}
-                    </div>
-                )}
-
-                {/* Nodes table */}
-                {hasNodes && (
-                    <div
-                        className="bg-surface-800 rounded-2xl border border-[var(--border-base)] overflow-hidden shadow-xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5"
-                        style={{ marginLeft: `${indentPx}px` }}
-                    >
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
-                                    <th className="px-5 py-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Name</th>
-                                    <th className="px-5 py-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Version</th>
-                                    <th className="px-5 py-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Description</th>
-                                    <th className="px-5 py-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider text-right opacity-60">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[var(--border-base)]">
-                                {node.nodes
-                                    .sort((a, b) => a.name.localeCompare(b.name))
-                                    .map(n => (
-                                        <tr
-                                            key={n.id}
-                                            className={`hover:bg-[var(--border-muted)]/50 transition-colors group cursor-pointer ${selectedNodeId === n.id ? 'bg-brand/5' : ''}`}
-                                            onClick={() => { onSelectNode(n.id); onEditNode(n); }}
-                                        >
-                                            <td className="px-5 py-3">
-                                                <div className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors">{n.name}</div>
-                                            </td>
-                                            <td className="px-5 py-3">
-                                                <span className="text-xs font-mono text-brand/70 group-hover:text-brand transition-colors font-bold">v{n.version}</span>
-                                            </td>
-                                            <td className="px-5 py-3">
-                                                <div className="text-sm text-[var(--text-muted)] opacity-60 group-hover:opacity-100 transition-opacity line-clamp-1 max-w-md">
-                                                    {n.description || <span className="italic opacity-30">No description</span>}
-                                                </div>
-                                            </td>
-                                            <td className="px-5 py-3 text-right">
-                                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
-                                                        onClick={(e) => { e.stopPropagation(); onDuplicateNode(n); }}
-                                                        title="Duplicate"
-                                                    >
-                                                        <Icon name="content_copy" size={13} />
-                                                    </button>
-                                                    <button
-                                                        className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
-                                                        onClick={(e) => { e.stopPropagation(); onDeleteNode(n); }}
-                                                        title="Delete"
-                                                    >
-                                                        <Icon name="delete" size={13} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-function countNodes(node: CategoryTreeNode<NodeType>): number {
-    let count = node.nodes.length;
-    for (const child of Object.values(node.children)) count += countNodes(child);
-    return count;
-}
-
-// --- Flat search results ----------------------------------------------------
-
-interface SearchResultsProps {
-    nodes: NodeType[];
-    onEditNode: (n: NodeType) => void;
-    onDuplicateNode: (n: NodeType) => void;
-    onDeleteNode: (n: NodeType) => void;
-    selectedNodeId: string | null;
-    onSelectNode: (id: string) => void;
-}
-
-const SearchResults: React.FC<SearchResultsProps> = ({ nodes, onEditNode, onDuplicateNode, onDeleteNode, selectedNodeId, onSelectNode }) => (
-    <div className="bg-surface-800 rounded-2xl border border-[var(--border-base)] overflow-hidden shadow-xl ring-1 ring-black/5 dark:ring-white/5">
-        <table className="w-full text-left border-collapse">
-            <thead>
-                <tr className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
-                    <th className="px-5 py-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Name</th>
-                    <th className="px-5 py-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Category</th>
-                    <th className="px-5 py-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Description</th>
-                    <th className="px-5 py-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider text-right opacity-60">Actions</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-base)]">
-                {nodes.map(n => (
-                    <tr
-                        key={n.id}
-                        className={`hover:bg-[var(--border-muted)]/50 transition-colors group cursor-pointer ${selectedNodeId === n.id ? 'bg-brand/5' : ''}`}
-                        onClick={() => { onSelectNode(n.id); onEditNode(n); }}
-                    >
-                        <td className="px-5 py-3">
-                            <div className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors">{n.name}</div>
-                        </td>
-                        <td className="px-5 py-3">
-                            <span className="text-[10px] font-mono text-[var(--text-muted)] opacity-60 group-hover:opacity-90">
-                                {n.category?.split('|').join(' > ') || '-'}
-                            </span>
-                        </td>
-                        <td className="px-5 py-3">
-                            <div className="text-sm text-[var(--text-muted)] opacity-60 group-hover:opacity-100 transition-opacity line-clamp-1 max-w-md">
-                                {n.description || <span className="italic opacity-30">No description</span>}
-                            </div>
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                    className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
-                                    onClick={(e) => { e.stopPropagation(); onDuplicateNode(n); }}
-                                    title="Duplicate"
-                                >
-                                    <Icon name="content_copy" size={13} />
-                                </button>
-                                <button
-                                    className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
-                                    onClick={(e) => { e.stopPropagation(); onDeleteNode(n); }}
-                                    title="Delete"
-                                >
-                                    <Icon name="delete" size={13} />
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                ))}
-                {nodes.length === 0 && (
-                    <tr><td colSpan={4} className="px-5 py-12 text-center text-sm text-[var(--text-muted)] opacity-40 italic">No nodes match your search</td></tr>
-                )}
-            </tbody>
-        </table>
-    </div>
-);
-
-// --- Main component -----------------------------------------------------------
 
 export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, onDuplicateNode, refreshTrigger = 0 }) => {
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
@@ -260,10 +29,28 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, 
         setSearchQueryState(query);
     };
 
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => {
+        const saved = getCookie('node_expanded_categories');
+        if (saved) return new Set(JSON.parse(saved));
+        return new Set();
+    });
+
+    const toggleCategory = (path: string) => {
+        setExpandedCategories(prev => {
+            const next = new Set(prev);
+            if (next.has(partLower(path))) next.delete(partLower(path));
+            else next.add(partLower(path));
+            setCookie('node_expanded_categories', JSON.stringify(Array.from(next)));
+            return next;
+        });
+    };
+
+    const partLower = (p: string) => p.toLowerCase();
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            const { data } = await apiClient.get('/admin/node-types');
+            const { data } = await apiClient.get<NodeType[]>('/admin/node-types');
             setNodeTypes(data);
         } catch {
             // Error handling
@@ -274,19 +61,22 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, 
 
     useEffect(() => { fetchData(); }, [refreshTrigger]);
 
-    const categoryTree = useMemo(() => buildCategoryTree<NodeType>(nodeTypes), [nodeTypes]);
+    const filteredNodes = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return nodeTypes;
 
-    const searchResults = useMemo(() => {
-        if (!searchQuery.trim()) return [];
-        const q = searchQuery.toLowerCase();
-        return nodeTypes.filter(n =>
-            n.name.toLowerCase().includes(q) ||
-            (n.category && n.category.toLowerCase().includes(q)) ||
-            (n.description && n.description.toLowerCase().includes(q))
-        ).sort((a, b) => a.name.localeCompare(b.name));
+        return nodeTypes.filter(n => {
+            const inName = n.name.toLowerCase().includes(q);
+            const inCategory = n.category?.toLowerCase().includes(q);
+            const inDesc = n.description?.toLowerCase().includes(q);
+            return inName || inCategory || inDesc;
+        });
     }, [nodeTypes, searchQuery]);
 
-    const isSearching = searchQuery.trim().length > 0;
+    const categoryTree = useMemo(() => {
+        if (searchQuery.trim()) return null;
+        return buildCategoryTree<NodeType>(nodeTypes);
+    }, [nodeTypes, searchQuery]);
 
     const handleConfirmDelete = async () => {
         if (nodeToDelete) {
@@ -311,7 +101,6 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, 
 
     return (
         <div className="space-y-4">
-            {/* Search bar */}
             <div className="relative">
                 <Icon name="search" size={14} className="absolute left-4 top-1/2 -translate-y-1/2 opacity-40 text-[var(--text-main)]" />
                 <input
@@ -330,42 +119,56 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, 
                 )}
             </div>
 
-            {/* Either search results or the full category tree */}
-            {isSearching ? (
-                <div className="space-y-3 animate-in fade-in duration-200">
-                    <div className="px-2 text-[10px] font-black text-brand uppercase tracking-widest opacity-60">
-                        {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
-                    </div>
-                    <SearchResults
-                        nodes={searchResults}
-                        onEditNode={onEditNode}
-                        onDuplicateNode={onDuplicateNode}
-                        onDeleteNode={setNodeToDelete}
-                        selectedNodeId={selectedNodeId}
-                        onSelectNode={setSelectedNodeId}
-                    />
-                </div>
-            ) : (
-                <div className="space-y-6">
-                    {Object.entries(categoryTree)
-                        .sort(([a], [b]) => a.localeCompare(b))
-                        .map(([label, node]) => (
-                            <CategorySection
-                                key={label}
-                                path={label}
-                                label={label}
-                                node={node}
-                                depth={0}
-                                onEditNode={onEditNode}
-                                onDuplicateNode={onDuplicateNode}
-                                onDeleteNode={setNodeToDelete}
-                                selectedNodeId={selectedNodeId}
-                                onSelectNode={setSelectedNodeId}
-                                searchQuery={searchQuery}
-                            />
-                        ))}
-                </div>
-            )}
+            <div className="bg-surface-800 rounded-2xl border border-gray-700/50 overflow-hidden shadow-xl shadow-black/10">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="border-b border-gray-700 bg-surface-900/50">
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Name</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Version</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Description</th>
+                            <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700/50">
+                        {searchQuery.trim() ? (
+                            filteredNodes.map(node => (
+                                <NodeRow
+                                    key={node.id}
+                                    node={node}
+                                    onEdit={onEditNode}
+                                    onDuplicate={onDuplicateNode}
+                                    onDelete={setNodeToDelete}
+                                    isSelected={selectedNodeId === node.id}
+                                    onSelect={setSelectedNodeId}
+                                />
+                            ))
+                        ) : (
+                            categoryTree && (
+                                <CategoryRows
+                                    name="Uncategorized"
+                                    node={categoryTree}
+                                    path=""
+                                    level={-1}
+                                    expandedCategories={expandedCategories}
+                                    onToggle={toggleCategory}
+                                    onEdit={onEditNode}
+                                    onDuplicate={onDuplicateNode}
+                                    onDelete={setNodeToDelete}
+                                    selectedNodeId={selectedNodeId}
+                                    onSelectNode={setSelectedNodeId}
+                                />
+                            )
+                        )}
+                        {filteredNodes.length === 0 && (
+                            <tr>
+                                <td colSpan={4} className="px-6 py-12 text-center text-gray-500 italic text-sm">
+                                    No nodes matching your criteria.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
 
             <ConfirmModal
                 isOpen={!!nodeToDelete}
@@ -378,3 +181,208 @@ export const AdminNodeLibrary: React.FC<AdminNodeLibraryProps> = ({ onEditNode, 
         </div>
     );
 };
+
+interface NodeRowProps {
+    node: NodeType;
+    onEdit: (node: NodeType) => void;
+    onDuplicate: (node: NodeType) => void;
+    onDelete: (node: NodeType) => void;
+    level?: number;
+    isSelected?: boolean;
+    onSelect?: (id: string) => void;
+}
+
+const NodeRow: React.FC<NodeRowProps> = ({ node, onEdit, onDuplicate, onDelete, level = 0, isSelected, onSelect }) => (
+    <tr
+        onClick={() => { onSelect?.(node.id); onEdit(node); }}
+        className={`group hover:bg-brand/5 transition-colors cursor-pointer ${isSelected ? 'bg-brand/5' : ''}`}
+    >
+        <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
+            <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-surface-700 text-brand group-hover:bg-brand group-hover:text-white transition-colors">
+                    <Icon name={node.icon || 'extension'} size={18} />
+                </div>
+                <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
+                        {node.name}
+                    </span>
+                </div>
+            </div>
+        </td>
+        <td className="px-6 py-4">
+            <span className="text-xs font-mono text-brand/70 font-bold">v{node.version}</span>
+        </td>
+        <td className="px-6 py-4">
+            <span className="text-sm text-[var(--text-muted)] opacity-60 group-hover:opacity-100 transition-opacity line-clamp-1 max-w-md">
+                {node.description || <span className="italic opacity-30">No description</span>}
+            </span>
+        </td>
+        <td className="px-6 py-4 text-right">
+            <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDuplicate(node);
+                    }}
+                    className="p-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors text-gray-400"
+                    title="Duplicate"
+                >
+                    <Icon name="content_copy" size={16} />
+                </button>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(node);
+                    }}
+                    className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400"
+                    title="Delete"
+                >
+                    <Icon name="delete" size={16} />
+                </button>
+            </div>
+        </td>
+    </tr>
+);
+
+interface CategoryRowsProps {
+    name: string;
+    node: CategoryTreeNode<NodeType>;
+    path: string;
+    level: number;
+    expandedCategories: Set<string>;
+    onToggle: (path: string) => void;
+    onEdit: (node: NodeType) => void;
+    onDelete: (node: NodeType) => void;
+    onDuplicate: (node: NodeType) => void;
+    selectedNodeId: string | null;
+    onSelectNode: (id: string) => void;
+}
+
+const CategoryRows: React.FC<CategoryRowsProps> = ({
+    name,
+    node,
+    path,
+    level,
+    expandedCategories,
+    onToggle,
+    onEdit,
+    onDelete,
+    onDuplicate,
+    selectedNodeId,
+    onSelectNode
+}) => {
+    const isRoot = name === "Uncategorized";
+    const pathLower = path.toLowerCase();
+    const isExpanded = isRoot || expandedCategories.has(pathLower);
+
+    if (isRoot) {
+        return (
+            <>
+                {Object.entries(node.children).map(([childKey, childNode]) => (
+                    <CategoryRows
+                        key={childKey}
+                        name={childNode.name}
+                        node={childNode}
+                        path={childNode.name}
+                        level={0}
+                        expandedCategories={expandedCategories}
+                        onToggle={onToggle}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onDuplicate={onDuplicate}
+                        selectedNodeId={selectedNodeId}
+                        onSelectNode={onSelectNode}
+                    />
+                ))}
+                {node.nodes.length > 0 && (
+                    <tr className="bg-surface-900/10 border-l-2 border-gray-700/30">
+                        <td colSpan={4} className="px-6 py-1.5 opacity-40">
+                            <div className="flex items-center gap-2">
+                                <Icon name="folder_open" size={14} />
+                                <span className="text-[10px] font-bold uppercase tracking-widest">Uncategorized</span>
+                            </div>
+                        </td>
+                    </tr>
+                )}
+                {node.nodes.map(node => (
+                    <NodeRow
+                        key={node.id}
+                        node={node}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onDuplicate={onDuplicate}
+                        level={0}
+                        isSelected={node.id === selectedNodeId}
+                        onSelect={onSelectNode}
+                    />
+                ))}
+            </>
+        );
+    }
+
+    return (
+        <>
+            <tr
+                className="bg-surface-900/30 hover:bg-surface-700/50 cursor-pointer transition-colors border-l-2 border-brand/30"
+                onClick={() => onToggle(path)}
+            >
+                <td colSpan={4} className="px-6 py-2" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
+                    <div className="flex items-center gap-2">
+                        <Icon
+                            name={isExpanded ? 'expand_more' : 'chevron_right'}
+                            size={14}
+                            className="text-gray-500 opacity-60"
+                        />
+                        <Icon name="folder_code" size={16} className="text-brand/70" />
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{node.name}</span>
+                        <div className="h-px flex-1 bg-gray-700 opacity-30 mx-2" />
+                        <span className="text-[9px] font-bold text-gray-500 opacity-50 tabular-nums">
+                            {countNodes(node)}
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            {isExpanded && (
+                <>
+                    {Object.entries(node.children).map(([childKey, childNode]) => (
+                        <CategoryRows
+                            key={childKey}
+                            name={childNode.name}
+                            node={childNode}
+                            path={`${path}|${childNode.name}`}
+                            level={level + 1}
+                            expandedCategories={expandedCategories}
+                            onToggle={onToggle}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                            onDuplicate={onDuplicate}
+                            selectedNodeId={selectedNodeId}
+                            onSelectNode={onSelectNode}
+                        />
+                    ))}
+                    {node.nodes.map(node => (
+                        <NodeRow
+                            key={node.id}
+                            node={node}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                            onDuplicate={onDuplicate}
+                            level={level + 1}
+                            isSelected={node.id === selectedNodeId}
+                            onSelect={onSelectNode}
+                        />
+                    ))}
+                </>
+            )}
+        </>
+    );
+};
+
+function countNodes(node: CategoryTreeNode<NodeType>): number {
+    let count = (node?.nodes || []).length;
+    const children = node?.children || {};
+    for (const child of Object.values(children)) {
+        if (child) count += countNodes(child);
+    }
+    return count;
+}

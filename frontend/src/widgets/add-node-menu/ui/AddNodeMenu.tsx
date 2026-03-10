@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
-import { buildCategoryTree, type CategoryTree } from '../../../shared/lib/categoryUtils';
+import { buildCategoryTree } from '../../../shared/lib/categoryUtils';
 import { SelectionList, type SelectionGroup, type SelectionItem } from '../../../shared/ui/selection-list';
 
 interface AddNodeMenuProps {
@@ -18,28 +18,53 @@ export const AddNodeMenu: React.FC<AddNodeMenuProps> = ({ clientX, clientY, node
     const categoryTree = useMemo(() => buildCategoryTree(nodeTypes), [nodeTypes]);
 
     const selectionData = useMemo(() => {
-        const transform = (tree: CategoryTree): Record<string, SelectionGroup> => {
+        const transform = (node: any): Record<string, SelectionGroup> => {
             const data: Record<string, SelectionGroup> = {};
-            Object.entries(tree).forEach(([label, node]) => {
-                data[label] = {
-                    id: label,
-                    name: label,
-                    selectable: false, // Groups are not selectable in add node menu
+
+            // Add sub-categories
+            Object.entries(node.children || {}).forEach(([key, child]: [string, any]) => {
+                data[child.name] = {
+                    id: key,
+                    name: child.name,
+                    selectable: false,
                     icon: 'folder',
-                    items: node.nodes.map(nt => ({
+                    items: child.nodes.map((nt: NodeType) => ({
                         id: nt.id,
                         name: nt.name,
                         description: nt.description,
-                        parentId: label,
+                        parentId: key,
                         selectable: true,
                         icon: nt.icon || 'task'
                     })),
-                    children: transform(node.children)
+                    children: transform(child)
                 };
             });
+
             return data;
         };
-        return transform(categoryTree);
+
+        const rootData = transform(categoryTree);
+
+        // If there are nodes in the root (uncategorized), add them in a special group
+        if (categoryTree && categoryTree.nodes && categoryTree.nodes.length > 0) {
+            rootData['General'] = {
+                id: 'root-nodes',
+                name: 'General',
+                selectable: false,
+                icon: 'category',
+                items: categoryTree.nodes.map(nt => ({
+                    id: nt.id,
+                    name: nt.name,
+                    description: nt.description,
+                    parentId: 'root-nodes',
+                    selectable: true,
+                    icon: nt.icon || 'task'
+                })),
+                children: {}
+            };
+        }
+
+        return rootData;
     }, [categoryTree]);
 
     const handleSelect = (item: SelectionItem) => {

@@ -19,10 +19,10 @@ def get_metadata(entity_type: str, entity_id: str, key: str) -> str:
         # Convert string ID to UUID if needed
         entity_uuid = uuid.UUID(entity_id) if isinstance(entity_id, str) else entity_id
         
-        # Query meta_assignments for this entity, joining with records
+        # Query meta_assignments for this entity, joining with records and schemas
         assignments = (
             db.query(MetaAssignment)
-            .options(joinedload(MetaAssignment.record))
+            .options(joinedload(MetaAssignment.record).joinedload(Record.schema))
             .filter(
                 MetaAssignment.entity_type == entity_type,
                 MetaAssignment.entity_id == entity_uuid
@@ -33,10 +33,14 @@ def get_metadata(entity_type: str, entity_id: str, key: str) -> str:
         values = []
         for assignment in assignments:
             if assignment.record and assignment.record.data:
-                # Check if the key exists in the record's data
+                # 1. Check if the key exists in the record's data directly
                 if key in assignment.record.data:
                     value = assignment.record.data[key]
                     values.append(value)
+                # 2. Check if the record's schema key matches the requested key
+                # This allows retrieving the whole record if the key is the schema name
+                elif assignment.record.schema and assignment.record.schema.key == key:
+                    values.append(assignment.record.data)
         
         # Logic for returning values:
         # - 0 values: return json.dumps(None)
