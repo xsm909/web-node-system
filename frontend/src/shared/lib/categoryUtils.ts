@@ -16,7 +16,7 @@ function makeEmptyNode<T>(name: string = ''): CategoryTreeNode<T> {
  * Returns a single root node containing all schemas and sub-categories.
  */
 export function buildCategoryTree<T extends { category?: string | null, key: string, content?: any }>(nodes: T[]): CategoryTreeNode<T> {
-    const root = makeEmptyNode<T>('Root');
+    const root = makeEmptyNode<T>('Uncategorized');
 
     // First pass: build the tree structure
     for (const node of nodes) {

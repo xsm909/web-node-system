@@ -61,26 +61,31 @@ def update_schema(
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
 
-    if schema_in.key and schema_in.key != schema.key:
-        if db.query(Schema).filter(Schema.key == schema_in.key).first():
-            raise HTTPException(status_code=400, detail="Schema key already exists")
-        schema.key = schema_in.key
+    update_data = schema_in.model_dump(exclude_unset=True)
     
-    if schema_in.content is not None:
-        schema.content = schema_in.content
-    if schema_in.category is not None:
-        schema.category = schema_in.category
+    if "key" in update_data and update_data["key"] != schema.key:
+        if db.query(Schema).filter(Schema.key == update_data["key"]).first():
+            raise HTTPException(status_code=400, detail="Schema key already exists")
+        schema.key = update_data["key"]
+    
+    if "content" in update_data:
+        schema.content = update_data["content"]
+        
+    if "category" in update_data:
+        schema.category = update_data["category"]
         # Auto-update tags if category changed and meta is being updated or exists
         if schema.meta is None:
             schema.meta = {}
-        tags = [t.strip().lower() for t in schema_in.category.split('|') if t.strip()]
+        
+        category_val = update_data["category"] or ""
+        tags = [t.strip().lower() for t in category_val.split('|') if t.strip()]
         schema.meta = {**schema.meta, "tags": tags}
     
-    if schema_in.meta is not None:
-        schema.meta = schema_in.meta
+    if "meta" in update_data:
+        schema.meta = update_data["meta"]
         
-    if schema_in.is_system is not None:
-        schema.is_system = schema_in.is_system
+    if "is_system" in update_data:
+        schema.is_system = update_data["is_system"]
 
     db.commit()
     db.refresh(schema)

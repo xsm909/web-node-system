@@ -221,7 +221,7 @@ export const AdminSchemaManagement: React.FC = () => {
                         ) : (
                             schemaTree && (
                                 <CategoryRows
-                                    name="Root"
+                                    name="Uncategorized"
                                     node={schemaTree}
                                     path=""
                                     level={-1}
@@ -368,8 +368,8 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
     onDelete,
     onDuplicate
 }) => {
-    const isRoot = name === "Root";
-    const isExpanded = isRoot || expandedCategories.has(path);
+    const isRoot = name === "Uncategorized";
+    const isExpanded = name === "Uncategorized" || expandedCategories.has(path);
     const totalCount = countTotalNodes(node);
 
     if (isRoot) {
@@ -389,6 +389,16 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
                         onDuplicate={onDuplicate}
                     />
                 ))}
+                {node.nodes.length > 0 && (
+                    <tr className="bg-surface-900/10 border-l-2 border-gray-700/30">
+                        <td colSpan={4} className="px-6 py-1.5 opacity-40">
+                            <div className="flex items-center gap-2">
+                                <Icon name="folder_open" size={14} />
+                                <span className="text-[10px] font-bold uppercase tracking-widest">Uncategorized</span>
+                            </div>
+                        </td>
+                    </tr>
+                )}
                 {node.nodes.map(schema => (
                     <SchemaRow
                         key={schema.id}
