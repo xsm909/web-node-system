@@ -107,10 +107,16 @@ function ReferenceWidget(props: WidgetProps) {
     }, [recordId, schemaKey]);
 
     const handleOpenChange = (open: boolean) => {
-        if (open) {
+        if (open && references.length === 0) {
             fetchReferences();
         }
     };
+
+    React.useEffect(() => {
+        if (value && references.length === 0) {
+            fetchReferences();
+        }
+    }, [value, fetchReferences, references.length]);
 
     const items = React.useMemo(() => {
         console.log("[ReferenceWidget] Processing references count:", references.length);
