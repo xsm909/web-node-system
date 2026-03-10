@@ -275,32 +275,63 @@ function ObjectFieldTemplate(props: ObjectFieldTemplateProps) {
 // by ArrayFieldItemTemplate. We style each individual item here.
 function ArrayFieldItemTemplate(props: any) {
     const {
-        children,
-        hasMoveUp, hasMoveDown, hasRemove,
-        index,
-        onReorderClick, onDropIndexClick,
+        children, index, onDropIndexClick, onReorderClick,
+        disabled, readonly, hasRemove, hasMoveUp, hasMoveDown,
+        buttonsProps // Special object containing handlers in this RJSF version
     } = props;
+
+    // Search for handlers in standard props or the buttonsProps override
+    const drop = onDropIndexClick || buttonsProps?.onDropIndexClick || buttonsProps?.onRemoveItem;
+    const reorder = onReorderClick || buttonsProps?.onReorderClick;
+    const moveUp = buttonsProps?.onMoveUpItem;
+    const moveDown = buttonsProps?.onMoveDownItem;
+
+    const hasRem = hasRemove || buttonsProps?.hasRemove || (!!drop);
+    const canMoveUp = hasMoveUp || buttonsProps?.hasMoveUp || (!!moveUp);
+    const canMoveDown = hasMoveDown || buttonsProps?.hasMoveDown || (!!moveDown);
+
     return (
-        <div className="flex items-start gap-2 p-2 rounded-lg bg-surface-900/50 border border-gray-700/50">
-            <div className="flex-1">{children}</div>
-            <div className="flex gap-0.5 mt-0.5 shrink-0">
-                {hasMoveUp && (
-                    <button type="button" onClick={onReorderClick(index, index - 1)}
-                        className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--text-main)] hover:bg-surface-700 transition-colors">
-                        <Icon name="up" size={14} />
-                    </button>
-                )}
-                {hasMoveDown && (
-                    <button type="button" onClick={onReorderClick(index, index + 1)}
-                        className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--text-main)] hover:bg-surface-700 transition-colors">
-                        <Icon name="down" size={14} />
-                    </button>
-                )}
-                {hasRemove && (
-                    <button type="button" onClick={onDropIndexClick(index)}
-                        className="p-1.5 rounded-lg text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-colors">
-                        <Icon name="delete" size={14} />
-                    </button>
+        <div className="group relative mb-4">
+            <div className="p-4 rounded-2xl bg-surface-950/20 border border-gray-800/50 transition-all group-hover:border-brand/40 group-hover:bg-surface-950/40 shadow-sm relative">
+                {children}
+
+                {/* "Chelka" (hover tab) at the bottom right */}
+                {!(disabled || readonly) && (
+                    <div className="absolute bottom-0 right-6 translate-y-1/2 hidden group-hover:flex items-center gap-1 px-3 py-1.5 bg-[var(--bg-app)] border-2 border-brand/50 rounded-2xl shadow-2xl z-[100] pointer-events-auto animate-in fade-in zoom-in-95 duration-200">
+                        {reorder && canMoveUp && (
+                            <button type="button" onClick={() => reorder(index, index - 1)()} className="p-1 rounded-lg text-[var(--test-muted)] hover:text-brand hover:bg-brand/10 transition-colors">
+                                <Icon name="up" size={16} />
+                            </button>
+                        )}
+                        {!reorder && moveUp && (
+                            <button type="button" onClick={() => moveUp(index)()} className="p-1 rounded-lg text-[var(--test-muted)] hover:text-brand hover:bg-brand/10 transition-colors">
+                                <Icon name="up" size={16} />
+                            </button>
+                        )}
+                        {reorder && canMoveDown && (
+                            <button type="button" onClick={() => reorder(index, index + 1)()} className="p-1 rounded-lg text-[var(--test-muted)] hover:text-brand hover:bg-brand/10 transition-colors">
+                                <Icon name="down" size={16} />
+                            </button>
+                        )}
+                        {!reorder && moveDown && (
+                            <button type="button" onClick={() => moveDown(index)()} className="p-1 rounded-lg text-[var(--test-muted)] hover:text-brand hover:bg-brand/10 transition-colors">
+                                <Icon name="down" size={16} />
+                            </button>
+                        )}
+                        {(reorder || moveUp || moveDown) && drop && hasRem && (
+                            <div className="w-px h-4 bg-[var(--border-base)] mx-1" />
+                        )}
+                        {drop && hasRem && (
+                            <button
+                                type="button"
+                                onClick={() => drop(index)()}
+                                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-red-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            >
+                                <Icon name="delete" size={16} />
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Delete</span>
+                            </button>
+                        )}
+                    </div>
                 )}
             </div>
         </div>
@@ -308,18 +339,18 @@ function ArrayFieldItemTemplate(props: any) {
 }
 
 // ─── Array Field Template ──────────────────────────────────────────────────────
-// items here are already-rendered React elements from ArrayFieldItemTemplate
 function ArrayFieldTemplate(props: ArrayFieldTemplateProps) {
-    const { title, items, canAdd, onAddClick } = props;
+    const { title, items, canAdd, onAddClick, disabled, readonly } = props;
+
     return (
-        <div className="space-y-2">
-            <div className="flex items-center justify-between">
+        <div className="space-y-3">
+            <div className="flex items-center justify-between mb-1">
                 {title && (
                     <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
                         {title}
                     </span>
                 )}
-                {canAdd && (
+                {canAdd && !disabled && !readonly && (
                     <button
                         type="button"
                         onClick={onAddClick}
@@ -330,15 +361,22 @@ function ArrayFieldTemplate(props: ArrayFieldTemplateProps) {
                     </button>
                 )}
             </div>
-            <div className="space-y-1.5">
-                {items.map((item: any) => item)}
+            <div className="space-y-2">
+                {items.map((item: any, idx: number) => (
+                    <div key={item.key || idx}>
+                        {item.children || item.content || item.element || (React.isValidElement(item) ? item : null)}
+                    </div>
+                ))}
             </div>
             {items.length === 0 && (
-                <div className="text-xs text-[var(--text-muted)] italic opacity-50 px-1">No items yet</div>
+                <div className="text-xs text-[var(--text-muted)] italic opacity-50 px-1 py-4 text-center border-2 border-dashed border-gray-800/30 rounded-2xl">
+                    No items yet
+                </div>
             )}
         </div>
     );
 }
+
 
 // ─── Deep Ref Inliner ──────────────────────────────────────────────────────────
 /**
@@ -414,40 +452,40 @@ function inlineRefs(
  * Traverses the schema and collects ui:widget for properties that have x-reference: "record".
  */
 function extractUiSchema(schema: any): any {
-    if (!schema || typeof schema !== 'object') {
-        return {};
-    }
+    if (!schema || typeof schema !== 'object') return {};
 
-    // If this node specifically defines a record reference widget
+    let uiSchema: any = {};
+
     if (schema['x-reference'] === 'record') {
-        return {
-            'ui:widget': 'ReferenceWidget'
-        };
+        uiSchema['ui:widget'] = 'ReferenceWidget';
     }
 
-    // Process object properties
     if (schema.type === 'object' && schema.properties) {
-        const uiSchema: any = {};
         for (const [key, prop] of Object.entries(schema.properties)) {
             const res = extractUiSchema(prop);
             if (Object.keys(res).length > 0) {
                 uiSchema[key] = res;
             }
         }
-        return uiSchema;
-    }
+    } else if (schema.type === 'array') {
+        uiSchema['ui:options'] = {
+            removable: true,
+            addable: true,
+            orderable: true,
+        };
+        // Redundant forced options for different RJSF versions or themes
+        uiSchema['ui:removable'] = true;
+        uiSchema['ui:addable'] = true;
+        uiSchema['ui:orderable'] = true;
 
-    // Process array items
-    if (schema.type === 'array' && schema.items) {
-        const res = extractUiSchema(schema.items);
-        if (Object.keys(res).length > 0) {
-            return {
-                items: res
-            };
+        if (schema.items) {
+            const res = extractUiSchema(schema.items);
+            if (Object.keys(res).length > 0) {
+                uiSchema.items = res;
+            }
         }
     }
-
-    return {};
+    return uiSchema;
 }
 
 // ─── Main RjsfForm Component ───────────────────────────────────────────────────
@@ -475,13 +513,6 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
     assignments = [],
     recordId,
 }) => {
-    console.log("[RjsfForm] Render:", {
-        activeClientId,
-        recordId,
-        assignmentsCount: assignments.length,
-        hasSchema: !!schema
-    });
-
     // Interop safety: check if Form component is valid
     if (typeof Form !== 'function' && typeof Form !== 'object') {
         return (
@@ -491,25 +522,20 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
         );
     }
 
-    // Build the defs map: merge $defs from the schema itself + all extraSchemas.
-    // IMPORTANT: use JSON.stringify as the memo key so we only recompute when the
-    // actual *content* changes, not just because the parent re-rendered and produced
-    // a new object reference for `extraSchemas`. Without this, every `formData`
-    // change would cause RJSF to receive a brand-new schema instance and reset
-    // the form – which was the bug that caused goodies edits not to be saved.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const safeSchema = React.useMemo(() => {
         const base = schema && typeof schema === 'object' ? schema : { type: 'object' };
-
-        // Collect all known defs from the root schema + extraSchemas
         const rootDefs = (base.$defs as any) || (base as any).definitions || {};
         const allDefs: Record<string, any> = { ...rootDefs, ...extraSchemas };
-
-        // Fully inline every $ref so RJSF never has to resolve references itself
         return inlineRefs(base, allDefs);
-        // Stringify deps so memo is stable across equal-content-but-different-reference props
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [JSON.stringify(schema), JSON.stringify(extraSchemas)]);
+
+    console.log("[RjsfForm] Render:", {
+        activeClientId,
+        recordId,
+        assignmentsCount: assignments.length,
+        hasSchema: !!schema
+    });
 
     const extraUiSchema = React.useMemo(() => {
         return extractUiSchema(safeSchema);
@@ -520,41 +546,43 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
         ...(readOnly ? { 'ui:readonly': true } : {}),
         ...extraUiSchema,
         ...uiSchema,
+        // Ensure array controls are enabled
+        ...(safeSchema.type === 'array' ? {
+            'ui:options': { removable: true, addable: true, orderable: true },
+        } : {}),
     };
-    return (
-        <>
-            <Form
-                schema={safeSchema as any}
-                uiSchema={resolvedUiSchema}
-                formData={formData}
-                validator={validator}
-                templates={{
-                    BaseInputTemplate,
-                    FieldTemplate,
-                    ObjectFieldTemplate,
-                    ArrayFieldTemplate,
-                    ArrayFieldItemTemplate,
-                }}
-                widgets={{
-                    TextareaWidget,
-                    SelectWidget,
-                    ReferenceWidget,
-                    CheckboxWidget,
-                }}
-                formContext={{
-                    activeClientId,
-                    assignments,
-                    recordId
-                }}
-                onChange={(e: any) => {
-                    const errors = e.errors ?? [];
-                    onChange(e.formData, errors.length === 0);
-                }}
-                onSubmit={() => { }}
-                liveValidate={false}
-                showErrorList={false}
-            />
 
-        </>
+    return (
+        <Form
+            schema={safeSchema as any}
+            uiSchema={resolvedUiSchema}
+            formData={formData}
+            validator={validator}
+            templates={{
+                BaseInputTemplate,
+                FieldTemplate,
+                ObjectFieldTemplate,
+                ArrayFieldTemplate,
+                ArrayFieldItemTemplate,
+            }}
+            widgets={{
+                TextareaWidget,
+                SelectWidget,
+                ReferenceWidget,
+                CheckboxWidget,
+            }}
+            formContext={{
+                activeClientId,
+                assignments,
+                recordId
+            }}
+            onChange={(e: any) => {
+                const errors = e.errors ?? [];
+                onChange(e.formData, errors.length === 0);
+            }}
+            onSubmit={() => { }}
+            liveValidate={false}
+            showErrorList={false}
+        />
     );
 };
