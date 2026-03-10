@@ -271,24 +271,65 @@ function ObjectFieldTemplate(props: ObjectFieldTemplateProps) {
 }
 
 // ─── Array Field Item Template ────────────────────────────────────────────────
-// In RJSF v6, ArrayFieldTemplate.items are pre-rendered React elements produced
-// by ArrayFieldItemTemplate. We style each individual item here.
+/**
+ * RJSF handlers (especially in different themes/versions) can be either:
+ * 1. Direct calls: handler(index) or handler(event)
+ * 2. Factory calls: handler(index)(event)
+ * This helper ensures we execute whichever one is provided correctly.
+ */
+function safeInvoke(event: React.BaseSyntheticEvent | undefined, handler: any, ...args: any[]) {
+    if (typeof handler !== 'function') return;
+    try {
+        // If it's a factory, it returns a function
+        const result = handler(...args);
+        if (typeof result === 'function') {
+            result(event);
+        }
+        // If it returns nothing (undefined), it might have already executed 
+        // OR it's a direct handler that expects (event, ...args).
+        // Since we can't be sure without risking double-execution, 
+        // we handle the known Direct handlers explicitly in the template.
+    } catch (e) {
+        console.error("[RjsfForm] Action failed:", e);
+    }
+}
+
 function ArrayFieldItemTemplate(props: any) {
     const {
         children, index, onDropIndexClick, onReorderClick,
         disabled, readonly, hasRemove, hasMoveUp, hasMoveDown,
-        buttonsProps // Special object containing handlers in this RJSF version
+        buttonsProps, totalItems
     } = props;
 
-    // Search for handlers in standard props or the buttonsProps override
-    const drop = onDropIndexClick || buttonsProps?.onDropIndexClick || buttonsProps?.onRemoveItem;
-    const reorder = onReorderClick || buttonsProps?.onReorderClick;
-    const moveUp = buttonsProps?.onMoveUpItem;
-    const moveDown = buttonsProps?.onMoveDownItem;
+    // Factories (Standard RJSF)
+    const dropFactory = onDropIndexClick || buttonsProps?.onDropIndexClick;
+    const reorderFactory = onReorderClick || buttonsProps?.onReorderClick;
 
-    const hasRem = hasRemove || buttonsProps?.hasRemove || (!!drop);
-    const canMoveUp = hasMoveUp || buttonsProps?.hasMoveUp || (!!moveUp);
-    const canMoveDown = hasMoveDown || buttonsProps?.hasMoveDown || (!!moveDown);
+    // Direct Handlers (Theme-specific in buttonsProps)
+    const dropDirect = buttonsProps?.onRemoveItem;
+    const upDirect = buttonsProps?.onMoveUpItem;
+    const downDirect = buttonsProps?.onMoveDownItem;
+
+    // Visibility flags
+    const hasRem = hasRemove || buttonsProps?.hasRemove || (!!dropFactory) || (!!dropDirect);
+    const canUp = hasMoveUp || buttonsProps?.hasMoveUp || (index > 0);
+    const canDown = hasMoveDown || buttonsProps?.hasMoveDown || (index < (totalItems ?? props.totalItems ?? 0) - 1);
+
+    const handleAction = (e: React.MouseEvent, type: 'up' | 'down' | 'drop') => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (type === 'drop') {
+            if (dropFactory) safeInvoke(e, dropFactory, index);
+            else if (dropDirect) dropDirect(e);
+        } else if (type === 'up') {
+            if (reorderFactory) safeInvoke(e, reorderFactory, index, index - 1);
+            else if (upDirect) upDirect(e);
+        } else if (type === 'down') {
+            if (reorderFactory) safeInvoke(e, reorderFactory, index, index + 1);
+            else if (downDirect) downDirect(e);
+        }
+    };
 
     return (
         <div className="group relative mb-4">
@@ -298,33 +339,31 @@ function ArrayFieldItemTemplate(props: any) {
                 {/* "Chelka" (hover tab) at the bottom right */}
                 {!(disabled || readonly) && (
                     <div className="absolute bottom-0 right-6 translate-y-1/2 hidden group-hover:flex items-center gap-1 px-3 py-1.5 bg-[var(--bg-app)] border-2 border-brand/50 rounded-2xl shadow-2xl z-[100] pointer-events-auto animate-in fade-in zoom-in-95 duration-200">
-                        {reorder && canMoveUp && (
-                            <button type="button" onClick={() => reorder(index, index - 1)()} className="p-1 rounded-lg text-[var(--test-muted)] hover:text-brand hover:bg-brand/10 transition-colors">
-                                <Icon name="up" size={16} />
-                            </button>
-                        )}
-                        {!reorder && moveUp && (
-                            <button type="button" onClick={() => moveUp(index)()} className="p-1 rounded-lg text-[var(--test-muted)] hover:text-brand hover:bg-brand/10 transition-colors">
-                                <Icon name="up" size={16} />
-                            </button>
-                        )}
-                        {reorder && canMoveDown && (
-                            <button type="button" onClick={() => reorder(index, index + 1)()} className="p-1 rounded-lg text-[var(--test-muted)] hover:text-brand hover:bg-brand/10 transition-colors">
-                                <Icon name="down" size={16} />
-                            </button>
-                        )}
-                        {!reorder && moveDown && (
-                            <button type="button" onClick={() => moveDown(index)()} className="p-1 rounded-lg text-[var(--test-muted)] hover:text-brand hover:bg-brand/10 transition-colors">
-                                <Icon name="down" size={16} />
-                            </button>
-                        )}
-                        {(reorder || moveUp || moveDown) && drop && hasRem && (
-                            <div className="w-px h-4 bg-[var(--border-base)] mx-1" />
-                        )}
-                        {drop && hasRem && (
+                        {canUp && (
                             <button
                                 type="button"
-                                onClick={() => drop(index)()}
+                                onClick={(e) => handleAction(e, 'up')}
+                                className="p-1 rounded-lg text-[var(--test-muted)] hover:text-brand hover:bg-brand/10 transition-colors"
+                            >
+                                <Icon name="up" size={16} />
+                            </button>
+                        )}
+                        {canDown && (
+                            <button
+                                type="button"
+                                onClick={(e) => handleAction(e, 'down')}
+                                className="p-1 rounded-lg text-[var(--test-muted)] hover:text-brand hover:bg-brand/10 transition-colors"
+                            >
+                                <Icon name="down" size={16} />
+                            </button>
+                        )}
+                        {(canUp || canDown) && hasRem && (
+                            <div className="w-px h-4 bg-[var(--border-base)] mx-1" />
+                        )}
+                        {hasRem && (
+                            <button
+                                type="button"
+                                onClick={(e) => handleAction(e, 'drop')}
                                 className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-red-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                             >
                                 <Icon name="delete" size={16} />
