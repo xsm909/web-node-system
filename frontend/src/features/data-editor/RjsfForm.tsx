@@ -414,30 +414,40 @@ function inlineRefs(
  * Traverses the schema and collects ui:widget for properties that have x-reference: "record".
  */
 function extractUiSchema(schema: any): any {
-    if (!schema || typeof schema !== 'object' || schema.type !== 'object' || !schema.properties) {
+    if (!schema || typeof schema !== 'object') {
         return {};
     }
 
-    const uiSchema: any = {};
-    for (const [key, prop] of Object.entries(schema.properties)) {
-        const p = prop as any;
-        if (p['x-reference'] === 'record') {
-            uiSchema[key] = {
-                'ui:widget': 'ReferenceWidget'
-            };
-        } else if (p.type === 'object' && p.properties) {
-            const subUi = extractUiSchema(p);
-            if (Object.keys(subUi).length > 0) {
-                uiSchema[key] = subUi;
-            }
-        } else if (p.type === 'array' && p.items) {
-            const subUi = extractUiSchema(p.items);
-            if (Object.keys(subUi).length > 0) {
-                uiSchema[key] = { items: subUi };
+    // If this node specifically defines a record reference widget
+    if (schema['x-reference'] === 'record') {
+        return {
+            'ui:widget': 'ReferenceWidget'
+        };
+    }
+
+    // Process object properties
+    if (schema.type === 'object' && schema.properties) {
+        const uiSchema: any = {};
+        for (const [key, prop] of Object.entries(schema.properties)) {
+            const res = extractUiSchema(prop);
+            if (Object.keys(res).length > 0) {
+                uiSchema[key] = res;
             }
         }
+        return uiSchema;
     }
-    return uiSchema;
+
+    // Process array items
+    if (schema.type === 'array' && schema.items) {
+        const res = extractUiSchema(schema.items);
+        if (Object.keys(res).length > 0) {
+            return {
+                items: res
+            };
+        }
+    }
+
+    return {};
 }
 
 // ─── Main RjsfForm Component ───────────────────────────────────────────────────
