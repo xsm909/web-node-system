@@ -61,6 +61,15 @@ export const AdminSchemaManagement: React.FC = () => {
         setIsEditing(true);
     };
 
+    const handleDuplicate = (schema: Schema) => {
+        setSelectedSchema(null);
+        setKey(`${schema.key}-copy`);
+        setCategory(schema.category || '');
+        setContent(JSON.stringify(schema.content, null, 2));
+        setIsSystem(false);
+        setIsEditing(true);
+    };
+
     const handleSave = () => {
         try {
             const parsedContent = JSON.parse(content);
@@ -123,7 +132,8 @@ export const AdminSchemaManagement: React.FC = () => {
                             placeholder="Schema Key (e.g., user-profile)"
                             value={key}
                             onChange={e => setKey(e.target.value)}
-                            className="w-1/3 bg-surface-950 border border-gray-700 rounded-lg px-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-brand"
+                            disabled={!!selectedSchema}
+                            className={`w-1/3 bg-surface-950 border border-gray-700 rounded-lg px-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-brand ${selectedSchema ? 'opacity-50 cursor-not-allowed' : ''}`}
                         />
                         <input
                             type="text"
@@ -206,22 +216,22 @@ export const AdminSchemaManagement: React.FC = () => {
                     <tbody className="divide-y divide-gray-700/50">
                         {searchQuery.trim() ? (
                             filteredSchemas.map(schema => (
-                                <SchemaRow key={schema.id} schema={schema} onEdit={handleEdit} onDelete={handleDelete} />
+                                <SchemaRow key={schema.id} schema={schema} onEdit={handleEdit} onDelete={handleDelete} onDuplicate={handleDuplicate} />
                             ))
                         ) : (
-                            schemaTree && Object.entries(schemaTree).map(([name, node]) => (
+                            schemaTree && (
                                 <CategoryRows
-                                    key={name}
-                                    name={name}
-                                    node={node}
-                                    path={name}
-                                    level={0}
+                                    name="Root"
+                                    node={schemaTree}
+                                    path=""
+                                    level={-1}
                                     expandedCategories={expandedCategories}
                                     onToggle={toggleCategory}
                                     onEdit={handleEdit}
                                     onDelete={handleDelete}
+                                    onDuplicate={handleDuplicate}
                                 />
-                            ))
+                            )
                         )}
                         {filteredSchemas.length === 0 && (
                             <tr>
@@ -257,10 +267,11 @@ interface SchemaRowProps {
     schema: Schema;
     onEdit: (schema: Schema) => void;
     onDelete: (id: string, is_system: boolean) => void;
+    onDuplicate: (schema: Schema) => void;
     level?: number;
 }
 
-const SchemaRow: React.FC<SchemaRowProps> = ({ schema, onEdit, onDelete, level = 0 }) => (
+const SchemaRow: React.FC<SchemaRowProps> = ({ schema, onEdit, onDelete, onDuplicate, level = 0 }) => (
     <tr
         onClick={() => onEdit(schema)}
         className="group hover:bg-brand/5 transition-colors cursor-pointer"
@@ -295,18 +306,30 @@ const SchemaRow: React.FC<SchemaRowProps> = ({ schema, onEdit, onDelete, level =
             </span>
         </td>
         <td className="px-6 py-4 text-right">
-            {!schema.is_system && (
+            <div className="flex gap-1 justify-end">
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        onDelete(schema.id, schema.is_system);
+                        onDuplicate(schema);
                     }}
-                    className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400 opacity-0 group-hover:opacity-100"
-                    title="Delete"
+                    className="p-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors text-gray-400 opacity-0 group-hover:opacity-100"
+                    title="Duplicate"
                 >
-                    <Icon name="delete" size={16} />
+                    <Icon name="content_copy" size={16} />
                 </button>
-            )}
+                {!schema.is_system && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(schema.id, schema.is_system);
+                        }}
+                        className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400 opacity-0 group-hover:opacity-100"
+                        title="Delete"
+                    >
+                        <Icon name="delete" size={16} />
+                    </button>
+                )}
+            </div>
         </td>
     </tr>
 );
@@ -320,6 +343,18 @@ interface CategoryRowsProps {
     onToggle: (path: string) => void;
     onEdit: (schema: Schema) => void;
     onDelete: (id: string, is_system: boolean) => void;
+    onDuplicate: (schema: Schema) => void;
+}
+
+/**
+ * Recursively counts all nodes in a category tree node.
+ */
+function countTotalNodes<T>(node: CategoryTreeNode<T>): number {
+    let count = node.nodes.length;
+    for (const child of Object.values(node.children)) {
+        count += countTotalNodes(child);
+    }
+    return count;
 }
 
 const CategoryRows: React.FC<CategoryRowsProps> = ({
@@ -330,9 +365,43 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
     expandedCategories,
     onToggle,
     onEdit,
-    onDelete
+    onDelete,
+    onDuplicate
 }) => {
-    const isExpanded = expandedCategories.has(path);
+    const isRoot = name === "Root";
+    const isExpanded = isRoot || expandedCategories.has(path);
+    const totalCount = countTotalNodes(node);
+
+    if (isRoot) {
+        return (
+            <>
+                {Object.entries(node.children).map(([childKey, childNode]) => (
+                    <CategoryRows
+                        key={childKey}
+                        name={childNode.name}
+                        node={childNode}
+                        path={childKey}
+                        level={0}
+                        expandedCategories={expandedCategories}
+                        onToggle={onToggle}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onDuplicate={onDuplicate}
+                    />
+                ))}
+                {node.nodes.map(schema => (
+                    <SchemaRow
+                        key={schema.id}
+                        schema={schema}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onDuplicate={onDuplicate}
+                        level={0}
+                    />
+                ))}
+            </>
+        );
+    }
 
     return (
         <>
@@ -348,26 +417,27 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
                             className="text-gray-500 opacity-60"
                         />
                         <Icon name="folder_code" size={16} className="text-brand/70" />
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{name}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-gray-500 border border-gray-600/50 font-mono">
-                            {node.nodes.length + Object.keys(node.children).length}
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{node.name}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-gray-400 border border-gray-600/50 font-mono">
+                            {totalCount}
                         </span>
                     </div>
                 </td>
             </tr>
             {isExpanded && (
                 <>
-                    {Object.entries(node.children).map(([childName, childNode]) => (
+                    {Object.entries(node.children).map(([childKey, childNode]) => (
                         <CategoryRows
-                            key={childName}
-                            name={childName}
+                            key={childKey}
+                            name={childNode.name}
                             node={childNode}
-                            path={`${path}|${childName}`}
+                            path={`${path}|${childKey}`}
                             level={level + 1}
                             expandedCategories={expandedCategories}
                             onToggle={onToggle}
                             onEdit={onEdit}
                             onDelete={onDelete}
+                            onDuplicate={onDuplicate}
                         />
                     ))}
                     {node.nodes.map(schema => (
@@ -376,6 +446,7 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
                             schema={schema}
                             onEdit={onEdit}
                             onDelete={onDelete}
+                            onDuplicate={onDuplicate}
                             level={level + 1}
                         />
                     ))}
