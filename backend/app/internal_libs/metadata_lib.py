@@ -6,13 +6,14 @@ from ..core.database import SessionLocal
 from ..models.schema import Record, MetaAssignment
 from .logger_lib import system_log
 
-def get_metadata(entity_type: str, entity_id: str, key: str) -> str:
+def get_metadata(entity_type: str, entity_id: str, key: str, prop: Optional[str] = None) -> str:
     """
     Retrieves metadata by entity_type and entity_id and specific key.
     If multiple records contain the same key, values are gathered into an array.
+    If 'prop' is specified, it extracts that specific property from the found data.
     Returns a JSON string.
     """
-    system_log(f"[METADATA_LIB] Retrieving metadata for entity_type: {entity_type}, entity_id: {entity_id}, key: {key}", level="system")
+    system_log(f"[METADATA_LIB] Retrieving metadata for entity_type: {entity_type}, entity_id: {entity_id}, key: {key}, prop: {prop}", level="system")
     
     db = SessionLocal()
     try:
@@ -33,14 +34,26 @@ def get_metadata(entity_type: str, entity_id: str, key: str) -> str:
         values = []
         for assignment in assignments:
             if assignment.record and assignment.record.data:
+                value = None
+                found = False
+
                 # 1. Check if the key exists in the record's data directly
                 if key in assignment.record.data:
                     value = assignment.record.data[key]
-                    values.append(value)
+                    found = True
                 # 2. Check if the record's schema key matches the requested key
                 # This allows retrieving the whole record if the key is the schema name
                 elif assignment.record.schema and assignment.record.schema.key == key:
-                    values.append(assignment.record.data)
+                    value = assignment.record.data
+                    found = True
+                
+                if found:
+                    if prop:
+                        # Extract specific property if requested and available
+                        if isinstance(value, dict) and prop in value:
+                            values.append(value[prop])
+                    else:
+                        values.append(value)
         
         # Logic for returning values:
         # - 0 values: return json.dumps(None)
@@ -55,7 +68,7 @@ def get_metadata(entity_type: str, entity_id: str, key: str) -> str:
             result = values
             
         json_result = json.dumps(result, ensure_ascii=False)
-        system_log(f"[METADATA_LIB] Result for key '{key}': {json_result}", level="system")
+        system_log(f"[METADATA_LIB] Result for key '{key}' (prop: {prop}): {json_result}", level="system")
         return json_result
 
     except Exception as e:
