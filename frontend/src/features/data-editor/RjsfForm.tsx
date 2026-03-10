@@ -333,7 +333,13 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
         ...uiSchema,
     };
 
-    // Build the defs map: merge $defs from the schema itself + all extraSchemas
+    // Build the defs map: merge $defs from the schema itself + all extraSchemas.
+    // IMPORTANT: use JSON.stringify as the memo key so we only recompute when the
+    // actual *content* changes, not just because the parent re-rendered and produced
+    // a new object reference for `extraSchemas`. Without this, every `formData`
+    // change would cause RJSF to receive a brand-new schema instance and reset
+    // the form – which was the bug that caused goodies edits not to be saved.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const safeSchema = React.useMemo(() => {
         const base = schema && typeof schema === 'object' ? schema : { type: 'object' };
 
@@ -344,7 +350,9 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
         // Fully inline every $ref so RJSF never has to resolve references itself
         const inlined = inlineRefs(base, allDefs);
         return inlined;
-    }, [schema, extraSchemas]);
+        // Stringify deps so memo is stable across equal-content-but-different-reference props
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [JSON.stringify(schema), JSON.stringify(extraSchemas)]);
 
     return (
         <>

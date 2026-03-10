@@ -1,54 +1,85 @@
 import jsonschema
 from sqlalchemy.orm import Session
 from ..models.schema import Schema, ExternalSchemaCache
-from .cache_manager import fetch_and_cache_external_schema
 
-class DatabaseRefResolver(jsonschema.RefResolver):
+
+# ─── Ref Inliner ──────────────────────────────────────────────────────────────
+
+def _inline_refs(node: any, defs: dict, visited: set = None) -> any:
     """
-    Custom RefResolver that uses our database (both local schemas and external cache)
-    to resolve $ref links transparently.
+    Recursively inline all $ref occurrences so jsonschema never has to
+    resolve them at validation time.  Handles:
+      - in-document defs:  "$ref": "#/$defs/goody"  or  "$ref": "#/definitions/goody"
+      - bare DB keys:      "$ref": "goody"   (looked up from the defs map)
+    Strips top-level $schema / $id from sub-schemas to avoid draft-version
+    conflicts inside nested definitions.
+    Uses a visited set to prevent infinite recursion in circular schemas.
     """
-    def __init__(self, db: Session, base_uri: str, referrer: dict):
-        super().__init__(base_uri=base_uri, referrer=referrer)
-        self.db = db
+    if visited is None:
+        visited = set()
 
-    def resolve_remote(self, uri: str):
-        # 1. Check if it's an internal schema key (e.g. "client-profile")
-        # Internal schemas usually don't have http(s) setup so we might just use urn: or key directly
-        # If uri belongs to local registry:
-        internal_schema = self.db.query(Schema).filter(Schema.key == uri).first()
-        if internal_schema:
-            return internal_schema.content
+    if node is None or not isinstance(node, (dict, list)):
+        return node
 
-        # 2. Check if it is cached externally
-        cached = self.db.query(ExternalSchemaCache).filter(ExternalSchemaCache.url == uri).first()
-        if cached:
-            return cached.content
-            
-        # 3. If we enforce Lazy Refresh manually, we should ideally not fetch here unless necessary.
-        # But if the schema is entirely missing, we might have to fetch synchronously (jsonschema resolve_remote is sync)
-        # Note: in a true async environment, this sync call is blocking. The cache should be primed before validation.
-        import requests
-        try:
-            response = requests.get(uri, headers={'Accept': 'application/json'}, timeout=5)
-            response.raise_for_status()
-            data = response.json()
-            # Optimistically cache it synchronously
-            new_cache = ExternalSchemaCache(url=uri, content=data, etag=response.headers.get("etag"))
-            self.db.add(new_cache)
-            self.db.commit()
-            return data
-        except Exception as e:
-            raise jsonschema.exceptions.RefResolutionError(f"Failed to resolve {uri}: {str(e)}")
+    if isinstance(node, list):
+        return [_inline_refs(item, defs, visited) for item in node]
 
+    # ── Resolve $ref ──────────────────────────────────────────────────────────
+    if "$ref" in node and isinstance(node["$ref"], str):
+        ref = node["$ref"]
+        key = None
+        if ref.startswith("#/$defs/"):
+            key = ref[len("#/$defs/"):]
+        elif ref.startswith("#/definitions/"):
+            key = ref[len("#/definitions/"):]
+        elif not ref.startswith("#") and not ref.startswith("http"):
+            # Bare schema key (e.g. "goody" – looked up from defs / DB)
+            key = ref
+
+        if key and key in defs and key not in visited:
+            next_visited = visited | {key}
+            def_body = {k: v for k, v in defs[key].items()
+                        if k not in ("$schema", "$id")}
+            # Merge any sibling keywords from the $ref node itself (rare but valid)
+            siblings = {k: v for k, v in node.items() if k != "$ref"}
+            return _inline_refs({**def_body, **siblings}, defs, next_visited)
+
+    # ── Walk all keys (but don't recurse into $defs/$definitions themselves) ──
+    result = {}
+    for k, v in node.items():
+        result[k] = _inline_refs(v, defs, visited)
+    return result
+
+
+def _build_defs(schema: dict, db: Session) -> dict:
+    """
+    Build a flat map of every definition name → schema body by merging:
+      1. $defs / definitions from the root schema itself
+      2. Every schema stored in the database (keyed by `key`)
+    """
+    root_defs = schema.get("$defs", schema.get("definitions", {})) or {}
+
+    db_schemas = db.query(Schema).all()
+    db_defs = {s.key: s.content for s in db_schemas if s.content}
+
+    # Root schema's own $defs take precedence over DB schemas with the same key
+    return {**db_defs, **root_defs}
+
+
+# ─── Public API ───────────────────────────────────────────────────────────────
 
 def validate_json_data(db: Session, schema: dict, data: dict):
     """
-    Validates a data payload against a given JSON schema, resolving refs from the local database.
+    Validates *data* against *schema*, fully resolving every $ref before
+    handing the schema off to jsonschema so the validator never needs a
+    custom resolver.  Supports:
+      - in-document $defs  ("$ref": "#/$defs/goody")
+      - cross-schema DB refs ("$ref": "goody")
     """
-    resolver = DatabaseRefResolver(db=db, base_uri="", referrer=schema)
     try:
-        jsonschema.validate(instance=data, schema=schema, resolver=resolver)
+        defs = _build_defs(schema, db)
+        inlined_schema = _inline_refs(schema, defs)
+        jsonschema.validate(instance=data, schema=inlined_schema)
         return True, None
     except jsonschema.exceptions.ValidationError as e:
         return False, e.message

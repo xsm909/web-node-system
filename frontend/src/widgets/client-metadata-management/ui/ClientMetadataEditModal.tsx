@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUpdateRecord } from '../../../entities/record/api';
 import { useSchemas } from '../../../entities/schema/api';
 import { Icon } from '../../../shared/ui/icon';
@@ -19,6 +19,9 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
     const { data: schemas } = useSchemas();
     const [formData, setFormData] = useState<any>(undefined);
     const [isValid, setIsValid] = useState(true);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    // Track which record we already seeded so a refetch doesn't reset in-progress edits
+    const seededRecordId = useRef<string | null>(null);
 
     const safeParse = (val: any) => {
         if (val === null || val === undefined) return val;
@@ -43,23 +46,37 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
     const schemaType = schemaContent.type || 'object';
 
     useEffect(() => {
-        if (isOpen && assignment?.record) {
+        const currentRecordId = assignment?.record?.id ?? null;
+        // Only seed formData when the modal opens for a NEW record (or reopens).
+        // Do NOT re-seed on background refetches (assignment ref changes) because
+        // that would wipe out in-progress user edits that haven't been saved yet.
+        const shouldSeed = isOpen && assignment?.record &&
+            (currentRecordId !== seededRecordId.current);
+
+        if (!isOpen) {
+            // Modal closed — reset so next open re-seeds correctly
+            seededRecordId.current = null;
+            setSaveError(null);
+            return;
+        }
+
+        if (shouldSeed) {
+            seededRecordId.current = currentRecordId;
             const rawData = assignment.record.data;
             let data = safeParse(rawData);
 
-            // Critical fix: if data is empty/null but schema is primitive, 
-            // DON'T initialize as {} which causes validation error
             if (data === null || data === undefined || (typeof data === 'object' && Object.keys(data).length === 0)) {
                 if (schemaType === 'string') data = '';
                 else if (schemaType === 'number' || schemaType === 'integer') data = 0;
                 else if (schemaType === 'boolean') data = false;
-                else data = {}; // Default to object only if type is object or unknown
+                else data = {};
             }
 
             setFormData(data);
             setIsValid(true);
+            setSaveError(null);
         }
-    }, [isOpen, assignment, schemaType]);
+    }, [isOpen, assignment?.record?.id, schemaType]);
 
     if (!isOpen || !assignment) return null;
 
@@ -71,8 +88,15 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
 
     const handleSave = () => {
         if (!isValid || !recordId) return;
+        setSaveError(null);
         updateMutation.mutate({ id: recordId, data: { data: formData } }, {
             onSuccess: () => onClose(),
+            onError: (err: any) => {
+                const detail = err?.response?.data?.detail
+                    || err?.message
+                    || 'Failed to save. Please check all required fields.';
+                setSaveError(String(detail));
+            },
         });
     };
 
@@ -134,25 +158,32 @@ export const ClientMetadataEditModal: React.FC<ClientMetadataEditModalProps> = (
                 </div>
 
                 {/* Footer */}
-                <div className="flex justify-end items-center gap-4 px-8 py-6 border-t border-gray-800 bg-surface-900/95 backdrop-blur-sm shrink-0">
-                    <button
-                        onClick={onClose}
-                        className="px-6 py-3 rounded-2xl font-bold text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5 transition-all active:scale-95"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={updateMutation.isPending || !isValid}
-                        className="px-8 py-3 rounded-2xl bg-brand hover:brightness-110 active:scale-95 text-white text-sm font-black transition-all shadow-xl shadow-brand/20 disabled:opacity-40 disabled:active:scale-100 flex items-center gap-3"
-                    >
-                        {updateMutation.isPending ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                            <Icon name="save" size={18} />
-                        )}
-                        <span>{updateMutation.isPending ? 'Saving...' : 'Save Changes'}</span>
-                    </button>
+                <div className="flex flex-col gap-3 px-8 py-6 border-t border-gray-800 bg-surface-900/95 backdrop-blur-sm shrink-0">
+                    {saveError && (
+                        <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5 font-medium">
+                            ⚠ {saveError}
+                        </div>
+                    )}
+                    <div className="flex justify-end items-center gap-4">
+                        <button
+                            onClick={onClose}
+                            className="px-6 py-3 rounded-2xl font-bold text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/5 transition-all active:scale-95"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={updateMutation.isPending || !isValid}
+                            className="px-8 py-3 rounded-2xl bg-brand hover:brightness-110 active:scale-95 text-white text-sm font-black transition-all shadow-xl shadow-brand/20 disabled:opacity-40 disabled:active:scale-100 flex items-center gap-3"
+                        >
+                            {updateMutation.isPending ? (
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <Icon name="save" size={18} />
+                            )}
+                            <span>{updateMutation.isPending ? 'Saving...' : 'Save Changes'}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
