@@ -26,8 +26,10 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
     const { data: schemas, isLoading: isSchemasLoading } = useSchemas();
     const [formData, setFormData] = useState<any>(undefined);
     const [isValid, setIsValid] = useState(true);
+    const [validationErrors, setValidationErrors] = useState<any[]>([]);
     const [saveError, setSaveError] = useState<string | null>(null);
     const seededRecordId = useRef<string | null>(null);
+    const rjsfRef = useRef<any>(null);
 
     const safeParse = (val: any) => {
         if (val === null || val === undefined) return val;
@@ -56,23 +58,18 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
 
         if (s.type === 'object' && s.properties) {
             const obj: any = {};
-            const requiredProps = Array.isArray(s.required) ? s.required : [];
             
             Object.entries(s.properties).forEach(([k, v]) => {
                 const val = getDefaults(v);
                 if (val !== undefined) {
                     obj[k] = val;
-                } else if (requiredProps.includes(k)) {
-                    // If required but no default, provide a "zero" value
-                    const sub = v as any;
-                    if (sub.type === 'array') obj[k] = [];
-                    else if (sub.type === 'object') obj[k] = {};
-                    else if (sub.type === 'string') obj[k] = '';
-                    else if (sub.type === 'number' || sub.type === 'integer') obj[k] = 0;
-                    else if (sub.type === 'boolean') obj[k] = false;
                 }
             });
             return obj;
+        }
+
+        if (s.enum && Array.isArray(s.enum) && s.enum.length > 0) {
+            return s.enum[0];
         }
 
         if (s.type === 'array') return [];
@@ -106,7 +103,8 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
             }
 
             setFormData(data);
-            setIsValid(true);
+            // Default to true and let RjsfForm prove it otherwise if there are errors.
+            setIsValid(true); 
             setSaveError(null);
             console.log("[ClientMetadataEditor] SEEDED:", {
                 recordId: currentRecordId,
@@ -116,19 +114,14 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
         }
     }, [assignment?.record?.id, schemaType]);
 
-    const handleSaveInternal = () => {
-        if (!isValid) {
-            setSaveError("Form has validation errors. Please check all fields.");
-            return;
-        }
-
+    const handleFormSubmit = (data: any) => {
         if (!assignment?.record?.id) {
             setSaveError("Record ID is missing. Cannot save.");
             return;
         }
 
         setSaveError(null);
-        updateMutation.mutate({ id: assignment.record.id, data: { data: formData } }, {
+        updateMutation.mutate({ id: assignment.record.id, data: { data } }, {
             onSuccess: () => onSaveSuccess?.(),
             onError: (err: any) => {
                 const detail = err?.response?.data?.detail
@@ -137,6 +130,16 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
                 setSaveError(String(detail));
             },
         });
+    };
+
+    const handleSaveInternal = () => {
+        // We always trigger the form's submit() logic.
+        // It will validate first. If valid, it triggers onSubmit handlers.
+        // If invalid, it highlights the errors in the UI.
+        if (!isValid) {
+            setSaveError("Form has validation errors. Please check all fields.");
+        }
+        rjsfRef.current?.submit();
     };
 
     useImperativeHandle(ref, () => ({
@@ -160,8 +163,17 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-surface-950/20 rounded-3xl border border-[var(--border-base)]">
                 <div className="max-w-3xl mx-auto">
                     {saveError && (
-                        <div className="mb-6 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-medium flex items-center gap-3">
-                            <span className="text-lg">⚠</span> {saveError}
+                        <div className="mb-6 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-medium flex flex-col gap-2">
+                            <div className="flex items-center gap-3">
+                                <span className="text-lg">⚠</span> {saveError}
+                            </div>
+                            {validationErrors.length > 0 && (
+                                <ul className="list-disc list-inside ml-7 mt-1 space-y-1 opacity-80">
+                                    {validationErrors.map((err, i) => (
+                                        <li key={i}>{err.stack || err.message || String(err)}</li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
                     )}
 
@@ -174,12 +186,16 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
                         </div>
                     ) : (
                         <RjsfForm
+                            ref={rjsfRef}
                             schema={schemaContent}
                             formData={formData}
-                            onChange={(data, valid) => {
+                            onChange={(data, valid, errors) => {
                                 setFormData(data);
                                 setIsValid(valid);
+                                setValidationErrors(errors || []);
+                                if (valid) setSaveError(null);
                             }}
+                            onSubmit={handleFormSubmit}
                             extraSchemas={extraSchemas}
                             activeClientId={activeClientId}
                             assignments={assignments}

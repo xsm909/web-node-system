@@ -7,6 +7,7 @@ import type {
     ObjectFieldTemplateProps,
     ArrayFieldTemplateProps,
     WidgetProps,
+    ErrorListProps,
 } from '@rjsf/utils';
 import { getInputProps } from '@rjsf/utils';
 import { Icon } from '../../shared/ui/icon';
@@ -22,9 +23,10 @@ const validator = getInterop(validatorRaw);
 function BaseInputTemplate(props: BaseInputTemplateProps) {
     const {
         id, value, type, placeholder, required, disabled, readonly,
-        onChange, onBlur, onFocus, options, schema,
+        onChange, onBlur, onFocus, options, schema, rawErrors 
     } = props;
     const inputProps = getInputProps(schema, type, options);
+    const hasError = rawErrors && rawErrors.length > 0;
 
     // Safety check for objects in primitive fields
     const displayValue = (typeof value === 'object' && value !== null)
@@ -46,14 +48,19 @@ function BaseInputTemplate(props: BaseInputTemplateProps) {
             onChange={(e) => onChange(e.target.value === '' ? options.emptyValue : e.target.value)}
             onBlur={(e) => onBlur(id, e.target.value)}
             onFocus={(e) => onFocus(id, e.target.value)}
-            className="w-full bg-surface-950 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                hasError 
+                    ? 'border-red-500 ring-1 ring-red-500/20' 
+                    : 'border-gray-700 focus:border-brand focus:ring-1 focus:ring-brand/20'
+            }`}
         />
     );
 }
 
 // ─── Textarea Widget ───────────────────────────────────────────────────────────
 function TextareaWidget(props: WidgetProps) {
-    const { id, value, placeholder, required, disabled, readonly, onChange, onBlur, onFocus, options } = props;
+    const { id, value, placeholder, required, disabled, readonly, onChange, onBlur, onFocus, options, rawErrors } = props;
+    const hasError = rawErrors && rawErrors.length > 0;
 
     // Safety check for objects in primitive fields
     const displayValue = (typeof value === 'object' && value !== null)
@@ -72,14 +79,18 @@ function TextareaWidget(props: WidgetProps) {
             onChange={(e) => onChange(e.target.value === '' ? options.emptyValue : e.target.value)}
             onBlur={(e) => onBlur(id, e.target.value)}
             onFocus={(e) => onFocus(id, e.target.value)}
-            className="w-full bg-surface-950 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition-all resize-none disabled:opacity-50"
+            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] outline-none transition-all resize-none disabled:opacity-50 ${
+                hasError 
+                    ? 'border-red-500 ring-1 ring-red-500/20' 
+                    : 'border-gray-700 focus:border-brand focus:ring-1 focus:ring-brand/20'
+            }`}
         />
     );
 }
 
 // ─── Reference Widget ────────────────────────────────────────────────────────
 function ReferenceWidget(props: WidgetProps) {
-    const { value, onChange, schema, formContext, registry, disabled, readonly, placeholder } = props;
+    const { value, onChange, schema, formContext, registry, disabled, readonly, placeholder, rawErrors } = props;
     const recordId = formContext?.recordId || (registry as any)?.formContext?.recordId;
 
     const schemaKey = (schema as any)['x-schema-key'];
@@ -155,7 +166,7 @@ function ReferenceWidget(props: WidgetProps) {
                 placeholder={isLoadingState ? "Loading..." : placeholder || "Select reference..."}
                 searchPlaceholder="Search records..."
                 icon="link"
-                className="w-full"
+                className={`w-full ${rawErrors && rawErrors.length > 0 ? 'border-red-500 ring-1 ring-red-500/20 rounded-lg' : ''}`}
                 disabled={disabled || readonly}
             />
         </div>
@@ -164,8 +175,10 @@ function ReferenceWidget(props: WidgetProps) {
 
 // ─── Select Widget ─────────────────────────────────────────────────────────────
 function SelectWidget(props: WidgetProps) {
-    const { id, value, options, required, disabled, readonly, onChange } = props;
+    const { id, value, options, required, disabled, readonly, onChange, rawErrors } = props;
     const { enumOptions } = options;
+    const hasError = rawErrors && rawErrors.length > 0;
+
     return (
         <select
             id={id}
@@ -174,7 +187,11 @@ function SelectWidget(props: WidgetProps) {
             required={required}
             disabled={disabled || readonly}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full bg-surface-950 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition-all appearance-none disabled:opacity-50"
+            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] outline-none transition-all appearance-none disabled:opacity-50 ${
+                hasError 
+                    ? 'border-red-500 ring-1 ring-red-500/20' 
+                    : 'border-gray-700 focus:border-brand focus:ring-1 focus:ring-brand/20'
+            }`}
         >
             {!required && <option value="">— Select —</option>}
             {(enumOptions as { value: unknown; label: string }[] | undefined)?.map((opt) => (
@@ -183,6 +200,27 @@ function SelectWidget(props: WidgetProps) {
                 </option>
             ))}
         </select>
+    );
+}
+
+// ─── Error List Template ──────────────────────────────────────────────────────
+function ErrorListTemplate(props: ErrorListProps) {
+    const { errors } = props;
+    return (
+        <div className="mb-6 p-4 rounded-2xl bg-red-500/5 border border-red-500/20 animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2 mb-3 text-red-500">
+                <Icon name="warning" size={18} />
+                <span className="text-xs font-bold uppercase tracking-wider">Validation Errors ({errors.length})</span>
+            </div>
+            <ul className="space-y-2">
+                {errors.map((error, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-red-400/90 leading-relaxed font-medium">
+                        <span className="mt-1 w-1 h-1 rounded-full bg-red-500/40 shrink-0" />
+                        {error.stack}
+                    </li>
+                ))}
+            </ul>
+        </div>
     );
 }
 
@@ -216,7 +254,9 @@ function FieldTemplate(props: FieldTemplateProps) {
     if (hidden) return <>{children}</>;
 
     // Safety check for errors/description to prevent [object Object] rendering
-    const renderedErrors = React.isValidElement(errors) ? errors : (typeof errors === 'string' ? errors : null);
+    const renderedErrors = React.isValidElement(errors) 
+        ? errors 
+        : (Array.isArray(errors) ? (errors as any[]).join(', ') : (typeof errors === 'string' ? errors : null));
     const renderedDescription = React.isValidElement(description) ? description : (typeof description === 'string' ? description : null);
 
     return (
@@ -232,7 +272,10 @@ function FieldTemplate(props: FieldTemplateProps) {
             )}
             {children}
             {renderedErrors && (
-                <div className="text-[11px] text-red-400 font-medium">{renderedErrors}</div>
+                <div className="text-[10px] text-red-500 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                    <Icon name="warning" size={10} />
+                    {renderedErrors}
+                </div>
             )}
         </div>
     );
@@ -418,16 +461,6 @@ function ArrayFieldTemplate(props: ArrayFieldTemplateProps) {
 
 
 // ─── Deep Ref Inliner ──────────────────────────────────────────────────────────
-/**
- * Fully resolves all $ref occurrences by inlining the referenced schema.
- * Supports:
- *   - bare key:              "$ref": "goody"
- *   - $defs pointer:         "$ref": "#/$defs/goody"
- *   - definitions pointer:   "$ref": "#/definitions/goody"
- * Strips $schema / $id from sub-schemas so AJV8 doesn't get confused by
- * draft version declarations inside defs.
- * Uses a visited set to prevent infinite recursion in circular schemas.
- */
 function inlineRefs(
     node: any,
     defs: Record<string, any>,
@@ -436,23 +469,16 @@ function inlineRefs(
     if (!node || typeof node !== 'object') return node;
     if (Array.isArray(node)) return node.map((n) => inlineRefs(n, defs, visited));
 
-    // IMPORTANT: Strip $schema and $id from every object node.
-    // AJV 8 (used by @rjsf/validator-ajv8) often errors out if it encounters
-    // $schema draft URLs it doesn't recognize (like Draft 2020-12).
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // AJV 8 often errors out on $schema draft URLs it doesn't recognize.
     const { $schema: _s, $id: _i, ...cleanNode } = node;
 
     if ('$ref' in cleanNode && typeof cleanNode.$ref === 'string') {
         const ref = cleanNode.$ref;
-        if (visited.has(ref)) {
-            // Found circularity
-            return { type: 'object', title: `Circular reference (${ref})` };
-        }
+        if (visited.has(ref)) return { type: 'object', title: `Circular reference (${ref})` };
+        
         const next = new Set(visited);
         next.add(ref);
 
-        // Simple bare-key ref: "goody"
-        // Pointer ref: "#/$defs/goody" or "#/definitions/goody"
         let key = ref;
         if (ref.startsWith('#/$defs/')) key = ref.slice(8);
         else if (ref.startsWith('#/definitions/')) key = ref.slice(14);
@@ -462,23 +488,15 @@ function inlineRefs(
         }
 
         if (key && defs[key]) {
-            const defBody = defs[key];
-            // Merge sibling properties from the $ref node (rare but valid JSON-Schema)
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { $ref: _r, ...siblings } = cleanNode;
+            const defBody = defs[key];
             return inlineRefs({ ...defBody, ...siblings }, defs, next);
         } else if (key && !defs[key]) {
-            console.warn(`RjsfForm: Could not find a definition for ${ref}. Definitions available:`, Object.keys(defs));
-            return {
-                type: 'string',
-                title: `Error: Reference not found (${ref})`,
-                readOnly: true,
-                default: `Error: Reference "${ref}" could not be resolved.`
-            };
+            console.warn(`RjsfForm: Could not find a definition for ${ref}.`);
+            return { type: 'string', title: `Error: Reference not found (${ref})`, readOnly: true };
         }
     }
 
-    // Walk all keys, but skip $defs/$definitions (we handle refs ourselves)
     const result: any = {};
     for (const k of Object.keys(cleanNode)) {
         if (k === '$defs' || k === 'definitions') continue;
@@ -502,26 +520,17 @@ function extractUiSchema(schema: any): any {
     if (schema.type === 'object' && schema.properties) {
         for (const [key, prop] of Object.entries(schema.properties)) {
             const res = extractUiSchema(prop);
-            if (Object.keys(res).length > 0) {
-                uiSchema[key] = res;
-            }
+            if (Object.keys(res).length > 0) uiSchema[key] = res;
         }
     } else if (schema.type === 'array') {
-        uiSchema['ui:options'] = {
-            removable: true,
-            addable: true,
-            orderable: true,
-        };
-        // Redundant forced options for different RJSF versions or themes
+        uiSchema['ui:options'] = { removable: true, addable: true, orderable: true };
         uiSchema['ui:removable'] = true;
         uiSchema['ui:addable'] = true;
         uiSchema['ui:orderable'] = true;
 
         if (schema.items) {
             const res = extractUiSchema(schema.items);
-            if (Object.keys(res).length > 0) {
-                uiSchema.items = res;
-            }
+            if (Object.keys(res).length > 0) uiSchema.items = res;
         }
     }
     return uiSchema;
@@ -532,67 +541,83 @@ interface RjsfFormProps {
     schema: Record<string, unknown>;
     uiSchema?: Record<string, unknown>;
     formData: unknown;
-    onChange: (data: unknown, isValid: boolean) => void;
+    onChange: (data: unknown, isValid: boolean, errors?: any[]) => void;
     readOnly?: boolean;
     /** Map of schemaKey → parsed schema content for resolving $ref */
     extraSchemas?: Record<string, any>;
     activeClientId?: string;
     assignments?: any[];
     recordId?: string;
+    onSubmit?: (data: any) => void;
 }
 
-export const RjsfForm: React.FC<RjsfFormProps> = ({
-    schema,
-    uiSchema,
-    formData,
-    onChange,
-    readOnly = false,
-    extraSchemas = {},
-    activeClientId,
-    assignments = [],
-    recordId,
-}) => {
-    // Interop safety: check if Form component is valid
+export const RjsfForm = React.forwardRef<any, RjsfFormProps>((props, ref) => {
+    const {
+        schema,
+        uiSchema,
+        formData,
+        onChange,
+        readOnly = false,
+        extraSchemas = {},
+        activeClientId,
+        assignments = [],
+        recordId,
+    } = props;
+
+    const formRef = React.useRef<any>(null);
+
+    React.useImperativeHandle(ref, () => ({
+        submit: () => {
+            if (formRef.current) {
+                formRef.current.submit();
+            }
+        }
+    }));
+
     if (typeof Form !== 'function' && typeof Form !== 'object') {
-        return (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-                Error: Form component is not valid ({typeof Form}).
-            </div>
-        );
+        return <div className="p-4 text-red-400">Error: Form component is not valid.</div>;
     }
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     const safeSchema = React.useMemo(() => {
         const base = schema && typeof schema === 'object' ? schema : { type: 'object' };
         const rootDefs = (base.$defs as any) || (base as any).definitions || {};
         const allDefs: Record<string, any> = { ...rootDefs, ...extraSchemas };
-        return inlineRefs(base, allDefs);
+        const result = inlineRefs(base, allDefs);
+        console.log("[RjsfForm] safeSchema resolved:", result);
+        return result;
     }, [JSON.stringify(schema), JSON.stringify(extraSchemas)]);
 
-    console.log("[RjsfForm] Render:", {
-        activeClientId,
-        recordId,
-        assignmentsCount: assignments.length,
-        hasSchema: !!schema
-    });
-
     const extraUiSchema = React.useMemo(() => {
-        return extractUiSchema(safeSchema);
+        const ui = extractUiSchema(safeSchema);
+        console.log("[RjsfForm] extraUiSchema extracted:", ui);
+        return ui;
     }, [safeSchema]);
 
-    const resolvedUiSchema: Record<string, unknown> = {
-        'ui:submitButtonOptions': { norender: true },
-        ...(readOnly ? { 'ui:readonly': true } : {}),
-        ...extraUiSchema,
-        ...uiSchema,
-        // Ensure array controls are enabled
-        ...(safeSchema.type === 'array' ? {
-            'ui:options': { removable: true, addable: true, orderable: true },
-        } : {}),
-    };
+    const resolvedUiSchema = React.useMemo(() => {
+        const base: any = {
+            'ui:submitButtonOptions': { norender: true },
+            ...(readOnly ? { 'ui:readonly': true } : {}),
+        };
+
+        // Deep-ish merge extraUiSchema and user-provided uiSchema
+        const extra = extraUiSchema || {};
+        const user = uiSchema || {};
+        const merged = { ...extra };
+
+        for (const key of Object.keys(user)) {
+            if (typeof user[key] === 'object' && user[key] !== null && typeof extra[key] === 'object' && extra[key] !== null) {
+                merged[key] = { ...extra[key], ...user[key] };
+            } else {
+                merged[key] = user[key];
+            }
+        }
+
+        return { ...base, ...merged };
+    }, [readOnly, extraUiSchema, uiSchema]);
 
     return (
         <Form
+            ref={formRef}
             schema={safeSchema as any}
             uiSchema={resolvedUiSchema}
             formData={formData}
@@ -603,6 +628,7 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
                 ObjectFieldTemplate,
                 ArrayFieldTemplate,
                 ArrayFieldItemTemplate,
+                ErrorListTemplate,
             }}
             widgets={{
                 TextareaWidget,
@@ -617,11 +643,15 @@ export const RjsfForm: React.FC<RjsfFormProps> = ({
             }}
             onChange={(e: any) => {
                 const errors = e.errors ?? [];
-                onChange(e.formData, errors.length === 0);
+                console.log("[RjsfForm] onChange - valid:", errors.length === 0, "errors:", errors);
+                onChange(e.formData, errors.length === 0, errors);
             }}
-            onSubmit={() => { }}
-            liveValidate={false}
-            showErrorList={false}
+            onSubmit={(e: any) => {
+                console.log("[RjsfForm] onSubmit - final data:", e.formData);
+                props.onSubmit?.(e.formData);
+            }}
+            liveValidate={true}
+            showErrorList={true}
         />
     );
-};
+});
