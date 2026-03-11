@@ -33,6 +33,35 @@ CRITICAL: Session data is stored ONLY in `intermediate_results`. Values like "AI
 2. **Answer** -> **Question**:
    `AI_Answer|...` (reference_id) -> `AI_Question` (id)
 
+## Table: `schemas`
+Stores JSON Schemas.
+- **id**: (UUID) - Primary Key.
+- **key**: (String) - Unique identifier (e.g., `'client-profile'`).
+- **content**: (JSON) - The actual JSON Schema.
+- **category**: (String) - Grouping label (e.g., `'Common|Info'`).
+- **meta**: (JSON) - Additional metadata (e.g., `{"tags": ["common"]}`).
+- **is_system**: (Boolean) - True if only Admins can edit.
+- **created_at**, **updated_at**: (Timestamp)
+
+## Table: `records`
+Stores validated JSON data payloads.
+- **id**: (UUID) - Primary Key.
+- **schema_id**: (UUID) - Foreign Key to `schemas.id`.
+- **parent_id**: (UUID) - Foreign Key to `records.id` (enables tree hierarchy).
+- **data**: (JSON) - The validated payload. Use `data->>'field'` for text/primitives.
+- **order**: (Integer) - Explicit ordering for children/arrays.
+- **created_at**, **updated_at**: (Timestamp)
+
+## Table: `meta_assignments`
+Polymorphic binding of a Record to any system entity.
+- **id**: (UUID) - Primary Key.
+- **record_id**: (UUID) - Foreign Key to `records.id` (Unique).
+- **entity_type**: (String) - e.g., `'client'`, `'user'`, `'ai_task'`.
+- **entity_id**: (UUID) - ID of the target entity.
+- **assigned_by**: (UUID) - Foreign Key to `users.id`.
+- **owner_id**: (UUID) - Foreign Key to `users.id` (optional).
+- **created_at**: (Timestamp)
+
 ## Example Queries
 
 ### 1. Questions from a specific session
@@ -42,7 +71,19 @@ WHERE category = 'AI_Question'
   AND session_id = :session_id;
 ```
 
-### 2. Analytics by Mention for all AIs
+### 2. Get Metadata for a specific Client
+To get a "Client Profile" (schema key: `'client-profile'`) for a specific client:
+```sql
+SELECT r.data 
+FROM records r
+JOIN schemas s ON r.schema_id = s.id
+JOIN meta_assignments ma ON r.id = ma.record_id
+WHERE s.key = 'client-profile'
+  AND ma.entity_type = 'client'
+  AND ma.entity_id = :client_id;
+```
+
+### 3. Analytics by Mention for all AIs
 To get the AI name from an answer: `split_part(ans.category, '|', 2)`
 ```sql
 SELECT 
@@ -57,34 +98,24 @@ WHERE anl.category = 'Analysis|Mention'
 ORDER BY anl.created_at DESC;
 ```
 
-### 3. Grouping by AI with Aggregation
-To count mentions or sum values per AI vendor:
-```sql
-SELECT 
-    split_part(ans.category, '|', 2) as ai_vendor,
-    count(*) as total_mentions,
-    sum((anl.data->>'value')::numeric) as total_value
-FROM intermediate_results anl
-JOIN intermediate_results ans ON anl.reference_id = ans.id
-WHERE anl.category = 'Analysis|Mention'
-  AND ans.category LIKE 'AI_Answer|%'
-GROUP BY 1
-ORDER BY total_value DESC;
-```
+## Metadata Awareness (`x-` tags)
+JSON Schemas use custom tags to define behavior:
+- **x-reference**: Set to `'record'` to indicate a field contains the `id` (UUID) of another record.
+- **x-schema-key**: The schema key of the referenced record.
+- **x-display**: The field name in the referenced record's `data` to use for display.
+- **x-reference-field**: The field name in the referenced record to store (usually `'id'`).
 
-### 4. Share of Voice (SoV) Analysis
-To get the percentage of mentions (SoV) for a company relative to competitors, grouped by session and AI vendor:
+### 4. Join Records via Reference
+To get a record and the "name" of its referenced "category" (where `category_link` stores the category record ID):
 ```sql
 SELECT 
-    anl.session_id,
-    split_part(ans.category, '|', 2) as ai_vendor,
-    avg((anl.data->>'value')::numeric) as sov_percentage
-FROM intermediate_results anl
-JOIN intermediate_results ans ON anl.reference_id = ans.id
-WHERE anl.category = 'Analysis|SoV'
-  AND ans.category LIKE 'AI_Answer|%'
-GROUP BY 1, 2
-ORDER BY anl.session_id, sov_percentage DESC;
+    r.id,
+    r.data->>'title' as item_name,
+    cat.data->>'name' as category_name
+FROM records r
+JOIN records cat ON (r.data->>'category_link')::uuid = cat.id
+WHERE r.schema_id = (SELECT id FROM schemas WHERE key = 'products')
+  AND cat.schema_id = (SELECT id FROM schemas WHERE key = 'product-categories');
 ```
 
 ## Rules:
@@ -93,3 +124,5 @@ ORDER BY anl.session_id, sov_percentage DESC;
 3. USE `category = 'Analysis|SoV'` for Share of Voice analysis.
 4. USE `category LIKE 'AI_Answer|%'` to find any AI answer.
 5. Extract vendor name using `split_part(category, '|', 2)`.
+6. JOIN `records`, `schemas`, and `meta_assignments` to filter metadata by entity and schema key.
+7. Use `(data->>'field')::uuid = target_record.id` to join records via `x-reference` fields.
