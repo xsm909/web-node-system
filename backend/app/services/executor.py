@@ -171,7 +171,9 @@ SAFE_GLOBALS = {
         process_analytics_request=analytics.process_analytics_request
     ),
     "metadata": SimpleNamespace(
-        get_metadata=metadata_lib.get_metadata
+        get_metadata=metadata_lib.get_metadata,
+        get_metadata_by_id=metadata_lib.get_metadata_by_id,
+        get_all_metadata=metadata_lib.get_all_metadata
     ),
     "workflow": None,  # Will be injected per-execution
 }
@@ -597,7 +599,9 @@ class WorkflowExecutor:
                     process_analytics_request=analytics.process_analytics_request
                 ),
                 "metadata": SimpleNamespace(
-                    get_metadata=metadata_lib.get_metadata
+                    get_metadata=metadata_lib.get_metadata,
+                    get_metadata_by_id=metadata_lib.get_metadata_by_id,
+                    get_all_metadata=metadata_lib.get_all_metadata
                 ),
                 "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),
             }
