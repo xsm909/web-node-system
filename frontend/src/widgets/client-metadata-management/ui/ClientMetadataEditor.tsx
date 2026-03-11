@@ -50,6 +50,39 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
     const schemaContent = React.useMemo(() => safeParse(schemaRaw) || {}, [schemaRaw]);
     const schemaType = schemaContent.type || 'object';
 
+    const getDefaults = (s: any): any => {
+        if (!s || typeof s !== 'object') return undefined;
+        if (s.default !== undefined) return s.default;
+
+        if (s.type === 'object' && s.properties) {
+            const obj: any = {};
+            const requiredProps = Array.isArray(s.required) ? s.required : [];
+            
+            Object.entries(s.properties).forEach(([k, v]) => {
+                const val = getDefaults(v);
+                if (val !== undefined) {
+                    obj[k] = val;
+                } else if (requiredProps.includes(k)) {
+                    // If required but no default, provide a "zero" value
+                    const sub = v as any;
+                    if (sub.type === 'array') obj[k] = [];
+                    else if (sub.type === 'object') obj[k] = {};
+                    else if (sub.type === 'string') obj[k] = '';
+                    else if (sub.type === 'number' || sub.type === 'integer') obj[k] = 0;
+                    else if (sub.type === 'boolean') obj[k] = false;
+                }
+            });
+            return obj;
+        }
+
+        if (s.type === 'array') return [];
+        if (s.type === 'string') return '';
+        if (s.type === 'number' || s.type === 'integer') return 0;
+        if (s.type === 'boolean') return false;
+
+        return undefined;
+    };
+
     useEffect(() => {
         const currentRecordId = assignment?.record?.id ?? null;
         if (currentRecordId !== seededRecordId.current) {
@@ -57,11 +90,19 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
             const rawData = assignment?.record?.data;
             let data = safeParse(rawData);
 
-            if (data === null || data === undefined || (typeof data === 'object' && Object.keys(data).length === 0)) {
-                if (schemaType === 'string') data = '';
-                else if (schemaType === 'number' || schemaType === 'integer') data = 0;
-                else if (schemaType === 'boolean') data = false;
-                else data = {};
+            const isEmpty = data === null || data === undefined || (typeof data === 'object' && Object.keys(data).length === 0);
+
+            if (isEmpty) {
+                // Try to get defaults from schema
+                const defaults = getDefaults(schemaContent);
+                if (defaults !== undefined) {
+                    data = defaults;
+                } else {
+                    if (schemaType === 'string') data = '';
+                    else if (schemaType === 'number' || schemaType === 'integer') data = 0;
+                    else if (schemaType === 'boolean') data = false;
+                    else data = {};
+                }
             }
 
             setFormData(data);

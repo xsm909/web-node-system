@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload, selectinload
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from uuid import UUID
 
 from ..core.database import get_db
@@ -42,10 +43,18 @@ def create_record(
         if not is_valid:
             raise HTTPException(status_code=400, detail=f"Validation error: {err_msg}")
 
+    # Automatic order assignment for child records
+    if record_in.parent_id:
+        max_order = db.query(func.max(Record.order)).filter(Record.parent_id == record_in.parent_id).scalar() or 0
+        order = max_order + 1
+    else:
+        order = record_in.order or 0
+
     new_record = Record(
         schema_id=record_in.schema_id,
         parent_id=record_in.parent_id,
-        data=record_in.data
+        data=record_in.data,
+        order=order
     )
     db.add(new_record)
     db.commit()
@@ -107,6 +116,16 @@ def assign_metadata(
     if existing:
         raise HTTPException(status_code=400, detail="Record is already assigned")
 
+    # Automatic order assignment for root records
+    max_order = db.query(func.max(Record.order)).join(MetaAssignment).filter(
+        MetaAssignment.entity_type == assign_in.entity_type,
+        MetaAssignment.entity_id == assign_in.entity_id
+    ).scalar() or 0
+    
+    record = db.query(Record).filter(Record.id == assign_in.record_id).first()
+    if record:
+        record.order = max_order + 1
+
     new_assign = MetaAssignment(
         record_id=assign_in.record_id,
         entity_type=assign_in.entity_type,
@@ -127,6 +146,9 @@ def get_recursive_record(db: Session, record_id: UUID, depth=0) -> Record:
     ).filter(Record.id == record_id).first()
     
     if record and record.children:
+        # Sort children by order (though selectinload above should handle it if using newer SQLA, 
+        # but let's be explicit if needed or just rely on the query)
+        record.children.sort(key=lambda x: x.order)
         for child in record.children:
             get_recursive_record(db, child.id, depth + 1)
     return record
@@ -148,6 +170,9 @@ def get_entity_metadata(
     # Refresh/load each assigned record tree recursively
     for assignment in assignments:
         get_recursive_record(db, assignment.record_id)
+        
+    # Sort assignments by record order
+    assignments.sort(key=lambda x: x.record.order if x.record else 0)
         
     return assignments
 
@@ -237,4 +262,21 @@ def unassign_metadata(
         # Fallback: if record is already gone, just delete the assignment
         db.delete(assignment)
         
+    db.commit()
+
+@router.patch("/reorder", status_code=status.HTTP_204_NO_CONTENT)
+def reorder_records(
+    orders: List[Dict[str, Any]], 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Expects a list of {'id': UUID, 'order': int}
+    """
+    for item in orders:
+        record_id = item.get('id')
+        new_order = item.get('order')
+        if record_id and new_order is not None:
+            db.query(Record).filter(Record.id == record_id).update({"order": new_order})
+    
     db.commit()

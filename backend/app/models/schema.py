@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime, JSON, UUID, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import Column, String, Boolean, DateTime, JSON, Integer, UUID, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import uuid
@@ -29,13 +29,14 @@ class Record(Base):
     schema_id = Column(UUID(as_uuid=True), ForeignKey('schemas.id', ondelete='CASCADE'), nullable=False, index=True)
     parent_id = Column(UUID(as_uuid=True), ForeignKey('records.id', ondelete='CASCADE'), nullable=True, index=True)
     data = Column(JSON, nullable=False) # The validated payload
+    order = Column("order", Column(Integer).type, default=0, nullable=False) # Use explicit name to avoid reserved word issues in some DBs
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
     schema = relationship("Schema", back_populates="records")
     parent = relationship("Record", remote_side=[id], back_populates="children")
-    children = relationship("Record", back_populates="parent", cascade="all, delete-orphan")
+    children = relationship("Record", back_populates="parent", cascade="all, delete-orphan", order_by="Record.order")
     meta_assignments = relationship("MetaAssignment", back_populates="record", cascade="all, delete-orphan")
 
 

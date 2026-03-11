@@ -35,6 +35,7 @@ class RecordBase(BaseModel):
     schema_id: UUID
     parent_id: Optional[UUID] = None
     data: Any
+    order: int = 0
 
 class RecordCreate(RecordBase):
     pass

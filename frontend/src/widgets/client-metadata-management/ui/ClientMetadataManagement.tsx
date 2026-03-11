@@ -12,6 +12,24 @@ import type { SelectionGroup } from '../../../shared/ui/selection-list';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { SlidePanel } from '../../../shared/ui/slide-panel';
 import { AppHeader } from '../../app-header';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useReorderRecords } from '../../../entities/record/api';
 
 interface ClientMetadataManagementProps {
     activeClientId?: string | null;
@@ -42,11 +60,64 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     const deleteRecordMutation = useDeleteRecord();
     const createRecordMutation = useCreateRecord();
     const assignMetadataMutation = useAssignMetadata();
+    const reorderMutation = useReorderRecords();
 
     // Fetch assignments for this specific client
     const { data: assignments = [], isLoading: isAssignmentsLoading, refetch } = useEntityMetadata('client', activeClientId || undefined);
 
     const isLoading = isSchemasLoading || isAssignmentsLoading;
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (!over || active.id === over.id) return;
+
+        // Helper to find the specific list containing active and over IDs
+        const findAndReorder = (list: any[]): any[] | null => {
+            const activeIndex = list.findIndex((item) => (item.id || item.record?.id) === active.id);
+            const overIndex = list.findIndex((item) => (item.id || item.record?.id) === over.id);
+
+            if (activeIndex !== -1 && overIndex !== -1) {
+                return arrayMove(list, activeIndex, overIndex);
+            }
+
+            for (const item of list) {
+                if (item.record?.children) {
+                    const result = findAndReorder(item.record.children);
+                    if (result) return result; // We found the list and reordered it (logic-wise, we just need the new items for API)
+                }
+            }
+            return null;
+        };
+
+        const reorderedList = findAndReorder(enrichedAssignments);
+        
+        if (reorderedList) {
+            // Prepare reorder data for API
+            const reorderData = reorderedList.map((item, index) => ({
+                id: item.record?.id || item.id,
+                order: index + 1
+            }));
+
+            try {
+                await reorderMutation.mutateAsync(reorderData);
+                await refetch();
+            } catch (e) {
+                console.error("Failed to reorder:", e);
+            }
+        }
+    };
 
     useEffect(() => {
         console.log("[ClientMetadataManagement] activeClientId:", activeClientId);
@@ -219,7 +290,12 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
 
                 <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/5">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[700px]">
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <table className="w-full text-left border-collapse min-w-[700px]">
                             <thead>
                                 <tr className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
                                     <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60 w-24">
@@ -238,75 +314,131 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                             </thead>
                             <tbody className="divide-y divide-[var(--border-base)]">
                                 {(() => {
+                                    const SortableRow = ({ item, depth, onRowClick, onDelete, isAdmin }: any) => {
+                                        const {
+                                            attributes,
+                                            listeners,
+                                            setNodeRef,
+                                            transform,
+                                            transition,
+                                            isDragging
+                                        } = useSortable({ id: item.id || item.record?.id });
+
+                                        const style = {
+                                            transform: CSS.Transform.toString(transform),
+                                            transition,
+                                            zIndex: isDragging ? 10 : 0,
+                                            position: 'relative' as const,
+                                        };
+
+                                        return (
+                                            <tr
+                                                ref={setNodeRef}
+                                                style={style}
+                                                className={`hover:bg-[var(--border-muted)]/5 group cursor-pointer ${isDragging ? 'bg-[var(--border-muted)]/20' : ''}`}
+                                                onClick={() => onRowClick(item)}
+                                            >
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        {isAdmin && (
+                                                            <div
+                                                                {...attributes}
+                                                                {...listeners}
+                                                                className="cursor-grab active:cursor-grabbing p-1 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                <Icon name="drag_indicator" size={16} />
+                                                            </div>
+                                                        )}
+                                                        {isAdmin && (
+                                                            <div
+                                                                className={`transition-opacity duration-200 ${openSubMenuId === item.record?.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                                                onClick={(e) => { e.stopPropagation(); setNestingParentId(item.record?.id); }}
+                                                            >
+                                                                <ComboBox
+                                                                    data={comboData}
+                                                                    onSelect={handleSchemaSelect}
+                                                                    onOpenChange={(open) => setOpenSubMenuId(open ? item.record?.id : null)}
+                                                                    placeholder=""
+                                                                    icon="add"
+                                                                    triggerClassName="!p-1.5 !rounded-lg !bg-brand/10 !text-brand hover:!brightness-125 !text-[10px] !font-bold !uppercase"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + depth * 2}rem` }}>
+                                                    <div className="flex items-center gap-3">
+                                                        {depth > 0 && (
+                                                            <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
+                                                        )}
+                                                        <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
+                                                            {depth > 0 && <Icon name="arrow_split" size={12} />}
+                                                            {item.record?.schema?.key || 'Unknown'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono">
+                                                        {JSON.stringify(item.record?.data || {})}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex justify-end">
+                                                        {isAdmin && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onDelete(item);
+                                                                }}
+                                                                className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                                title="Delete"
+                                                            >
+                                                                <Icon name="delete" size={14} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    };
+
                                     const renderRows = (data: any[], depth = 0) => {
-                                        return data.map((item) => (
-                                            <React.Fragment key={item.id || item.record?.id}>
-                                                <tr
-                                                    className="hover:bg-[var(--border-muted)]/5 group cursor-pointer"
-                                                    onClick={() => handleRowClick(item)}
-                                                >
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center">
-                                                            {isAdmin && (
-                                                                <div
-                                                                    className={`transition-opacity duration-200 ${openSubMenuId === item.record?.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                                                                    onClick={(e) => { e.stopPropagation(); setNestingParentId(item.record?.id); }}
-                                                                >
-                                                                    <ComboBox
-                                                                        data={comboData}
-                                                                        onSelect={handleSchemaSelect}
-                                                                        onOpenChange={(open) => setOpenSubMenuId(open ? item.record?.id : null)}
-                                                                        placeholder=""
-                                                                        icon="add"
-                                                                        triggerClassName="!p-1.5 !rounded-lg !bg-brand/10 !text-brand hover:!brightness-125 !text-[10px] !font-bold !uppercase"
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + depth * 2}rem` }}>
-                                                        <div className="flex items-center gap-3">
-                                                            {depth > 0 && (
-                                                                <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
-                                                            )}
-                                                            <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
-                                                                {depth > 0 && <Icon name="arrow_split" size={12} />}
-                                                                {item.record?.schema?.key || 'Unknown'}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono">
-                                                            {JSON.stringify(item.record?.data || {})}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="flex justify-end">
-                                                            {isAdmin && (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setAssignmentToDelete(item);
-                                                                    }}
-                                                                    className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                                                    title="Delete"
-                                                                >
-                                                                    <Icon name="delete" size={14} />
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                {item.record?.children && item.record.children.length > 0 &&
-                                                    renderRows(item.record.children, depth + 1)
-                                                }
-                                            </React.Fragment>
-                                        ));
+                                        return (
+                                            <SortableContext
+                                                items={data.map(item => item.id || item.record?.id)}
+                                                strategy={verticalListSortingStrategy}
+                                            >
+                                                {data.map((item) => (
+                                                    <React.Fragment key={item.id || item.record?.id}>
+                                                        <SortableRow
+                                                            item={item}
+                                                            depth={depth}
+                                                            onRowClick={handleRowClick}
+                                                            onDelete={setAssignmentToDelete}
+                                                            isAdmin={isAdmin}
+                                                        />
+                                                        {item.record?.children && item.record.children.length > 0 && (
+                                                            <tr key={`${(item.id || item.record?.id)}-children`}>
+                                                                <td colSpan={4} className="p-0">
+                                                                    <table className="w-full border-collapse">
+                                                                        <tbody className="divide-y divide-[var(--border-base)]">
+                                                                            {renderRows(item.record.children, depth + 1)}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </React.Fragment>
+                                                ))}
+                                            </SortableContext>
+                                        );
                                     };
                                     return renderRows(enrichedAssignments);
                                 })()}
                             </tbody>
                         </table>
+                        </DndContext>
                     </div>
                     {assignments.length === 0 && !isLoading && (
                         <div className="p-16 text-center text-[var(--text-muted)] text-sm opacity-40 font-medium italic">

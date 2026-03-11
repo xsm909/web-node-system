@@ -125,3 +125,16 @@ export const useUnassignMetadata = () => {
         },
     });
 };
+
+export const useReorderRecords = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (orders: { id: string; order: number }[]) => {
+            await apiClient.patch('/records/reorder', orders);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['meta_assignments'] });
+            queryClient.invalidateQueries({ queryKey: ['records'] });
+        },
+    });
+};
