@@ -30,6 +30,7 @@ from ..internal_libs.tools_lib import (
 from ..internal_libs import database_lib
 from ..internal_libs import analytics
 from ..internal_libs import metadata_lib
+from ..internal_libs import schema_lib
 from ..internal_libs.logger_lib import executor_logger
 from ..internal_libs.context_lib import execution_context
 
@@ -174,6 +175,10 @@ SAFE_GLOBALS = {
         get_metadata=metadata_lib.get_metadata,
         get_metadata_by_id=metadata_lib.get_metadata_by_id,
         get_all_metadata=metadata_lib.get_all_metadata
+    ),
+    "schema": SimpleNamespace(
+        get_schema_by_key=schema_lib.get_schema_by_key,
+        get_all_schemas=schema_lib.get_all_schemas
     ),
     "workflow": None,  # Will be injected per-execution
 }
@@ -602,6 +607,10 @@ class WorkflowExecutor:
                     get_metadata=metadata_lib.get_metadata,
                     get_metadata_by_id=metadata_lib.get_metadata_by_id,
                     get_all_metadata=metadata_lib.get_all_metadata
+                ),
+                "schema": SimpleNamespace(
+                    get_schema_by_key=schema_lib.get_schema_by_key,
+                    get_all_schemas=schema_lib.get_all_schemas
                 ),
                 "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),
             }
