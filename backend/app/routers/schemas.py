@@ -64,6 +64,16 @@ def update_schema(
 
     update_data = schema_in.model_dump(exclude_unset=True)
     
+    # If schema is locked, only allow updating the 'lock' field itself
+    if schema.lock:
+        allowed_keys = {"lock"}
+        updating_keys = set(update_data.keys())
+        if not updating_keys.issubset(allowed_keys):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Schema is locked and cannot be edited. Unlock it first."
+            )
+
     if "key" in update_data and update_data["key"] != schema.key:
         if db.query(Schema).filter(Schema.key == update_data["key"]).first():
             raise HTTPException(status_code=400, detail="Schema key already exists")
@@ -106,6 +116,12 @@ def delete_schema(
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
     
+    if schema.lock:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Schema is locked and cannot be deleted. Unlock it first."
+        )
+
     if schema.is_system:
         raise HTTPException(status_code=400, detail="Cannot delete a system schema")
 

@@ -367,39 +367,45 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + depth * 2}rem` }}>
-                                                    <div className="flex items-center gap-3">
-                                                        {depth > 0 && (
-                                                            <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
-                                                        )}
-                                                        <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
-                                                            {depth > 0 && <Icon name="arrow_split" size={12} />}
-                                                            {item.record?.schema?.key || 'Unknown'}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono">
-                                                        {JSON.stringify(item.record?.data || {})}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex justify-end">
-                                                        {isAdmin && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    onDelete(item);
-                                                                }}
-                                                                className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                                                title="Delete"
-                                                            >
-                                                                <Icon name="delete" size={14} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
+                                                 <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + depth * 2}rem` }}>
+                                                     <div className="flex items-center gap-3">
+                                                         {depth > 0 && (
+                                                             <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
+                                                         )}
+                                                         <span className={`px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 ${item.record?.lock ? 'ring-1 ring-red-500/20 text-red-400/80' : ''}`}>
+                                                             {depth > 0 && <Icon name="arrow_split" size={12} />}
+                                                             {item.record?.schema?.key || 'Unknown'}
+                                                             {item.record?.lock && <Icon name="lock" size={10} />}
+                                                         </span>
+                                                     </div>
+                                                 </td>
+                                                 <td className="px-6 py-4">
+                                                     <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono">
+                                                         {JSON.stringify(item.record?.data || {})}
+                                                     </div>
+                                                 </td>
+                                                 <td className="px-6 py-4 text-right">
+                                                     <div className="flex justify-end gap-2 items-center">
+                                                         {item.record?.lock && (
+                                                             <div className="p-1.5 text-red-500/40" title="Locked">
+                                                                 <Icon name="lock" size={14} />
+                                                             </div>
+                                                         )}
+                                                         {isAdmin && !item.record?.lock && (
+                                                             <button
+                                                                 onClick={(e) => {
+                                                                     e.stopPropagation();
+                                                                     onDelete(item);
+                                                                 }}
+                                                                 className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                                 title="Delete"
+                                                             >
+                                                                 <Icon name="delete" size={14} />
+                                                             </button>
+                                                         )}
+                                                     </div>
+                                                 </td>
+                                             </tr>
                                         );
                                     };
 

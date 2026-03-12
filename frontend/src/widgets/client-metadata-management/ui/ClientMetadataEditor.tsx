@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } f
 import { useUpdateRecord } from '../../../entities/record/api';
 import { useSchemas } from '../../../entities/schema/api';
 import { RjsfForm } from '../../../features/data-editor/RjsfForm';
+import { Icon } from '../../../shared/ui/icon/Icon';
 
 interface ClientMetadataEditorProps {
     assignment: any; // MetaAssignment response containing nested record and schema
@@ -26,6 +27,7 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
     const { data: schemas, isLoading: isSchemasLoading } = useSchemas();
     const [formData, setFormData] = useState<any>(undefined);
     const [isValid, setIsValid] = useState(true);
+    const [lock, setLock] = useState(assignment?.record?.lock || false);
     const [validationErrors, setValidationErrors] = useState<any[]>([]);
     const [saveError, setSaveError] = useState<string | null>(null);
     const seededRecordId = useRef<string | null>(null);
@@ -103,6 +105,7 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
             }
 
             setFormData(data);
+            setLock(assignment?.record?.lock || false);
             // Default to true and let RjsfForm prove it otherwise if there are errors.
             setIsValid(true); 
             setSaveError(null);
@@ -132,10 +135,22 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
         });
     };
 
+    const handleToggleLock = () => {
+        if (!assignment?.record?.id) return;
+        const newLockState = !lock;
+        setLock(newLockState);
+        updateMutation.mutate({ 
+            id: assignment.record.id, 
+            data: { lock: newLockState } 
+        });
+    };
+
     const handleSaveInternal = () => {
         // We always trigger the form's submit() logic.
         // It will validate first. If valid, it triggers onSubmit handlers.
         // If invalid, it highlights the errors in the UI.
+        if (lock) return;
+
         if (!isValid) {
             setSaveError("Form has validation errors. Please check all fields.");
         }
@@ -185,25 +200,48 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
                             </p>
                         </div>
                     ) : (
-                        <RjsfForm
-                            ref={rjsfRef}
-                            schema={schemaContent}
-                            formData={formData}
-                            onChange={(data, valid, errors) => {
-                                setFormData(data);
-                                setIsValid(valid);
-                                setValidationErrors(errors || []);
-                                if (valid) setSaveError(null);
-                            }}
-                            onSubmit={handleFormSubmit}
-                            extraSchemas={extraSchemas}
-                            activeClientId={activeClientId}
-                            assignments={assignments}
-                            recordId={assignment?.record?.id || assignment?.record_id || assignment?.id}
-                        />
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-});
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center mb-6">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-60">Record Status:</span>
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${lock ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}`}>
+                                        {lock ? 'Locked (Read Only)' : 'Unlocked'}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={handleToggleLock}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        lock 
+                                        ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20' 
+                                        : 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20'
+                                    }`}
+                                >
+                                    <Icon name={lock ? 'lock' : 'unlock'} size={14} />
+                                    {lock ? 'Unlock to Edit' : 'Lock Record'}
+                                </button>
+                            </div>
+
+                             <RjsfForm
+                                 ref={rjsfRef}
+                                 schema={schemaContent}
+                                 formData={formData}
+                                 onChange={(data, valid, errors) => {
+                                     setFormData(data);
+                                     setIsValid(valid);
+                                     setValidationErrors(errors || []);
+                                     if (valid) setSaveError(null);
+                                 }}
+                                 onSubmit={handleFormSubmit}
+                                 extraSchemas={extraSchemas}
+                                 activeClientId={activeClientId}
+                                 assignments={assignments}
+                                 recordId={assignment?.record?.id || assignment?.record_id || assignment?.id}
+                                 readOnly={lock}
+                             />
+                         </div>
+                     )}
+                 </div>
+             </div>
+         </div>
+     );
+ });

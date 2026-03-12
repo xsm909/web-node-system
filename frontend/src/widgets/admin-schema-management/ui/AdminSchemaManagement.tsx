@@ -25,6 +25,7 @@ export const AdminSchemaManagement: React.FC = () => {
     const [category, setCategory] = useState('');
     const [content, setContent] = useState('{\n  "type": "object",\n  "properties": {}\n}');
     const [isSystem, setIsSystem] = useState(false);
+    const [lock, setLock] = useState(false);
 
     // Persistence for expanded categories (collapsed by default)
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => {
@@ -49,6 +50,7 @@ export const AdminSchemaManagement: React.FC = () => {
         setCategory(schema.category || '');
         setContent(JSON.stringify(schema.content, null, 2));
         setIsSystem(schema.is_system);
+        setLock(schema.lock);
         setIsEditing(true);
     };
 
@@ -58,6 +60,7 @@ export const AdminSchemaManagement: React.FC = () => {
         setCategory('');
         setContent('{\n  "type": "object",\n  "properties": {}\n}');
         setIsSystem(false);
+        setLock(false);
         setIsEditing(true);
     };
 
@@ -67,7 +70,18 @@ export const AdminSchemaManagement: React.FC = () => {
         setCategory(schema.category || '');
         setContent(JSON.stringify(schema.content, null, 2));
         setIsSystem(false);
+        setLock(false);
         setIsEditing(true);
+    };
+
+    const handleToggleLock = () => {
+        if (!selectedSchema) return;
+        const newLockState = !lock;
+        setLock(newLockState);
+        updateMutation.mutate({ 
+            id: selectedSchema.id, 
+            data: { lock: newLockState } 
+        });
     };
 
     const handleSave = () => {
@@ -77,7 +91,8 @@ export const AdminSchemaManagement: React.FC = () => {
                 key,
                 content: parsedContent,
                 category: category.trim() || null,
-                is_system: isSystem
+                is_system: isSystem,
+                lock: lock
             };
 
             if (selectedSchema) {
@@ -132,25 +147,40 @@ export const AdminSchemaManagement: React.FC = () => {
                             placeholder="Schema Key (e.g., user-profile)"
                             value={key}
                             onChange={e => setKey(e.target.value)}
-                            disabled={!!selectedSchema}
-                            className={`w-1/3 bg-surface-950 border border-gray-700 rounded-lg px-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-brand ${selectedSchema ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={!!selectedSchema || lock}
+                            className={`w-1/4 bg-surface-950 border border-gray-700 rounded-lg px-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-brand ${(selectedSchema || lock) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         />
                         <input
                             type="text"
                             placeholder="Category (e.g., Common|Info)"
                             value={category}
                             onChange={e => setCategory(e.target.value)}
-                            className="w-1/3 bg-surface-950 border border-gray-700 rounded-lg px-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-brand"
+                            disabled={lock}
+                            className={`w-1/4 bg-surface-950 border border-gray-700 rounded-lg px-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-brand ${lock ? 'opacity-50 cursor-not-allowed' : ''}`}
                         />
-                        <label className="flex items-center gap-2 text-sm text-gray-300">
+                        <label className={`flex items-center gap-2 text-sm text-gray-300 ${lock ? 'opacity-50 cursor-not-allowed' : ''}`}>
                             <input
                                 type="checkbox"
                                 checked={isSystem}
                                 onChange={e => setIsSystem(e.target.checked)}
+                                disabled={lock}
                                 className="rounded border-gray-700 text-brand focus:ring-brand"
                             />
                             System Schema
                         </label>
+                        {selectedSchema && (
+                            <button
+                                onClick={handleToggleLock}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                                    lock 
+                                    ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20' 
+                                    : 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20'
+                                }`}
+                            >
+                                <Icon name={lock ? 'lock' : 'unlock'} size={14} />
+                                {lock ? 'Unlock to Edit' : 'Lock Schema'}
+                            </button>
+                        )}
                     </div>
                     <div className="flex gap-2">
                         <button
@@ -161,8 +191,8 @@ export const AdminSchemaManagement: React.FC = () => {
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={updateMutation.isPending || createMutation.isPending}
-                            className="px-4 py-2 rounded-xl bg-brand hover:brightness-110 transition-colors text-white text-sm font-bold flex items-center gap-2"
+                            disabled={updateMutation.isPending || createMutation.isPending || lock}
+                            className={`px-4 py-2 rounded-xl bg-brand hover:brightness-110 transition-colors text-white text-sm font-bold flex items-center gap-2 ${lock ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             <Icon name="save" size={16} />
                             Save Schema
@@ -173,6 +203,7 @@ export const AdminSchemaManagement: React.FC = () => {
                     <SchemaEditor
                         initialValue={content}
                         onChange={setContent}
+                        readOnly={lock}
                     />
                 </div>
             </div>
@@ -285,9 +316,17 @@ const SchemaRow: React.FC<SchemaRowProps> = ({ schema, onEdit, onDelete, onDupli
                     <span className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
                         {schema.content?.title || schema.key}
                     </span>
-                    {schema.is_system && (
-                        <span className="text-[9px] font-black text-blue-400 uppercase tracking-tighter mt-0.5 opacity-60">System Schema</span>
-                    )}
+                    <div className="flex items-center gap-2 mt-0.5">
+                        {schema.is_system && (
+                            <span className="text-[9px] font-black text-blue-400 uppercase tracking-tighter opacity-60">System Schema</span>
+                        )}
+                        {schema.lock && (
+                            <span className="flex items-center gap-1 text-[9px] font-black text-red-400 uppercase tracking-tighter opacity-80">
+                                <Icon name="lock" size={10} />
+                                Locked
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
         </td>
@@ -317,7 +356,7 @@ const SchemaRow: React.FC<SchemaRowProps> = ({ schema, onEdit, onDelete, onDupli
                 >
                     <Icon name="content_copy" size={16} />
                 </button>
-                {!schema.is_system && (
+                {!schema.is_system && !schema.lock && (
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -328,6 +367,11 @@ const SchemaRow: React.FC<SchemaRowProps> = ({ schema, onEdit, onDelete, onDupli
                     >
                         <Icon name="delete" size={16} />
                     </button>
+                )}
+                {schema.lock && (
+                    <div className="p-2 text-red-400/40" title="Locked">
+                        <Icon name="lock" size={16} />
+                    </div>
                 )}
             </div>
         </td>

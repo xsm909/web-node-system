@@ -73,6 +73,18 @@ def update_record(
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
 
+    update_data = record_in.model_dump(exclude_unset=True)
+
+    # If record is locked, only allow updating the 'lock' field itself
+    if record.lock:
+        allowed_keys = {"lock"}
+        updating_keys = set(update_data.keys())
+        if not updating_keys.issubset(allowed_keys):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Record is locked and cannot be edited. Unlock it first."
+            )
+
     if record_in.data is not None:
         is_valid, err_msg = validate_json_data(db, record.schema.content, record_in.data)
         if not is_valid:
@@ -97,6 +109,12 @@ def delete_record(
     record = db.query(Record).filter(Record.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
+
+    if record.lock:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Record is locked and cannot be deleted. Unlock it first."
+        )
 
     db.delete(record)
     db.commit()
@@ -261,6 +279,11 @@ def unassign_metadata(
     # We delete the record, which cascades to the assignment
     record = db.query(Record).filter(Record.id == assignment.record_id).first()
     if record:
+        if record.lock:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Record is locked and cannot be removed. Unlock it first."
+            )
         db.delete(record)
     else:
         # Fallback: if record is already gone, just delete the assignment
