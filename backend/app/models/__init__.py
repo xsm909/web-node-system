@@ -7,6 +7,7 @@ from .data_type import DataType
 from .client_metadata import ClientMetadata
 from .report import Report, ReportParameter, ReportStyle, ReportRun
 from .schema import Schema, Record, MetaAssignment, ExternalSchemaCache
+from .agent_hint import AgentHint
 
 __all__ = [
     "User",
@@ -29,4 +30,5 @@ __all__ = [
     "Record",
     "MetaAssignment",
     "ExternalSchemaCache",
+    "AgentHint",
 ]
