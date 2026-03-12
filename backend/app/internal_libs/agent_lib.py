@@ -198,10 +198,15 @@ AVAILABLE TOOLS:
                 response_text = resp.text
             else:
                 # OpenAI / Perplexity
+                openai_response_format = {"type": "json_object"}
+                if provider == "perplexity":
+                    # Perplexity does not support 'json_object' yet (causes 400 error)
+                    openai_response_format = {"type": "text"}
+
                 resp = client.chat.completions.create(
                     model=model,
                     messages=messages,
-                    response_format={"type": "json_object"}
+                    response_format=openai_response_format
                 )
                 response_text = resp.choices[0].message.content
 
