@@ -90,7 +90,7 @@ def seed():
                 "name": "AI Agent",
                 "version": "1.1",
                 "description": "Modular AI Agent that uses tools, memory, and a chat model.",
-                "code": "class InputParameters:\n    model: dict = None\n    memory: dict = None\n    tools: list = []\n\nclass NodeParameters:\n    prompt: str = 'Help me with my task'\n\ndef run(inputs, params):\n    model = inputParameters.model\n    memory = inputParameters.memory\n    tools = inputParameters.tools\n    prompt = params.prompt\n\n    print(f'Agent running with model: {model}, tools: {len(tools) if tools else 0}')\n    result = libs.agent_run(model, memory, tools, prompt, inputs)\n    return {'output': result}",
+                "code": "class InputParameters:\n    model: str = 'gpt-4o-mini'\n    tools: list = []\n    hint: str = 'You are a helpful assistant.'\n\nclass NodeParameters:\n    task: str = 'Help me with my task'\n\ndef run(inputs, params):\n    model = inputParameters.model\n    tools = inputParameters.tools\n    hint = inputParameters.hint\n    task = params.task\n\n    print(f'Agent running with model: {model}, tools: {len(tools)}')\n    result = agent.run(model, tools, hint, task)\n    return {'output': result}",
                 "input_schema": {
                     "model": "object",
                     "memory": "object",

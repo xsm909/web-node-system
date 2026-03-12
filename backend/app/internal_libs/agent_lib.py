@@ -1,314 +1,192 @@
 import json
-from .openai.openai_lib import _conversations, _system_prompts
-from .openai import openai_lib
-from .gemini import gemini_lib
-from .perplexity import perplexity_lib
+import re
+from typing import Optional, List, Any, Dict
+from pydantic import BaseModel, Field
+from google import genai
+from google.genai import types
+from openai import OpenAI
+import jsonschema
+
 from .logger_lib import system_log
 from . import metadata_lib
+from . import schema_lib
+from . import tools_lib
 
-def agent_run(model_config, memory_config, tools, prompt, inputs=None, execution_id=None):
-    """
-    Executes an AI Agent run with model, memory, and tools.
-    Supports a loop for tool execution and basic memory persistence.
-    """
-    provider = model_config.get("provider", "openai").lower() if model_config else "openai"
-    model = model_config.get("model", "gpt-4o-mini") if model_config else "gpt-4o-mini"
+# --- Schemas for Structured Output ---
 
-    # Select the appropriate library based on provider
-    if provider == "gemini":
-        lib = gemini_lib
-        api_key = lib._get_api_key()
-    elif provider == "perplexity":
-        lib = perplexity_lib
-        api_key = lib._get_api_key()
+class ToolCall(BaseModel):
+    tool: str = Field(description="Name of the tool to call")
+    parameters: Dict[str, Any] = Field(default_factory=dict, description="Parameters for the tool")
+
+class AgentStep(BaseModel):
+    tool_call: Optional[ToolCall] = Field(None, description="Set this if you need to call a tool")
+    final_answer: Any = Field(None, description="Set this ONLY when you have the final result. Must conform to requested schema if provided.")
+
+# --- Library Registry ---
+
+ALL_TOOLS = {
+    "get_metadata": metadata_lib.get_metadata,
+    "get_metadata_by_id": metadata_lib.get_metadata_by_id,
+    "get_all_metadata": metadata_lib.get_all_metadata,
+    "get_schema_by_key": schema_lib.get_schema_by_key,
+    "get_all_schemas": schema_lib.get_all_schemas,
+    "calculator": tools_lib.calculator,
+    "database_query": tools_lib.database_query,
+    "http_request": tools_lib.http_request,
+    "smart_search": tools_lib.smart_search,
+}
+
+def run(model: str, tools: list, hint: str, task: str, schema_key: str = None):
+    """
+    Executes an AI Agent run with pure SDKs and structured JSON output.
+    """
+    system_log(f"[AGENT] Starting run (Model: {model}, Schema: {schema_key})", level="system")
+
+    # 1. Credentials & Provider
+    from .credentials import get_credential_by_key
+    provider = "openai"
+    model_name = model.lower()
+    
+    if "gemini" in model_name:
+        provider = "gemini"
+        api_key = get_credential_by_key("GEMINI_API_KEY")
+        if not api_key: return "Error: GEMINI_API_KEY not found."
+        client = genai.Client(api_key=api_key)
     else:
-        lib = openai_lib
-        api_key = lib._get_api_key()
+        # OpenAI or Perplexity (OpenAI-compatible)
+        if "sonar" in model_name or "llama" in model_name: 
+            provider = "perplexity"
+            api_key = get_credential_by_key("PERPLEXITY_API_KEY")
+            base_url = "https://api.perplexity.ai"
+        else:
+            api_key = get_credential_by_key("OPENAI_API_KEY")
+            base_url = None
+        
+        if not api_key: return f"Error: {provider.upper()}_API_KEY not found."
+        client = OpenAI(api_key=api_key, base_url=base_url)
 
-    if not api_key:
-        return f"Error: API Key for {provider} not found."
-    
-    # Internal Registry Fallback (System-wide tools)
-    from . import tools_lib
-    INTERNAL_TOOLS = {
-        "calculator": tools_lib.calculator,
-        "database": tools_lib.database_query,
-        "database_query": tools_lib.database_query,
-        "http_request": tools_lib.http_request,
-        "http_search": tools_lib.http_search,
-        "smart_search": tools_lib.smart_search,
-        "google_search": tools_lib.smart_search,
-        "web_search": tools_lib.smart_search,
-        "read_workflow_data": tools_lib.read_workflow_data,
-        "read_runtime_data": tools_lib.read_runtime_data,
-        "write_runtime_data": tools_lib.write_runtime_data,
-        "get_metadata": metadata_lib.get_metadata,
-    }
-    
-    # Flatten and Construct tool descriptions for the system prompt
-    allowed_tool_names = set()
+    # 2. Tools setup
+    import inspect
+    allowed_tools = {}
     tools_desc = ""
-    tool_map = {}
-    
-    def flatten(items):
-        res = []
-        if isinstance(items, list):
-            for i in items: res.extend(flatten(i))
-        elif isinstance(items, dict):
-            res.append(items)
-        return res
+    for t_name in tools:
+        name = t_name.lower()
+        if name in ALL_TOOLS:
+            func = ALL_TOOLS[name]
+            allowed_tools[name] = func
+            sig = inspect.signature(func)
+            doc = func.__doc__.strip() if func.__doc__ else "No description."
+            tools_desc += f"- {name}{sig}: {doc}\n"
 
-    if tools:
-        flat_tools = flatten(tools)
-        for tool in flat_tools:
-            if not isinstance(tool, dict): continue
-            name = tool.get('name')
-            if not name: continue
-            allowed_tool_names.add(name.lower())
-            tools_desc += f"- {name}: {tool.get('description', 'No description provided')}\n"
-            tool_map[name] = tool
+    # 3. Target Schema for final_answer
+    target_schema = None
+    if schema_key:
+        schema_str = schema_lib.get_schema_by_key(schema_key)
+        if schema_str and schema_str != "null":
+            target_schema = json.loads(schema_str)
 
-    # Internal Registry Fallback (System-wide tools) - FILTERED
-    from . import tools_lib
-    ALL_INTERNAL = {
-        "calculator": tools_lib.calculator,
-        "database": tools_lib.database_query,
-        "database_query": tools_lib.database_query,
-        "http_request": tools_lib.http_request,
-        "http_search": tools_lib.http_search,
-        "smart_search": tools_lib.smart_search,
-        "google_search": tools_lib.smart_search,
-        "web_search": tools_lib.smart_search,
-        "read_workflow_data": tools_lib.read_workflow_data,
-        "read_runtime_data": tools_lib.read_runtime_data,
-        "write_runtime_data": tools_lib.write_runtime_data,
-        "get_metadata": metadata_lib.get_metadata,
-    }
-    
-    # Only expose internal tools that are explicitly in the allowed list
-    INTERNAL_TOOLS = {k: v for k, v in ALL_INTERNAL.items() if k.lower() in allowed_tool_names}
-
-    # Conditional instructions for the prompt
-    search_rule = f"- Use 'smart_search' for any information lookup.\n" if "smart_search" in allowed_tool_names else ""
-    wf_data_desc = f"- Use 'read_workflow_data' to see static configuration.\n" if "read_workflow_data" in allowed_tool_names else ""
-    rt_data_desc = f"- Use 'read_runtime_data' to see shared dynamic state.\n" if "read_runtime_data" in allowed_tool_names else ""
-    wr_data_desc = f"- Use 'write_runtime_data' to update shared dynamic state.\n" if "write_runtime_data" in allowed_tool_names else ""
+    # 4. System Prompt
+    schema_instruction = ""
+    if target_schema:
+        schema_instruction = f"\nCRITICAL: Your 'final_answer' MUST conform to this JSON Schema:\n{json.dumps(target_schema, indent=2)}"
 
     system_prompt = f"""You are an autonomous AI Agent.
-Objective: {prompt}
+Context/Hint: {hint}
+
+OBJECTIVE: {task}
 
 RESPONSE FORMAT:
-If you need to use a tool, you MUST output ONLY a JSON object in this format:
-{{"tool": "tool_name", "parameters": {{"param1": "value1"}}}}
+You MUST respond with a JSON object matching this schema:
+{json.dumps(AgentStep.model_json_schema(), indent=2)}
+
+{schema_instruction}
 
 RULES:
-1. NEVER narrate your thoughts or explain what you are about to do. 
-2. NEVER simulate or hallucinate tool results.
-3. If a tool is needed, your response MUST be the JSON tool call and NOTHING ELSE.
-4. Only provide a natural language final answer AFTER all necessary tool results have been received.
-{search_rule}{wf_data_desc}{rt_data_desc}{wr_data_desc}
-Available Tools:
-{tools_desc if tools_desc else "No specific tools provided."}
+1. NEVER narrate your thoughts.
+2. If you need a tool, use 'tool_call'.
+3. If you have the result, use 'final_answer'.
+4. Do NOT use both 'tool_call' and 'final_answer' in the same response.
+5. For metadata tools, common 'entity_type' values are 'client' or 'manager'.
+
+AVAILABLE TOOLS:
+{tools_desc if tools_desc else "No tools available."}
 """
-    
-    messages = []
-    session_id = None
-    if memory_config:
-        # Isolated memory per execution to avoid state leakage
-        if execution_id:
-            session_id = f"exec-{execution_id}"
-        else:
-            session_id = "default-session"
-            
-        if session_id not in _conversations:
-             _conversations[session_id] = []
-        
-        history = _conversations[session_id]
 
-        # Limit history if it's a window memory
-        if memory_config.get("type") == "window":
-            size = memory_config.get("size", 5)
-            history = history[-(size*2):] # *2 because user+assistant pairs
-            
-        messages.extend(history)
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": task}
+    ]
 
-    messages.append({"role": "system", "content": system_prompt})
-    messages.append({"role": "user", "content": str(inputs) if inputs else "Start execution"})
-
-    max_iterations = 20
-    last_response = "Agent failed to provide a response."
-    
+    max_iterations = 10
     for i in range(max_iterations):
-        system_log(f"[AGENT] Iteration {i} starting...", level="system")
+        system_log(f"[AGENT] Iteration {i}", level="system")
         
-        if provider == "gemini":
-            # Gemini handles history internally if we use chat.send_message
-            # but for the loop we might want more control. 
-            # For now, let's use the library's ask_ai pattern or similar request.
-            response = lib.ask_chat(session_id or "tmp", inputs if i==0 else messages[-1]["content"], model)
-        elif provider == "perplexity":
-            # Perplexity is OpenAI-compatible
-            response = lib._make_request(api_key, messages, model)
-        else:
-            # OpenAI
-            response = lib._make_request(api_key, messages, model)
-
-        system_log(f"[AGENT] RAW AI Response:\n{response[:500]}{'...' if len(response) > 500 else ''}", level="system")
-        messages.append({"role": "assistant", "content": response})
-        last_response = response
-        
-        # 1. Standardize Response (Handle official tool calls)
-        active_content = response
-        if response.startswith("[") and "function" in response:
-            try:
-                tcs = json.loads(response)
-                if isinstance(tcs, list) and len(tcs) > 0:
-                    tc = tcs[0]
-                    active_content = json.dumps({
-                        "tool": tc.get("function", {}).get("name"),
-                        "parameters": json.loads(tc.get("function", {}).get("arguments", "{}"))
-                    })
-            except: pass
-
-        # 2. Extract JSON using robust greedy search
-        import re
-        best_data = None
-        
-        # A. Try direct json.loads first (in case it's pure JSON)
         try:
-            trimmed = active_content.strip().strip('\ufeff')
-            # Remove potential markdown code block artifacts
-            if trimmed.startswith("```"):
-                lines = trimmed.splitlines()
-                if lines[0].startswith("```"): lines = lines[1:]
-                if lines and lines[-1].startswith("```"): lines = lines[:-1]
-                trimmed = "\n".join(lines).strip()
-            
-            data = json.loads(trimmed)
-            if isinstance(data, dict) and "tool" in data:
-                best_data = data
-        except Exception as e:
-            pass
-
-        if not best_data:
-            # Find all candidates starting with { and ending with }
-            # We'll try the longest ones first
-            candidates = []
-            for match in re.finditer(r'\{', active_content):
-                start = match.start()
-                for end_match in re.finditer(r'\}', active_content[start:]):
-                    candidates.append(active_content[start:start+end_match.end()])
-            
-            # Sort by length descending to find the "largest" valid JSON
-            candidates.sort(key=len, reverse=True)
-            
-            for candidate in candidates:
-                try:
-                    data = json.loads(candidate)
-                    if isinstance(data, dict) and "tool" in data:
-                        best_data = data
-                        break
-                except: continue
-        
-        if best_data:
-            tool_name = str(best_data["tool"]).lower().strip()
-            params = best_data.get("parameters", {})
-            system_log(f"[AGENT] Processing tool call: {tool_name}", level="system")
-            system_log(f"[AGENT] Tool params: {params}", level="system")
-            
-            result = f"Error: Tool '{tool_name}' not found."
-            
-            # Lookup with case-insensitivity and prefix matching
-            execute_fn = None
-            
-            # Check internal registry
-            for k, fn in INTERNAL_TOOLS.items():
-                if k.lower() == tool_name:
-                    execute_fn = fn
-                    break
-            
-            # Check dynamic tool map
-            if not execute_fn:
-                for k, t in tool_map.items():
-                    if k.lower() == tool_name:
-                        execute_fn = t.get("execute")
-                        break
-
-            if execute_fn and callable(execute_fn):
-                try:
-                    import inspect
-                    # Get the parameters the function expects
-                    try:
-                        sig = inspect.signature(execute_fn)
-                        has_execution_id = "execution_id" in sig.parameters
-                        has_model_config = "model_config" in sig.parameters
-                    except:
-                        # Fallback if signature inspection fails (e.g. built-ins)
-                        has_execution_id = False
-                        has_model_config = False
-
-                    # Unified Dispatcher
-                    if tool_name in ["calculator", "calculate"]:
-                        q = params.get("expression") or params.get("query")
-                        if not q and not isinstance(params, dict): q = str(params)
-                        result = execute_fn(q) if q else "Error: Missing expression"
-                    
-                    elif tool_name in ["database", "database_query"]:
-                        q = params.get("query") or params.get("sql")
-                        if not q and not isinstance(params, dict): q = str(params)
-                        result = execute_fn(q) if q else "Error: Missing SQL query"
-                    
-                    elif tool_name in ["google_search", "smart_search", "web_search", "search", "http_search"]:
-                        q = params.get("query") or params.get("q") or params.get("parameters")
-                        if not q and not isinstance(params, dict): q = str(params)
-                        
-                        kwargs = {}
-                        if has_model_config: kwargs["model_config"] = model_config
-                        result = execute_fn(q, **kwargs)
-                        
-                    elif tool_name in ["read_workflow_data", "read_runtime_data"]:
-                        kwargs = {}
-                        if has_execution_id: kwargs["execution_id"] = execution_id
-                        result = execute_fn(**kwargs)
-                        
-                    elif tool_name == "write_runtime_data":
-                        q = params.get("data") or params.get("json")
-                        if not q:
-                            if isinstance(params, dict) and params:
-                                q = params
-                            else:
-                                q = str(params)
-                        
-                        kwargs = {}
-                        if has_execution_id: kwargs["execution_id"] = execution_id
-                        result = execute_fn(q, **kwargs)
-                    else:
-                        # Generic tool call
-                        kwargs = dict(params) if isinstance(params, dict) else {}
-                        if has_execution_id and "execution_id" not in kwargs:
-                            kwargs["execution_id"] = execution_id
-                        
-                        try:
-                            # Try calling with expanded params first
-                            result = execute_fn(**kwargs)
-                        except:
-                            # Fallback to single string param
-                            result = execute_fn(str(params))
-                except Exception as e:
-                    result = f"Execution error: {str(e)}"
+            if provider == "gemini":
+                # Convert messages to Gemini format (simplistic)
+                contents = []
+                for m in messages:
+                    contents.append(types.Content(role="user" if m["role"]=="user" else "model", parts=[types.Part(text=m["content"])]))
+                
+                resp = client.models.generate_content(
+                    model=model,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=AgentStep,
+                        system_instruction=system_prompt
+                    )
+                )
+                response_text = resp.text
             else:
-                result = f"Error: Tool '{tool_name}' not found or lacks execution function."
+                # OpenAI / Perplexity
+                resp = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    response_format={"type": "json_object"}
+                )
+                response_text = resp.choices[0].message.content
 
+            system_log(f"[AGENT] AI raw response: {response_text[:300]}...", level="system")
+            step = AgentStep.model_validate_json(response_text)
             
-            system_log(f"[AGENT] Tool Result: {result[:500]}{'...' if len(str(result)) > 500 else ''}", level="system")
-            messages.append({"role": "user", "content": f"Tool result: {result}"})
-            continue # LOOP AGAIN
+            # Save assistant message to history
+            messages.append({"role": "assistant", "content": response_text})
 
-        # 3. If no tool found, this is the final answer
-        system_log(f"[AGENT] Final answer provided. Response length: {len(response)}", level="system")
-        if session_id:
-             _conversations[session_id].append({"role": "user", "content": str(inputs) if inputs else "User query"})
-             _conversations[session_id].append({"role": "assistant", "content": response})
-        return response
+            # Handle Tool Call
+            if step.tool_call:
+                t_name = step.tool_call.tool.lower()
+                params = step.tool_call.parameters
+                
+                if t_name in allowed_tools:
+                    system_log(f"[AGENT] Calling tool: {t_name}", level="system")
+                    try:
+                        result = allowed_tools[t_name](**params)
+                        messages.append({"role": "user", "content": f"Tool result: {result}"})
+                    except Exception as te:
+                        error_msg = f"Tool execution error ({t_name}): {str(te)}"
+                        system_log(error_msg, level="error")
+                        messages.append({"role": "user", "content": error_msg})
+                    continue
+                else:
+                    messages.append({"role": "user", "content": f"Error: Tool '{t_name}' not allowed."})
+                    continue
 
-    return last_response
+            # Handle Final Answer
+            if step.final_answer is not None:
+                if target_schema:
+                    try:
+                        jsonschema.validate(instance=step.final_answer, schema=target_schema)
+                        system_log("[AGENT] Final answer validated against schema.", level="system")
+                    except Exception as ve:
+                        system_log(f"[AGENT] Schema validation failed: {ve}", level="error")
+                        messages.append({"role": "user", "content": f"Your final_answer did not match the schema: {ve}. Please fix and try again."})
+                        continue
+                
+                return step.final_answer if isinstance(step.final_answer, str) else json.dumps(step.final_answer, ensure_ascii=False)
+
+        except Exception as e:
+            system_log(f"[AGENT] Loop error: {str(e)}", level="error")
+            return f"Error: {str(e)}"
+
+    return "Error: Maximum iterations reached."

@@ -21,7 +21,7 @@ from ..internal_libs.struct_func import get_workflow_data, get_runtime_data, upd
 from ..internal_libs.openai.openai_lib import openai_create_new_conversation as openai_create_new_conversation, openai_set_prompt as openai_set_prompt, openai_ask_chat as openai_ask_chat, openai_ask_single as openai_ask_single, openai_perform_web_search as openai_perform_web_search
 from ..internal_libs.gemini.gemini_lib import gemini_create_new_conversation as gemini_create_new_conversation, gemini_set_prompt as gemini_set_prompt, gemini_ask_chat as gemini_ask_chat, gemini_ask_single as gemini_ask_single, gemini_perform_web_search as gemini_perform_web_search
 from ..internal_libs.perplexity.perplexity_lib import perplexity_create_new_conversation as perplexity_create_new_conversation, perplexity_set_prompt as perplexity_set_prompt, perplexity_ask_chat as perplexity_ask_chat, perplexity_ask_single as perplexity_ask_single, perplexity_perform_web_search as perplexity_perform_web_search
-from ..internal_libs.agent_lib import agent_run
+from ..internal_libs import agent_lib
 from ..internal_libs import common_lib
 from ..internal_libs.tools_lib import (
     calculator, database_query, http_request, http_search, 
@@ -129,7 +129,6 @@ SAFE_GLOBALS = {
     "libs": SimpleNamespace(
         ask_ai=ask_single,
         check_ai=check_ai,
-        agent_run=agent_run,
         calculator=calculator,
         database_query=database_query,
         http_request=http_request,
@@ -179,6 +178,9 @@ SAFE_GLOBALS = {
     "schema": SimpleNamespace(
         get_schema_by_key=schema_lib.get_schema_by_key,
         get_all_schemas=schema_lib.get_all_schemas
+    ),
+    "agent": SimpleNamespace(
+        run=agent_lib.run
     ),
     "workflow": None,  # Will be injected per-execution
 }
@@ -612,6 +614,9 @@ class WorkflowExecutor:
                     get_schema_by_key=schema_lib.get_schema_by_key,
                     get_all_schemas=schema_lib.get_all_schemas
                 ),
+                "agent": SimpleNamespace(
+                    run=agent_lib.run
+                ),
                 "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),
             }
             
@@ -623,7 +628,7 @@ class WorkflowExecutor:
             execution_libs.read_workflow_data = lambda: read_workflow_data(current_execution_id)
             execution_libs.read_runtime_data = lambda: read_runtime_data(current_execution_id)
             execution_libs.write_runtime_data = lambda data: write_runtime_data(data, current_execution_id)
-            execution_libs.agent_run = lambda *args, **kwargs: agent_run(*args, **kwargs, execution_id=current_execution_id)
+            node_globals["agent"].run = lambda model, tools, hint, task, schema_key=None: agent_lib.run(model, tools, hint, task, schema_key)
 
             exec(byte_code, node_globals)
 
