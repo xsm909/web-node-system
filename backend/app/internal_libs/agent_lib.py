@@ -16,7 +16,8 @@ from . import tools_lib
 
 class ToolCall(BaseModel):
     tool: str = Field(description="Name of the tool to call")
-    parameters: Dict[str, Any] = Field(default_factory=dict, description="Parameters for the tool")
+    parameters: Optional[Dict[str, Any]] = Field(None, description="Parameters for the tool. You MUST provide all required parameters based on the tool signature.")
+    arguments: Optional[Dict[str, Any]] = Field(None, description="Alias for parameters. You can use either 'parameters' or 'arguments'.")
 
 class AgentStep(BaseModel):
     tool_call: Optional[ToolCall] = Field(None, description="Set this if you need to call a tool")
@@ -28,6 +29,7 @@ ALL_TOOLS = {
     "get_metadata": metadata_lib.get_metadata,
     "get_metadata_by_id": metadata_lib.get_metadata_by_id,
     "get_all_metadata": metadata_lib.get_all_metadata,
+    "get_all_client_metadata": metadata_lib.get_all_client_metadata,
     "get_schema_by_key": schema_lib.get_schema_by_key,
     "get_all_schemas": schema_lib.get_all_schemas,
     "calculator": tools_lib.calculator,
@@ -52,7 +54,7 @@ def _clean_schema_for_gemini(schema: Any) -> Any:
         return [_clean_schema_for_gemini(item) for item in schema]
     return schema
 
-def run(model: str, tools: list, hint: str, task: str, schema_key: str = None):
+def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, iteration_limit: int = 10):
 
     """
     Executes an AI Agent run with pure SDKs and structured JSON output.
@@ -66,9 +68,18 @@ def run(model: str, tools: list, hint: str, task: str, schema_key: str = None):
     
     if "gemini" in model_name:
         provider = "gemini"
-        api_key = get_credential_by_key("GEMINI_API_KEY")
+        api_key = get_credential_by_key("GEMINI_API_KEY") or get_credential_by_key("GEMINI_API") or get_credential_by_key("GEMENI_API")
         if not api_key: return "Error: GEMINI_API_KEY not found."
+        
+        # Only map short aliases to their latest versions
+        if model == "gemini-1.5-flash":
+            model = "gemini-1.5-flash-latest"
+        elif model == "gemini-1.5-pro":
+            model = "gemini-1.5-pro-latest"
+            
         client = genai.Client(api_key=api_key)
+
+
     else:
         # OpenAI or Perplexity (OpenAI-compatible)
         if "sonar" in model_name or "llama" in model_name: 
@@ -120,10 +131,24 @@ You MUST respond with a JSON object matching this schema:
 
 RULES:
 1. NEVER narrate your thoughts.
-2. If you need a tool, use 'tool_call'.
-3. If you have the result, use 'final_answer'.
-4. Do NOT use both 'tool_call' and 'final_answer' in the same response.
-5. For metadata tools, common 'entity_type' values are 'client' or 'manager'.
+2. If you need a tool, use 'tool_call'. You MUST provide all required parameters in the 'parameters' (or 'arguments') dictionary. If a function signature shows a parameter is required (e.g. 'client_id'), you MUST provide it.
+3. Look for IDs in the task or hint. If a client ID is mentioned (e.g., '123-abc'), you MUST pass it to tools like 'get_all_client_metadata'.
+4. Do NOT leave 'parameters' empty {{}} if the tool requires arguments.
+
+TOOL CALL EXAMPLE:
+If you need to get metadata for client '123-abc':
+```json
+{{
+  "tool_call": {{
+    "tool": "get_all_client_metadata",
+    "parameters": {{ "client_id": "123-abc" }}
+  }}
+}}
+```
+
+5. If you have the result, use 'final_answer'.
+6. Do NOT use both 'tool_call' and 'final_answer' in the same response.
+7. For metadata tools, common 'entity_type' values are 'client' or 'manager'.
 
 AVAILABLE TOOLS:
 {tools_desc if tools_desc else "No tools available."}
@@ -134,8 +159,8 @@ AVAILABLE TOOLS:
         {"role": "user", "content": task}
     ]
 
-    max_iterations = 10
-    for i in range(max_iterations):
+    
+    for i in range(iteration_limit):
         system_log(f"[AGENT] Iteration {i}", level="system")
         
         try:
@@ -153,7 +178,8 @@ AVAILABLE TOOLS:
                     contents=contents,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        response_schema=cleaned_schema,
+                        # We skip response_schema for Gemini here because it restricts dynamic dictionaries like 'parameters'
+                        # if we don't define every possible key upfront. Prompting is sufficient for JSON structure.
                         system_instruction=system_prompt
                     )
                 )
@@ -176,12 +202,34 @@ AVAILABLE TOOLS:
             # Handle Tool Call
             if step.tool_call:
                 t_name = step.tool_call.tool.lower()
-                params = step.tool_call.parameters
+                # Support both 'parameters' and 'arguments' aliases
+                params = step.tool_call.parameters or step.tool_call.arguments or {}
                 
                 if t_name in allowed_tools:
-                    system_log(f"[AGENT] Calling tool: {t_name}", level="system")
+                    func = allowed_tools[t_name]
+                    system_log(f"[AGENT] Calling tool: {t_name} with params: {params}", level="system")
                     try:
-                        result = allowed_tools[t_name](**params)
+                        # 1. Inspect function signature to handle parameter mapping
+                        sig = inspect.signature(func)
+                        bound_params = {}
+                        
+                        # Optimization: if agent provided 'id' and tool needs something like 'client_id' or 'entity_id'
+                        # This is now also handled inside metadata_lib, but we handle it here for ALL tools.
+                        remaining_params = params.copy()
+                        for p_name, p_param in sig.parameters.items():
+                            if p_name in remaining_params:
+                                bound_params[p_name] = remaining_params.pop(p_name)
+                            elif p_name == "client_id" and "id" in remaining_params:
+                                bound_params[p_name] = remaining_params.pop("id")
+                            elif p_name == "entity_id" and "id" in remaining_params:
+                                bound_params[p_name] = remaining_params.pop("id")
+                            elif p_name == "metadata_id" and "id" in remaining_params:
+                                bound_params[p_name] = remaining_params.pop("id")
+                        
+                        # Merge remaining agent params (for **kwargs or extra params)
+                        bound_params.update(remaining_params)
+                        
+                        result = func(**bound_params)
                         messages.append({"role": "user", "content": f"Tool result: {result}"})
                     except Exception as te:
                         error_msg = f"Tool execution error ({t_name}): {str(te)}"

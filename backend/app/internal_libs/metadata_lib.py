@@ -158,3 +158,10 @@ def get_all_metadata(entity_type: str, entity_id: str) -> str:
         return json.dumps({"error": str(e)})
     finally:
         db.close()
+
+def get_all_client_metadata(client_id: str) -> str:
+    """
+    Shortcut to retrieve all metadata for a client by their ID.
+    Returns a JSON string (list of hierarchical records).
+    """
+    return get_all_metadata("client", client_id)

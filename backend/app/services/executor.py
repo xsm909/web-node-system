@@ -628,7 +628,7 @@ class WorkflowExecutor:
             execution_libs.read_workflow_data = lambda: read_workflow_data(current_execution_id)
             execution_libs.read_runtime_data = lambda: read_runtime_data(current_execution_id)
             execution_libs.write_runtime_data = lambda data: write_runtime_data(data, current_execution_id)
-            node_globals["agent"].run = lambda model, tools, hint, task, schema_key=None: agent_lib.run(model, tools, hint, task, schema_key)
+            node_globals["agent"].run = lambda model, tools, hint, task, schema_key=None, **kwargs: agent_lib.run(model, tools, hint, task, schema_key, **kwargs)
 
             exec(byte_code, node_globals)
 
@@ -773,7 +773,7 @@ class WorkflowExecutor:
             error_msg = traceback.format_exc()
             node_exec.status = WorkflowStatus.failed
             node_exec.error = error_msg
-            self.log(f"Ошибка {node_name}:\n{str(e)}", level="error")
+            self.log(f"Error {node_name}:\n{str(e)}", level="error")
             raise e
 
 
