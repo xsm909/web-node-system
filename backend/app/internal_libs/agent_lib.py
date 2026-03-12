@@ -36,7 +36,24 @@ ALL_TOOLS = {
     "smart_search": tools_lib.smart_search,
 }
 
+def _clean_schema_for_gemini(schema: Any) -> Any:
+    """
+    Recursively removes 'additionalProperties' and modifies schema for Gemini compatibility.
+    Gemini doesn't support 'additionalProperties' in its response schema.
+    """
+    if isinstance(schema, dict):
+        # Remove additionalProperties if it exists
+        schema.pop("additionalProperties", None)
+        # Process all values recursively
+        for key, value in list(schema.items()):
+            schema[key] = _clean_schema_for_gemini(value)
+    elif isinstance(schema, list):
+        # Process all items in the list recursively
+        return [_clean_schema_for_gemini(item) for item in schema]
+    return schema
+
 def run(model: str, tools: list, hint: str, task: str, schema_key: str = None):
+
     """
     Executes an AI Agent run with pure SDKs and structured JSON output.
     """
@@ -128,12 +145,15 @@ AVAILABLE TOOLS:
                 for m in messages:
                     contents.append(types.Content(role="user" if m["role"]=="user" else "model", parts=[types.Part(text=m["content"])]))
                 
+                # Gemini prefers the JSON schema for complex structures or when cleaning is needed
+                cleaned_schema = _clean_schema_for_gemini(AgentStep.model_json_schema())
+                
                 resp = client.models.generate_content(
                     model=model,
                     contents=contents,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        response_schema=AgentStep,
+                        response_schema=cleaned_schema,
                         system_instruction=system_prompt
                     )
                 )
