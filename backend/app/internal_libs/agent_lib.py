@@ -99,8 +99,17 @@ def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, i
     import inspect
     allowed_tools = {}
     tools_desc = ""
+    gemini_native_tools = []
+    
     for t_name in tools:
         name = t_name.lower()
+        
+        # Special handling for Gemini native tools
+        if provider == "gemini" and name == "google_search":
+            gemini_native_tools.append(types.Tool(google_search=types.GoogleSearch()))
+            tools_desc += f"- {name}: Native Google Search grounding (real-time information)\n"
+            continue
+
         if name in ALL_TOOLS:
             func = ALL_TOOLS[name]
             allowed_tools[name] = func
@@ -182,7 +191,8 @@ AVAILABLE TOOLS:
                         response_mime_type="application/json",
                         # We skip response_schema for Gemini here because it restricts dynamic dictionaries like 'parameters'
                         # if we don't define every possible key upfront. Prompting is sufficient for JSON structure.
-                        system_instruction=system_prompt
+                        system_instruction=system_prompt,
+                        tools=gemini_native_tools if gemini_native_tools else None
                     )
                 )
                 response_text = resp.text
