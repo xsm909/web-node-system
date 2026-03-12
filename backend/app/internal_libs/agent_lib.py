@@ -56,6 +56,17 @@ def _clean_schema_for_gemini(schema: Any) -> Any:
         return [_clean_schema_for_gemini(item) for item in schema]
     return schema
 
+def _extract_json(text: str) -> str:
+    """
+    Extracts JSON string from markdown code blocks if present.
+    """
+    text = text.strip()
+    # Match ```json ... ``` or ``` ... ```
+    match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    return text
+
 def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, iteration_limit: int = 10):
 
     """
@@ -211,7 +222,10 @@ AVAILABLE TOOLS:
                 response_text = resp.choices[0].message.content
 
             system_log(f"[AGENT] AI raw response: {response_text[:300]}...", level="system")
-            step = AgentStep.model_validate_json(response_text)
+            
+            # Robust JSON extraction
+            cleaned_json = _extract_json(response_text)
+            step = AgentStep.model_validate_json(cleaned_json)
             
             # Save assistant message to history
             messages.append({"role": "assistant", "content": response_text})

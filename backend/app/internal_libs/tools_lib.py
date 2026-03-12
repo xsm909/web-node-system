@@ -162,54 +162,6 @@ def http_search(query: str) -> str:
     system_log(f"[TOOL] Success: http_search -> {res}", level="system")
     return res
 
-def perform_gemini_search(query: str) -> str:
-    """Uses Gemini 1.5 with Google Search grounding."""
-    system_log(f"[TOOL] Start: perform_gemini_search(query='{query}')", level="system")
-    try:
-        from google import genai
-        from google.genai import types
-        from .credentials import get_credential_by_key
-        
-        # Try both common spellings because of potential typos in DB
-        api_key = get_credential_by_key("GEMENI_API") or get_credential_by_key("GEMINI_API")
-        
-        if not api_key:
-            res = "Error: GEMINI_API key not found in credentials."
-            system_log(f"[TOOL] Error: perform_gemini_search -> {res}", level="error")
-            return res
-            
-        client = genai.Client(api_key=api_key)
-        
-        # Using a model that supports grounding well
-        grounding_tool = types.Tool(
-            google_search=types.GoogleSearch()
-        )
-        config = types.GenerateContentConfig(
-            tools=[grounding_tool]
-        )
-        
-        # We'll use a specific prompt to encourage grounding if the library supports it natively
-        prompt = f"Find the latest information about: {query}. Provide names, phone numbers and addresses."
-        response = client.models.generate_content(
-            model='gemini-2.0-flash', # Use a modern model by default
-            contents=prompt,
-            config=config
-        )
-        
-        if not response.text:
-            res = "Error: Gemini returned empty response."
-            system_log(f"[TOOL] Error: perform_gemini_search -> {res}", level="error")
-            return res
-            
-        res = response.text
-        system_log(f"[TOOL] Success: perform_gemini_search -> {res[:200]}{'...' if len(res) > 200 else ''}", level="system")
-        return res
-    except Exception as e:
-        res = f"Gemini Search Error: {str(e)}"
-        system_log(f"[TOOL] Error: perform_gemini_search -> {res}", level="error")
-        return res
-
-
 def smart_search(query: str, model_config: dict = None) -> str:
     """
     Intelligent search tool that adapts based on the active provider/model.
@@ -222,7 +174,8 @@ def smart_search(query: str, model_config: dict = None) -> str:
     system_log(f"[TOOL] Start: smart_search(query='{query}', provider='{provider}')", level="system")
 
     if provider == "gemini":
-        res = perform_gemini_search(query)
+        from .gemini.gemini_lib import gemini_perform_web_search
+        res = gemini_perform_web_search(query)
         if "Error" not in res:
             system_log(f"[TOOL] Success: smart_search (via gemini) -> {res[:200]}{'...' if len(res) > 200 else ''}", level="system")
             return res
@@ -230,10 +183,19 @@ def smart_search(query: str, model_config: dict = None) -> str:
         return res
         
     elif provider == "openai":
-        from .openai.openai_lib import perform_web_search
-        res = perform_web_search(query)
+        from .openai.openai_lib import openai_perform_web_search
+        res = openai_perform_web_search(query)
         if "Error" not in res and "HTTPError" not in res:
             system_log(f"[TOOL] Success: smart_search (via openai) -> {res[:200]}{'...' if len(res) > 200 else ''}", level="system")
+            return res
+        system_log(f"[TOOL] Error: smart_search -> {res}", level="error")
+        return res
+
+    elif provider == "perplexity":
+        from .perplexity.perplexity_lib import perplexity_perform_web_search
+        res = perplexity_perform_web_search(query)
+        if "Error" not in res:
+            system_log(f"[TOOL] Success: smart_search (via perplexity) -> {res[:200]}{'...' if len(res) > 200 else ''}", level="system")
             return res
         system_log(f"[TOOL] Error: smart_search -> {res}", level="error")
         return res
