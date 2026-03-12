@@ -10,6 +10,7 @@ class SchemaBase(BaseModel):
     category: Optional[str] = None
     meta: Optional[Dict[str, Any]] = None
     is_system: bool = False
+    lock: bool = False
 
 class SchemaCreate(SchemaBase):
     pass
@@ -20,6 +21,7 @@ class SchemaUpdate(BaseModel):
     category: Optional[str] = None
     meta: Optional[Dict[str, Any]] = None
     is_system: Optional[bool] = None
+    lock: Optional[bool] = None
 
 class SchemaResponse(SchemaBase):
     id: UUID
@@ -36,12 +38,14 @@ class RecordBase(BaseModel):
     parent_id: Optional[UUID] = None
     data: Any
     order: int = 0
+    lock: bool = False
 
 class RecordCreate(RecordBase):
     pass
 
 class RecordUpdate(BaseModel):
     data: Optional[Any] = None
+    lock: Optional[bool] = None
 
 class RecordResponse(RecordBase):
     id: UUID

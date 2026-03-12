@@ -8,6 +8,7 @@ export interface Record {
     data: any;
     created_at: string;
     updated_at: string;
+    lock: boolean;
     children?: Record[];
 }
 
@@ -25,10 +26,12 @@ export interface CreateRecordDto {
     schema_id: string;
     parent_id?: string | null;
     data: any;
+    lock?: boolean;
 }
 
 export interface UpdateRecordDto {
-    data: any;
+    data?: any;
+    lock?: boolean;
 }
 
 export interface AssignMetadataDto {

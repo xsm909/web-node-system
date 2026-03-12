@@ -49,6 +49,7 @@ def get_all_schemas() -> str:
                 "content": schema.content,
                 "category": schema.category,
                 "is_system": schema.is_system,
+                "lock": schema.lock,
                 "created_at": schema.created_at.isoformat() if schema.created_at else None,
                 "updated_at": schema.updated_at.isoformat() if schema.updated_at else None
             })

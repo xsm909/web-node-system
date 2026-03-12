@@ -14,6 +14,7 @@ def _serialize_record(record: Record) -> Dict[str, Any]:
     if record.schema:
         data["__schema__"] = record.schema.key
     data["__id__"] = str(record.id)
+    data["__lock__"] = record.lock
     
     # Process children recursively
     if record.children:

@@ -35,7 +35,8 @@ def create_schema(
         content=schema_in.content,
         category=schema_in.category,
         meta=schema_in.meta,
-        is_system=schema_in.is_system
+        is_system=schema_in.is_system,
+        lock=schema_in.lock
     )
     db.add(new_schema)
     db.commit()
@@ -86,6 +87,9 @@ def update_schema(
         
     if "is_system" in update_data:
         schema.is_system = update_data["is_system"]
+        
+    if "lock" in update_data:
+        schema.lock = update_data["lock"]
 
     db.commit()
     db.refresh(schema)

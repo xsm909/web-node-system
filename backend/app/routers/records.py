@@ -54,7 +54,8 @@ def create_record(
         schema_id=record_in.schema_id,
         parent_id=record_in.parent_id,
         data=record_in.data,
-        order=order
+        order=order,
+        lock=record_in.lock
     )
     db.add(new_record)
     db.commit()
@@ -77,6 +78,9 @@ def update_record(
         if not is_valid:
             raise HTTPException(status_code=400, detail=f"Validation error: {err_msg}")
         record.data = record_in.data
+        
+    if record_in.lock is not None:
+        record.lock = record_in.lock
 
     db.commit()
     db.refresh(record)
