@@ -199,7 +199,9 @@ SAFE_GLOBALS = {
         get_agent_hint_by_key=agent_hints_lib.get_agent_hint_by_key
     ),
     "prompts": SimpleNamespace(
-        add_prompt=prompt_lib.add_prompt
+        add_prompt=prompt_lib.add_prompt,
+        get_prompts_by_category_with_reference_id=prompt_lib.get_prompts_by_category_with_reference_id,
+        get_prompts_by_category_with_id=prompt_lib.get_prompts_by_category_with_id
     ),
     "workflow": None,  # Will be injected per-execution
 }
@@ -651,7 +653,9 @@ class WorkflowExecutor:
                     get_agent_hint_by_key=agent_hints_lib.get_agent_hint_by_key
                 ),
                 "prompts": SimpleNamespace(
-                    add_prompt=prompt_lib.add_prompt
+                    add_prompt=prompt_lib.add_prompt,
+                    get_prompts_by_category_with_reference_id=prompt_lib.get_prompts_by_category_with_reference_id,
+                    get_prompts_by_category_with_id=prompt_lib.get_prompts_by_category_with_id
                 ),
                 "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),
             }

@@ -9,6 +9,7 @@ class PromptBase(BaseModel):
     content: Dict[str, Any]
     category: Optional[str] = None
     datatype: str
+    reference_id: Optional[UUID] = None
 
 class PromptCreate(PromptBase):
     pass
