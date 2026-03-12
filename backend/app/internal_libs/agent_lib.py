@@ -11,6 +11,7 @@ from .logger_lib import system_log
 from . import metadata_lib
 from . import schema_lib
 from . import tools_lib
+from . import agent_hints_lib
 
 # --- Schemas for Structured Output ---
 
@@ -32,6 +33,7 @@ ALL_TOOLS = {
     "get_all_client_metadata": metadata_lib.get_all_client_metadata,
     "get_schema_by_key": schema_lib.get_schema_by_key,
     "get_all_schemas": schema_lib.get_all_schemas,
+    "get_agent_hint_by_key": agent_hints_lib.get_agent_hint_by_key,
     "calculator": tools_lib.calculator,
     "database_query": tools_lib.database_query,
     "http_request": tools_lib.http_request,
