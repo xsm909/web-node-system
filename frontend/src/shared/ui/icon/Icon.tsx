@@ -10,9 +10,10 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
 const iconModules = import.meta.glob('../../../assets/icons/*.svg', { query: '?raw', import: 'default', eager: true });
 const nodeIconModules = import.meta.glob('../../../assets/node_icons/*.svg', { query: '?raw', import: 'default', eager: true });
 
-export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, className = '', ...props }) => {
+export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, className = '', fill: propFill, ...props }) => {
     const [svgContent, setSvgContent] = useState<string | null>(null);
     const [viewBox, setViewBox] = useState<string>("0 -960 960 960");
+    const [sourceFill, setSourceFill] = useState<string | null>(null);
 
     useEffect(() => {
         const modules = dir === 'icons' ? iconModules : nodeIconModules;
@@ -29,12 +30,27 @@ export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, clas
             const doc = parser.parseFromString(rawSvg, 'image/svg+xml');
             const svgElement = doc.querySelector('svg');
             if (svgElement) {
-                setSvgContent(svgElement.innerHTML);
+                // Extract structural info
                 if (svgElement.getAttribute('viewBox')) {
                     setViewBox(svgElement.getAttribute('viewBox')!);
                 } else {
                     setViewBox("0 -960 960 960");
                 }
+
+                // Extract fill from source root or use none if missing but has strokes
+                const rootFill = svgElement.getAttribute('fill');
+                setSourceFill(rootFill);
+
+                // Process internal content: replace hardcoded colors with currentColor
+                // for theme awareness.
+                let content = svgElement.innerHTML;
+                
+                // Replace #000000, #0F1729, #1f1f1f etc with currentColor
+                // We target common dark colors used in SVG exports
+                content = content.replace(/fill="#(000000|0F1729|1f1f1f|333333)"/gi, 'fill="currentColor"');
+                content = content.replace(/stroke="#(000000|0F1729|1f1f1f|333333)"/gi, 'stroke="currentColor"');
+                
+                setSvgContent(content);
             }
         } else {
             console.error(`Failed to load icon: ${name} from ${dir} at ${path}`);
@@ -43,12 +59,18 @@ export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, clas
 
     if (!svgContent) return <div style={{ width: size, height: size }} className={className} />;
 
+    // Decide what fill to use
+    // 1. Explicit propFill takes precedence
+    // 2. If source had fill="none", use "none"
+    // 3. Otherwise default to "currentColor" for solid icons
+    const finalFill = propFill || (sourceFill === 'none' ? 'none' : 'currentColor');
+
     return (
         <svg
             width={size}
             height={size}
             viewBox={viewBox}
-            fill="currentColor"
+            fill={finalFill}
             className={`icon icon-${name} ${className}`}
             dangerouslySetInnerHTML={{ __html: svgContent }}
             {...props}
