@@ -171,10 +171,17 @@ SAFE_GLOBALS = {
         process_request=analytics.process_analytics_request,
         process_analytics_request=analytics.process_analytics_request
     ),
+    "meta": SimpleNamespace(
+        get_metadata=metadata_lib.get_metadata,
+        get_metadata_by_id=metadata_lib.get_metadata_by_id,
+        get_all_metadata=metadata_lib.get_all_metadata,
+        get_all_client_metadata=metadata_lib.get_all_client_metadata
+    ),
     "metadata": SimpleNamespace(
         get_metadata=metadata_lib.get_metadata,
         get_metadata_by_id=metadata_lib.get_metadata_by_id,
-        get_all_metadata=metadata_lib.get_all_metadata
+        get_all_metadata=metadata_lib.get_all_metadata,
+        get_all_client_metadata=metadata_lib.get_all_client_metadata
     ),
     "schema": SimpleNamespace(
         get_schema_by_key=schema_lib.get_schema_by_key,
@@ -607,10 +614,17 @@ class WorkflowExecutor:
                     process_request=analytics.process_analytics_request,
                     process_analytics_request=analytics.process_analytics_request
                 ),
+                "meta": SimpleNamespace(
+                    get_metadata=metadata_lib.get_metadata,
+                    get_metadata_by_id=metadata_lib.get_metadata_by_id,
+                    get_all_metadata=metadata_lib.get_all_metadata,
+                    get_all_client_metadata=metadata_lib.get_all_client_metadata
+                ),
                 "metadata": SimpleNamespace(
                     get_metadata=metadata_lib.get_metadata,
                     get_metadata_by_id=metadata_lib.get_metadata_by_id,
-                    get_all_metadata=metadata_lib.get_all_metadata
+                    get_all_metadata=metadata_lib.get_all_metadata,
+                    get_all_client_metadata=metadata_lib.get_all_client_metadata
                 ),
                 "schema": SimpleNamespace(
                     get_schema_by_key=schema_lib.get_schema_by_key,
