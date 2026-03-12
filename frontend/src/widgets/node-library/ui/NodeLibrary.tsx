@@ -21,9 +21,8 @@ export const NodeLibrary: React.FC<NodeLibraryProps> = ({ nodeTypes, onAddNode }
     const toggleCategory = (path: string) => {
         setExpandedCategories(prev => {
             const next = new Set(prev);
-            const p = path.toLowerCase();
-            if (next.has(p)) next.delete(p);
-            else next.add(p);
+            if (next.has(path)) next.delete(path);
+            else next.add(path);
             setCookie('manager_node_expanded_categories', JSON.stringify(Array.from(next)));
             return next;
         });
@@ -151,7 +150,7 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
     onClickNode
 }) => {
     const isRoot = name === "Uncategorized";
-    const isExpanded = isRoot || expandedCategories.has(path.toLowerCase());
+    const isExpanded = isRoot || expandedCategories.has(path);
 
     if (isRoot) {
         return (
@@ -199,16 +198,12 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
                 <td className="px-6 py-2" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
                     <div className="flex items-center gap-2">
                         <Icon
-                            name={isExpanded ? 'expand_more' : 'chevron_right'}
+                            name={isExpanded ? 'down' : 'play'}
                             size={14}
                             className="text-gray-500 opacity-60"
                         />
                         <Icon name="folder_code" size={16} className="text-brand/70" />
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{node.name}</span>
-                        <div className="h-px flex-1 bg-gray-700 opacity-30 mx-2" />
-                        <span className="text-[9px] font-bold text-gray-500 opacity-50 tabular-nums">
-                            {countNodes(node)}
-                        </span>
                     </div>
                 </td>
             </tr>
@@ -240,14 +235,6 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
     );
 };
 
-function countNodes(node: CategoryTreeNode<NodeType>): number {
-    let count = (node?.nodes || []).length;
-    const children = node?.children || {};
-    for (const child of Object.values(children)) {
-        if (child) count += countNodes(child);
-    }
-    return count;
-}
 
 
 
