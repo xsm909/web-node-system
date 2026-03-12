@@ -8,6 +8,7 @@ from .client_metadata import ClientMetadata
 from .report import Report, ReportParameter, ReportStyle, ReportRun
 from .schema import Schema, Record, MetaAssignment, ExternalSchemaCache
 from .agent_hint import AgentHint
+from .prompt import Prompt
 
 __all__ = [
     "User",
@@ -31,4 +32,5 @@ __all__ = [
     "MetaAssignment",
     "ExternalSchemaCache",
     "AgentHint",
+    "Prompt",
 ]
