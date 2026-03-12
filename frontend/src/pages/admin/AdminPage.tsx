@@ -15,14 +15,15 @@ import { getCookie, setCookie } from '../../shared/lib/cookieUtils';
 import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskManagement';
 import { ReportManagement } from '../../widgets/report-management';
 import { AdminSchemaManagement } from '../../widgets/admin-schema-management/ui/AdminSchemaManagement';
+import { AgentHintManagement } from '../../widgets/admin-agent-hint-management/ui/AgentHintManagement';
 
 export default function AdminPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports'>(
+    const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints'>(
         (getCookie('active_admin_tab') as any) || 'users'
     );
 
-    const setActiveTab = (tab: 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports') => {
+    const setActiveTab = (tab: 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') => {
         setCookie('active_admin_tab', tab);
         setActiveTabState(tab);
     };
@@ -102,6 +103,13 @@ export default function AdminPage() {
                         isActive: activeTab === 'reports',
                         onClick: () => setActiveTab('reports'),
                     },
+                    {
+                        id: 'agent-hints',
+                        label: 'Agent Hints',
+                        icon: 'dev_hint',
+                        isActive: activeTab === 'agent-hints',
+                        onClick: () => setActiveTab('agent-hints'),
+                    },
                 ]}
             />
 
@@ -114,7 +122,8 @@ export default function AdminPage() {
                             <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
                                 {activeTab === 'nodes' ? 'Node Library' :
                                     activeTab === 'ai-tasks' ? 'AI Task Management' :
-                                        activeTab === 'schemas' ? 'Schema Registry' : 'Credentials'}
+                                        activeTab === 'schemas' ? 'Schema Registry' :
+                                            activeTab === 'agent-hints' ? 'Agent Hints' : 'Credentials'}
                             </h1>
                         }
                         rightContent={
@@ -164,6 +173,8 @@ export default function AdminPage() {
                             onToggleSidebar={() => setIsSidebarOpen(true)}
                             isSidebarOpen={isSidebarOpen}
                         />
+                    ) : activeTab === 'agent-hints' ? (
+                        <div className="max-w-7xl mx-auto space-y-8"><AgentHintManagement /></div>
                     ) : (
                         <div className="max-w-7xl mx-auto space-y-8"><AdminCredentialManagement /></div>
                     )}
