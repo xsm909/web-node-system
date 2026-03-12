@@ -175,13 +175,19 @@ SAFE_GLOBALS = {
         get_metadata=metadata_lib.get_metadata,
         get_metadata_by_id=metadata_lib.get_metadata_by_id,
         get_all_metadata=metadata_lib.get_all_metadata,
-        get_all_client_metadata=metadata_lib.get_all_client_metadata
+        get_all_client_metadata=metadata_lib.get_all_client_metadata,
+        get_metadata_by_schema=metadata_lib.get_metadata_by_schema,
+        get_client_metadata_by_schema=metadata_lib.get_client_metadata_by_schema,
+        get_owner_metadata_by_schema=metadata_lib.get_owner_metadata_by_schema
     ),
     "metadata": SimpleNamespace(
         get_metadata=metadata_lib.get_metadata,
         get_metadata_by_id=metadata_lib.get_metadata_by_id,
         get_all_metadata=metadata_lib.get_all_metadata,
-        get_all_client_metadata=metadata_lib.get_all_client_metadata
+        get_all_client_metadata=metadata_lib.get_all_client_metadata,
+        get_metadata_by_schema=metadata_lib.get_metadata_by_schema,
+        get_client_metadata_by_schema=metadata_lib.get_client_metadata_by_schema,
+        get_owner_metadata_by_schema=metadata_lib.get_owner_metadata_by_schema
     ),
     "schema": SimpleNamespace(
         get_schema_by_key=schema_lib.get_schema_by_key,
@@ -618,13 +624,19 @@ class WorkflowExecutor:
                     get_metadata=metadata_lib.get_metadata,
                     get_metadata_by_id=metadata_lib.get_metadata_by_id,
                     get_all_metadata=metadata_lib.get_all_metadata,
-                    get_all_client_metadata=metadata_lib.get_all_client_metadata
+                    get_all_client_metadata=metadata_lib.get_all_client_metadata,
+                    get_metadata_by_schema=metadata_lib.get_metadata_by_schema,
+                    get_client_metadata_by_schema=metadata_lib.get_client_metadata_by_schema,
+                    get_owner_metadata_by_schema=metadata_lib.get_owner_metadata_by_schema
                 ),
                 "metadata": SimpleNamespace(
                     get_metadata=metadata_lib.get_metadata,
                     get_metadata_by_id=metadata_lib.get_metadata_by_id,
                     get_all_metadata=metadata_lib.get_all_metadata,
-                    get_all_client_metadata=metadata_lib.get_all_client_metadata
+                    get_all_client_metadata=metadata_lib.get_all_client_metadata,
+                    get_metadata_by_schema=metadata_lib.get_metadata_by_schema,
+                    get_client_metadata_by_schema=metadata_lib.get_client_metadata_by_schema,
+                    get_owner_metadata_by_schema=metadata_lib.get_owner_metadata_by_schema
                 ),
                 "schema": SimpleNamespace(
                     get_schema_by_key=schema_lib.get_schema_by_key,
