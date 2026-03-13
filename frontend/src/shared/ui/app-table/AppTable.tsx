@@ -4,7 +4,6 @@ import {
     getCoreRowModel,
     flexRender,
 } from '@tanstack/react-table';
-import { AppTableHeader } from './components/AppTableHeader';
 import { AppTableDataRow } from './components/AppTableDataRow';
 import { AppTableCategoryRows, type TWithCategory } from './components/AppTableCategoryRows';
 import { buildCategoryTree } from '../../lib/categoryUtils';
@@ -17,8 +16,6 @@ export function AppTable<TData>({
     config,
     isLoading,
     onRowClick,
-    searchQuery,
-    onSearchChange,
     isSearching
 }: AppTableProps<TData>) {
     const table = useReactTable({
@@ -27,7 +24,7 @@ export function AppTable<TData>({
         getCoreRowModel: getCoreRowModel(),
     });
 
-    const persistKey = config.persistCategoryKey || 'app_table_expanded_categories';
+    const persistKey = config?.persistCategoryKey || 'app_table_expanded_categories';
 
     // Persistence for expanded categories
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => {
@@ -47,7 +44,7 @@ export function AppTable<TData>({
     };
 
     const treeData = useMemo(() => {
-        if (isSearching || !config.categoryExtractor) return null;
+        if (isSearching || !config?.categoryExtractor) return null;
         
         const rows = table.getRowModel().rows;
         const mapped: TWithCategory<TData>[] = rows.map(row => ({
@@ -57,21 +54,15 @@ export function AppTable<TData>({
         }));
 
         return buildCategoryTree(mapped);
-    }, [table.getRowModel().rows, isSearching, config.categoryExtractor]);
+    }, [table.getRowModel().rows, isSearching, config?.categoryExtractor]);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-300">
-            <AppTableHeader
-                config={config}
-                searchQuery={searchQuery}
-                onSearchChange={onSearchChange}
-            />
-
-            <div className="bg-surface-800 rounded-2xl border border-[var(--border-base)] overflow-hidden shadow-xl shadow-black/10">
+        <div className="flex flex-col flex-1 min-h-0 w-full animate-in fade-in duration-300">
+            <div className="flex-1 overflow-y-auto bg-surface-800 rounded-bl-3xl border border-t-0 border-[var(--border-base)] shadow-xl shadow-black/10 custom-scrollbar">
                 <table className="w-full text-left border-collapse">
-                    <thead>
+                    <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-[var(--border-base)]">
                         {table.getHeaderGroups().map(headerGroup => (
-                            <tr key={headerGroup.id} className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
+                            <tr key={headerGroup.id} className="bg-[var(--border-muted)]/30">
                                 {headerGroup.headers.map(header => (
                                     <th key={header.id} className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
                                         {flexRender(header.column.columnDef.header, header.getContext())}
@@ -93,7 +84,7 @@ export function AppTable<TData>({
                         ) : data.length === 0 ? (
                             <tr>
                                 <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)] italic opacity-50">
-                                    {config.emptyMessage || "No matches found."}
+                                    {config?.emptyMessage || "No matches found."}
                                 </td>
                             </tr>
                         ) : treeData ? (

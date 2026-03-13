@@ -1,9 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-    useReactTable,
-    getCoreRowModel,
-    flexRender,
     createColumnHelper,
 } from '@tanstack/react-table';
 import { apiClient } from '../../../shared/api/client';
@@ -11,6 +8,7 @@ import type { User } from '../../../entities/user/model/types';
 import { UserEditor, type UserEditorRef } from './UserEditor';
 import { AppHeader } from '../../app-header';
 import { Icon } from '../../../shared/ui/icon';
+import { AppTable } from '../../../shared/ui/app-table';
 
 const columnHelper = createColumnHelper<User>();
 
@@ -78,11 +76,17 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
         }),
     ], []);
 
-    const table = useReactTable({
-        data: users,
-        columns,
-        getCoreRowModel: getCoreRowModel(),
-    });
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredUsers = useMemo(() => {
+        const q = searchQuery.toLowerCase().trim();
+        if (!q) return users;
+        return users.filter(u => 
+            u.username.toLowerCase().includes(q) || 
+            u.role.toLowerCase().includes(q) ||
+            u.id.toLowerCase().includes(q)
+        );
+    }, [users, searchQuery]);
 
     const handleRowClick = (user: User) => {
         setSelectedUser(user);
@@ -149,57 +153,24 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                         </div>
                     )
                 }
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                searchPlaceholder="Search by username, role or ID..."
             />
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
                 <div className="max-w-7xl mx-auto h-full">
-                    {isLoading && users.length === 0 ? (
-                        <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl">
-                            <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
-                        </div>
-                    ) : view === 'list' ? (
-                        <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/5 animate-in fade-in duration-500">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        {table.getHeaderGroups().map(headerGroup => (
-                                            <tr key={headerGroup.id} className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
-                                                {headerGroup.headers.map(header => (
-                                                    <th key={header.id} className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
-                                                        {header.isPlaceholder
-                                                            ? null
-                                                            : flexRender(
-                                                                header.column.columnDef.header,
-                                                                header.getContext()
-                                                            )}
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        ))}
-                                    </thead>
-                                    <tbody className="divide-y divide-[var(--border-base)]">
-                                        {table.getRowModel().rows.map(row => (
-                                            <tr
-                                                key={row.id}
-                                                className="hover:bg-[var(--border-muted)]/50 transition-colors group cursor-pointer"
-                                                onClick={() => handleRowClick(row.original)}
-                                            >
-                                                {row.getVisibleCells().map(cell => (
-                                                    <td key={cell.id} className="px-6 py-4 text-sm">
-                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {users.length === 0 && (
-                                <div className="p-16 text-center text-[var(--text-muted)] text-sm opacity-40 font-medium">
-                                    No users detected in the system.
-                                </div>
-                            )}
-                        </div>
+                    {view === 'list' ? (
+                        <AppTable
+                            data={filteredUsers}
+                            columns={columns}
+                            isLoading={isLoading && users.length === 0}
+                            onRowClick={handleRowClick}
+                            isSearching={searchQuery.trim().length > 0}
+                            config={{
+                                emptyMessage: 'No users found.'
+                            }}
+                        />
                     ) : (
                         selectedUser && (
                             <UserEditor

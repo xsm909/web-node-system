@@ -4,11 +4,17 @@ import type { Credential } from '../../../entities/credential/model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppHeader } from '../../../widgets/app-header';
 import { createColumnHelper } from '@tanstack/react-table';
 
 const columnHelper = createColumnHelper<Credential>();
 
-export const AdminCredentialManagement = () => {
+interface AdminCredentialManagementProps {
+    onToggleSidebar?: () => void;
+    isSidebarOpen?: boolean;
+}
+
+export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: AdminCredentialManagementProps) => {
     const [credentials, setCredentials] = useState<Credential[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -242,39 +248,56 @@ export const AdminCredentialManagement = () => {
     }
 
     return (
-        <div className="animate-in fade-in duration-500">
-            <AppTable
-                data={filteredCredentials}
-                columns={columns}
+        <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
+            <AppHeader
+                onToggleSidebar={onToggleSidebar || (() => { })}
+                isSidebarOpen={isSidebarOpen}
+                leftContent={
+                    <div className="flex flex-col">
+                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
+                            API Credentials
+                        </h1>
+                        <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60 px-2 lg:px-0">
+                            Manage system-wide security keys and tokens.
+                        </p>
+                    </div>
+                }
+                rightContent={
+                    <button
+                        className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
+                        onClick={handleOpenCreate}
+                    >
+                        <Icon name="add" size={16} className="-ml-1" />
+                        Add Access Key
+                    </button>
+                }
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                isSearching={searchQuery.trim().length > 0}
-                config={{
-                    // Note: Credential doesn't have a category tree currently, but we can group by 'type' if we want.
-                    // Let's do that for extra value!
-                    categoryExtractor: c => c.type,
-                    persistCategoryKey: 'credential_expanded_categories',
-                    title: 'API Credentials',
-                    subtitle: 'Manage system-wide security keys and tokens.',
-                    searchPlaceholder: 'Search by key, type or description...',
-                    primaryAction: {
-                        icon: 'add',
-                        label: 'Add Access Key',
-                        onClick: handleOpenCreate
-                    },
-                    emptyMessage: 'No secure credentials detected. Add your first access key to enable remote integrations.'
-                }}
+                searchPlaceholder="Search by key, type or description..."
             />
 
-            <ConfirmModal
-                isOpen={!!credentialToDelete}
-                title="Delete Credential"
-                description={`Are you sure you want to delete the credential '${credentialToDelete?.key}'? This action cannot be undone.`}
-                confirmLabel="Delete"
-                isLoading={loading && !!credentialToDelete}
-                onConfirm={confirmDelete}
-                onCancel={() => setCredentialToDelete(null)}
-            />
+            <div className="flex-1 p-8 overflow-y-auto w-full max-w-7xl mx-auto">
+                <AppTable
+                    data={filteredCredentials}
+                    columns={columns}
+                    isSearching={searchQuery.trim().length > 0}
+                    config={{
+                        categoryExtractor: c => c.type,
+                        persistCategoryKey: 'credential_expanded_categories',
+                        emptyMessage: 'No secure credentials detected. Add your first access key to enable remote integrations.'
+                    }}
+                />
+
+                <ConfirmModal
+                    isOpen={!!credentialToDelete}
+                    title="Delete Credential"
+                    description={`Are you sure you want to delete the credential '${credentialToDelete?.key}'? This action cannot be undone.`}
+                    confirmLabel="Delete"
+                    isLoading={loading && !!credentialToDelete}
+                    onConfirm={confirmDelete}
+                    onCancel={() => setCredentialToDelete(null)}
+                />
+            </div>
         </div>
     );
 };

@@ -8,8 +8,6 @@ import { AdminCommonWorkflowManagement } from '../../widgets/admin-common-workfl
 import { useNodeTypeManagement } from '../../features/node-type-management';
 import { apiClient } from '../../shared/api/client';
 import type { NodeType } from '../../entities/node-type/model/types';
-import { Icon } from '../../shared/ui/icon';
-import { AppHeader } from '../../widgets/app-header';
 import { getCookie, setCookie } from '../../shared/lib/cookieUtils';
 
 import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskManagement';
@@ -113,70 +111,54 @@ export default function AdminPage() {
                 ]}
             />
 
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                {activeTab !== 'workflows' && activeTab !== 'reports' && activeTab !== 'users' && (
-                    <AppHeader
-                        onToggleSidebar={() => setIsSidebarOpen(true)}
-                        isSidebarOpen={isSidebarOpen}
-                        leftContent={
-                            <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
-                                {activeTab === 'nodes' ? 'Node Library' :
-                                    activeTab === 'ai-tasks' ? 'AI Task Management' :
-                                        activeTab === 'schemas' ? 'Schema Registry' :
-                                            activeTab === 'agent-hints' ? 'Agent Hints' : 'Credentials'}
-                            </h1>
-                        }
-                        rightContent={
-                            activeTab === 'nodes' && (
-                                <button
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand hover:brightness-110 text-white text-sm font-bold shadow-lg shadow-brand/20 transition-all active:scale-[0.98]"
-                                    onClick={() => handleOpenModal()}
-                                >
-                                    <Icon name="add" size={18} />
-                                    Add New Node
-                                </button>
-                            )
-                        }
-                    />
-                )}
-
-                <div className={`flex-1 overflow-y-auto custom-scrollbar ${activeTab === 'workflows' ? '' : 'p-8'}`}>
+            <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--bg-app)]">
+                <div className="flex-1 flex flex-col min-h-0 w-full">
                     {activeTab === 'users' ? (
-                        <div className="max-w-7xl mx-auto space-y-8">
-                            <AdminUserManagement
-                                onToggleSidebar={() => setIsSidebarOpen(true)}
-                                isSidebarOpen={isSidebarOpen}
-                            />
-                        </div>
+                        <AdminUserManagement
+                            onToggleSidebar={() => setIsSidebarOpen(true)}
+                            isSidebarOpen={isSidebarOpen}
+                        />
                     ) : activeTab === 'nodes' ? (
-                        <div className="max-w-7xl mx-auto space-y-8">
-                            <AdminNodeLibrary
-                                onEditNode={handleOpenModal}
-                                onDuplicateNode={handleDuplicateNode}
-                                refreshTrigger={refreshCount}
-                            />
-                        </div>
+                        <AdminNodeLibrary
+                            onEditNode={handleOpenModal}
+                            onDuplicateNode={handleDuplicateNode}
+                            refreshTrigger={refreshCount}
+                            onToggleSidebar={() => setIsSidebarOpen(true)}
+                            isSidebarOpen={isSidebarOpen}
+                        />
                     ) : activeTab === 'workflows' ? (
                         <AdminCommonWorkflowManagement
                             onToggleSidebar={() => setIsSidebarOpen(true)}
+                            isSidebarOpen={isSidebarOpen}
                             onEditNode={handleOpenModal}
                             refreshTrigger={refreshCount}
                         />
                     ) : activeTab === 'schemas' ? (
-                        <div className="max-w-7xl mx-auto space-y-8"><AdminSchemaManagement /></div>
+                        <AdminSchemaManagement 
+                            onToggleSidebar={() => setIsSidebarOpen(true)}
+                            isSidebarOpen={isSidebarOpen}
+                        />
                     ) : activeTab === 'ai-tasks' ? (
-                        <div className="max-w-7xl mx-auto space-y-8">
-                            <AITaskManagement activeClientId={null} />
-                        </div>
+                        <AITaskManagement 
+                            activeClientId={null} 
+                            onToggleSidebar={() => setIsSidebarOpen(true)}
+                            isSidebarOpen={isSidebarOpen}
+                        />
                     ) : activeTab === 'reports' ? (
                         <ReportManagement
                             onToggleSidebar={() => setIsSidebarOpen(true)}
                             isSidebarOpen={isSidebarOpen}
                         />
                     ) : activeTab === 'agent-hints' ? (
-                        <div className="max-w-7xl mx-auto space-y-8"><AgentHintManagement /></div>
+                        <AgentHintManagement 
+                            onToggleSidebar={() => setIsSidebarOpen(true)}
+                            isSidebarOpen={isSidebarOpen}
+                        />
                     ) : (
-                        <div className="max-w-7xl mx-auto space-y-8"><AdminCredentialManagement /></div>
+                        <AdminCredentialManagement 
+                            onToggleSidebar={() => setIsSidebarOpen(true)}
+                            isSidebarOpen={isSidebarOpen}
+                        />
                     )}
                 </div>
             </main>

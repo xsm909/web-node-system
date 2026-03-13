@@ -28,6 +28,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const [idToDelete, setIdToDelete] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -195,6 +196,15 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 }
                 rightContent={
                     <div className="flex items-center gap-3">
+                        {view === 'list' && isAdmin && (
+                            <button
+                                onClick={handleCreate}
+                                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
+                            >
+                                <Icon name="add" size={16} className="-ml-1" />
+                                Add Report
+                            </button>
+                        )}
                         {view === 'view' && (
                             <button
                                 onClick={() => reportViewerRef.current?.handleGenerate()}
@@ -262,6 +272,9 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                         )}
                     </div>
                 }
+                searchQuery={view === 'list' ? searchQuery : undefined}
+                onSearchChange={view === 'list' ? setSearchQuery : undefined}
+                searchPlaceholder="Search reports by name, description or category..."
             />
 
             <div className="flex-1 overflow-hidden">
@@ -270,10 +283,10 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                         <ReportList
                             reports={reports}
                             isAdmin={isAdmin}
-                            onCreate={handleCreate}
                             onEdit={handleEdit}
                             onView={handleView}
                             onDelete={handleDelete}
+                            searchQuery={searchQuery}
                         />
                     </div>
                 )}

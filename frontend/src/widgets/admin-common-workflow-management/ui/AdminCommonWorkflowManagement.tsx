@@ -14,10 +14,12 @@ import { apiClient } from '../../../shared/api/client';
 
 export function AdminCommonWorkflowManagement({
     onToggleSidebar,
+    isSidebarOpen,
     onEditNode,
     refreshTrigger
 }: {
     onToggleSidebar: () => void;
+    isSidebarOpen?: boolean;
     onEditNode?: (node: NodeType) => void;
     refreshTrigger?: number;
 }) {
@@ -109,7 +111,7 @@ export function AdminCommonWorkflowManagement({
                 users={[]} // No assigned users for common workflows
                 workflowsByOwner={workflowsByOwner}
                 isRunning={isRunning}
-                isSidebarOpen={false} // dummy
+                isSidebarOpen={isSidebarOpen || false} // dummy
                 onSelect={loadWorkflow}
                 onDelete={(wf) => setWorkflowToDelete(wf)}
                 onRename={(wf) => {

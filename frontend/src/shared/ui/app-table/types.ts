@@ -10,17 +10,6 @@ export interface AppTableAction {
 }
 
 export interface AppTableConfig<TData> {
-    // Header config
-    title?: ReactNode;
-    subtitle?: ReactNode;
-    icon?: string;
-    
-    // Search config
-    searchPlaceholder?: string;
-    
-    // Actions config
-    primaryAction?: AppTableAction;
-    
     // Categorization config
     // If provided, the table will group items by this string path (e.g. "Category|Subcategory")
     categoryExtractor?: (item: TData) => string | null | undefined;
@@ -49,10 +38,6 @@ export interface AppTableProps<TData> {
     isLoading?: boolean;
     onRowClick?: (row: TData) => void;
     
-    // Search state managed by parent
-    searchQuery: string;
-    onSearchChange: (query: string) => void;
-    
     // isSearching flag tells the component to flatten the tree
-    isSearching: boolean;
+    isSearching?: boolean;
 }

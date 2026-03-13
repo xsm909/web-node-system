@@ -5,11 +5,17 @@ import { SchemaEditor } from '../../../features/schema-editor/SchemaEditor';
 import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppHeader } from '../../../widgets/app-header';
 import { createColumnHelper } from '@tanstack/react-table';
 
 const columnHelper = createColumnHelper<Schema>();
 
-export const AdminSchemaManagement = () => {
+interface AdminSchemaManagementProps {
+    onToggleSidebar?: () => void;
+    isSidebarOpen?: boolean;
+}
+
+export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminSchemaManagementProps) => {
     const { data: schemas = [], isLoading } = useSchemas();
     const createMutation = useCreateSchema();
     const updateMutation = useUpdateSchema();
@@ -206,7 +212,7 @@ export const AdminSchemaManagement = () => {
 
     if (isEditing) {
         return (
-            <div className="flex flex-col h-[calc(100vh-12rem)] border border-gray-700 rounded-2xl overflow-hidden bg-surface-800 shadow-xl shadow-black/20 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col h-[calc(100vh-12rem)] border border-gray-700 rounded-2xl overflow-hidden bg-surface-800 shadow-xl shadow-black/20 animate-in zoom-in-95 duration-200 m-8">
                 <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-surface-900">
                     <div className="flex gap-4 items-center flex-1 pr-8">
                         <input
@@ -278,43 +284,58 @@ export const AdminSchemaManagement = () => {
     }
 
     return (
-        <div className="space-y-6">
-            <AppTable
-                data={filteredSchemas}
-                columns={columns}
+        <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
+            <AppHeader
+                onToggleSidebar={onToggleSidebar || (() => { })}
+                isSidebarOpen={isSidebarOpen}
+                leftContent={
+                    <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
+                        Schema Registry
+                    </h1>
+                }
+                rightContent={
+                    <button
+                        className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
+                        onClick={handleCreateNew}
+                    >
+                        <Icon name="add" size={16} className="-ml-1" />
+                        New Schema
+                    </button>
+                }
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                isSearching={searchQuery.trim().length > 0}
-                onRowClick={handleEdit}
-                config={{
-                    title: 'Schema Registry',
-                    searchPlaceholder: 'Search by key, category or tags...',
-                    primaryAction: {
-                        icon: 'add',
-                        label: 'New Schema',
-                        onClick: handleCreateNew
-                    },
-                    categoryExtractor: s => s.category,
-                    persistCategoryKey: 'schema_expanded_categories',
-                    emptyMessage: 'No schemas matching your criteria.'
-                }}
+                searchPlaceholder="Search by key, category or tags..."
             />
 
-            <ConfirmModal
-                isOpen={!!idToDelete}
-                title="Delete Schema"
-                description="Are you sure you want to delete this schema? This action cannot be undone."
-                confirmLabel="Delete"
-                isLoading={deleteMutation.isPending}
-                onConfirm={() => {
-                    if (idToDelete) {
-                        deleteMutation.mutate(idToDelete, {
-                            onSuccess: () => setIdToDelete(null)
-                        });
-                    }
-                }}
-                onCancel={() => setIdToDelete(null)}
-            />
+            <div className="flex-1 p-8 overflow-y-auto w-full max-w-7xl mx-auto">
+                <AppTable
+                    data={filteredSchemas}
+                    columns={columns}
+                    isSearching={searchQuery.trim().length > 0}
+                    onRowClick={handleEdit}
+                    config={{
+                        categoryExtractor: s => s.category,
+                        persistCategoryKey: 'schema_expanded_categories',
+                        emptyMessage: 'No schemas matching your criteria.'
+                    }}
+                />
+
+                <ConfirmModal
+                    isOpen={!!idToDelete}
+                    title="Delete Schema"
+                    description="Are you sure you want to delete this schema? This action cannot be undone."
+                    confirmLabel="Delete"
+                    isLoading={deleteMutation.isPending}
+                    onConfirm={() => {
+                        if (idToDelete) {
+                            deleteMutation.mutate(idToDelete, {
+                                onSuccess: () => setIdToDelete(null)
+                            });
+                        }
+                    }}
+                    onCancel={() => setIdToDelete(null)}
+                />
+            </div>
         </div>
     );
 };

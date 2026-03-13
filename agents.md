@@ -220,6 +220,15 @@ The system supports 4 static node types and 1 dynamic behavior based on graph co
    - *Outputs*: Moved to the Left edge to naturally wire into the Special node's right edge.
 ## 11. UI Standards for Tables and Forms
 
-- **Library Usage**: Use TanStack libraries (e.g., @tanstack/react-table) for all data tables and forms.
-- **Category Grouping**: If a table contains items that can be categorized, implement grouping by category.
-- **Reference**: Use the **Schema Registry** (AdminSchemaManagement) as the visual and functional reference for table layouts and grouping logic.
+- **Library Usage**: Use TanStack libraries (e.g., `@tanstack/react-table`) for all data tables and forms to ensure consistency and performance.
+- **Unified Header System (`AppHeader`)**:
+    - Every management page must integrate the `AppHeader` component at the top.
+    - **Sidebar Integration**: Must pass `onToggleSidebar` and `isSidebarOpen` to ensure consistent navigation behavior across desktop and mobile.
+    - **Centralized Search**: Search functionality must be managed via `AppHeader`'s `searchQuery` and `onSearchChange` props. Filtering logic should reside in the parent widget.
+    - **Primary Actions**: Action buttons (e.g., "Add User", "New Hint") must be placed in the `rightContent` slot of the `AppHeader`.
+- **Standardized Tables (`AppTable`)**:
+    - All data lists must use the `AppTable` component to maintain visual and functional parity.
+    - **Full-Height Layout**: Tables and their containers must be configured to occupy the full available screen height (`h-full` or `flex-1` within a flex container) to prevent layout jumping and ensure independent scrolling.
+    - **Category Grouping**: Tables with categorizable data must implement collapsible grouping using the `categoryExtractor` pattern.
+    - **Interactive Rows**: Use the `onRowClick` pattern for primary interactions like opening edit modals or detail views.
+- **Reference**: Use **Schema Registry** (`AdminSchemaManagement`) and **User Management** (`AdminUserManagement`) as the visual and functional reference for table layouts, header integration, and full-height implementation.

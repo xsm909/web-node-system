@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
     createColumnHelper,
 } from '@tanstack/react-table';
@@ -11,14 +11,13 @@ const columnHelper = createColumnHelper<Report>();
 interface ReportListProps {
     reports: Report[];
     isAdmin: boolean;
-    onCreate: () => void;
     onEdit: (report: Report) => void;
     onView: (report: Report) => void;
     onDelete: (report: Report) => void;
+    searchQuery: string;
 }
 
-export function ReportList({ reports, isAdmin, onCreate, onEdit, onView, onDelete }: ReportListProps) {
-    const [searchQuery, setSearchQuery] = useState('');
+export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQuery }: ReportListProps) {
 
     const columns = useMemo(() => [
         columnHelper.accessor('name', {
@@ -98,19 +97,9 @@ export function ReportList({ reports, isAdmin, onCreate, onEdit, onView, onDelet
         <AppTable
             data={filteredReports}
             columns={columns}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
             isSearching={searchQuery.trim().length > 0}
             onRowClick={onView}
             config={{
-                title: 'Reports',
-                subtitle: isAdmin ? 'Manage and create custom reports' : 'View available reports',
-                searchPlaceholder: 'Search reports...',
-                primaryAction: isAdmin ? {
-                    icon: 'add',
-                    label: 'Add Report',
-                    onClick: onCreate
-                } : undefined,
                 categoryExtractor: r => r.category,
                 persistCategoryKey: 'report_expanded_categories',
                 emptyMessage: 'No reports found.'

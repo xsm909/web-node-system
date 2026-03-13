@@ -17,9 +17,11 @@ const columnHelper = createColumnHelper<AITask>();
 
 interface AITaskManagementProps {
     activeClientId?: string | null;
+    onToggleSidebar?: () => void;
+    isSidebarOpen?: boolean;
 }
 
-export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClientId }) => {
+export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClientId, onToggleSidebar, isSidebarOpen }) => {
     const queryClient = useQueryClient();
     const { user } = useAuthStore();
     const isAdmin = user?.role === 'admin';
@@ -176,7 +178,7 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
     };
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
             <ManagementTable
                 title="AI Tasks"
                 description="Manage and edit automated AI routines"
@@ -190,6 +192,8 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
                 dataLength={tasks.length}
                 onRowClick={handleRowClick}
                 emptyMessage="No AI Tasks found for this view."
+                onToggleSidebar={onToggleSidebar}
+                isSidebarOpen={isSidebarOpen}
             />
 
             <AITaskEditModal

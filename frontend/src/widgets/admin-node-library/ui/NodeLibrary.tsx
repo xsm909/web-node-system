@@ -5,6 +5,7 @@ import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
 import { Icon } from '../../../shared/ui/icon';
 import { getCookie, setCookie, eraseCookie } from '../../../shared/lib/cookieUtils';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppHeader } from '../../app-header';
 import { createColumnHelper } from '@tanstack/react-table';
 
 const columnHelper = createColumnHelper<NodeType>();
@@ -13,9 +14,17 @@ interface AdminNodeLibraryProps {
     onEditNode: (node: NodeType) => void;
     onDuplicateNode: (node: NodeType) => void;
     refreshTrigger?: number;
+    onToggleSidebar?: () => void;
+    isSidebarOpen?: boolean;
 }
 
-export const AdminNodeLibrary = ({ onEditNode, onDuplicateNode, refreshTrigger = 0 }: AdminNodeLibraryProps) => {
+export const AdminNodeLibrary = ({ 
+    onEditNode, 
+    onDuplicateNode, 
+    refreshTrigger = 0,
+    onToggleSidebar,
+    isSidebarOpen
+}: AdminNodeLibraryProps) => {
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -145,36 +154,55 @@ export const AdminNodeLibrary = ({ onEditNode, onDuplicateNode, refreshTrigger =
     }
 
     return (
-        <div className="space-y-4">
-            <AppTable
-                data={filteredNodes}
-                columns={columns}
+        <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
+            <AppHeader
+                onToggleSidebar={onToggleSidebar || (() => { })}
+                isSidebarOpen={isSidebarOpen}
+                leftContent={
+                    <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
+                        Node Library
+                    </h1>
+                }
+                rightContent={
+                    <button
+                        className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
+                        onClick={() => onEditNode({} as NodeType)}
+                    >
+                        <Icon name="add" size={16} className="-ml-1" />
+                        Add Node
+                    </button>
+                }
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                isSearching={searchQuery.trim().length > 0}
-                onRowClick={(node) => {
-                    setSelectedNodeId(node.id);
-                    onEditNode(node);
-                }}
-                config={{
-                    // Title and action are handled by AdminPage AppHeader instead of here
-                    // So we don't pass title or primaryAction here to avoid duplicates
-                    searchPlaceholder: 'Search nodes by name, category or description...',
-                    categoryExtractor: n => n.category,
-                    persistCategoryKey: 'node_expanded_categories',
-                    emptyMessage: 'No nodes matching your criteria.',
-                    rowClassName: (node) => selectedNodeId === node.id ? 'bg-brand/5' : ''
-                }}
+                searchPlaceholder="Search nodes..."
             />
+            
+            <div className="flex-1 p-8 overflow-y-auto">
+                <AppTable
+                    data={filteredNodes}
+                    columns={columns}
+                    config={{
+                        categoryExtractor: n => n.category,
+                        persistCategoryKey: 'node_expanded_categories',
+                        emptyMessage: 'No nodes matching your criteria.',
+                        rowClassName: (node) => selectedNodeId === node.id ? 'bg-brand/5' : ''
+                    }}
+                    onRowClick={(node) => {
+                        setSelectedNodeId(node.id);
+                        onEditNode(node);
+                    }}
+                    isSearching={searchQuery.trim().length > 0}
+                />
 
-            <ConfirmModal
-                isOpen={!!nodeToDelete}
-                title="Delete Node"
-                description={`Are you sure you want to delete "${nodeToDelete?.name}"? This action cannot be undone.`}
-                confirmLabel="Delete"
-                onConfirm={handleConfirmDelete}
-                onCancel={() => setNodeToDelete(null)}
-            />
+                <ConfirmModal
+                    isOpen={!!nodeToDelete}
+                    title="Delete Node"
+                    description={`Are you sure you want to delete "${nodeToDelete?.name}"? This action cannot be undone.`}
+                    confirmLabel="Delete"
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setNodeToDelete(null)}
+                />
+            </div>
         </div>
     );
 };
