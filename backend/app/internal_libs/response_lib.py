@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Union
 from ..core.database import SessionLocal
-from ..models.responce import Responce
+from ..models.response import Response
 from .logger_lib import system_log
 
 def clear_recent_records_by_entity_and_category(
@@ -11,7 +11,7 @@ def clear_recent_records_by_entity_and_category(
     n_days: int
 ) -> Dict[str, Any]:
     """
-    Deletes records from the 'responce' table that are newer than n_days,
+    Deletes records from the 'response' table that are newer than n_days,
     match the given entity_id and category.
 
     Args:
@@ -23,7 +23,7 @@ def clear_recent_records_by_entity_and_category(
         A dictionary with the status and the number of deleted records.
     """
     system_log(
-        f"[RESPONCE_LIB] Clearing records for entity_id: {entity_id}, "
+        f"[RESPONSE_LIB] Clearing records for entity_id: {entity_id}, "
         f"category: {category}, n_days: {n_days}",
         level="system"
     )
@@ -37,10 +37,10 @@ def clear_recent_records_by_entity_and_category(
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=n_days)
         
         # Perform deletion
-        delete_query = db.query(Responce).filter(
-            Responce.entity_id == e_uuid,
-            Responce.category == category,
-            Responce.created_at >= cutoff_date
+        delete_query = db.query(Response).filter(
+            Response.entity_id == e_uuid,
+            Response.category == category,
+            Response.created_at >= cutoff_date
         )
         
         count = delete_query.count()
@@ -49,7 +49,7 @@ def clear_recent_records_by_entity_and_category(
         db.commit()
         
         system_log(
-            f"[RESPONCE_LIB] Successfully deleted {count} records",
+            f"[RESPONSE_LIB] Successfully deleted {count} records",
             level="system"
         )
         
@@ -61,7 +61,7 @@ def clear_recent_records_by_entity_and_category(
     except Exception as e:
         db.rollback()
         system_log(
-            f"[RESPONCE_LIB] Error clearing records: {str(e)}",
+            f"[RESPONSE_LIB] Error clearing records: {str(e)}",
             level="error"
         )
         return {
@@ -71,7 +71,7 @@ def clear_recent_records_by_entity_and_category(
     finally:
         db.close()
 
-def add_responce(
+def add_response(
     entity_id: Union[str, uuid.UUID],
     entity_type: str,
     category: str,
@@ -82,7 +82,7 @@ def add_responce(
     meta: Optional[Dict[str, Any]] = None
 ) -> Union[str, Dict[str, Any]]:
     """
-    Adds a new record to the 'responce' table.
+    Adds a new record to the 'response' table.
 
     Args:
         entity_id: The ID of the owner entity (UUID or string).
@@ -98,7 +98,7 @@ def add_responce(
         The ID of the newly created record as a string, or an error dictionary.
     """
     system_log(
-        f"[RESPONCE_LIB] Adding record for entity_id: {entity_id}, "
+        f"[RESPONSE_LIB] Adding record for entity_id: {entity_id}, "
         f"type: {entity_type}, category: {category}",
         level="system"
     )
@@ -112,7 +112,7 @@ def add_responce(
         if reference_id:
             ref_uuid = uuid.UUID(reference_id) if isinstance(reference_id, str) else reference_id
 
-        new_record = Responce(
+        new_record = Response(
             entity_id=e_uuid,
             entity_type=entity_type,
             category=category,
@@ -128,7 +128,7 @@ def add_responce(
         db.refresh(new_record)
 
         system_log(
-            f"[RESPONCE_LIB] Successfully added record with ID: {new_record.id}",
+            f"[RESPONSE_LIB] Successfully added record with ID: {new_record.id}",
             level="system"
         )
         
@@ -137,7 +137,7 @@ def add_responce(
     except Exception as e:
         db.rollback()
         system_log(
-            f"[RESPONCE_LIB] Error adding record: {str(e)}",
+            f"[RESPONSE_LIB] Error adding record: {str(e)}",
             level="error"
         )
         return {
@@ -147,12 +147,12 @@ def add_responce(
     finally:
         db.close()
 
-def update_responce_meta(
+def update_response_meta(
     record_id: Union[str, uuid.UUID],
     meta: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
-    Updates the 'meta' field of a record in the 'responce' table.
+    Updates the 'meta' field of a record in the 'response' table.
 
     Args:
         record_id: The ID of the record (UUID or string).
@@ -162,7 +162,7 @@ def update_responce_meta(
         A dictionary with the status of the operation.
     """
     system_log(
-        f"[RESPONCE_LIB] Updating meta for record_id: {record_id}",
+        f"[RESPONSE_LIB] Updating meta for record_id: {record_id}",
         level="system"
     )
 
@@ -172,11 +172,11 @@ def update_responce_meta(
         r_uuid = uuid.UUID(record_id) if isinstance(record_id, str) else record_id
 
         # Fetch record
-        record = db.query(Responce).filter(Responce.id == r_uuid).first()
+        record = db.query(Response).filter(Response.id == r_uuid).first()
         
         if not record:
             system_log(
-                f"[RESPONCE_LIB] Record not found: {record_id}",
+                f"[RESPONSE_LIB] Record not found: {record_id}",
                 level="error"
             )
             return {
@@ -190,7 +190,7 @@ def update_responce_meta(
         db.commit()
 
         system_log(
-            f"[RESPONCE_LIB] Successfully updated meta for record: {record_id}",
+            f"[RESPONSE_LIB] Successfully updated meta for record: {record_id}",
             level="system"
         )
         
@@ -201,7 +201,7 @@ def update_responce_meta(
     except Exception as e:
         db.rollback()
         system_log(
-            f"[RESPONCE_LIB] Error updating meta: {str(e)}",
+            f"[RESPONSE_LIB] Error updating meta: {str(e)}",
             level="error"
         )
         return {

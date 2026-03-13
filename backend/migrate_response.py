@@ -8,12 +8,12 @@ def migrate():
     engine = create_engine(DATABASE_URL)
     
     # Read the SQL file
-    sql_path = os.path.join(os.path.dirname(__file__), "docker", "responce.sql")
+    sql_path = os.path.join(os.path.dirname(__file__), "docker", "response.sql")
     with open(sql_path, "r") as f:
         sql = f.read()
     
     with engine.begin() as conn:
-        print("Starting PostgreSQL responce table migration...")
+        print("Starting PostgreSQL response table migration...")
         
         # Split by semicolon to execute one by one if necessary, 
         # or just execute the whole block if it's safe.

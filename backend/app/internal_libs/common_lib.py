@@ -5,6 +5,8 @@ from ..models.workflow import WorkflowExecution
 from ..models.user import User, RoleEnum
 from .logger_lib import system_log
 from .context_lib import execution_context
+import json
+from jsonschema import validate, ValidationError
 
 def get_active_client() -> Dict[str, Any]:
     """
@@ -85,3 +87,33 @@ def GetAIByModel(Model: str) -> str:
         return "OpenAI"
         
     return "Unknown"
+
+
+def is_valid_json(result_json: str, schema_json: str) -> bool:
+    """
+    Checks if a JSON string conforms to a given JSON schema (schema is also a JSON string).
+    
+    result_json: JSON string to validate
+    schema_json: JSON string representing the JSON Schema
+    """
+    try:
+        # Resolve data
+        if isinstance(result_json, str):
+            data = json.loads(result_json)
+        else:
+            data = result_json
+
+        # Resolve schema
+        if isinstance(schema_json, str):
+            schema_data = json.loads(schema_json)
+        else:
+            schema_data = schema_json
+    except json.JSONDecodeError:
+        return False  # invalid JSON or invalid schema
+
+    try:
+        # Validate against the schema
+        validate(instance=data, schema=schema_data)
+        return True
+    except ValidationError:
+        return False

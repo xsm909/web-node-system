@@ -3,8 +3,8 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from ..core.database import Base
 import uuid
 
-class Responce(Base):
-    __tablename__ = "responce"
+class Response(Base):
+    __tablename__ = "response"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     entity_id = Column(UUID(as_uuid=True), nullable=False)

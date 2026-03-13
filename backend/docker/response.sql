@@ -1,5 +1,5 @@
--- Create the responce table
-CREATE TABLE IF NOT EXISTS responce (
+-- Create the response table
+CREATE TABLE IF NOT EXISTS response (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     entity_id UUID NOT NULL,
     entity_type regclass NOT NULL,
@@ -13,6 +13,6 @@ CREATE TABLE IF NOT EXISTS responce (
 );
 
 -- Add indexes for common lookups
-CREATE INDEX IF NOT EXISTS idx_responce_entity ON responce (entity_id, entity_type);
-CREATE INDEX IF NOT EXISTS idx_responce_reference ON responce (reference_id, reference_type);
-CREATE INDEX IF NOT EXISTS idx_responce_category ON responce (category);
+CREATE INDEX IF NOT EXISTS idx_response_entity ON response (entity_id, entity_type);
+CREATE INDEX IF NOT EXISTS idx_response_reference ON response (reference_id, reference_type);
+CREATE INDEX IF NOT EXISTS idx_response_category ON response (category);

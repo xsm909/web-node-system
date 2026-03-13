@@ -7,24 +7,24 @@ def verify():
     engine = create_engine(DATABASE_URL)
     
     with engine.connect() as conn:
-        print("Checking if 'responce' table exists...")
+        print("Checking if 'response' table exists...")
         res = conn.execute(text("""
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
-                WHERE table_name = 'responce'
+                WHERE table_name = 'response'
             );
         """))
         exists = res.scalar()
         if not exists:
-            print("Error: 'responce' table does not exist!")
+            print("Error: 'response' table does not exist!")
             exit(1)
-        print("Table 'responce' exists.")
+        print("Table 'response' exists.")
         
         print("\nChecking columns:")
         res = conn.execute(text("""
             SELECT column_name, data_type, is_nullable
             FROM information_schema.columns
-            WHERE table_name = 'responce'
+            WHERE table_name = 'response'
             ORDER BY ordinal_position;
         """))
         for row in res.fetchall():
@@ -35,7 +35,7 @@ def verify():
         res = conn.execute(text("""
             SELECT column_name, udt_name 
             FROM information_schema.columns 
-            WHERE table_name = 'responce' AND (column_name = 'entity_type' OR column_name = 'reference_type');
+            WHERE table_name = 'response' AND (column_name = 'entity_type' OR column_name = 'reference_type');
         """))
         for row in res.fetchall():
             print(f"- {row.column_name} UDT: {row.udt_name}")
