@@ -282,7 +282,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                 placeholder=""
                                 icon="add"
                                 variant="brand"
-                                triggerClassName="w-10 h-10 rounded-full shadow-lg shadow-brand/20 shrink-0"
+                                triggerClassName="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
                                 title="Assign Schema"
                                 iconSize={20}
                             />
@@ -290,7 +290,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                     </div>
                 )}
 
-                <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/5">
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
                     <div className="overflow-x-auto">
                         <DndContext
                             sensors={sensors}
@@ -298,8 +298,8 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                             onDragEnd={handleDragEnd}
                         >
                             <table className="w-full text-left border-collapse min-w-[700px]">
-                            <thead>
-                                <tr className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
+                            <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-[var(--border-base)]">
+                                <tr className="bg-[var(--border-muted)]/30">
                                     <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60 w-24">
                                         Sub
                                     </th>
@@ -337,7 +337,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                             <tr
                                                 ref={setNodeRef}
                                                 style={style}
-                                                className={`hover:bg-[var(--border-muted)]/5 group cursor-pointer ${isDragging ? 'bg-[var(--border-muted)]/20' : ''}`}
+                                                className={`group transition-colors border-l-2 border-transparent hover:bg-surface-700/30 ${isDragging ? 'bg-surface-700/50' : ''}`}
                                                 onClick={() => onRowClick(item)}
                                             >
                                                 <td className="px-6 py-4">
