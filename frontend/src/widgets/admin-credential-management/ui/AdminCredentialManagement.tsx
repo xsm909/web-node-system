@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { apiClient } from '../../../shared/api/client';
 import type { Credential } from '../../../entities/credential/model/types';
-
-
 import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
+import { AppTable } from '../../../shared/ui/app-table';
+import { createColumnHelper } from '@tanstack/react-table';
 
-export const AdminCredentialManagement: React.FC = () => {
+const columnHelper = createColumnHelper<Credential>();
+
+export const AdminCredentialManagement = () => {
     const [credentials, setCredentials] = useState<Credential[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -79,6 +81,76 @@ export const AdminCredentialManagement: React.FC = () => {
             setCredentialToDelete(null);
         }
     };
+
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredCredentials = useMemo(() => {
+        const q = searchQuery.toLowerCase().trim();
+        if (!q) return credentials;
+        return credentials.filter(c => 
+            c.key.toLowerCase().includes(q) || 
+            c.type.toLowerCase().includes(q) || 
+            (c.description || '').toLowerCase().includes(q)
+        );
+    }, [credentials, searchQuery]);
+
+    const columns = useMemo(() => [
+        columnHelper.accessor('key', {
+            header: 'Identification Key',
+            cell: info => (
+                <div className="text-sm font-mono text-brand font-bold group-hover:brightness-110 transition-all uppercase tracking-tight">
+                    {info.getValue()}
+                </div>
+            )
+        }),
+        columnHelper.accessor('type', {
+            header: 'Type',
+            cell: info => (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-brand/10 text-brand ring-1 ring-inset ring-brand/20 uppercase tracking-widest">
+                    {info.getValue()}
+                </span>
+            )
+        }),
+        columnHelper.accessor('description', {
+            header: 'Description / Note',
+            cell: info => (
+                <div className="text-sm text-[var(--text-muted)] opacity-70 group-hover:opacity-100 transition-opacity font-medium">
+                    {info.getValue() || <span className="italic opacity-30 font-normal">No context provided</span>}
+                </div>
+            )
+        }),
+        columnHelper.display({
+            id: 'actions',
+            header: () => <div className="text-right">Actions</div>,
+            cell: info => {
+                const c = info.row.original;
+                return (
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEdit(c);
+                            }}
+                            className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
+                            title="Edit Credential"
+                        >
+                            <Icon name="edit" size={14} />
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(c);
+                            }}
+                            className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
+                            title="Delete Credential"
+                        >
+                            <Icon name="delete" size={14} />
+                        </button>
+                    </div>
+                );
+            }
+        })
+    ], []);
 
     if (loading) {
         return (
@@ -170,79 +242,29 @@ export const AdminCredentialManagement: React.FC = () => {
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            <header className="flex items-center justify-between px-2">
-                <div>
-                    <h2 className="text-xl font-bold text-[var(--text-main)]">API Credentials</h2>
-                    <p className="text-sm text-[var(--text-muted)] opacity-60 font-medium">Manage system-wide security keys and tokens.</p>
-                </div>
-                <button
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white text-sm font-bold shadow-lg shadow-brand/20 hover:brightness-110 active:scale-[0.98] transition-all"
-                    onClick={handleOpenCreate}
-                >
-                    <Icon name="add" size={18} />
-                    Add Access Key
-                </button>
-            </header>
-
-            <div className="bg-surface-800 rounded-3xl border border-[var(--border-base)] overflow-hidden shadow-2xl shadow-black/5 dark:shadow-black/20 ring-1 ring-black/5 dark:ring-white/5">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
-                            <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Identification Key</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Type</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">Description / Note</th>
-                            <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider text-right opacity-60">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border-base)]">
-                        {credentials.map((c) => (
-                            <tr key={c.id} className="hover:bg-[var(--border-muted)]/50 transition-colors group">
-                                <td className="px-6 py-4">
-                                    <div className="text-sm font-mono text-brand font-bold group-hover:brightness-110 transition-all uppercase tracking-tight">
-                                        {c.key}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-brand/10 text-brand ring-1 ring-inset ring-brand/20 uppercase tracking-widest">
-                                        {c.type}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="text-sm text-[var(--text-muted)] opacity-70 group-hover:opacity-100 transition-opacity font-medium">
-                                        {c.description || <span className="italic opacity-30 font-normal">No context provided</span>}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => handleOpenEdit(c)}
-                                            className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
-                                            title="Edit Credential"
-                                        >
-                                            <Icon name="edit" size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(c)}
-                                            className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
-                                            title="Delete Credential"
-                                        >
-                                            <Icon name="delete" size={14} />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                        {credentials.length === 0 && (
-                            <tr>
-                                <td colSpan={4} className="px-6 py-20 text-center text-sm text-[var(--text-muted)] opacity-30 font-medium italic">
-                                    No secure credentials detected. Add your first access key to enable remote integrations.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+        <div className="animate-in fade-in duration-500">
+            <AppTable
+                data={filteredCredentials}
+                columns={columns}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                isSearching={searchQuery.trim().length > 0}
+                config={{
+                    // Note: Credential doesn't have a category tree currently, but we can group by 'type' if we want.
+                    // Let's do that for extra value!
+                    categoryExtractor: c => c.type,
+                    persistCategoryKey: 'credential_expanded_categories',
+                    title: 'API Credentials',
+                    subtitle: 'Manage system-wide security keys and tokens.',
+                    searchPlaceholder: 'Search by key, type or description...',
+                    primaryAction: {
+                        icon: 'add',
+                        label: 'Add Access Key',
+                        onClick: handleOpenCreate
+                    },
+                    emptyMessage: 'No secure credentials detected. Add your first access key to enable remote integrations.'
+                }}
+            />
 
             <ConfirmModal
                 isOpen={!!credentialToDelete}

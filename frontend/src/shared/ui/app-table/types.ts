@@ -1,0 +1,58 @@
+import type { ReactNode } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
+
+export interface AppTableAction {
+    icon: string;
+    label: string;
+    onClick: () => void;
+    variant?: 'primary' | 'secondary' | 'danger';
+    disabled?: boolean;
+}
+
+export interface AppTableConfig<TData> {
+    // Header config
+    title?: ReactNode;
+    subtitle?: ReactNode;
+    icon?: string;
+    
+    // Search config
+    searchPlaceholder?: string;
+    
+    // Actions config
+    primaryAction?: AppTableAction;
+    
+    // Categorization config
+    // If provided, the table will group items by this string path (e.g. "Category|Subcategory")
+    categoryExtractor?: (item: TData) => string | null | undefined;
+    persistCategoryKey?: string; // Cookie key to persist expanded categories
+    
+    // Empty state
+    emptyMessage?: ReactNode;
+    
+    // Styling
+    // Optional property to get the row icon and styling. Useful for specific modules
+    getRowConfig?: (item: TData) => {
+        icon?: string;
+        iconClassName?: string;
+        title?: ReactNode;
+        subtitle?: ReactNode;
+    };
+    
+    rowClassName?: (item: TData) => string;
+}
+
+export interface AppTableProps<TData> {
+    data: TData[];
+    columns: ColumnDef<TData, any>[];
+    config: AppTableConfig<TData>;
+    
+    isLoading?: boolean;
+    onRowClick?: (row: TData) => void;
+    
+    // Search state managed by parent
+    searchQuery: string;
+    onSearchChange: (query: string) => void;
+    
+    // isSearching flag tells the component to flatten the tree
+    isSearching: boolean;
+}
