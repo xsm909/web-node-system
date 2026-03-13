@@ -5,51 +5,34 @@ import type { NodeType } from '../../../entities/node-type/model/types';
 export function useNodeTypeManagement() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingNode, setEditingNode] = useState<NodeType | null>(null);
-    const [formData, setFormData] = useState<Partial<NodeType>>({});
 
     const handleOpenModal = (node?: NodeType) => {
         if (node) {
             setEditingNode(node);
-            setFormData(node);
         } else {
             setEditingNode(null);
-            setFormData({
-                name: '',
-                version: '1.0',
-                description: '',
-                code: 'def run(inputs, params):\n    return {}',
-                input_schema: {},
-                output_schema: {},
-                parameters: [],
-                category: '',
-                icon: 'task',
-                is_async: false
-            });
         }
         setIsModalOpen(true);
     };
 
-    const handleSave = async (e: React.FormEvent, onSuccess?: () => void) => {
-        e.preventDefault();
+    const handleSave = async (data: Partial<NodeType>, nodeId?: string, onSuccess?: () => void) => {
         try {
-            if (editingNode) {
-                await apiClient.put(`/admin/node-types/${editingNode.id}`, formData);
+            if (nodeId) {
+                await apiClient.put(`/admin/node-types/${nodeId}`, data);
             } else {
-                await apiClient.post('/admin/node-types', formData);
+                await apiClient.post('/admin/node-types', data);
             }
             setIsModalOpen(false);
             if (onSuccess) onSuccess();
-        } catch {
-            alert('Failed to save node type');
+        } catch (error: any) {
+            console.error('Failed to save node type:', error);
+            const message = error.response?.data?.detail || 'Failed to save node type';
+            alert(typeof message === 'string' ? message : JSON.stringify(message));
         }
     };
 
-    const handleDuplicateNode = (node: NodeType) => {
+    const handleDuplicateNode = (_node: NodeType) => {
         setEditingNode(null);
-        setFormData({
-            ...node,
-            name: `${node.name} (Copy)`
-        });
         setIsModalOpen(true);
     };
 
@@ -57,8 +40,6 @@ export function useNodeTypeManagement() {
         isModalOpen,
         setIsModalOpen,
         editingNode,
-        formData,
-        setFormData,
         handleOpenModal,
         handleDuplicateNode,
         handleSave

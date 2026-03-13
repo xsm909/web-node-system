@@ -26,6 +26,14 @@ async def lifespan(app: FastAPI):
     try:
         # Emergency migration for category column
         db.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS category VARCHAR(255);"))
+        
+        # Migrations for node_types
+        db.execute(text("ALTER TABLE node_types ADD COLUMN IF NOT EXISTS is_async BOOLEAN DEFAULT FALSE;"))
+        db.execute(text("ALTER TABLE node_types ADD COLUMN IF NOT EXISTS icon VARCHAR(100) DEFAULT 'task';"))
+        db.execute(text("ALTER TABLE node_types ALTER COLUMN input_schema SET NOT NULL;"))
+        db.execute(text("ALTER TABLE node_types ALTER COLUMN output_schema SET NOT NULL;"))
+        db.execute(text("ALTER TABLE node_types ALTER COLUMN parameters SET NOT NULL;"))
+        
         db.commit()
     except Exception as e:
         print(f"Migration error: {e}")

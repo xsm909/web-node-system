@@ -104,17 +104,21 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         }
     }, [refreshTrigger]);
 
-    const loadWorkflow = (wf: Workflow) => {
+    const loadWorkflow = async (wf: Workflow) => {
         if (currentUser?.role === 'admin') {
             setCookie('active_workflow_id', wf.id);
         }
-        apiClient.get(`/workflows/workflows/${wf.id}`).then((r) => {
+        
+        try {
+            const r = await apiClient.get(`/workflows/workflows/${wf.id}`);
             setActiveWorkflow(r.data);
-        }).catch((err) => {
+            return r.data;
+        } catch (err: any) {
             const detail = err?.response?.data?.detail || err?.message || 'Unknown error';
             console.error(`[loadWorkflow] Failed to load workflow "${wf.name}":`, err?.response?.data || err);
-            alert(`❌ Failed to load workflow "${wf.name}"\n\n${detail}`);
-        });
+            alert(`❌ Failed to load workflow "${wf.name}"\n\n${typeof detail === 'string' ? detail : JSON.stringify(detail)}`);
+            throw err;
+        }
     };
 
     const handleCreateWorkflow = async (name: string, ownerId: string, category: 'personal' | 'common' = 'personal') => {

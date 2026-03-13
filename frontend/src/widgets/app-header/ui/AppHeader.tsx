@@ -10,6 +10,7 @@ interface AppHeaderProps {
     searchQuery?: string;
     onSearchChange?: (query: string) => void;
     searchPlaceholder?: string;
+    onBack?: () => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -19,7 +20,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     rightContent,
     searchQuery,
     onSearchChange,
-    searchPlaceholder = "Search..."
+    searchPlaceholder = "Search...",
+    onBack
 }) => {
     return (
         <Header
@@ -32,6 +34,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                     >
                         <Icon name={isSidebarOpen ? "close" : "menu"} size={22} className={!isSidebarOpen ? "text-brand" : ""} />
                     </button>
+                    {onBack && (
+                        <button
+                            className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors shrink-0 mr-2 hidden lg:flex"
+                            onClick={onBack}
+                            aria-label="Go back"
+                            title="Go back"
+                        >
+                            <Icon name="arrow_back" size={22} />
+                        </button>
+                    )}
                     {leftContent}
                 </>
             }

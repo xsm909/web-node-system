@@ -1,1 +1,1 @@
-export { NodeTypeFormModal } from './ui/NodeTypeFormModal';
+export { NodeTypeFormView } from './ui/NodeTypeFormModal';

@@ -1,15 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import type { Node } from 'reactflow';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
 import { apiClient } from '../../../shared/api/client';
+import { AppHeader } from '../../app-header';
+import { useForm } from '@tanstack/react-form';
+import { ConfirmModal } from '../../../shared/ui/confirm-modal';
+import { Icon } from '../../../shared/ui/icon';
 
-interface NodePropertiesProps {
+interface NodeEditorViewProps {
     node: Node | null;
     nodeTypes: NodeType[];
     onChange: (nodeId: string, params: any) => void;
-    onClose: () => void;
+    onBack: () => void;
     isReadOnly?: boolean;
 }
 
@@ -154,87 +159,149 @@ const ParameterRow: React.FC<{
     );
 };
 
-export const NodeProperties: React.FC<NodePropertiesProps> = ({
+export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
     node,
     nodeTypes,
     onChange,
-    onClose,
+    onBack,
     isReadOnly = false,
 }) => {
-    if (!node) return null;
+    const [showConfirmBack, setShowConfirmBack] = useState(false);
 
-    const nodeTypeData = nodeTypes.find(t => t.name === node.data.label);
+    const nodeTypeData = nodeTypes.find(t => t.name === node?.data.label);
     const allParameters = nodeTypeData?.parameters || [];
 
-    // Updated filtering logic: Allow parameters WITH options_source even if they are all uppercase
+    // Technical param logic 
     const isTechnicalParam = (p: any) => /^[A-Z0-9_]+$/.test(p.name) && !p.options_source;
     const parameters = allParameters.filter((p: any) => !isTechnicalParam(p));
 
-    if (parameters.length === 0) return null;
+    const form = useForm({
+        defaultValues: node?.data.params || {},
+        onSubmit: async ({ value }) => {
+            if (node) {
+                onChange(node.id, value);
+                // After saving, we technically could go back or stay. 
+                // Let's stay but reset dirty state. 
+                // form.reset() doesn't exist directly in the same way, but we can re-initialize or just rely on state.
+                // In TanStack Form, usually we want to go back after a manual save in this UI context.
+                onBack();
+            }
+        },
+    });
 
-    const handleChange = (updates: Record<string, any>) => {
-        const currentParams = node.data.params || {};
-        const newParams = { ...currentParams, ...updates };
-        onChange(node.id, newParams);
+    const [isDirty, setIsDirty] = useState(false);
+    useEffect(() => {
+        setIsDirty(form.state.isDirty);
+    }, [form.state.isDirty]);
+
+    if (!node || parameters.length === 0) return null;
+
+    const handleBack = () => {
+        if (isDirty && !isReadOnly) {
+            setShowConfirmBack(true);
+        } else {
+            onBack();
+        }
     };
 
     return (
-        <aside className="absolute bottom-6 right-6 w-80 max-h-[calc(100%-3rem)] bg-surface-800/90 backdrop-blur-xl border border-[var(--border-base)] rounded-2xl flex flex-col shadow-2xl z-[100] animate-in slide-in-from-right-4 fade-in duration-300 ring-1 ring-black/5 dark:ring-white/5">
-            <header className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-base)]">
-                <div className="flex flex-col">
-                    <h3 className="text-xs font-bold text-brand uppercase tracking-widest">Properties</h3>
-                    <p className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5">{node.data.label}</p>
-                </div>
-                <button
-                    className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-all"
-                    onClick={onClose}
-                    aria-label="Close properties"
+        <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-app)] relative h-full overflow-hidden">
+            <AppHeader
+                onBack={handleBack}
+                isSidebarOpen={false}
+                onToggleSidebar={() => { }}
+                leftContent={
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 shrink-0 rounded-[1rem] flex items-center justify-center bg-brand/20 text-brand border border-brand/30 shadow-inner">
+                            <span className="material-icons text-[20px]">{nodeTypeData?.icon || 'tune'}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <h3 className="text-sm font-bold text-[var(--text-main)] truncate">{node.data.label}</h3>
+                            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mt-0.5">Edit Parameters</p>
+                        </div>
+                    </div>
+                }
+                rightContent={
+                    !isReadOnly ? (
+                        <button
+                            onClick={() => form.handleSubmit()}
+                            disabled={!isDirty}
+                            className="px-6 py-2.5 rounded-xl bg-brand hover:brightness-110 text-white font-bold shadow-lg shadow-brand/20 active:scale-95 transition-all text-xs flex items-center gap-2 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
+                        >
+                            <Icon name="save" size={16} />
+                            Save Changes
+                        </button>
+                    ) : null
+                }
+            />
+
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        form.handleSubmit();
+                    }}
+                    className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500"
                 >
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </header>
+                    <div className="bg-surface-800 border border-[var(--border-base)] rounded-2xl p-6 shadow-xl">
+                        <div className="px-1 text-xs font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-6 border-b border-[var(--border-base)] pb-3">Configuration & Settings</div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                <div className="space-y-4">
-                    <div className="px-1 text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] opacity-40">Configuration</div>
-
-                    {parameters.length > 0 ? (
-                        <div className="space-y-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
                             {parameters.map((param: any) => (
-                                <ParameterRow
+                                <form.Field
                                     key={param.name}
-                                    param={param}
-                                    value={node.data.params?.[param.name]}
-                                    onChange={(val) => handleChange(val)}
-                                    isReadOnly={isReadOnly}
+                                    name={param.name}
+                                    children={(field) => (
+                                        <ParameterRow
+                                            param={param}
+                                            value={field.state.value}
+                                            onChange={(updates) => {
+                                                // Handle complex updates from ComboBox (like labels)
+                                                Object.entries(updates).forEach(([key, val]) => {
+                                                    if (key === param.name) {
+                                                        field.handleChange(val);
+                                                    } else {
+                                                        // This is a bit hacky for labels, but TanStack Form
+                                                        // usually manages individual fields. 
+                                                        // For _DISPLAY_ fields, we might need a separate Field or just use Node data.
+                                                        // For now let's just use the main value.
+                                                        form.setFieldValue(key as any, val as any);
+                                                    }
+                                                });
+                                            }}
+                                            isReadOnly={isReadOnly}
+                                        />
+                                    )}
                                 />
                             ))}
                         </div>
-                    ) : (
-                        <div className="text-center py-8">
-                            <div className="text-[var(--text-muted)] italic text-xs">No parameters available</div>
+                    </div>
+
+                    {!isReadOnly && (
+                        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-[var(--text-muted)] bg-surface-800/50 py-3 px-4 rounded-xl shadow-inner w-fit mx-auto border border-[var(--border-base)]">
+                            <span className="material-icons opacity-70 text-brand text-[16px]">info</span>
+                            <span>{isDirty ? 'You have unsaved changes' : 'All parameters are up to date'}</span>
                         </div>
                     )}
-                </div>
+                </form>
             </div>
 
-            <footer className="px-6 py-4 bg-[var(--border-muted)] border-t border-[var(--border-base)]">
-                {!isReadOnly && (
-                    <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                        <span>Changes are saved automatically</span>
-                    </div>
-                )}
-            </footer>
-        </aside>
+            <ConfirmModal
+                isOpen={showConfirmBack}
+                title="Unsaved Changes"
+                description="You have modified parameters for this node. Do you want to discard your changes?"
+                confirmLabel="Discard Changes"
+                cancelLabel="Stay and Edit"
+                onConfirm={() => {
+                    setShowConfirmBack(false);
+                    onBack();
+                }}
+                onCancel={() => setShowConfirmBack(false)}
+            />
+        </div>
     );
 };
+
 
 

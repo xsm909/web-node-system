@@ -9,6 +9,7 @@ import ast
 from ..models.user import User, RoleEnum
 from ..models.node import NodeType
 from ..models.credential import Credential
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 admin_only = Depends(require_role("admin"))
@@ -305,11 +306,15 @@ def create_node_type(data: NodeTypeCreate, db: Session = Depends(get_db), _=admi
         schema["inputs"] = extracted_inputs
         node_data["input_schema"] = schema
         
-    node = NodeType(**node_data)
-    db.add(node)
-    db.commit()
-    db.refresh(node)
-    return node
+    try:
+        node = NodeType(**node_data)
+        db.add(node)
+        db.commit()
+        db.refresh(node)
+        return node
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.put("/node-types/{node_id}", response_model=NodeTypeOut)
@@ -332,12 +337,16 @@ def update_node_type(node_id: uuid.UUID, data: NodeTypeCreate, db: Session = Dep
         del schema["inputs"]
         update_data["input_schema"] = schema
     
-    for k, v in update_data.items():
-        setattr(node, k, v)
-        
-    db.commit()
-    db.refresh(node)
-    return node
+    try:
+        for k, v in update_data.items():
+            setattr(node, k, v)
+            
+        db.commit()
+        db.refresh(node)
+        return node
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/node-types/{node_id}")

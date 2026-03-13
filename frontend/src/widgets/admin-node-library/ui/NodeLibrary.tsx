@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { apiClient } from '../../../shared/api/client';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
@@ -11,25 +11,27 @@ import { createColumnHelper } from '@tanstack/react-table';
 const columnHelper = createColumnHelper<NodeType>();
 
 interface AdminNodeLibraryProps {
+    nodes: NodeType[];
     onEditNode: (node: NodeType) => void;
     onDuplicateNode: (node: NodeType) => void;
-    refreshTrigger?: number;
+    onDelete: () => void;
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
 }
 
 export const AdminNodeLibrary = ({ 
+    nodes,
     onEditNode, 
     onDuplicateNode, 
-    refreshTrigger = 0,
+    onDelete,
     onToggleSidebar,
     isSidebarOpen
 }: AdminNodeLibraryProps) => {
-    const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
-    const [loading, setLoading] = useState(true);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [nodeToDelete, setNodeToDelete] = useState<NodeType | null>(null);
     const [searchQuery, setSearchQueryState] = useState(getCookie('admin_node_search') || '');
+
+    // ... search logic ...
 
     const setSearchQuery = (query: string) => {
         if (query) {
@@ -40,31 +42,19 @@ export const AdminNodeLibrary = ({
         setSearchQueryState(query);
     };
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const { data } = await apiClient.get<NodeType[]>('/admin/node-types');
-            setNodeTypes(data);
-        } catch {
-            // Error handling
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { fetchData(); }, [refreshTrigger]);
+    // Data is now passed from parent
 
     const filteredNodes = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
-        if (!q) return nodeTypes;
+        if (!q) return nodes;
 
-        return nodeTypes.filter(n => {
+        return nodes.filter(n => {
             const inName = n.name.toLowerCase().includes(q);
             const inCategory = n.category?.toLowerCase().includes(q);
             const inDesc = n.description?.toLowerCase().includes(q);
             return inName || inCategory || inDesc;
         });
-    }, [nodeTypes, searchQuery]);
+    }, [nodes, searchQuery]);
 
     const handleConfirmDelete = async () => {
         if (nodeToDelete) {
@@ -72,7 +62,7 @@ export const AdminNodeLibrary = ({
                 await apiClient.delete(`/admin/node-types/${nodeToDelete.id}`);
                 setNodeToDelete(null);
                 setSelectedNodeId(null);
-                fetchData();
+                onDelete();
             } catch {
                 alert('Failed to delete node type');
             }
@@ -145,13 +135,8 @@ export const AdminNodeLibrary = ({
         })
     ], [onDuplicateNode]);
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl">
-                <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
-            </div>
-        );
-    }
+    // loading state can be handled based on whether nodes are empty
+    // but usually they load once on AdminPage mount
 
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
@@ -166,7 +151,7 @@ export const AdminNodeLibrary = ({
                 rightContent={
                     <button
                         className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
-                        onClick={() => onEditNode({} as NodeType)}
+                        onClick={() => onEditNode(undefined as any)}
                         title="Add Node"
                     >
                         <Icon name="add" size={20} />

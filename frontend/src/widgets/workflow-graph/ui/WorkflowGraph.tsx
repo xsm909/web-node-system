@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useState, useEffect } from 'react';
 import ReactFlow, {
     addEdge,
@@ -24,13 +25,17 @@ import type { NodeType } from '../../../entities/node-type/model/types';
 import { NodeContextMenu } from '../../node-context-menu/NodeContextMenu';
 import { StartNode } from '../../../entities/node-type/ui/StartNode';
 import { DefaultNode } from '../../../entities/node-type/ui/DefaultNode';
-import { NodeProperties } from '../../node-properties/ui/NodeProperties';
 import { AddNodeMenu } from '../../add-node-menu';
 
 const nodeTypesConfig = {
     start: StartNode,
     action: DefaultNode,
     default: DefaultNode,
+    regular: DefaultNode,
+    conditional: DefaultNode,
+    special: DefaultNode,
+    agent: DefaultNode,
+    provider: DefaultNode,
 };
 
 interface WorkflowGraphProps {
@@ -40,6 +45,7 @@ interface WorkflowGraphProps {
     onNodesChangeCallback?: (nodes: Node[]) => void;
     onEdgesChangeCallback?: (edges: Edge[]) => void;
     onNodeDoubleClickCallback?: (event: React.MouseEvent, node: Node) => void;
+    onNodeSelectCallback?: (node: Node | null) => void;
     activeNodeIds?: string[];
 }
 
@@ -50,16 +56,19 @@ export function WorkflowGraph({
     onNodesChangeCallback,
     onEdgesChangeCallback,
     onNodeDoubleClickCallback,
+    onNodeSelectCallback,
     activeNodeIds = []
 }: WorkflowGraphProps) {
     const [nodes, setNodes, onNodesChangeRaw] = useNodesState([]);
     const [edges, setEdges, onEdgesChangeRaw] = useEdgesState([]);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
-    const { screenToFlowPosition, setCenter } = useReactFlow();
+    const { screenToFlowPosition, setCenter, fitView } = useReactFlow();
     const centeredWorkflowId = React.useRef<string | null>(null);
     const mousePosition = React.useRef<XYPosition>({ x: 0, y: 0 });
     const [clipboard, setClipboard] = useState<{ nodes: Node[], edges: Edge[], center: XYPosition } | null>(null);
+
+    console.log('[WorkflowGraph] Rendering. Workflow ID:', workflow?.id, 'Node count:', nodes.length, 'Edge count:', edges.length);
 
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
     const [addNodeMenu, setAddNodeMenu] = useState<{ x: number, y: number, clientX: number, clientY: number, connectionStart: OnConnectStartParams } | null>(null);
@@ -76,7 +85,14 @@ export function WorkflowGraph({
         const graphNodes = wf.graph.nodes || [];
         const graphEdges = wf.graph.edges || [];
 
-        const loadedNodes = graphNodes.map((n: any) => {
+        // Sanitize nodes: ensure EVERY node has a valid numeric x/y position to prevent SVG NaN crashes
+        const sanitizedNodes = graphNodes.filter((n: any) => 
+            n.position && 
+            typeof n.position.x === 'number' && !isNaN(n.position.x) &&
+            typeof n.position.y === 'number' && !isNaN(n.position.y)
+        );
+
+        const loadedNodes = sanitizedNodes.map((n: any) => {
             const base = n.type === 'default' ? { ...n, type: 'action' } : { ...n };
             // Merge default params from nodeType so existing nodes get any newly added parameters
             const ntDef = nodeTypes.find((t: NodeType) => {
@@ -127,15 +143,26 @@ export function WorkflowGraph({
         setNodes(loadedNodes);
         setEdges(graphEdges);
 
-        // Only center the viewport when switching to a different workflow
-        if (centeredWorkflowId.current !== wf.id) {
+        // Only center/fit the viewport when switching to a different workflow or when nodes first arrive
+        if (centeredWorkflowId.current !== wf.id && loadedNodes.length > 0) {
             centeredWorkflowId.current = wf.id;
-            setTimeout(() => {
+            console.log('[WorkflowGraph] New workflow data arrived, fitting view...');
+            
+            const timer = setTimeout(() => {
                 const startNode = loadedNodes.find((n: any) => n.id === 'node_start' || n.type === 'start');
-                if (startNode) {
-                    setCenter(startNode.position.x + 100, startNode.position.y + 60, { zoom: 0.5, duration: 200 });
+                
+                // Try to fit view first as it's more reliable for visibility
+                const rect = { padding: 50 };
+                fitView(rect);
+
+                // If we have a start node, we can also try to nudge the view there after a short delay
+                if (startNode && typeof startNode.position?.x === 'number' && typeof startNode.position?.y === 'number') {
+                    if (!isNaN(startNode.position.x) && !isNaN(startNode.position.y)) {
+                        setCenter(startNode.position.x + 100, startNode.position.y + 60, { zoom: 0.5, duration: 400 });
+                    }
                 }
-            }, 50);
+            }, 100);
+            return () => clearTimeout(timer);
         }
     }, [workflow, nodeTypes]); // reload nodes/edges whenever workflow or node types change
 
@@ -400,18 +427,6 @@ export function WorkflowGraph({
         if (selectedNodeId === nodeId) setSelectedNodeId(null);
     }, [setNodes, setEdges, selectedNodeId, isReadOnly]);
 
-    const handleParamsChange = (nodeId: string, params: any) => {
-        if (isReadOnly) return;
-        setNodes((nds) => nds.map((node) => {
-            if (node.id === nodeId) {
-                return {
-                    ...node,
-                    data: { ...node.data, params }
-                };
-            }
-            return node;
-        }));
-    };
 
     const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
         if (!isReadOnly && event.altKey) {
@@ -444,9 +459,9 @@ export function WorkflowGraph({
         }
 
         setSelectedNodeId(node.id);
-    }, [isReadOnly, setEdges]);
+        if (onNodeSelectCallback) onNodeSelectCallback(node);
+    }, [isReadOnly, setEdges, onNodeSelectCallback]);
 
-    const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
     const rightConnectedSources = new Set(
         edges.filter(e => e.targetHandle && e.targetHandle !== 'null' && e.targetHandle !== 'top')
@@ -489,9 +504,11 @@ export function WorkflowGraph({
         };
     }), [nodes, nodeTypes, activeNodeIds, rightConnectedSources]);
 
+    const isLoading = !workflow || !(workflow as any).graph;
+    
     return (
-        <div className="flex-1 flex overflow-hidden relative">
-            <section className="flex-1 bg-[var(--bg-app)] relative">
+        <div className="flex-1 flex flex-col overflow-hidden relative w-full h-full min-h-0">
+            <section className="flex-1 bg-[var(--bg-app)] relative w-full h-full min-h-0">
                 <ReactFlow
                     nodes={renderedNodes}
                     edges={edges}
@@ -565,6 +582,15 @@ export function WorkflowGraph({
                     <Controls className="!bg-surface-800 !border-[var(--border-base)] !rounded-2xl !shadow-2xl !overflow-hidden [&_button]:!border-[var(--border-base)] [&_button]:!bg-transparent [&_button:hover]:!bg-brand/10 [&_svg]:!fill-[var(--text-main)] [&_svg]:!opacity-60" />
                 </ReactFlow>
 
+                {isLoading && (
+                    <div className="absolute inset-0 z-[10] flex items-center justify-center bg-[var(--bg-app)]/50 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin shadow-lg shadow-brand/20"></div>
+                            <p className="text-sm font-bold text-[var(--text-main)] opacity-70 animate-pulse uppercase tracking-[0.2em]">Loading graph data...</p>
+                        </div>
+                    </div>
+                )}
+
                 {addNodeMenu && !isReadOnly && (
                     <AddNodeMenu
                         clientX={addNodeMenu.clientX}
@@ -587,16 +613,6 @@ export function WorkflowGraph({
                     />
                 )}
             </section>
-
-            {selectedNode && (
-                <NodeProperties
-                    node={selectedNode}
-                    nodeTypes={nodeTypes}
-                    onChange={handleParamsChange}
-                    onClose={() => setSelectedNodeId(null)}
-                    isReadOnly={isReadOnly}
-                />
-            )}
         </div>
     );
 }
