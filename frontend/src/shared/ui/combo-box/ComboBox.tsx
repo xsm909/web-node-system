@@ -22,6 +22,7 @@ interface ComboBoxProps {
     searchPlaceholder?: string;
     disabled?: boolean;
     iconClassName?: string;
+    title?: string;
 }
 
 export const ComboBox: React.FC<ComboBoxProps> = ({
@@ -44,6 +45,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     searchPlaceholder,
     disabled,
     iconClassName,
+    title,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
@@ -85,6 +87,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
                 onClick={toggleOpen}
                 className={triggerClasses}
                 disabled={disabled}
+                title={title}
             >
                 <div className="flex items-center gap-3 min-w-0">
                     {icon && (

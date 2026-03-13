@@ -227,11 +227,11 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 }
                 rightContent={
                     <button
-                        className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
                         onClick={handleCreateNew}
+                        className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
+                        title="New Hint"
                     >
-                        <Icon name="add" size={16} className="-ml-1" />
-                        New Hint
+                        <Icon name="add" size={20} />
                     </button>
                 }
                 searchQuery={searchQuery}
@@ -239,35 +239,33 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 searchPlaceholder="Search by key, category or content..."
             />
 
-            <div className="flex-1 p-8 overflow-y-auto w-full max-w-7xl mx-auto">
-                <AppTable
-                    data={filteredHints}
-                    columns={columns}
-                    isSearching={searchQuery.trim().length > 0}
-                    onRowClick={handleEdit}
-                    config={{
-                        categoryExtractor: h => h.category,
-                        persistCategoryKey: 'hint_expanded_categories',
-                        emptyMessage: 'No hints matching your criteria.'
-                    }}
-                />
+            <AppTable
+                data={filteredHints}
+                columns={columns}
+                isSearching={searchQuery.trim().length > 0}
+                onRowClick={handleEdit}
+                config={{
+                    categoryExtractor: h => h.category,
+                    persistCategoryKey: 'hint_expanded_categories',
+                    emptyMessage: 'No hints matching your criteria.'
+                }}
+            />
 
-                <ConfirmModal
-                    isOpen={!!idToDelete}
-                    title="Delete Agent Hint"
-                    description="Are you sure you want to delete this agent hint? This action cannot be undone."
-                    confirmLabel="Delete"
-                    isLoading={deleteMutation.isPending}
-                    onConfirm={() => {
-                        if (idToDelete) {
-                            deleteMutation.mutate(idToDelete, {
-                                onSuccess: () => setIdToDelete(null)
-                            });
-                        }
-                    }}
-                    onCancel={() => setIdToDelete(null)}
-                />
-            </div>
+            <ConfirmModal
+                isOpen={!!idToDelete}
+                title="Delete Agent Hint"
+                description="Are you sure you want to delete this agent hint? This action cannot be undone."
+                confirmLabel="Delete"
+                isLoading={deleteMutation.isPending}
+                onConfirm={() => {
+                    if (idToDelete) {
+                        deleteMutation.mutate(idToDelete, {
+                            onSuccess: () => setIdToDelete(null)
+                        });
+                    }
+                }}
+                onCancel={() => setIdToDelete(null)}
+            />
         </div>
     );
 };

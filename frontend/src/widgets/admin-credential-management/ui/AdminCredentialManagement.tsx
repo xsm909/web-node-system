@@ -264,11 +264,11 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                 }
                 rightContent={
                     <button
-                        className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
                         onClick={handleOpenCreate}
+                        className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
+                        title="Add Access Key"
                     >
-                        <Icon name="add" size={16} className="-ml-1" />
-                        Add Access Key
+                        <Icon name="add" size={20} />
                     </button>
                 }
                 searchQuery={searchQuery}
@@ -276,28 +276,26 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                 searchPlaceholder="Search by key, type or description..."
             />
 
-            <div className="flex-1 p-8 overflow-y-auto w-full max-w-7xl mx-auto">
-                <AppTable
-                    data={filteredCredentials}
-                    columns={columns}
-                    isSearching={searchQuery.trim().length > 0}
-                    config={{
-                        categoryExtractor: c => c.type,
-                        persistCategoryKey: 'credential_expanded_categories',
-                        emptyMessage: 'No secure credentials detected. Add your first access key to enable remote integrations.'
-                    }}
-                />
+            <AppTable
+                data={filteredCredentials}
+                columns={columns}
+                isSearching={searchQuery.trim().length > 0}
+                config={{
+                    categoryExtractor: c => c.type,
+                    persistCategoryKey: 'credential_expanded_categories',
+                    emptyMessage: 'No secure credentials detected. Add your first access key to enable remote integrations.'
+                }}
+            />
 
-                <ConfirmModal
-                    isOpen={!!credentialToDelete}
-                    title="Delete Credential"
-                    description={`Are you sure you want to delete the credential '${credentialToDelete?.key}'? This action cannot be undone.`}
-                    confirmLabel="Delete"
-                    isLoading={loading && !!credentialToDelete}
-                    onConfirm={confirmDelete}
-                    onCancel={() => setCredentialToDelete(null)}
-                />
-            </div>
+            <ConfirmModal
+                isOpen={!!credentialToDelete}
+                title="Delete Credential"
+                description={`Are you sure you want to delete the credential '${credentialToDelete?.key}'? This action cannot be undone.`}
+                confirmLabel="Delete"
+                isLoading={loading && !!credentialToDelete}
+                onConfirm={confirmDelete}
+                onCancel={() => setCredentialToDelete(null)}
+            />
         </div>
     );
 };

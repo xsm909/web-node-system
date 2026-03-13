@@ -199,10 +199,10 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                         {view === 'list' && isAdmin && (
                             <button
                                 onClick={handleCreate}
-                                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
+                                className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
+                                title="Add Report"
                             >
-                                <Icon name="add" size={16} className="-ml-1" />
-                                Add Report
+                                <Icon name="add" size={20} />
                             </button>
                         )}
                         {view === 'view' && (
@@ -279,16 +279,14 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
 
             <div className="flex-1 overflow-hidden">
                 {view === 'list' && (
-                    <div className="max-w-7xl mx-auto p-4 lg:p-8 space-y-8 h-full overflow-y-auto custom-scrollbar">
-                        <ReportList
-                            reports={reports}
-                            isAdmin={isAdmin}
-                            onEdit={handleEdit}
-                            onView={handleView}
-                            onDelete={handleDelete}
-                            searchQuery={searchQuery}
-                        />
-                    </div>
+                    <ReportList
+                        reports={reports}
+                        isAdmin={isAdmin}
+                        onEdit={handleEdit}
+                        onView={handleView}
+                        onDelete={handleDelete}
+                        searchQuery={searchQuery}
+                    />
                 )}
 
                 {view === 'edit' && isAdmin && (

@@ -58,7 +58,7 @@ export function AppTable<TData>({
 
     return (
         <div className="flex flex-col flex-1 min-h-0 w-full animate-in fade-in duration-300">
-            <div className="flex-1 overflow-y-auto bg-surface-800 rounded-bl-3xl border border-t-0 border-[var(--border-base)] shadow-xl shadow-black/10 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse">
                     <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-[var(--border-base)]">
                         {table.getHeaderGroups().map(headerGroup => (

@@ -279,10 +279,12 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                             <ComboBox
                                 data={comboData}
                                 onSelect={handleSchemaSelect}
-                                placeholder="Assign Schema"
+                                placeholder=""
                                 icon="add"
                                 variant="brand"
-                                triggerClassName="px-6 py-3 rounded-2xl !text-[10px] !font-black !uppercase !tracking-widest shadow-xl shadow-brand/20"
+                                triggerClassName="w-10 h-10 rounded-full shadow-lg shadow-brand/20 shrink-0"
+                                title="Assign Schema"
+                                iconSize={20}
                             />
                         </div>
                     </div>
@@ -533,9 +535,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                     </h1>
                 }
             />
-            <div className="flex-1 p-8 overflow-y-auto">
-                {content}
-            </div>
+            {content}
         </div>
     );
 };

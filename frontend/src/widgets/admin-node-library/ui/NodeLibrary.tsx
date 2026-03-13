@@ -165,11 +165,11 @@ export const AdminNodeLibrary = ({
                 }
                 rightContent={
                     <button
-                        className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
+                        className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
                         onClick={() => onEditNode({} as NodeType)}
+                        title="Add Node"
                     >
-                        <Icon name="add" size={16} className="-ml-1" />
-                        Add Node
+                        <Icon name="add" size={20} />
                     </button>
                 }
                 searchQuery={searchQuery}
@@ -177,32 +177,30 @@ export const AdminNodeLibrary = ({
                 searchPlaceholder="Search nodes..."
             />
             
-            <div className="flex-1 p-8 overflow-y-auto">
-                <AppTable
-                    data={filteredNodes}
-                    columns={columns}
-                    config={{
-                        categoryExtractor: n => n.category,
-                        persistCategoryKey: 'node_expanded_categories',
-                        emptyMessage: 'No nodes matching your criteria.',
-                        rowClassName: (node) => selectedNodeId === node.id ? 'bg-brand/5' : ''
-                    }}
-                    onRowClick={(node) => {
-                        setSelectedNodeId(node.id);
-                        onEditNode(node);
-                    }}
-                    isSearching={searchQuery.trim().length > 0}
-                />
+            <AppTable
+                data={filteredNodes}
+                columns={columns}
+                config={{
+                    categoryExtractor: n => n.category,
+                    persistCategoryKey: 'node_expanded_categories',
+                    emptyMessage: 'No nodes matching your criteria.',
+                    rowClassName: (node) => selectedNodeId === node.id ? 'bg-brand/5' : ''
+                }}
+                onRowClick={(node) => {
+                    setSelectedNodeId(node.id);
+                    onEditNode(node);
+                }}
+                isSearching={searchQuery.trim().length > 0}
+            />
 
-                <ConfirmModal
-                    isOpen={!!nodeToDelete}
-                    title="Delete Node"
-                    description={`Are you sure you want to delete "${nodeToDelete?.name}"? This action cannot be undone.`}
-                    confirmLabel="Delete"
-                    onConfirm={handleConfirmDelete}
-                    onCancel={() => setNodeToDelete(null)}
-                />
-            </div>
+            <ConfirmModal
+                isOpen={!!nodeToDelete}
+                title="Delete Node"
+                description={`Are you sure you want to delete "${nodeToDelete?.name}"? This action cannot be undone.`}
+                confirmLabel="Delete"
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setNodeToDelete(null)}
+            />
         </div>
     );
 };
