@@ -58,13 +58,52 @@ def _clean_schema_for_gemini(schema: Any) -> Any:
 
 def _extract_json(text: str) -> str:
     """
-    Extracts JSON string from markdown code blocks if present.
+    Extracts the first balanced JSON object or array from text.
+    Handles trailing garbage and markdown code blocks.
     """
     text = text.strip()
-    # Match ```json ... ``` or ``` ... ```
+    
+    # 1. Handle markdown code blocks if present
     match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL)
     if match:
-        return match.group(1).strip()
+        text = match.group(1).strip()
+    
+    # 2. Find the first candidate JSON structure
+    start_match = re.search(r'[\{\[]', text)
+    if not start_match:
+        return text
+    
+    start_pos = start_match.start()
+    candidate_text = text[start_pos:]
+    
+    # 3. Balanced brace/bracket counting with string literal awareness
+    brace_count = 0
+    bracket_count = 0
+    in_string = False
+    escape = False
+    
+    for i, char in enumerate(candidate_text):
+        if char == '"' and not escape:
+            in_string = not in_string
+        
+        if not in_string:
+            if char == '{':
+                brace_count += 1
+            elif char == '}':
+                brace_count -= 1
+            elif char == '[':
+                bracket_count += 1
+            elif char == ']':
+                bracket_count -= 1
+            
+            if brace_count == 0 and bracket_count == 0:
+                return candidate_text[:i+1]
+        
+        if char == '\\':
+            escape = not escape
+        else:
+            escape = False
+            
     return text
 
 def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, iteration_limit: int = 10):
