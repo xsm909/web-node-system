@@ -66,6 +66,29 @@ export default function AdminPage() {
                         isActive: activeTab === 'credentials',
                         onClick: () => setActiveTab('credentials'),
                     },
+
+
+                    {
+                        id: 'reports',
+                        label: 'Reports',
+                        icon: 'docs',
+                        isActive: activeTab === 'reports',
+                        onClick: () => setActiveTab('reports'),
+                    },
+                    {
+                        id: 'schemas',
+                        label: 'Schemas',
+                        icon: 'data_object',
+                        isActive: activeTab === 'schemas',
+                        onClick: () => setActiveTab('schemas'),
+                    },
+                    {
+                        id: 'agent-hints',
+                        label: 'Agent Hints',
+                        icon: 'dev_hint',
+                        isActive: activeTab === 'agent-hints',
+                        onClick: () => setActiveTab('agent-hints'),
+                    },
                     {
                         id: 'nodes',
                         label: 'Node Types',
@@ -79,34 +102,6 @@ export default function AdminPage() {
                         icon: 'conversion',
                         isActive: activeTab === 'workflows',
                         onClick: () => setActiveTab('workflows'),
-                    },
-                    {
-                        id: 'schemas',
-                        label: 'Schemas',
-                        icon: 'data_object',
-                        isActive: activeTab === 'schemas',
-                        onClick: () => setActiveTab('schemas'),
-                    },
-                    {
-                        id: 'ai-tasks',
-                        label: 'AI Tasks',
-                        icon: 'description',
-                        isActive: activeTab === 'ai-tasks',
-                        onClick: () => setActiveTab('ai-tasks'),
-                    },
-                    {
-                        id: 'reports',
-                        label: 'Reports',
-                        icon: 'docs',
-                        isActive: activeTab === 'reports',
-                        onClick: () => setActiveTab('reports'),
-                    },
-                    {
-                        id: 'agent-hints',
-                        label: 'Agent Hints',
-                        icon: 'dev_hint',
-                        isActive: activeTab === 'agent-hints',
-                        onClick: () => setActiveTab('agent-hints'),
                     },
                 ]}
             />
@@ -134,13 +129,13 @@ export default function AdminPage() {
                             refreshTrigger={refreshCount}
                         />
                     ) : activeTab === 'schemas' ? (
-                        <AdminSchemaManagement 
+                        <AdminSchemaManagement
                             onToggleSidebar={() => setIsSidebarOpen(true)}
                             isSidebarOpen={isSidebarOpen}
                         />
                     ) : activeTab === 'ai-tasks' ? (
-                        <AITaskManagement 
-                            activeClientId={null} 
+                        <AITaskManagement
+                            activeClientId={null}
                             onToggleSidebar={() => setIsSidebarOpen(true)}
                             isSidebarOpen={isSidebarOpen}
                         />
@@ -150,12 +145,12 @@ export default function AdminPage() {
                             isSidebarOpen={isSidebarOpen}
                         />
                     ) : activeTab === 'agent-hints' ? (
-                        <AgentHintManagement 
+                        <AgentHintManagement
                             onToggleSidebar={() => setIsSidebarOpen(true)}
                             isSidebarOpen={isSidebarOpen}
                         />
                     ) : (
-                        <AdminCredentialManagement 
+                        <AdminCredentialManagement
                             onToggleSidebar={() => setIsSidebarOpen(true)}
                             isSidebarOpen={isSidebarOpen}
                         />
