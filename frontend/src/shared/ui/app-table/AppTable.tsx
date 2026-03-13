@@ -45,7 +45,7 @@ export function AppTable<TData>({
 
     const treeData = useMemo(() => {
         if (isSearching || !config?.categoryExtractor) return null;
-        
+
         const rows = table.getRowModel().rows;
         const mapped: TWithCategory<TData>[] = rows.map(row => ({
             original: row.original,
@@ -60,18 +60,18 @@ export function AppTable<TData>({
         <div className="flex flex-col flex-1 min-h-0 w-full animate-in fade-in duration-300">
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-[var(--border-base)]">
+                    <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-brand/20">
                         {table.getHeaderGroups().map(headerGroup => (
-                            <tr key={headerGroup.id} className="bg-[var(--border-muted)]/30">
+                            <tr key={headerGroup.id} className="bg-brand">
                                 {headerGroup.headers.map(header => (
-                                    <th key={header.id} className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                                    <th key={header.id} className="px-6 py-4 text-[11px] font-extrabold text-white uppercase tracking-widest">
                                         {flexRender(header.column.columnDef.header, header.getContext())}
                                     </th>
                                 ))}
                             </tr>
                         ))}
                     </thead>
-                    <tbody className="divide-y divide-[var(--border-base)]">
+                    <tbody className="divide-y divide-[var(--border-base)]/30">
                         {isLoading && data.length === 0 ? (
                             <tr>
                                 <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)]">

@@ -265,10 +265,10 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                         <button
                             onClick={handleSave}
                             disabled={updateMutation.isPending || createMutation.isPending || lock}
-                            className={`px-4 py-2 rounded-xl bg-brand hover:brightness-110 transition-colors text-white text-sm font-bold flex items-center gap-2 ${lock ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 shadow-lg shadow-brand/20 active:scale-95 shrink-0 transition-all ${lock ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title={updateMutation.isPending || createMutation.isPending ? "Saving..." : "Save Schema"}
                         >
-                            <Icon name="save" size={16} />
-                            Save Schema
+                            <Icon name={updateMutation.isPending || createMutation.isPending ? "sync" : "save"} size={20} className={updateMutation.isPending || createMutation.isPending ? "animate-spin" : ""} />
                         </button>
                     </div>
                 </div>

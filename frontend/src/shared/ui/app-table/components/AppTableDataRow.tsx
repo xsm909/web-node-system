@@ -16,7 +16,8 @@ export function AppTableDataRow<TData>({ row, onClick, level = 0, config }: AppT
         <tr
             onClick={() => onClick?.(row.original)}
             className={`
-                group transition-colors border-l-2 border-transparent
+                group transition-colors border-transparent
+                even:bg-slate-500/[0.02]
                 ${isClickable ? 'cursor-pointer hover:bg-surface-700/30' : ''}
                 ${customClass}
             `}
@@ -28,7 +29,7 @@ export function AppTableDataRow<TData>({ row, onClick, level = 0, config }: AppT
                 return (
                     <td
                         key={cell.id}
-                        className="px-6 py-4"
+                        className="px-6 py-2"
                         style={isFirstCell && level > 0 ? { paddingLeft: `${1.5 + level * 1.5}rem` } : undefined}
                     >
                         {cellContent}

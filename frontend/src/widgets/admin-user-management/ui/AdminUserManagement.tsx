@@ -157,10 +157,10 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                             <button
                                 onClick={() => editorRef.current?.handleSave()}
                                 disabled={isSaving}
-                                className="flex items-center gap-2 px-8 py-2.5 rounded-2xl bg-brand text-white font-black text-[10px] uppercase tracking-widest hover:brightness-110 disabled:opacity-50 transition-all shadow-xl shadow-brand/20 active:scale-95 whitespace-nowrap"
+                                className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
+                                title={isSaving ? "Saving..." : "Save Changes"}
                             >
-                                <Icon name={isSaving ? "sync" : "save"} size={16} className={isSaving ? "animate-spin" : ""} />
-                                {isSaving ? "Saving..." : "Save Changes"}
+                                <Icon name={isSaving ? "sync" : "save"} size={20} className={isSaving ? "animate-spin" : ""} />
                             </button>
                         </div>
                     )

@@ -38,6 +38,113 @@ interface ClientMetadataManagementProps {
     hideHeader?: boolean;
 }
 
+const SortableRow = ({
+    item,
+    depth,
+    onRowClick,
+    onDelete,
+    isAdmin,
+    openSubMenuId,
+    onOpenSubMenu,
+    comboData,
+    onSchemaSelect
+}: any) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: item.id || item.record?.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : 0,
+        position: 'relative' as const,
+    };
+
+    return (
+        <tr
+            ref={setNodeRef}
+            style={style}
+            className={`group transition-colors border-l-2 border-transparent hover:bg-surface-700/30 ${isDragging ? 'bg-surface-700/50' : ''}`}
+            onClick={() => onRowClick(item)}
+        >
+            <td className="px-6 py-4">
+                <div className="flex items-center gap-2">
+                    {isAdmin && (
+                        <div
+                            {...attributes}
+                            {...listeners}
+                            className="cursor-grab active:cursor-grabbing p-1 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <Icon name="drag_indicator" size={16} />
+                        </div>
+                    )}
+                    {isAdmin && (
+                        <div
+                            className={`transition-opacity duration-200 ${openSubMenuId === item.record?.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <ComboBox
+                                data={comboData}
+                                onSelect={onSchemaSelect}
+                                onOpenChange={(open) => onOpenSubMenu(open, item.record?.id)}
+                                placeholder=""
+                                icon="add"
+                                triggerClassName="flex items-center justify-center w-7 h-7 rounded-full bg-brand text-white hover:brightness-110 shadow-sm active:scale-95 transition-all"
+                                iconSize={14}
+                                hideChevron
+                            />
+                        </div>
+                    )}
+                </div>
+            </td>
+            <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + depth * 2}rem` }}>
+                <div className="flex items-center gap-3">
+                    {depth > 0 && (
+                        <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
+                    )}
+                    <span className={`px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 ${item.record?.lock ? 'ring-1 ring-red-500/20 text-red-400/80' : ''}`}>
+                        {depth > 0 && <Icon name="arrow_split" size={12} />}
+                        {item.record?.schema?.key || 'Unknown'}
+                        {item.record?.lock && <Icon name="lock" size={10} />}
+                    </span>
+                </div>
+            </td>
+            <td className="px-6 py-4">
+                <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono">
+                    {JSON.stringify(item.record?.data || {})}
+                </div>
+            </td>
+            <td className="px-6 py-4 text-right">
+                <div className="flex justify-end gap-2 items-center">
+                    {item.record?.lock && (
+                        <div className="p-1.5 text-red-500/40" title="Locked">
+                            <Icon name="lock" size={14} />
+                        </div>
+                    )}
+                    {isAdmin && !item.record?.lock && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(item);
+                            }}
+                            className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            title="Delete"
+                        >
+                            <Icon name="delete" size={14} />
+                        </button>
+                    )}
+                </div>
+            </td>
+        </tr>
+    );
+};
+
 export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> = ({
     activeClientId,
     onToggleSidebar,
@@ -251,6 +358,11 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
         }
     };
 
+    const handleOpenSubMenu = (open: boolean, itemId: string) => {
+        setOpenSubMenuId(open ? itemId : null);
+        if (open) setNestingParentId(itemId);
+    };
+
     if (isLoading && assignments.length === 0) {
         return (
             <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl">
@@ -282,8 +394,8 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                 placeholder=""
                                 icon="add"
                                 variant="brand"
-                                triggerClassName="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
-                                title="Assign Schema"
+                                triggerClassName="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95"
+                                title="Assign Metadata"
                                 iconSize={20}
                             />
                         </div>
@@ -298,120 +410,25 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                             onDragEnd={handleDragEnd}
                         >
                             <table className="w-full text-left border-collapse min-w-[700px]">
-                            <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-[var(--border-base)]">
-                                <tr className="bg-[var(--border-muted)]/30">
-                                    <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60 w-24">
+                            <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-brand/20">
+                                <tr className="bg-brand">
+                                    <th className="px-6 py-4 text-[11px] font-extrabold text-white uppercase tracking-widest w-24">
                                         Sub
                                     </th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                                    <th className="px-6 py-4 text-[11px] font-extrabold text-white uppercase tracking-widest">
                                         Schema
                                     </th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                                    <th className="px-6 py-4 text-[11px] font-extrabold text-white uppercase tracking-widest">
                                         Record Data
                                     </th>
-                                    <th className="px-6 py-4 text-right text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider opacity-60">
+                                    <th className="px-6 py-4 text-right text-[11px] font-extrabold text-white uppercase tracking-widest">
                                         Action
                                     </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--border-base)]">
                                 {(() => {
-                                    const SortableRow = ({ item, depth, onRowClick, onDelete, isAdmin }: any) => {
-                                        const {
-                                            attributes,
-                                            listeners,
-                                            setNodeRef,
-                                            transform,
-                                            transition,
-                                            isDragging
-                                        } = useSortable({ id: item.id || item.record?.id });
-
-                                        const style = {
-                                            transform: CSS.Transform.toString(transform),
-                                            transition,
-                                            zIndex: isDragging ? 10 : 0,
-                                            position: 'relative' as const,
-                                        };
-
-                                        return (
-                                            <tr
-                                                ref={setNodeRef}
-                                                style={style}
-                                                className={`group transition-colors border-l-2 border-transparent hover:bg-surface-700/30 ${isDragging ? 'bg-surface-700/50' : ''}`}
-                                                onClick={() => onRowClick(item)}
-                                            >
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        {isAdmin && (
-                                                            <div
-                                                                {...attributes}
-                                                                {...listeners}
-                                                                className="cursor-grab active:cursor-grabbing p-1 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                            >
-                                                                <Icon name="drag_indicator" size={16} />
-                                                            </div>
-                                                        )}
-                                                        {isAdmin && (
-                                                            <div
-                                                                className={`transition-opacity duration-200 ${openSubMenuId === item.record?.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                                                                onClick={(e) => { e.stopPropagation(); setNestingParentId(item.record?.id); }}
-                                                            >
-                                                                <ComboBox
-                                                                    data={comboData}
-                                                                    onSelect={handleSchemaSelect}
-                                                                    onOpenChange={(open) => setOpenSubMenuId(open ? item.record?.id : null)}
-                                                                    placeholder=""
-                                                                    icon="add"
-                                                                    triggerClassName="!p-1.5 !rounded-lg !bg-brand/10 !text-brand hover:!brightness-125 !text-[10px] !font-bold !uppercase"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                 <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + depth * 2}rem` }}>
-                                                     <div className="flex items-center gap-3">
-                                                         {depth > 0 && (
-                                                             <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
-                                                         )}
-                                                         <span className={`px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 ${item.record?.lock ? 'ring-1 ring-red-500/20 text-red-400/80' : ''}`}>
-                                                             {depth > 0 && <Icon name="arrow_split" size={12} />}
-                                                             {item.record?.schema?.key || 'Unknown'}
-                                                             {item.record?.lock && <Icon name="lock" size={10} />}
-                                                         </span>
-                                                     </div>
-                                                 </td>
-                                                 <td className="px-6 py-4">
-                                                     <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono">
-                                                         {JSON.stringify(item.record?.data || {})}
-                                                     </div>
-                                                 </td>
-                                                 <td className="px-6 py-4 text-right">
-                                                     <div className="flex justify-end gap-2 items-center">
-                                                         {item.record?.lock && (
-                                                             <div className="p-1.5 text-red-500/40" title="Locked">
-                                                                 <Icon name="lock" size={14} />
-                                                             </div>
-                                                         )}
-                                                         {isAdmin && !item.record?.lock && (
-                                                             <button
-                                                                 onClick={(e) => {
-                                                                     e.stopPropagation();
-                                                                     onDelete(item);
-                                                                 }}
-                                                                 className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                                                 title="Delete"
-                                                             >
-                                                                 <Icon name="delete" size={14} />
-                                                             </button>
-                                                         )}
-                                                     </div>
-                                                 </td>
-                                             </tr>
-                                        );
-                                    };
-
-                                    const renderRows = (data: any[], depth = 0) => {
+                                    const renderRows = (data: any[], depth = 0): React.ReactNode => {
                                         return (
                                             <SortableContext
                                                 items={data.map(item => item.id || item.record?.id)}
@@ -425,6 +442,10 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                                             onRowClick={handleRowClick}
                                                             onDelete={setAssignmentToDelete}
                                                             isAdmin={isAdmin}
+                                                            openSubMenuId={openSubMenuId}
+                                                            onOpenSubMenu={handleOpenSubMenu}
+                                                            comboData={comboData}
+                                                            onSchemaSelect={handleSchemaSelect}
                                                         />
                                                         {item.record?.children && item.record.children.length > 0 && (
                                                             <tr key={`${(item.id || item.record?.id)}-children`}>
@@ -501,10 +522,11 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                     <div className="flex justify-end">
                         <button
                             onClick={() => editorRef.current?.handleSave()}
-                            className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-brand text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand/20 hover:brightness-110 active:scale-95 transition-all"
+                            disabled={editorRef.current?.isSaving}
+                            className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 shadow-lg shadow-brand/20 active:scale-95 shrink-0 transition-all disabled:opacity-50"
+                            title={editorRef.current?.isSaving ? "Saving..." : "Save Changes"}
                         >
-                            <Icon name="save" size={16} />
-                            Save Changes
+                            <Icon name={editorRef.current?.isSaving ? "sync" : "save"} size={20} className={editorRef.current?.isSaving ? "animate-spin" : ""} />
                         </button>
                     </div>
                 }

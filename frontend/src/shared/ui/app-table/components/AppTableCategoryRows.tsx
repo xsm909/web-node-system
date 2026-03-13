@@ -56,11 +56,11 @@ export function AppTableCategoryRows<TData>({
                     />
                 ))}
                 {node.nodes.length > 0 && (
-                    <tr className="bg-[var(--border-muted)]/10 border-l-2 border-[var(--border-base)]">
+                    <tr className="bg-brand/5 border-b border-brand/10">
                         <td colSpan={colSpan} className="px-6 py-1.5 opacity-40">
                             <div className="flex items-center gap-2">
                                 <Icon name="folder_open" size={14} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">Uncategorized</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-brand/80">Uncategorized</span>
                             </div>
                         </td>
                     </tr>
@@ -81,7 +81,7 @@ export function AppTableCategoryRows<TData>({
     return (
         <>
             <tr
-                className="bg-[var(--border-muted)]/20 hover:bg-[var(--border-muted)]/40 cursor-pointer transition-colors border-l-2 border-brand/30"
+                className="bg-brand/10 hover:bg-brand/20 cursor-pointer transition-colors border-b border-brand/20 group/row"
                 onClick={() => onToggle(path)}
             >
                 <td colSpan={colSpan} className="px-6 py-2" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
@@ -92,7 +92,7 @@ export function AppTableCategoryRows<TData>({
                             className="text-[var(--text-muted)] opacity-60"
                         />
                         <Icon name="folder" size={16} className="text-brand/70" />
-                        <span className="text-xs font-bold text-[var(--text-main)] opacity-70 uppercase tracking-wider">{node.name}</span>
+                        <span className="text-xs font-bold text-brand uppercase tracking-wider">{node.name}</span>
                     </div>
                 </td>
             </tr>
