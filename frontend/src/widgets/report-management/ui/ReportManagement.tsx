@@ -5,6 +5,7 @@ import { useAuthStore } from '../../../features/auth/store';
 import { AppHeader } from '../../app-header';
 import { Icon } from '../../../shared/ui/icon';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
+import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
 import { ReportList } from './ReportList';
 import { ReportEditor, type ReportEditorRef } from './ReportEditor';
@@ -27,6 +28,9 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const [idToDelete, setIdToDelete] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const reportViewerRef = useRef<ReportViewerRef>(null);
     const reportEditorRef = useRef<ReportEditorRef>(null);
@@ -65,6 +69,25 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const handleView = (report: Report) => {
         setSelectedReport(report);
         setView('view');
+    };
+
+    const handleDelete = (report: Report) => {
+        setIdToDelete(report.id);
+    };
+
+    const confirmDelete = async () => {
+        if (!idToDelete) return;
+        setIsDeleting(true);
+        try {
+            await apiClient.delete(`/reports/${idToDelete}`);
+            setRefreshTrigger(prev => prev + 1);
+        } catch (err) {
+            console.error("Failed to delete report", err);
+            alert("Error deleting report");
+        } finally {
+            setIsDeleting(false);
+            setIdToDelete(null);
+        }
     };
 
     const [isGenerated, setIsGenerated] = useState(false);
@@ -250,6 +273,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                             onCreate={handleCreate}
                             onEdit={handleEdit}
                             onView={handleView}
+                            onDelete={handleDelete}
                         />
                     </div>
                 )}
@@ -276,6 +300,16 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     />
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={!!idToDelete}
+                title="Delete Report"
+                description="Are you sure you want to delete this report? This action cannot be undone."
+                confirmLabel="Delete"
+                isLoading={isDeleting}
+                onConfirm={confirmDelete}
+                onCancel={() => setIdToDelete(null)}
+            />
         </div>
     );
 }

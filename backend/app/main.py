@@ -12,6 +12,8 @@ from .models.prompt import Prompt # noqa: F401
 # Create all tables on startup
 Base.metadata.create_all(bind=engine)
 
+from sqlalchemy import text # Add this import
+
 import json
 from contextlib import asynccontextmanager
 from .models.workflow import WorkflowExecution, WorkflowStatus
@@ -21,6 +23,13 @@ from .core.database import SessionLocal
 async def lifespan(app: FastAPI):
     # Cleanup hanging executions on startup
     db = SessionLocal()
+    try:
+        # Emergency migration for category column
+        db.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS category VARCHAR(255);"))
+        db.commit()
+    except Exception as e:
+        print(f"Migration error: {e}")
+
     try:
         hanging = db.query(WorkflowExecution).filter(
             WorkflowExecution.status.in_([WorkflowStatus.pending, WorkflowStatus.running])

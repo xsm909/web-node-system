@@ -43,6 +43,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     const [query, setQuery] = useState(report?.query || '');
     const [template, setTemplate] = useState(report?.template || '');
     const [styleId, setStyleId] = useState(report?.style_id || '');
+    const [category, setCategory] = useState(report?.category || '');
     const [parameters, setParameters] = useState<ReportParameter[]>(report?.parameters || []);
     const [meta, setMeta] = useState<Record<string, any>>(report?.meta || {});
 
@@ -77,6 +78,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             query,
             template,
             style_id: styleId || null,
+            category: category.trim() || null,
             meta,
             parameters: parameters.map(({ id, ...rest }: any) => rest) // strip local id
         };
@@ -153,6 +155,20 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                         <option value="global">Global</option>
                                         <option value="client">Client-Specific</option>
                                     </select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold text-[var(--text-main)]">Category</label>
+                                    <input
+                                        type="text"
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+                                        placeholder="e.g. Sales|Monthly"
+                                    />
+                                    <p className="text-[10px] text-[var(--text-muted)] mt-1 uppercase font-black tracking-widest opacity-60">
+                                        Use "|" to separate categories (e.g., Sales|Reports)
+                                    </p>
                                 </div>
 
                                 <div className="space-y-1.5">

@@ -23,6 +23,7 @@ export interface Report {
     query: string;
     template: string;
     style_id?: string;
+    category?: string;
     created_by: string;
     parameters: ReportParameter[];
     meta?: Record<string, any>;
