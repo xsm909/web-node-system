@@ -29,7 +29,7 @@ export function AppTableDataRow<TData>({ row, onClick, level = 0, config }: AppT
                 return (
                     <td
                         key={cell.id}
-                        className="px-6 py-2"
+                        className="px-6 py-2 text-sm"
                         style={isFirstCell && level > 0 ? { paddingLeft: `${1.5 + level * 1.5}rem` } : undefined}
                     >
                         {cellContent}

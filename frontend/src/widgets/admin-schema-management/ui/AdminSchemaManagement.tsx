@@ -131,15 +131,15 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                             <Icon name="data_object" size={18} />
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
+                            <span className="text-sm text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
                                 {schema.content?.title || schema.key}
                             </span>
                             <div className="flex items-center gap-2 mt-0.5">
                                 {schema.is_system && (
-                                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-tighter opacity-60">System Schema</span>
+                                    <span className="text-[9px] text-blue-400 uppercase tracking-tighter opacity-60">System Schema</span>
                                 )}
                                 {schema.lock && (
-                                    <span className="flex items-center gap-1 text-[9px] font-black text-red-400 uppercase tracking-tighter opacity-80">
+                                    <span className="flex items-center gap-1 text-[9px] text-red-400 uppercase tracking-tighter opacity-80">
                                         <Icon name="lock" size={10} />
                                         Locked
                                     </span>
@@ -158,7 +158,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                 return (
                     <div className="flex flex-wrap gap-1">
                         {schema.meta?.tags?.map((tag: string) => (
-                            <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-brand/10 text-brand border border-brand/20 font-bold uppercase tracking-widest">
+                            <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-600 border border-slate-500/20 uppercase tracking-widest">
                                 {tag}
                             </span>
                         ))}

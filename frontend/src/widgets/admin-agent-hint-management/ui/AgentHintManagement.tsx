@@ -94,7 +94,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                             <Icon name="description" size={18} />
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
+                            <span className="text-sm text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
                                 {hint.key}
                             </span>
                         </div>

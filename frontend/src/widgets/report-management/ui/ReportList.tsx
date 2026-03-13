@@ -30,7 +30,7 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQ
                             <Icon name="bar_chart" size={16} />
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <span className="font-bold text-[var(--text-main)] truncate">{report.name}</span>
+                            <span className="text-[var(--text-main)] truncate">{report.name}</span>
                             <span className="text-[10px] text-[var(--text-muted)] opacity-60 truncate">{report.description || 'No description'}</span>
                         </div>
                     </div>
@@ -40,7 +40,7 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQ
         columnHelper.accessor('type', {
             header: 'Type',
             cell: info => (
-                <span className="text-[10px] uppercase font-black tracking-wider text-[var(--text-muted)] px-2 py-0.5 rounded-full bg-[var(--border-muted)]">
+                <span className="text-[10px] uppercase tracking-wider text-slate-600 bg-slate-500/10 px-2 py-0.5 rounded-full ring-1 ring-inset ring-slate-500/20">
                     {info.getValue()}
                 </span>
             ),

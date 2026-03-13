@@ -42,19 +42,14 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
         }),
         columnHelper.accessor('username', {
             header: 'Username',
-            cell: info => <span className="font-bold text-[var(--text-main)]">{info.getValue()}</span>,
+            cell: info => <span className="text-[var(--text-main)]">{info.getValue()}</span>,
         }),
         columnHelper.accessor('role', {
             header: 'Role',
             cell: info => {
                 const role = info.getValue();
                 return (
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 ring-inset ${role === 'admin'
-                        ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-indigo-500/20'
-                        : role === 'manager'
-                            ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-blue-500/20'
-                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20'
-                        }`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] tracking-widest ring-1 ring-inset bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-slate-500/20`}>
                         {role}
                     </span>
                 );
@@ -67,10 +62,10 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 const user = info.row.original;
                 return user.role === 'client' ? (
                     user.assigned_managers?.[0]?.username || (
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-30 italic">Unassigned</span>
+                        <span className="text-[10px] uppercase tracking-widest opacity-30 italic">Unassigned</span>
                     )
                 ) : (
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-10">—</span>
+                    <span className="text-[10px] uppercase tracking-widest opacity-10">—</span>
                 );
             },
         }),

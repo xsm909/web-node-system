@@ -90,7 +90,7 @@ export const AdminNodeLibrary = ({
                             <Icon name={node.icon || 'extension'} size={18} />
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
+                            <span className="text-sm text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
                                 {node.name}
                             </span>
                         </div>
@@ -101,7 +101,7 @@ export const AdminNodeLibrary = ({
         columnHelper.accessor('version', {
             header: 'Version',
             cell: info => (
-                <span className="text-xs font-mono text-brand/70 font-bold">v{info.getValue()}</span>
+                <span className="text-xs font-mono text-brand/70">v{info.getValue()}</span>
             )
         }),
         columnHelper.accessor('description', {

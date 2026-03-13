@@ -64,7 +64,7 @@ export function AppTable<TData>({
                         {table.getHeaderGroups().map(headerGroup => (
                             <tr key={headerGroup.id} className="bg-brand">
                                 {headerGroup.headers.map(header => (
-                                    <th key={header.id} className="px-6 py-4 text-[11px] font-extrabold text-white uppercase tracking-widest">
+                                    <th key={header.id} className="px-6 py-4 text-[11px] font-semibold text-white uppercase tracking-widest">
                                         {flexRender(header.column.columnDef.header, header.getContext())}
                                     </th>
                                 ))}
@@ -77,7 +77,7 @@ export function AppTable<TData>({
                                 <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)]">
                                     <div className="flex justify-center flex-col items-center gap-4">
                                         <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
-                                        <span className="text-sm font-medium">Loading data...</span>
+                                        <span className="text-sm">Loading data...</span>
                                     </div>
                                 </td>
                             </tr>

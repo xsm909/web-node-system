@@ -104,7 +104,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
         columnHelper.accessor('key', {
             header: 'Identification Key',
             cell: info => (
-                <div className="text-sm font-mono text-brand font-bold group-hover:brightness-110 transition-all uppercase tracking-tight">
+                <div className="text-sm font-mono text-brand group-hover:brightness-110 transition-all uppercase tracking-tight">
                     {info.getValue()}
                 </div>
             )
@@ -112,7 +112,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
         columnHelper.accessor('type', {
             header: 'Type',
             cell: info => (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-brand/10 text-brand ring-1 ring-inset ring-brand/20 uppercase tracking-widest">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] bg-slate-500/10 text-slate-600 ring-1 ring-inset ring-slate-500/20 uppercase tracking-widest">
                     {info.getValue()}
                 </span>
             )
@@ -120,7 +120,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
         columnHelper.accessor('description', {
             header: 'Description / Note',
             cell: info => (
-                <div className="text-sm text-[var(--text-muted)] opacity-70 group-hover:opacity-100 transition-opacity font-medium">
+                <div className="text-sm text-[var(--text-muted)] opacity-70 group-hover:opacity-100 transition-opacity">
                     {info.getValue() || <span className="italic opacity-30 font-normal">No context provided</span>}
                 </div>
             )
