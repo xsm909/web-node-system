@@ -33,6 +33,7 @@ from ..internal_libs import metadata_lib
 from ..internal_libs import schema_lib
 from ..internal_libs import agent_hints_lib
 from ..internal_libs import prompt_lib
+from ..internal_libs import responce_lib
 from ..internal_libs.logger_lib import executor_logger
 from ..internal_libs.context_lib import execution_context
 
@@ -202,6 +203,11 @@ SAFE_GLOBALS = {
         add_prompt=prompt_lib.add_prompt,
         get_prompts_by_category_with_reference_id=prompt_lib.get_prompts_by_category_with_reference_id,
         get_prompts_by_category_with_id=prompt_lib.get_prompts_by_category_with_id
+    ),
+    "responce_data": SimpleNamespace(
+        clear_recent_records_by_entity_and_category=responce_lib.clear_recent_records_by_entity_and_category,
+        add_responce=responce_lib.add_responce,
+        update_responce_meta=responce_lib.update_responce_meta
     ),
     "workflow": None,  # Will be injected per-execution
 }
@@ -656,6 +662,11 @@ class WorkflowExecutor:
                     add_prompt=prompt_lib.add_prompt,
                     get_prompts_by_category_with_reference_id=prompt_lib.get_prompts_by_category_with_reference_id,
                     get_prompts_by_category_with_id=prompt_lib.get_prompts_by_category_with_id
+                ),
+                "responce_data": SimpleNamespace(
+                    clear_recent_records_by_entity_and_category=responce_lib.clear_recent_records_by_entity_and_category,
+                    add_responce=responce_lib.add_responce,
+                    update_responce_meta=responce_lib.update_responce_meta
                 ),
                 "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),
             }
