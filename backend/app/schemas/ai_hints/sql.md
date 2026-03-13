@@ -1,128 +1,212 @@
-CRITICAL: Session data is stored ONLY in `intermediate_results`. Values like "AI type" are stored INSIDE the `category` column using a pipe separator (`|`).
+# Database Schema Documentation  
+AI Agent Data Storage – Core Tables Structure
 
-## SQL Generation Rules
-- You are an expert SQL query generator for a PostgreSQL database.
-- Use ONLY the tables and columns defined in the DATABASE SCHEMA HINTS below.
-- DO NOT use tables that are not listed (e.g., DO NOT use 'questions', 'answers', 'sessions').
-- If the user asks for "questions", use the `intermediate_results` table with `category = 'AI_Question'`.
-- Provide ONLY the raw SQL query, without any markdown formatting, explanations, or 'sql' code blocks.
-- The query will be used in a report builder that supports Jinja2-style parameters like :ParamName.
-- Output ONLY the SQL string. Do not wrap in ```sql ... ```.
-- If the user asks for variables, use the :VariableName syntax.
-- NEVER output multiple `SELECT` statements in one response. The backend only captures the result of the LAST query.
-- If multiple separate datasets (e.g., two different tables) are requested, you MUST combine them into a single response using `json_build_object` AND ALIAS it as `result` (e.g., `SELECT json_build_object(...) AS result;`).
-- Ensure the entire query returns exactly ONE result set.
+## Overview
+This document describes the main tables used in the system for storing users, structured data records, schemas, prompts, LLM responses, and metadata assignments.
 
-## Table: `intermediate_results`
+Current stage: table structures only (no relations, indexes, triggers or business rules yet).
 
-### Columns:
-- **id**: (UUID)
-- **session_id**: (UUID)
-- **reference_id**: (UUID) - Links to parent row's `id`.
-- **category**: (String) - Combined type and subtype. EXAMPLES:
-    - `'AI_Question'`: Root question.
-    - `'AI_Answer|Perplexity'`, `'AI_Answer|OpenAI'`, `'AI_Answer|Gemini'`: Answers from specific AIs.
-    - `'Analysis|Mention'`: Analysis results (points to an `AI_Answer|...` row).
-    - `'Analysis|SoV'`: Share of Voice percentage (points to an `AI_Answer|...` row).
-- **sub_category**: (String) - Label for the step (e.g., `'Q1'`, `'Q2'`).
-- **data**: (JSON) - Content. Use `data->>'value'` for numbers, `data->>'content'` for text.
+---
 
-### Hierarchy & Joins:
-1. **Analysis** -> **Answer**: 
-   `Analysis|Mention` (reference_id) -> `AI_Answer|...` (id)
-2. **Answer** -> **Question**:
-   `AI_Answer|...` (reference_id) -> `AI_Question` (id)
+## 1. users
 
-## Table: `schemas`
-Stores JSON Schemas.
-- **id**: (UUID) - Primary Key.
-- **key**: (String) - Unique identifier (e.g., `'client-profile'`).
-- **content**: (JSON) - The actual JSON Schema.
-- **category**: (String) - Grouping label (e.g., `'Common|Info'`).
-- **meta**: (JSON) - Additional metadata (e.g., `{"tags": ["common"]}`).
-- **is_system**: (Boolean) - True if only Admins can edit.
-- **created_at**, **updated_at**: (Timestamp)
+Basic user authentication and role information.
 
-## Table: `records`
-Stores validated JSON data payloads.
-- **id**: (UUID) - Primary Key.
-- **schema_id**: (UUID) - Foreign Key to `schemas.id`.
-- **parent_id**: (UUID) - Foreign Key to `records.id` (enables tree hierarchy).
-- **data**: (JSON) - The validated payload. Use `data->>'field'` for text/primitives.
-- **order**: (Integer) - Explicit ordering for children/arrays.
-- **created_at**, **updated_at**: (Timestamp)
+| Column           | Data Type            | Max Length | Nullable | Default | Description                                      |
+|------------------|----------------------|------------|----------|---------|--------------------------------------------------|
+| id               | uuid                 | —          | NO       | —       | Primary key, unique user identifier              |
+| username         | character varying    | 100        | NO       | —       | Unique login / username                          |
+| hashed_password  | character varying    | 255        | NO       | —       | Securely hashed password                         |
+| role             | USER-DEFINED (enum)  | —          | NO       | —       | User role (likely: admin, user, editor, etc.)    |
 
-## Table: `meta_assignments`
-Polymorphic binding of a Record to any system entity.
-- **id**: (UUID) - Primary Key.
-- **record_id**: (UUID) - Foreign Key to `records.id` (Unique).
-- **entity_type**: (String) - e.g., `'client'`, `'user'`, `'ai_task'`.
-- **entity_id**: (UUID) - ID of the target entity.
-- **assigned_by**: (UUID) - Foreign Key to `users.id`.
-- **owner_id**: (UUID) - Foreign Key to `users.id` (optional).
-- **created_at**: (Timestamp)
+---
 
-## Example Queries
+## 2. schemas
 
-### 1. Questions from a specific session
-```sql
-SELECT * FROM intermediate_results 
-WHERE category = 'AI_Question' 
-  AND session_id = :session_id;
-```
+Storage of data schemas / templates / structures that define shape of records.
 
-### 2. Get Metadata for a specific Client
-To get a "Client Profile" (schema key: `'client-profile'`) for a specific client:
-```sql
-SELECT r.data 
-FROM records r
-JOIN schemas s ON r.schema_id = s.id
-JOIN meta_assignments ma ON r.id = ma.record_id
-WHERE s.key = 'client-profile'
-  AND ma.entity_type = 'client'
-  AND ma.entity_id = :client_id;
-```
+| Column      | Data Type         | Nullable | Default     | Description                                                                 |
+|-------------|-------------------|----------|-------------|-----------------------------------------------------------------------------|
+| id          | uuid              | NO       | —           | Primary key                                                                 |
+| key         | character varying | NO       | —           | Unique machine-readable schema identifier                                   |
+| content     | json              | NO       | —           | JSON Schema, example object, or field structure definition                  |
+| is_system   | boolean           | YES      | —           | Flag: system-protected schema (cannot be edited/deleted by regular users)  |
+| created_at  | timestamptz       | YES      | now()       | Creation timestamp                                                          |
+| updated_at  | timestamptz       | YES      | now()       | Last modification timestamp                                                 |
+| category    | character varying | YES      | —           | Grouping/category of the schema                                             |
+| meta        | json              | YES      | —           | Additional schema metadata                                                  |
+| lock        | boolean           | NO       | false       | Soft lock – prevents editing                                                |
 
-### 3. Analytics by Mention for all AIs
-To get the AI name from an answer: `split_part(ans.category, '|', 2)`
-```sql
-SELECT 
-    split_part(ans.category, '|', 2) as ai_vendor,
-    (anl.data->>'value')::numeric as mention_value,
-    anl.session_id,
-    anl.created_at
-FROM intermediate_results anl
-JOIN intermediate_results ans ON anl.reference_id = ans.id
-WHERE anl.category = 'Analysis|Mention'
-  AND ans.category LIKE 'AI_Answer|%'
-ORDER BY anl.created_at DESC;
-```
+---
 
-## Metadata Awareness (`x-` tags)
-JSON Schemas use custom tags to define behavior:
-- **x-reference**: Set to `'record'` to indicate a field contains the `id` (UUID) of another record.
-- **x-schema-key**: The schema key of the referenced record.
-- **x-display**: The field name in the referenced record's `data` to use for display.
-- **x-reference-field**: The field name in the referenced record to store (usually `'id'`).
+## 3. records
 
-### 4. Join Records via Reference
-To get a record and the "name" of its referenced "category" (where `category_link` stores the category record ID):
-```sql
-SELECT 
-    r.id,
-    r.data->>'title' as item_name,
-    cat.data->>'name' as category_name
-FROM records r
-JOIN records cat ON (r.data->>'category_link')::uuid = cat.id
-WHERE r.schema_id = (SELECT id FROM schemas WHERE key = 'products')
-  AND cat.schema_id = (SELECT id FROM schemas WHERE key = 'product-categories');
-```
+Core content storage – all user-created / AI-generated structured entities.
 
-## Rules:
-1. DO NOT use table named `questions`.
-2. USE `category = 'Analysis|Mention'` for analysis of mentions.
-3. USE `category = 'Analysis|SoV'` for Share of Voice analysis.
-4. USE `category LIKE 'AI_Answer|%'` to find any AI answer.
-5. Extract vendor name using `split_part(category, '|', 2)`.
-6. JOIN `records`, `schemas`, and `meta_assignments` to filter metadata by entity and schema key.
-7. Use `(data->>'field')::uuid = target_record.id` to join records via `x-reference` fields.
+| Column      | Data Type         | Nullable | Default     | Description                                                                |
+|-------------|-------------------|----------|-------------|----------------------------------------------------------------------------|
+| id          | uuid              | NO       | —           | Primary key                                                                |
+| schema_id   | uuid              | NO       | —           | Foreign key → schemas.id (which schema this record follows)                |
+| data        | json              | NO       | —           | Actual payload / content of the record                                     |
+| created_at  | timestamptz       | YES      | now()       | Creation timestamp                                                         |
+| updated_at  | timestamptz       | YES      | now()       | Last update timestamp                                                      |
+| parent_id   | uuid              | YES      | —           | Self-reference → records.id (hierarchical / tree structure)               |
+| order       | integer           | YES      | 0           | Sort order among siblings under the same parent                            |
+| lock        | boolean           | NO       | false       | Prevents editing of the record                                             |
+
+---
+
+## 4. meta_assignments
+
+Flexible many-to-many assignments / tags / ownership / relations between records and various entities.
+
+| Column       | Data Type         | Nullable | Default     | Description                                                                |
+|--------------|-------------------|----------|-------------|----------------------------------------------------------------------------|
+| id           | uuid              | NO       | —           | Primary key                                                                |
+| record_id    | uuid              | NO       | —           | → records.id (record being assigned to)                                    |
+| entity_type  | character varying | NO       | —           | Type of entity (user, team, project, tag, department, etc.)                |
+| entity_id    | uuid              | NO       | —           | ID of the specific entity of given type                                    |
+| assigned_by  | uuid              | NO       | —           | → users.id (who performed the assignment)                                  |
+| owner_id     | uuid              | YES      | —           | Explicit owner (if different from creator / assigner)                      |
+| created_at   | timestamptz       | YES      | now()       | Assignment timestamp                                                       |
+
+---
+
+## 5. prompts
+
+Storage of LLM prompts / instruction templates linked to entities.
+
+| Column       | Data Type         | Nullable | Default     | Description                                                                |
+|--------------|-------------------|----------|-------------|----------------------------------------------------------------------------|
+| id           | uuid              | NO       | —           | Primary key                                                                |
+| entity_id    | uuid              | NO       | —           | Entity the prompt is attached to (record, schema, user, etc.)              |
+| entity_type  | character varying | NO       | —           | Type of the linked entity                                                  |
+| content      | json              | NO       | —           | Prompt structure (usually {system, user, examples, …})                     |
+| category     | character varying | YES      | —           | Prompt purpose/category (extraction, classification, generation, …)       |
+| datatype     | character varying | NO       | —           | Expected output format/type (structured_json, text, boolean, …)           |
+| created_at   | timestamptz       | YES      | now()       | —                                                                          |
+| updated_at   | timestamptz       | YES      | now()       | —                                                                          |
+| reference_id | uuid              | YES      | —           | Optional reference to another object (example output, parent prompt…)     |
+
+---
+
+## 6. response
+
+Log / storage of LLM-generated responses and their metadata.
+
+| Column        | Data Type         | Max Length | Nullable | Default            | Description                                                                |
+|---------------|-------------------|------------|----------|--------------------|----------------------------------------------------------------------------|
+| id            | uuid              | —          | NO       | gen_random_uuid()  | Primary key                                                                |
+| entity_id     | uuid              | —          | NO       | —                  | Entity this response belongs to                                            |
+| entity_type   | regclass          | —          | NO       | —                  | Table name of the entity (records, prompts, schemas, …)                    |
+| reference_id  | uuid              | —          | YES      | —                  | Additional related entity ID (e.g. prompt that generated this)            |
+| reference_type| regclass          | —          | YES      | —                  | Table of the reference entity                                              |
+| created_at    | timestamptz       | —          | YES      | CURRENT_TIMESTAMP  | When the response was generated                                            |
+| category      | character varying | —          | YES      | —                  | Type/stage of response (raw, extracted, summarized, validated…)           |
+| context       | jsonb             | —          | YES      | —                  | Input context used to generate this response                               |
+| context_type  | character varying | 25         | YES      | —                  | Nature of context (full_record, parent_chain, schema_only…)                |
+| meta          | jsonb             | —          | YES      | —                  | Technical metadata (model, temperature, tokens used, version, cost…)      |
+
+---
+
+**End of current schema description – stage 1**
+
+# Database Schema – Relationships
+
+## Core Idea
+
+- The `records` table is the central entity.  
+  It stores all metadata objects, structured documents, and AI processing results.  
+- Metadata records can be **nested** (hierarchical / tree structure) using the `parent_id` field.  
+- Records are connected to users / clients through the flexible `meta_assignments` table.  
+- Prompts and LLM responses are linked to records (and sometimes other entities) using polymorphic references (`entity_id` + `entity_type`).
+
+## 1. Record Hierarchy (Nested Metadata / Tree Structure)
+
+records.parent_id → records.id
+
+- If parent_id is NULL → this is a root-level (top-level) record.  
+- If parent_id points to another record → this is a child record.  
+- The `order` field defines the sorting position among all children of the same parent.
+
+Common use cases:  
+- nested documents / folders  
+- conversation threads / message chains  
+- hierarchical tags / categories  
+- tree of AI processing results
+
+## 2. Linking Records to Users / Clients
+
+Connection is handled through `meta_assignments` (flexible many-to-many + ownership).
+
+### Variant A – Explicit owner
+meta_assignments.owner_id → users.id  
+(This field directly points to the owner of the record when set.)
+
+### Variant B – Polymorphic assignment (most flexible and commonly used)
+
+meta_assignments.record_id → records.id  
+meta_assignments.entity_type → type of entity ('user', 'client', 'team', 'project', 'tag', etc.)  
+meta_assignments.entity_id → ID of that entity  
+meta_assignments.assigned_by → users.id (who created the assignment)
+
+Most frequent pattern for client–record relationship:  
+meta_assignments.entity_type = 'client'  
+meta_assignments.entity_id → users.id  
+
+This means:  
+"This record belongs to this client / is visible to this client / was created for this client."
+
+## 3. Prompts → Records
+
+Polymorphic one-to-many relationship.
+
+prompts.entity_id → records.id  
+when prompts.entity_type = 'records'
+
+This means:  
+The prompt is attached to this specific record (e.g. the prompt used to generate it, or the default prompt for this type of metadata).
+
+Also possible for other types:  
+entity_type = 'schemas', 'users', etc.
+
+## 4. Responses → Records
+
+Polymorphic one-to-many relationship.
+
+response.entity_id → records.id  
+when response.entity_type = 'record'
+
+This means:  
+This LLM response (extraction result, classification, generated text, etc.) belongs to this record.
+
+Optional additional link:  
+response.reference_id → prompts.id  
+(when reference_type points to the prompts table)
+
+This allows tracing which prompt produced this particular response.
+
+## Summary of Key Relationships
+
+1. Metadata nesting  
+   records.parent_id → records.id
+
+2. Record ownership / visibility for client  
+   meta_assignments.record_id → records.id  
+   meta_assignments.entity_type = 'client'  
+   meta_assignments.entity_id → users.id
+
+3. Prompt attached to record  
+   prompts.entity_type = 'records'  
+   prompts.entity_id → records.id
+
+4. LLM response attached to record  
+   response.entity_type = 'record'  
+   response.entity_id → records.id
+
+5. Optional prompt → response connection  
+   response.reference_id → prompts.id
+
+End of relationships description
+
+**End of current schema description – stage 2**
