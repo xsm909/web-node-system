@@ -64,6 +64,134 @@ def seed():
                 "is_async": False
             },
             {
+                "id": "d79f032f-99de-49fd-8e96-319e89dbdf57",
+                "name": "Get all client metadata",
+                "version": "1.0",
+                "description": "",
+                "code": "def run(inputs, params):\n    client_id = common.get_active_client()\n    print (client_id['id'])\n    return metadata.get_all_metadata ('client', client_id['id'])",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [],
+                "category": "Metadata",
+                "icon": "task",
+                "is_async": False
+            },
+            {
+                "id": "42394a9d-1631-42c5-8790-81a83154a196",
+                "name": "Get client metadata",
+                "version": "1.0",
+                "description": "",
+                "code": "class NodeParameters:\n    key: str = \"Default value\"  # @table-schemas->key,schemas->key\n    \ndef run(inputs, params):\n    client_id = common.get_active_client()\n    print (client_id['id'])\n    return metadata.get_metadata ('client', client_id['id'], params.key)",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "label": "Key",
+                        "default": "Default value",
+                        "options_source": {
+                            "table": "schemas",
+                            "value_field": "key",
+                            "label_field": "key",
+                            "component": "ComboBox"
+                        }
+                    }
+                ],
+                "category": "Metadata",
+                "icon": "task",
+                "is_async": False
+            },
+            {
+                "id": "67c570d8-10d6-4e16-b00c-03535f6fe38d",
+                "name": "Simple prompts generator",
+                "version": "1.0",
+                "description": "",
+                "code": "def run(inputs, params):\n    result_schema = \"common-prompts\"\n    client_id = common.get_active_client()\n    res = meta.get_client_metadata_by_schema (client_id['id'], \"brand\")\n\n    for brand in res:\n        print (brand['name'])\n        print (brand['__id__'])\n\n    \n        agent_hint = agent.get_agent_hint_by_key (\"brand_prompt_generator\")\n        agent_task = json.dumps(brand, ensure_ascii=False, indent=2)\n        \n        provider = \"gemini-pro-latest\"\n        result = agent.run(\n            model=provider,       # \u041c\u043e\u0434\u0435\u043b\u044c (openai, gemini, perplexity)\n            tools=[\"google_search\",\"get_all_client_metadata\", \"get_schema_by_key\"], # \u0421\u043f\u0438\u0441\u043e\u043a \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0445 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u043e\u0432\n            hint=agent_hint,\n            task=agent_task,\n            schema_key = result_schema,\n            iteration_limit=5\n        )\n\n        prompts.add_prompt (brand['__id__'], \"records\", \"awareness\", result, result_schema, client_id['id'])",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [],
+                "category": "AI",
+                "icon": "task",
+                "is_async": False
+            },
+            {
+                "id": "7691cfb8-7b62-4ac9-8278-89d3facff144",
+                "name": "Get answer on the prompt and save",
+                "version": "1.0",
+                "description": "",
+                "code": "class NodeParameters:\n    model : str = \"gemini-pro-latest\"\n    prompt_category : str\n    search: bool = True\n\ndef run(inputs, params):\n    \n    runtime = libs.get_runtime_data()\n    client_id = common.get_active_client()['id']\n    result_schema = \"common-response-links\"\n    agent_hint = agent.get_agent_hint_by_key ('simple-question')\n    tools = [];\n    provider = common.GetAIByModel (params.model)\n    gen_category = f\"{params.prompt_category}|{provider}\";\n\n    if params.search:\n        if provider == 'Gemini':\n            tools = [\"google_search\"]\n        else:\n            tools = [\"smart_search\"]\n    \n    prompts_list = prompts.get_prompts_by_category_with_reference_id (\n            params.prompt_category, \n            client_id\n            )\n    \n    for prompt in prompts_list:\n        r = json.loads(prompt['content'])\n        entity_id = prompt['id']\n\n        #check empty\n        if not entity_id:\n            return\n        \n        #clear data\n        responce_data.clear_recent_records_by_entity_and_category (\n                entity_id,\n                gen_category,\n                30\n            )\n        for p in r['prompts']:\n            print(f\"Question>> {provider}>> {p}\")\n            agent_task = json.dumps(p)\n            retries = 3\n            \n            for attempt in range(retries):\n                try:\n                    \n                    result = agent.run(\n                        model=params.model,\n                        tools=tools,\n                        hint=agent_hint,\n                        task=agent_task,\n                        schema_key=result_schema,\n                        iteration_limit=15\n                    )\n                    break  \n                except Exception as e:\n                    print(f\"Error: {e}\")\n                    if attempt < retries - 1:\n                        print(\"Retry in 5 seconds...\")\n                        time.sleep(5)\n                    else:\n                        raise  # \u043f\u043e\u0441\u043b\u0435 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0439 \u043f\u043e\u043f\u044b\u0442\u043a\u0438 \u043f\u0440\u043e\u0431\u0440\u0430\u0441\u044b\u0432\u0430\u0435\u043c \u0438\u0441\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435\n    \n            print(result)\n\n            \n            responce_data.add_responce (\n                entity_id = entity_id,\n                entity_type = 'prompts',\n                category = gen_category,\n                context = result,\n                context_type = result_schema,\n                reference_id = client_id,\n                reference_type = 'users'\n                \n            )\n            \n    return {}",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [
+                    {
+                        "name": "model",
+                        "type": "string",
+                        "label": "Model",
+                        "default": "gemini-pro-latest",
+                        "options_source": None
+                    },
+                    {
+                        "name": "prompt_category",
+                        "type": "string",
+                        "label": "Prompt Category",
+                        "default": None,
+                        "options_source": None
+                    },
+                    {
+                        "name": "search",
+                        "type": "boolean",
+                        "label": "Search",
+                        "default": True,
+                        "options_source": None
+                    }
+                ],
+                "category": "AI|Analysis",
+                "icon": "task",
+                "is_async": False
+            },
+            {
+                "id": "d1b937b7-6200-4449-aa8b-e90d53542d54",
+                "name": "function checker 2",
+                "version": "1.0",
+                "description": "",
+                "code": "def run(inputs, params):\n    client_id = common.get_active_client()\n    print (client_id)\n    res = meta.get_client_metadata_by_schema (client_id['id'], \"category\")\n    \n    for item in res:\n        for persona_id in item['persona']:\n            persona = meta.get_metadata_by_id(persona_id)\n            \n            print (item['name'] + \" - \" + persona['persona_name'])\n    return {}",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [],
+                "category": "temp",
+                "icon": "task",
+                "is_async": False
+            },
+            {
+                "id": "089549e1-1ea8-4c61-a739-afb66300ff3b",
+                "name": "build_recursive_query",
+                "version": "1.2",
+                "description": "Database query",
+                "code": "class NodeParameters:\n    id: str = \"\"\n    key: str = \"\"\n    \n\ndef build_recursive_query(record_id: str, schema_key: str) -> str:\n    \"\"\"\n    \u0424\u043e\u0440\u043c\u0438\u0440\u0443\u0435\u0442 SQL-\u0437\u0430\u043f\u0440\u043e\u0441 \u0434\u043b\u044f PostgreSQL:\n    1) \u041d\u0430\u0445\u043e\u0434\u0438\u0442 id \u0441\u0445\u0435\u043c\u044b \u043f\u043e schema.key\n    2) \u041d\u0430\u0445\u043e\u0434\u0438\u0442 root \u0440\u043e\u0434\u0438\u0442\u0435\u043b\u044f \u0434\u043b\u044f \u043f\u0435\u0440\u0435\u0434\u0430\u043d\u043d\u043e\u0439 \u0437\u0430\u043f\u0438\u0441\u0438\n    3) \u0412\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 \u0432\u0441\u0435\u0445 \u043f\u043e\u0442\u043e\u043c\u043a\u043e\u0432 root \u0441 \u043d\u0443\u0436\u043d\u043e\u0439 \u0441\u0445\u0435\u043c\u043e\u0439\n    \"\"\"\n    query = f\"\"\"\nWITH schema_id AS (\n    SELECT id\n    FROM schemas\n    WHERE key = '{schema_key}'\n),\nroot AS (\n    -- \u0438\u0449\u0435\u043c \u043a\u043e\u0440\u0435\u043d\u044c \u0434\u043b\u044f \u0434\u0430\u043d\u043d\u043e\u0439 \u0437\u0430\u043f\u0438\u0441\u0438\n    WITH RECURSIVE tree AS (\n        SELECT id, parent_id\n        FROM records\n        WHERE id = '{record_id}'\n\n        UNION ALL\n\n        SELECT r.id, r.parent_id\n        FROM records r\n        JOIN tree t ON r.id = t.parent_id\n    )\n    SELECT id AS root_id\n    FROM tree\n    WHERE parent_id IS NULL\n    LIMIT 1\n),\ndescendants AS (\n    -- \u0440\u0435\u043a\u0443\u0440\u0441\u0438\u0432\u043d\u043e \u0441\u043e\u0431\u0438\u0440\u0430\u0435\u043c \u0432\u0441\u0435\u0445 \u043f\u043e\u0442\u043e\u043c\u043a\u043e\u0432 root\n    WITH RECURSIVE tree AS (\n        SELECT r.id, r.parent_id, r.schema_id\n        FROM records r\n        JOIN root ON r.id = root.root_id\n\n        UNION ALL\n\n        SELECT r.id, r.parent_id, r.schema_id\n        FROM records r\n        JOIN tree t ON r.parent_id = t.id\n    )\n    SELECT *\n    FROM tree\n)\nSELECT id\nFROM descendants\nWHERE schema_id = (SELECT id FROM schema_id);\n\"\"\"\n    return query\n\ndef run(inputs, params):\n    query = build_recursive_query (params.id, params.key)\n    result = inner_database.unsafe_request(query)\n    return result\n    ",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [
+                    {
+                        "name": "id",
+                        "type": "string",
+                        "label": "Id",
+                        "default": "",
+                        "options_source": None
+                    },
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "label": "Key",
+                        "default": "",
+                        "options_source": None
+                    }
+                ],
+                "category": "Database",
+                "icon": "text",
+                "is_async": False
+            },
+            {
                 "id": "00b5baeb-c29d-4236-98d2-c06cb2e5b683",
                 "name": "Window Memory",
                 "version": "1.0",
@@ -83,46 +211,6 @@ def seed():
                 ],
                 "category": "AI|Memory",
                 "icon": "text",
-                "is_async": False
-            },
-            {
-                "id": "09ec264b-d07c-4079-bbb6-37ccdefe24f4",
-                "name": "AI Agent",
-                "version": "1.1",
-                "description": "Modular AI Agent that uses tools, memory, and a chat model.",
-                "code": "class InputParameters:\n    model: str = 'gpt-4o-mini'\n    tools: list = []\n    hint: str = 'You are a helpful assistant.'\n\nclass NodeParameters:\n    task: str = 'Help me with my task'\n\ndef run(inputs, params):\n    model = inputParameters.model\n    tools = inputParameters.tools\n    hint = inputParameters.hint\n    task = params.task\n\n    print(f'Agent running with model: {model}, tools: {len(tools)}')\n    result = agent.run(model, tools, hint, task)\n    return {'output': result}",
-                "input_schema": {
-                    "model": "object",
-                    "memory": "object",
-                    "tools": "array",
-                    "inputs": [
-                        {
-                            "name": "model",
-                            "label": "Model"
-                        },
-                        {
-                            "name": "memory",
-                            "label": "Memory"
-                        },
-                        {
-                            "name": "tools",
-                            "label": "Tools"
-                        }
-                    ]
-                },
-                "output_schema": {
-                    "output": "string"
-                },
-                "parameters": [
-                    {
-                        "name": "prompt",
-                        "type": "string",
-                        "label": "Prompt",
-                        "default": "Help me with my task"
-                    }
-                ],
-                "category": "AI|Agent",
-                "icon": "graph_2",
                 "is_async": False
             },
             {
@@ -241,21 +329,6 @@ def seed():
                 ],
                 "category": "AI|Chat|Perplexity",
                 "icon": "graph_2",
-                "is_async": False
-            },
-            {
-                "id": "54b66889-36ff-4be4-9411-f287611cac9a",
-                "name": "Tool: Calculator",
-                "version": "1.0",
-                "description": "Mathematical calculation tool for AI Agent",
-                "code": "def run(inputs, params):\n    return {\n        'name': 'calculator',\n        'description': 'Calculates mathematical expressions',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'expression': {'type': 'string'}\n            }\n        },\n        'execute': libs.calculator\n    }",
-                "input_schema": {},
-                "output_schema": {
-                    "tool": "object"
-                },
-                "parameters": [],
-                "category": "AI|Tools",
-                "icon": "text",
                 "is_async": False
             },
             {
@@ -418,36 +491,6 @@ def seed():
                 "is_async": False
             },
             {
-                "id": "6f8e8815-72be-4771-b268-08686f85188f",
-                "name": "Tool: Workflow Data",
-                "version": "1.0",
-                "description": "Allows AI Agent to read static workflow configuration.",
-                "code": "def run(inputs, params):\n    return {\n        'name': 'read_workflow_data',\n        'description': 'Reads static workflow configuration JSON (environment variables, flow setup)',\n        'parameters': {'type': 'object', 'properties': {}},\n        'execute': libs.read_workflow_data\n    }",
-                "input_schema": {},
-                "output_schema": {
-                    "tool": "object"
-                },
-                "parameters": [],
-                "category": "AI|Tools",
-                "icon": "text",
-                "is_async": False
-            },
-            {
-                "id": "6fffcfcb-ad3b-40fb-97b4-028c094d6a84",
-                "name": "Tool: HTTP Request",
-                "version": "1.0",
-                "description": "Generic HTTP Request tool for AI Agent.",
-                "code": "def run(inputs, params):\n    return {\n        'name': 'http_request',\n        'description': 'Performs an HTTP request to any URL',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'url': {'type': 'string'},\n                'method': {'type': 'string', 'default': 'GET'},\n                'data': {'type': 'string', 'blank': True}\n            }\n        },\n        'execute': libs.http_request\n    }",
-                "input_schema": {},
-                "output_schema": {
-                    "tool": "object"
-                },
-                "parameters": [],
-                "category": "AI|Tools",
-                "icon": "text",
-                "is_async": False
-            },
-            {
                 "id": "70455703-60f4-481c-9316-e0b1d02917d4",
                 "name": "OpenAI Chat Model",
                 "version": "1.0",
@@ -556,21 +599,6 @@ def seed():
                 "output_schema": {},
                 "parameters": [],
                 "category": "Utility|Console",
-                "icon": "text",
-                "is_async": False
-            },
-            {
-                "id": "c0c861ae-8f6f-4ca4-9856-76e6d331c7b0",
-                "name": "Tool: Runtime Data",
-                "version": "1.0",
-                "description": "Allows AI Agent to read and write dynamic runtime state.",
-                "code": "def run(inputs, params):\n    return [\n        {\n            'name': 'read_runtime_data',\n            'description': 'Reads dynamic runtime state JSON (shared data between nodes)',\n            'parameters': {'type': 'object', 'properties': {}},\n            'execute': libs.read_runtime_data\n        },\n        {\n            'name': 'write_runtime_data',\n            'description': 'Writes or updates dynamic runtime state JSON',\n            'parameters': {\n                'type': 'object',\n                'properties': {\n                    'data': {'type': 'string', 'description': 'JSON string to write or merge'}\n                },\n                'required': ['data']\n            },\n            'execute': libs.write_runtime_data\n        }\n    ]",
-                "input_schema": {},
-                "output_schema": {
-                    "tool": "object"
-                },
-                "parameters": [],
-                "category": "AI|Tools",
                 "icon": "text",
                 "is_async": False
             },
@@ -712,21 +740,6 @@ def seed():
                 ],
                 "category": "AI|Chat|Perplexity",
                 "icon": "graph_2",
-                "is_async": False
-            },
-            {
-                "id": "da8eeea4-a14e-4b9f-b6b4-822aa0cb8a79",
-                "name": "Tool: Database",
-                "version": "1.0",
-                "description": "Database query tool for AI Agent.",
-                "code": "def run(inputs, params):\n    return {\n        'name': 'database',\n        'description': 'Queries the primary database',\n        'parameters': {\n            'type': 'object',\n            'properties': {\n                'query': {'type': 'string'}\n            }\n        },\n        'execute': libs.database_query\n    }",
-                "input_schema": {},
-                "output_schema": {
-                    "tool": "object"
-                },
-                "parameters": [],
-                "category": "AI|Tools",
-                "icon": "text",
                 "is_async": False
             },
             {
@@ -883,6 +896,19 @@ def seed():
                 "parameters": [],
                 "category": "Database",
                 "icon": "text",
+                "is_async": False
+            },
+            {
+                "id": "9ce52039-0d0c-4a2b-92e1-023cb9508641",
+                "name": "function checker",
+                "version": "1.0",
+                "description": "",
+                "code": "def run(inputs, params):\n    # \u0417\u0430\u0434\u0430\u0435\u043c \u0432\u043e\u043f\u0440\u043e\u0441 \u0430\u0433\u0435\u043d\u0442\u0443\n    client_id = common.get_active_client()\n    agent_hint = agent.get_agent_hint_by_key (\"md-metadata-formatting\")\n    agent_task = \"\u041a\u0430\u043a\u0430\u044f \u0441\u0435\u0433\u043e\u0434\u043d\u044f \u0446\u0435\u043d\u0430 \u0430\u043a\u0446\u0438\u0439 Google (Alphabet Class C)? \u0438 \u0441\u0441\u044b\u043b\u043a\u0438 \u043d\u0430 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438, \u043d\u0443\u0436\u0435\u043d \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u0441 \u043e\u0444\u043e\u0440\u043c\u043b\u0435\u043d\u0438\u0435\u043c\"#f\"client_id = {client_id[\"id\"]}\"\n    \n    provider = \"gemini-pro-latest\"\n    result = agent.run(\n        model=provider,       # \u041c\u043e\u0434\u0435\u043b\u044c (openai, gemini, perplexity)\n        tools=[\"google_search\",\"get_all_client_metadata\", \"get_schema_by_key\"], # \u0421\u043f\u0438\u0441\u043e\u043a \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0445 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u043e\u0432\n        hint=agent_hint,\n        task=agent_task,\n        schema_key = \"common-response-links\",\n        iteration_limit=5\n    )\n    \n    \n    return result",
+                "input_schema": {},
+                "output_schema": {},
+                "parameters": [],
+                "category": "temp",
+                "icon": "task",
                 "is_async": False
             },
             {
