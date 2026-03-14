@@ -78,17 +78,43 @@ const AdminWorkflowEditorView = ({
 
     const onNodesChange = useCallback((nodes: Node[]) => {
         handleNodesChange(nodes);
+        
+        // Sync to parent state so changes are preserved if we remount (e.g. returning from Node Type editor)
+        setActiveWorkflow((prev: any) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                graph: {
+                    ...prev.graph,
+                    nodes: nodes
+                }
+            };
+        });
+
         if (initialNodesStrRef.current && JSON.stringify(nodes) !== initialNodesStrRef.current) {
             setIsDirty(true);
         }
-    }, [handleNodesChange]);
+    }, [handleNodesChange, setActiveWorkflow]);
 
     const onEdgesChange = useCallback((edges: Edge[]) => {
         handleEdgesChange(edges);
+
+        // Sync to parent state
+        setActiveWorkflow((prev: any) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                graph: {
+                    ...prev.graph,
+                    edges: edges
+                }
+            };
+        });
+
         if (initialEdgesStrRef.current && JSON.stringify(edges) !== initialEdgesStrRef.current) {
             setIsDirty(true);
         }
-    }, [handleEdgesChange]);
+    }, [handleEdgesChange, setActiveWorkflow]);
 
     const onSaveInternal = async () => {
         await saveWorkflow();

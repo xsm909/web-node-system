@@ -38,6 +38,10 @@ const nodeTypesConfig = {
     provider: DefaultNode,
 };
 
+// Global trackers to survive component remounts (e.g. when returning from NodeType editor).
+let globalLastCenteredWorkflowId: string | null = null;
+const globalViewportCache: Record<string, { x: number, y: number, zoom: number }> = {};
+
 interface WorkflowGraphProps {
     workflow: Workflow | null;
     nodeTypes: NodeType[];
@@ -63,8 +67,7 @@ export function WorkflowGraph({
     const [edges, setEdges, onEdgesChangeRaw] = useEdgesState([]);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
-    const { screenToFlowPosition, setCenter, fitView } = useReactFlow();
-    const centeredWorkflowId = React.useRef<string | null>(null);
+    const { screenToFlowPosition, setCenter, fitView, setViewport } = useReactFlow();
     const mousePosition = React.useRef<XYPosition>({ x: 0, y: 0 });
     const [clipboard, setClipboard] = useState<{ nodes: Node[], edges: Edge[], center: XYPosition } | null>(null);
 
@@ -73,19 +76,31 @@ export function WorkflowGraph({
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
     const [addNodeMenu, setAddNodeMenu] = useState<{ x: number, y: number, clientX: number, clientY: number, connectionStart: OnConnectStartParams } | null>(null);
 
-    // Load workflow data — only re-center when workflow ID actually changes
+    // Load workflow data
     useEffect(() => {
         const wf = workflow as any;
-        if (!wf || !wf.graph) {
+        if (!wf || !wf.id) {
             setNodes([]);
             setEdges([]);
+            globalLastCenteredWorkflowId = null;
+            return;
+        }
+
+        // If we already have nodes and it's the same workflow, don't overwrite from prop
+        // (preserves local unsaved changes while mounted)
+        const hasNodes = nodes.length > 0;
+        if (globalLastCenteredWorkflowId === wf.id && hasNodes) {
+            return;
+        }
+
+        if (!wf.graph) {
             return;
         }
 
         const graphNodes = wf.graph.nodes || [];
         const graphEdges = wf.graph.edges || [];
 
-        // Sanitize nodes: ensure EVERY node has a valid numeric x/y position to prevent SVG NaN crashes
+        // Sanitize nodes: ensure EVERY node has a valid numeric x/y position
         const sanitizedNodes = graphNodes.filter((n: any) => 
             n.position && 
             typeof n.position.x === 'number' && !isNaN(n.position.x) &&
@@ -94,13 +109,10 @@ export function WorkflowGraph({
 
         const loadedNodes = sanitizedNodes.map((n: any) => {
             const base = n.type === 'default' ? { ...n, type: 'action' } : { ...n };
-            // Merge default params from nodeType so existing nodes get any newly added parameters
             const ntDef = nodeTypes.find((t: NodeType) => {
-                // Prefer looking up by UID (nodeTypeId)
                 if (base.data?.nodeTypeId && t.id === base.data.nodeTypeId) {
                     return true;
                 }
-                // Fallback to name/category for legacy nodes
                 const nameMatches = t.name.toLowerCase() === (base.data?.nodeType || base.data?.label || '').toLowerCase();
                 if (base.data?.category && t.category) {
                     return nameMatches && t.category === base.data.category;
@@ -117,8 +129,6 @@ export function WorkflowGraph({
                     });
                 }
 
-                // Parse code for MAX_THEN and DEFAULT_OUTPUT "signature"
-                // Support formats like: MAX_THEN = 2, MAX_THEN: int = 2, DEFAULT_OUTPUT = True, etc.
                 const nodeCode = base.data?.code || ntDef.code || '';
                 const maxThenMatch = nodeCode.match(/MAX_THEN\s*(?::\s*\w+\s*)?=\s*(\d+)/) || nodeCode.match(/MAX_THAN\s*(?::\s*\w+\s*)?=\s*(\d+)/);
                 const defaultOutputMatch = nodeCode.match(/DEFAULT_OUTPUT\s*(?::\s*\w+\s*)?=\s*(true|false|True|False)/);
@@ -143,36 +153,57 @@ export function WorkflowGraph({
         setNodes(loadedNodes);
         setEdges(graphEdges);
 
-        // Only center/fit the viewport when switching to a different workflow or when nodes first arrive
-        if (centeredWorkflowId.current !== wf.id && loadedNodes.length > 0) {
-            centeredWorkflowId.current = wf.id;
-            console.log('[WorkflowGraph] New workflow data arrived, fitting view...');
+        // Only center/fit the viewport when switching to a DIFFERENT workflow AND we have no cache.
+        if (globalLastCenteredWorkflowId !== wf.id) {
+            const cachedViewport = globalViewportCache[wf.id];
             
-            const timer = setTimeout(() => {
-                const startNode = loadedNodes.find((n: any) => n.id === 'node_start' || n.type === 'start');
-                
-                // Try to fit view first as it's more reliable for visibility
-                const rect = { padding: 50 };
-                fitView(rect);
+            // Mark as centered/loaded IMMEDIATELY
+            globalLastCenteredWorkflowId = wf.id;
+            
+            // If we have a cache, ReactFlow will handle it via defaultViewport prop.
+            // If NOT, we perform initial fit.
+            if (!cachedViewport) {
+                console.log('[WorkflowGraph] No cached viewport, fitting view...');
+                const timer = setTimeout(() => {
+                    const startNode = loadedNodes.find((n: any) => n.id === 'node_start' || n.type === 'start');
+                    const rect = { padding: 50 };
+                    fitView(rect);
 
-                // If we have a start node, we can also try to nudge the view there after a short delay
-                if (startNode && typeof startNode.position?.x === 'number' && typeof startNode.position?.y === 'number') {
-                    if (!isNaN(startNode.position.x) && !isNaN(startNode.position.y)) {
-                        setCenter(startNode.position.x + 100, startNode.position.y + 60, { zoom: 0.5, duration: 400 });
+                    if (startNode && typeof startNode.position?.x === 'number' && typeof startNode.position?.y === 'number') {
+                        if (!isNaN(startNode.position.x) && !isNaN(startNode.position.y)) {
+                            setCenter(startNode.position.x + 100, startNode.position.y + 60, { zoom: 0.5, duration: 400 });
+                        }
                     }
-                }
-            }, 100);
-            return () => clearTimeout(timer);
+                }, 100);
+                return () => clearTimeout(timer);
+            }
         }
-    }, [workflow, nodeTypes]); // reload nodes/edges whenever workflow or node types change
+    }, [workflow, setViewport, setCenter, fitView, setNodes, setEdges, nodeTypes]);
 
-    // Propagate changes up
+    // Save viewport state on change
+    const onMoveEnd = useCallback((_event: any, viewport: { x: number, y: number, zoom: number }) => {
+        if (workflow?.id) {
+            globalViewportCache[workflow.id] = viewport;
+        }
+    }, [workflow?.id]);
+
+    // Propagate changes up — use a ref to prevent infinite loops if callbacks trigger parent re-renders
+    const lastNodesRef = React.useRef<string>('');
     useEffect(() => {
-        if (onNodesChangeCallback) onNodesChangeCallback(nodes);
+        const nodesStr = JSON.stringify(nodes.map(n => ({ id: n.id, position: n.position, data: n.data?.params })));
+        if (nodesStr !== lastNodesRef.current) {
+            lastNodesRef.current = nodesStr;
+            if (onNodesChangeCallback) onNodesChangeCallback(nodes);
+        }
     }, [nodes, onNodesChangeCallback]);
 
+    const lastEdgesRef = React.useRef<string>('');
     useEffect(() => {
-        if (onEdgesChangeCallback) onEdgesChangeCallback(edges);
+        const edgesStr = JSON.stringify(edges.map(e => ({ id: e.id, source: e.source, target: e.target })));
+        if (edgesStr !== lastEdgesRef.current) {
+            lastEdgesRef.current = edgesStr;
+            if (onEdgesChangeCallback) onEdgesChangeCallback(edges);
+        }
     }, [edges, onEdgesChangeCallback]);
 
     const handleCopy = useCallback(() => {
@@ -521,6 +552,7 @@ export function WorkflowGraph({
                     onNodeDragStart={() => setMenu(null)}
                     onNodesDelete={() => { setMenu(null); setSelectedNodeId(null); }}
                     onMoveStart={() => setMenu(null)}
+                    onMoveEnd={onMoveEnd}
                     onPaneClick={() => {
                         setMenu(null);
                         setSelectedNodeId(null);
@@ -529,6 +561,7 @@ export function WorkflowGraph({
                     onConnectStart={onConnectStart}
                     onConnectEnd={onConnectEnd}
                     proOptions={{ hideAttribution: true }}
+                    defaultViewport={workflow?.id ? globalViewportCache[workflow.id] : undefined}
                     snapToGrid={true}
                     snapGrid={[10, 10]}
                     nodesDraggable={!isReadOnly}

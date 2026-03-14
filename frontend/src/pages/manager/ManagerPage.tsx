@@ -182,10 +182,36 @@ const WorkflowEditorView = ({
                                 isReadOnly={false}
                                 onNodesChangeCallback={(nodes) => {
                                     handleNodesChange(nodes);
+                                    
+                                    // Sync to parent state to preserve local changes across navigation
+                                    setActiveWorkflow((prev: any) => {
+                                        if (!prev) return prev;
+                                        return {
+                                            ...prev,
+                                            graph: {
+                                                ...prev.graph,
+                                                nodes: nodes
+                                            }
+                                        };
+                                    });
+
                                     notifyChange?.();
                                 }}
                                 onEdgesChangeCallback={(edges) => {
                                     handleEdgesChange(edges);
+
+                                    // Sync to parent state
+                                    setActiveWorkflow((prev: any) => {
+                                        if (!prev) return prev;
+                                        return {
+                                            ...prev,
+                                            graph: {
+                                                ...prev.graph,
+                                                edges: edges
+                                            }
+                                        };
+                                    });
+
                                     notifyChange?.();
                                 }}
                                 onNodeSelectCallback={handleNodeSelect}
