@@ -36,6 +36,8 @@ const ParameterRow: React.FC<{
                     let endpoint = "";
                     if (param.options_source.table === "AI_Tasks") {
                         endpoint = "/ai-tasks/";
+                    } else if (param.options_source.table === "users") {
+                        endpoint = "/workflows/users/";
                     } else {
                         // Fallback for other tables if needed
                         endpoint = `/${param.options_source.table.toLowerCase().replace(/_/g, '-')}/`;
