@@ -23,33 +23,35 @@ const MinimalistPromptView: React.FC<{ content: any }> = ({ content }) => {
     const prompts = Array.isArray(content.prompts) ? content.prompts : [];
 
     return (
-        <div className="p-8 space-y-6 text-[14px] leading-relaxed select-text font-medium text-[var(--text-main)] overflow-y-auto h-full">
-            {description && (
-                <div className="flex gap-2">
-                    <span className="opacity-40 whitespace-nowrap">description:</span>
-                    <span>{description}</span>
-                </div>
-            )}
-            
-            {prompts.length > 0 && (
-                <div className="space-y-3">
-                    <div className="opacity-40">prompts:</div>
-                    <div className="space-y-2 pl-4">
-                        {prompts.map((p: string, i: number) => (
-                            <div key={i} className="flex gap-3">
-                                <span className="opacity-30 min-w-[20px]">{i + 1}.</span>
-                                <span>{p}</span>
-                            </div>
-                        ))}
+        <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar p-8 select-text text-[14px] leading-relaxed font-medium text-[var(--text-main)]">
+            <div className="max-w-4xl space-y-6">
+                {description && (
+                    <div className="flex gap-2">
+                        <span className="opacity-40 whitespace-nowrap">description:</span>
+                        <span>{description}</span>
                     </div>
-                </div>
-            )}
+                )}
+                
+                {prompts.length > 0 && (
+                    <div className="space-y-3">
+                        <div className="opacity-40">prompts:</div>
+                        <div className="space-y-2 pl-4">
+                            {prompts.map((p: string, i: number) => (
+                                <div key={i} className="flex gap-3">
+                                    <span className="opacity-30 min-w-[20px]">{i + 1}.</span>
+                                    <span>{p}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
-            {!description && prompts.length === 0 && (
-                <pre className="p-4 bg-[var(--border-muted)]/10 rounded-xl font-mono text-[12px] opacity-70 border border-[var(--border-base)]">
-                    {JSON.stringify(content, null, 2)}
-                </pre>
-            )}
+                {!description && prompts.length === 0 && (
+                    <pre className="p-4 bg-[var(--border-muted)]/10 rounded-xl font-mono text-[12px] opacity-70 border border-[var(--border-base)]">
+                        {JSON.stringify(content, null, 2)}
+                    </pre>
+                )}
+            </div>
         </div>
     );
 };
@@ -112,7 +114,7 @@ export const PromptViewer: React.FC<PromptViewerProps> = ({ referenceId }) => {
     }), [selectedPrompt]);
 
     return (
-        <div className="flex bg-surface-800 border border-[var(--border-base)] rounded-3xl overflow-hidden shadow-2xl shadow-black/10 transition-all h-[600px]">
+        <div className="flex-1 min-h-0 flex w-full overflow-hidden transition-all">
             {/* Left Panel: List */}
             <div className="w-1/3 border-r border-[var(--border-base)] flex flex-col min-h-0 bg-surface-900/40">
                 <div className="p-4 border-b border-[var(--border-base)] bg-surface-800/50 backdrop-blur-sm">
@@ -123,7 +125,7 @@ export const PromptViewer: React.FC<PromptViewerProps> = ({ referenceId }) => {
                         <h3 className="text-sm font-bold tracking-tight uppercase opacity-80">Prompts List</h3>
                     </div>
                 </div>
-                <div className="flex-1 overflow-hidden flex flex-col">
+                <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
                     <AppTable 
                         data={prompts}
                         columns={columns}
@@ -153,7 +155,7 @@ export const PromptViewer: React.FC<PromptViewerProps> = ({ referenceId }) => {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-1 overflow-hidden">
+                        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                             <MinimalistPromptView content={selectedPrompt.content} />
                         </div>
                     </>

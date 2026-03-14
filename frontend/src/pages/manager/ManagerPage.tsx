@@ -748,19 +748,8 @@ export default function ManagerPage() {
                         isSidebarOpen={isSidebarOpen}
                     />
                 ) : activeTab === 'prompts' ? (
-                    <div className="flex-1 flex flex-col relative overflow-hidden">
-                        <AppHeader
-                            onToggleSidebar={toggleSidebar}
-                            isSidebarOpen={isSidebarOpen}
-                            leftContent={
-                                <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
-                                    Prompt Viewer
-                                </h1>
-                            }
-                        />
-                        <div className="flex-1 p-8 overflow-y-auto">
-                            <PromptViewer referenceId={activeClientId || undefined} />
-                        </div>
+                    <div className="flex-1 min-h-0 flex flex-col relative overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        <PromptViewer referenceId={activeClientId || undefined} />
                     </div>
                 ) : (
                     <ReportManagement

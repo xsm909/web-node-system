@@ -39,7 +39,7 @@ export default function ClientPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-surface-900 text-[var(--text-main)] flex flex-col font-sans selection:bg-brand/30">
+        <div className="h-screen bg-surface-900 text-[var(--text-main)] flex flex-col font-sans selection:bg-brand/30 overflow-hidden">
             {/* ─── Header ─── */}
             <header className="sticky top-0 z-50 flex items-center justify-between px-8 h-20 bg-surface-900/80 backdrop-blur-md border-b border-[var(--border-base)]">
                 <div className="flex items-center gap-3">
@@ -101,7 +101,7 @@ export default function ClientPage() {
                 </div>
             </div>
 
-            <main className="flex-1 w-full max-w-7xl mx-auto px-8 py-10">
+            <main className={`flex-1 min-h-0 w-full flex flex-col ${activeTab === 'prompts' ? 'p-0' : 'max-w-7xl mx-auto px-8 py-10'}`}>
                 {activeTab === 'metadata' && (
                     <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <div className="flex items-center justify-between mb-8">
@@ -195,20 +195,7 @@ export default function ClientPage() {
                 )}
 
                 {activeTab === 'prompts' && (
-                    <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <div className="flex items-center gap-3 mb-1">
-                                    <div className="p-2 rounded-xl bg-brand/10 border border-brand/20">
-                                        <Icon name="description" size={18} className="text-brand" />
-                                    </div>
-                                    <h2 className="text-2xl font-bold tracking-tight">Prompts Viewer</h2>
-                                </div>
-                                <p className="text-[var(--text-muted)] text-sm font-medium opacity-70 ml-11">
-                                    Review your generated prompts and technical instructions.
-                                </p>
-                            </div>
-                        </div>
+                    <section className="flex-1 min-h-0 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <PromptViewer referenceId={user?.id} />
                     </section>
                 )}
