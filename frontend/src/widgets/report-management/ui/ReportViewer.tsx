@@ -4,6 +4,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
 import { apiClient } from '../../../shared/api/client';
+import { AppParametersView } from '../../../shared/ui/app-parameters-view/AppParametersView';
 
 interface ReportViewerProps {
     report: Report;
@@ -93,81 +94,53 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
             <div className="flex-1 relative overflow-hidden flex flex-col items-center">
-                {/* Parameters Top Overlay (Right-Aligned with Offset) */}
-                <div
-                    className={`absolute top-0 right-0 w-full z-20 flex flex-col items-end transition-all duration-300 pr-[20px] ${!report.parameters || report.parameters.length === 0 ? 'hidden' : ''}`}
+                <AppParametersView
+                    title="Report Parameters"
+                    isExpanded={isParamsExpanded}
+                    onToggle={() => setIsParamsExpanded(!isParamsExpanded)}
+                    className={!report.parameters || report.parameters.length === 0 ? 'hidden' : ''}
                 >
-                    <div
-                        className={`w-[350px] bg-[var(--bg-surface)] border-x border-b border-[var(--border-base)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] rounded-bl-2xl rounded-br-none overflow-visible transition-all duration-300 flex flex-col ${isParamsExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
-                        style={{ maxHeight: isParamsExpanded ? '80vh' : '0px' }}
-                    >
-                        <div className="p-4 flex flex-col max-h-[80vh] relative">
-                            <div className="flex items-center justify-between mb-3 px-2">
-                                <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">Report Parameters</h3>
-                            </div>
-                            <div className="flex-1 overflow-y-auto px-2 pb-4 flex flex-col space-y-5 custom-scrollbar">
-                                {report.parameters && report.parameters.map(param => (
-                                    <div key={param.parameter_name} className="space-y-1.5 min-w-0">
-                                        <label className="text-sm font-bold text-[var(--text-main)] capitalize block truncate">
-                                            {param.parameter_name.replace(/_/g, ' ')}
-                                        </label>
+                    {report.parameters && report.parameters.map(param => (
+                        <div key={param.parameter_name} className="space-y-1.5 min-w-0">
+                            <label className="text-sm font-bold text-[var(--text-main)] capitalize block truncate">
+                                {param.parameter_name.replace(/_/g, ' ')}
+                            </label>
 
-                                        {options[param.parameter_name] && options[param.parameter_name].length > 0 ? (
-                                            <ComboBox
-                                                value={paramValues[param.parameter_name]}
-                                                label={selectedItems[param.parameter_name]?.label || 'Select...'}
-                                                placeholder={param.parameter_name}
-                                                data={{
-                                                    items: {
-                                                        id: 'items',
-                                                        name: 'Available Options',
-                                                        items: options[param.parameter_name].map(opt => ({
-                                                            id: opt.value,
-                                                            name: opt.label
-                                                        })),
-                                                        children: {}
-                                                    }
-                                                }}
-                                                onSelect={(item) => {
-                                                    handleParamChange(param.parameter_name, item.id);
-                                                    setSelectedItems(prev => ({ ...prev, [param.parameter_name]: { value: item.id, label: item.name } }));
-                                                }}
-                                                variant="primary"
-                                                className="w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl"
-                                            />
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                value={paramValues[param.parameter_name] || ''}
-                                                onChange={(e) => handleParamChange(param.parameter_name, e.target.value)}
-                                                className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
-                                                placeholder={`Enter ${param.parameter_name}...`}
-                                            />
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Hide Notch (visible when expanded) */}
-                            <button
-                                onClick={() => setIsParamsExpanded(false)}
-                                className={`absolute bottom-0 right-[-1px] translate-y-full bg-[var(--bg-surface)] border border-t-0 border-[var(--border-base)] shadow-md rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors hover:bg-[var(--bg-app)] cursor-pointer z-30 ${isParamsExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                            >
-                                <span className="text-xs font-bold mr-1.5 uppercase tracking-wider">Hide</span>
-                                <Icon name="up" size={16} />
-                            </button>
+                            {options[param.parameter_name] && options[param.parameter_name].length > 0 ? (
+                                <ComboBox
+                                    value={paramValues[param.parameter_name]}
+                                    label={selectedItems[param.parameter_name]?.label || 'Select...'}
+                                    placeholder={param.parameter_name}
+                                    data={{
+                                        items: {
+                                            id: 'items',
+                                            name: 'Available Options',
+                                            items: options[param.parameter_name].map(opt => ({
+                                                id: opt.value,
+                                                name: opt.label
+                                            })),
+                                            children: {}
+                                        }
+                                    }}
+                                    onSelect={(item) => {
+                                        handleParamChange(param.parameter_name, item.id);
+                                        setSelectedItems(prev => ({ ...prev, [param.parameter_name]: { value: item.id, label: item.name } }));
+                                    }}
+                                    variant="primary"
+                                    className="w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl"
+                                />
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={paramValues[param.parameter_name] || ''}
+                                    onChange={(e) => handleParamChange(param.parameter_name, e.target.value)}
+                                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
+                                    placeholder={`Enter ${param.parameter_name}...`}
+                                />
+                            )}
                         </div>
-                    </div>
-
-                    {/* Right-Aligned Parameters Notch (visible when collapsed) */}
-                    <button
-                        onClick={() => setIsParamsExpanded(!isParamsExpanded)}
-                        className={`bg-[var(--bg-surface)]/80 backdrop-blur-md border border-t-0 border-[var(--border-base)] shadow-md rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors hover:bg-[var(--bg-app)] cursor-pointer mt-[-1px] mr-[-1px] ${isParamsExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                    >
-                        <span className="text-xs font-bold mr-1.5 uppercase tracking-wider">Parameters</span>
-                        <Icon name="down" size={16} />
-                    </button>
-                </div>
+                    ))}
+                </AppParametersView>
 
                 {/* Report Output Area */}
                 <div className={`flex-1 w-full bg-[var(--bg-app)] relative overflow-hidden z-0 transition-all duration-300`}>

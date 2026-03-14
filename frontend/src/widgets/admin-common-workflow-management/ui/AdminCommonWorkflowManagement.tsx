@@ -14,6 +14,7 @@ import { NodeEditorView } from '../../node-editor-view';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { useClientStore } from '../../../features/workflow-management/model/clientStore';
 import { AppFormView } from '../../../shared/ui/app-form-view';
+import { AppParametersView } from '../../../shared/ui/app-parameters-view/AppParametersView';
 
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -46,6 +47,7 @@ const AdminWorkflowEditorView = ({
 }: any) => {
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [isDirty, setIsDirty] = useState(false);
+    const [isParamsExpanded, setIsParamsExpanded] = useState(false);
 
     // Track initial state to detect changes from external data (edit modal)
     const initialWorkflowRef = useRef<string | null>(null);
@@ -246,18 +248,25 @@ const AdminWorkflowEditorView = ({
                             )}
                         </div>
 
-                        {selectedNode && (
-                            <div className="w-[400px] border-l border-[var(--border-base)] bg-[var(--bg-app)] shadow-2xl z-20 animate-in slide-in-from-right duration-300">
+                        <AppParametersView
+                            title="Node Properties"
+                            isExpanded={isParamsExpanded}
+                            onToggle={() => setIsParamsExpanded(!isParamsExpanded)}
+                            placeholder={selectedNode ? "This node has no configurable parameters" : "Select a node to view its parameters"}
+                        >
+                            {selectedNode && (
                                 <NodeEditorView
                                     inline
                                     node={selectedNode}
                                     nodeTypes={nodeTypes}
                                     onChange={handleParamsChange}
-                                    onClose={() => setSelectedNode(null)}
-                                    onBack={() => setSelectedNode(null)}
+                                    onBack={() => {
+                                        setSelectedNode(null);
+                                        setIsParamsExpanded(false);
+                                    }}
                                 />
-                            </div>
-                        )}
+                            )}
+                        </AppParametersView>
                     </div>
 
                     <Console

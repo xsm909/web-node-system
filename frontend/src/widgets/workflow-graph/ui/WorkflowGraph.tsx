@@ -323,7 +323,6 @@ export function WorkflowGraph({
         });
         mousePosition.current = position;
     }, [screenToFlowPosition]);
-
     const onNodesChange = useCallback((changes: any) => {
         if (isReadOnly) return;
         const filteredChanges = changes.filter((change: any) => {
@@ -334,10 +333,13 @@ export function WorkflowGraph({
         });
 
         const isRemoved = filteredChanges.some((c: any) => c.type === 'remove' && c.id === selectedNodeId);
-        if (isRemoved) setSelectedNodeId(null);
+        if (isRemoved) {
+            setSelectedNodeId(null);
+            if (onNodeSelectCallback) onNodeSelectCallback(null);
+        }
 
         onNodesChangeRaw(filteredChanges);
-    }, [onNodesChangeRaw, nodes, selectedNodeId, isReadOnly]);
+    }, [onNodesChangeRaw, nodes, selectedNodeId, isReadOnly, onNodeSelectCallback]);
 
     const onEdgesChange = useCallback((changes: any) => {
         if (isReadOnly) return;
@@ -504,6 +506,17 @@ export function WorkflowGraph({
         if (onNodeSelectCallback) onNodeSelectCallback(node);
     }, [isReadOnly, setEdges, onNodeSelectCallback]);
 
+    const onSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: Node[] }) => {
+        if (selectedNodes.length !== 1) {
+            setSelectedNodeId(null);
+            if (onNodeSelectCallback) onNodeSelectCallback(null);
+        } else {
+            const node = selectedNodes[0];
+            setSelectedNodeId(node.id);
+            if (onNodeSelectCallback) onNodeSelectCallback(node);
+        }
+    }, [onNodeSelectCallback]);
+
 
     const rightConnectedSources = new Set(
         edges.filter(e => e.targetHandle && e.targetHandle !== 'null' && e.targetHandle !== 'top')
@@ -567,7 +580,9 @@ export function WorkflowGraph({
                     onPaneClick={() => {
                         setMenu(null);
                         setSelectedNodeId(null);
+                        if (onNodeSelectCallback) onNodeSelectCallback(null);
                     }}
+                    onSelectionChange={onSelectionChange}
                     nodeTypes={nodeTypesConfig}
                     onConnectStart={onConnectStart}
                     onConnectEnd={onConnectEnd}
@@ -583,7 +598,7 @@ export function WorkflowGraph({
                     selectionKeyCode={isSelectionMode ? null : 'Shift'}
                     multiSelectionKeyCode="Shift"
                 >
-                    <Panel position="top-right" className="bg-surface-800 border-[var(--border-base)] rounded-xl p-1 shadow-2xl flex gap-1 mr-4 mt-2">
+                    <Panel position="top-left" className="bg-surface-800 border-[var(--border-base)] rounded-xl p-1 shadow-2xl flex gap-1 ml-4 mt-2">
                         <button
                             onClick={() => setIsSelectionMode(false)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${!isSelectionMode ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:bg-white/5'}`}

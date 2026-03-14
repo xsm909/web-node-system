@@ -8,7 +8,6 @@ import { apiClient } from '../../../shared/api/client';
 import { AppHeader } from '../../app-header';
 import { useForm } from '@tanstack/react-form';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
-import { Icon } from '../../../shared/ui/icon';
 
 interface NodeEditorViewProps {
     node: Node | null;
@@ -17,7 +16,6 @@ interface NodeEditorViewProps {
     onBack: () => void;
     isReadOnly?: boolean;
     inline?: boolean;
-    onClose?: () => void;
 }
 
 const ParameterRow: React.FC<{
@@ -162,7 +160,6 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
     onBack,
     isReadOnly = false,
     inline = false,
-    onClose,
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
 
@@ -220,27 +217,6 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                 />
             )}
 
-            {inline && (
-                <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center bg-brand/20 text-brand border border-brand/30">
-                            <span className="material-icons text-[16px]">{nodeTypeData?.icon || 'tune'}</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <h3 className="text-xs font-bold text-[var(--text-main)] truncate">{node.data.label}</h3>
-                            <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest">Node Properties</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={onClose || handleBack}
-                            className="p-2 rounded-lg hover:bg-[var(--border-base)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all"
-                        >
-                            <Icon name="close" size={18} />
-                        </button>
-                    </div>
-                </div>
-            )}
 
             <div className={`flex-1 overflow-y-auto custom-scrollbar ${inline ? 'p-6' : 'p-8'}`}>
                 <form
