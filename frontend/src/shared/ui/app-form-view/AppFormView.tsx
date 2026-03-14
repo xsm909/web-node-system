@@ -31,6 +31,8 @@ export interface AppFormViewProps {
     
     saveLabel?: string;
     blockerId?: string;
+    fullHeight?: boolean;
+    noPadding?: boolean;
 }
 
 export const AppFormView: React.FC<AppFormViewProps> = ({
@@ -49,7 +51,9 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     footer,
     children,
     saveLabel = 'Save Changes',
-    blockerId = 'app-form-view'
+    blockerId = 'app-form-view',
+    fullHeight = false,
+    noPadding = false
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
 
@@ -141,8 +145,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                     </header>
                 )}
 
-                <div className="flex-1 overflow-hidden flex flex-col">
-                    <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                <div className={`flex-1 flex flex-col min-h-0 ${fullHeight ? '' : 'overflow-hidden'}`}>
+                    <div className={`flex-1 flex flex-col ${noPadding ? '' : 'p-10'} ${fullHeight ? '' : 'overflow-y-auto custom-scrollbar'}`}>
                         {children}
                     </div>
 

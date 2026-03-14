@@ -171,6 +171,8 @@ const AdminWorkflowEditorView = ({
             onCancel={onBack}
             isSaving={isSaving}
             saveLabel="Save Workflow"
+            fullHeight
+            noPadding
             headerRightContent={
                 <div className="flex items-center gap-2">
                     <button
@@ -197,15 +199,16 @@ const AdminWorkflowEditorView = ({
                 </div>
             }
         >
-            <div className="flex-1 flex flex-col min-h-[600px] relative -m-10">
+            <div className="flex-1 flex flex-col min-h-0 relative">
                 <style>{`
                     .workflow-editor-container .react-flow__pane {
                         cursor: crosshair;
                     }
                 `}</style>
                 <div className="flex-1 flex flex-col min-h-0 relative">
-                    <div className="flex-1 flex min-h-0 relative">
-                        <div className="flex-1 relative workflow-editor-container">
+                    <div className="flex-1 flex flex-col min-h-0 relative">
+                        <div className="flex-1 flex min-h-0 relative">
+                            <div className="flex-1 flex flex-col relative workflow-editor-container">
                             {activeWorkflow && (
                                 <WorkflowGraph
                                     workflow={activeWorkflow}
@@ -265,7 +268,8 @@ const AdminWorkflowEditorView = ({
                     />
                 </div>
             </div>
-        </AppFormView>
+        </div>
+    </AppFormView>
     );
 };
 
