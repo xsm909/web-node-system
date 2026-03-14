@@ -190,7 +190,12 @@ export function WorkflowGraph({
     // Propagate changes up — use a ref to prevent infinite loops if callbacks trigger parent re-renders
     const lastNodesRef = React.useRef<string>('');
     useEffect(() => {
-        const nodesStr = JSON.stringify(nodes.map(n => ({ id: n.id, position: n.position, data: n.data?.params })));
+        const nodesStr = JSON.stringify(nodes.map(n => ({ 
+            id: n.id, 
+            position: n.position, 
+            data: n.data?.params,
+            nodeTypeId: n.data?.nodeTypeId 
+        })));
         if (nodesStr !== lastNodesRef.current) {
             lastNodesRef.current = nodesStr;
             if (onNodesChangeCallback) onNodesChangeCallback(nodes);
@@ -199,7 +204,13 @@ export function WorkflowGraph({
 
     const lastEdgesRef = React.useRef<string>('');
     useEffect(() => {
-        const edgesStr = JSON.stringify(edges.map(e => ({ id: e.id, source: e.source, target: e.target })));
+        const edgesStr = JSON.stringify(edges.map(e => ({ 
+            id: e.id, 
+            source: e.source, 
+            target: e.target,
+            sourceHandle: e.sourceHandle,
+            targetHandle: e.targetHandle
+        })));
         if (edgesStr !== lastEdgesRef.current) {
             lastEdgesRef.current = edgesStr;
             if (onEdgesChangeCallback) onEdgesChangeCallback(edges);
