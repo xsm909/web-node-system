@@ -16,6 +16,8 @@ interface NodeEditorViewProps {
     onChange: (nodeId: string, params: any) => void;
     onBack: () => void;
     isReadOnly?: boolean;
+    inline?: boolean;
+    onClose?: () => void;
 }
 
 const ParameterRow: React.FC<{
@@ -165,6 +167,8 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
     onChange,
     onBack,
     isReadOnly = false,
+    inline = false,
+    onClose,
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
 
@@ -180,10 +184,6 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
         onSubmit: async ({ value }) => {
             if (node) {
                 onChange(node.id, value);
-                // After saving, we technically could go back or stay. 
-                // Let's stay but reset dirty state. 
-                // form.reset() doesn't exist directly in the same way, but we can re-initialize or just rely on state.
-                // In TanStack Form, usually we want to go back after a manual save in this UI context.
                 onBack();
             }
         },
@@ -206,48 +206,61 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
 
     return (
         <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-app)] relative h-full overflow-hidden">
-            <AppHeader
-                onBack={handleBack}
-                isSidebarOpen={false}
-                onToggleSidebar={() => { }}
-                leftContent={
+            {!inline && (
+                <AppHeader
+                    onBack={handleBack}
+                    isSidebarOpen={false}
+                    onToggleSidebar={() => { }}
+                    leftContent={
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 shrink-0 rounded-[1rem] flex items-center justify-center bg-brand/20 text-brand border border-brand/30 shadow-inner">
+                                <span className="material-icons text-[20px]">{nodeTypeData?.icon || 'tune'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <h3 className="text-sm font-bold text-[var(--text-main)] truncate">{node.data.label}</h3>
+                                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mt-0.5">Edit Parameters</p>
+                            </div>
+                        </div>
+                    }
+                    rightContent={null}
+                />
+            )}
+
+            {inline && (
+                <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-base)] bg-[var(--border-muted)]/30">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 shrink-0 rounded-[1rem] flex items-center justify-center bg-brand/20 text-brand border border-brand/30 shadow-inner">
-                            <span className="material-icons text-[20px]">{nodeTypeData?.icon || 'tune'}</span>
+                        <div className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center bg-brand/20 text-brand border border-brand/30">
+                            <span className="material-icons text-[16px]">{nodeTypeData?.icon || 'tune'}</span>
                         </div>
                         <div className="flex flex-col">
-                            <h3 className="text-sm font-bold text-[var(--text-main)] truncate">{node.data.label}</h3>
-                            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mt-0.5">Edit Parameters</p>
+                            <h3 className="text-xs font-bold text-[var(--text-main)] truncate">{node.data.label}</h3>
+                            <p className="text-[9px] text-[var(--text-muted)] uppercase tracking-widest">Node Properties</p>
                         </div>
                     </div>
-                }
-                rightContent={
-                    !isReadOnly ? (
+                    <div className="flex items-center gap-2">
                         <button
-                            onClick={() => form.handleSubmit()}
-                            disabled={!isDirty}
-                            className="px-6 py-2.5 rounded-xl bg-brand hover:brightness-110 text-white font-bold shadow-lg shadow-brand/20 active:scale-95 transition-all text-xs flex items-center gap-2 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
+                            onClick={onClose || handleBack}
+                            className="p-2 rounded-lg hover:bg-[var(--border-base)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all"
                         >
-                            <Icon name="save" size={16} />
-                            Save Changes
+                            <Icon name="close" size={18} />
                         </button>
-                    ) : null
-                }
-            />
+                    </div>
+                </div>
+            )}
 
-            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <div className={`flex-1 overflow-y-auto custom-scrollbar ${inline ? 'p-6' : 'p-8'}`}>
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         form.handleSubmit();
                     }}
-                    className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500"
+                    className={`${inline ? 'space-y-6' : 'max-w-4xl mx-auto space-y-8'} animate-in fade-in slide-in-from-bottom-4 duration-500`}
                 >
-                    <div className="bg-surface-800 border border-[var(--border-base)] rounded-2xl p-6 shadow-xl">
-                        <div className="px-1 text-xs font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-6 border-b border-[var(--border-base)] pb-3">Configuration & Settings</div>
+                    <div className={`${inline ? 'bg-transparent border-0 p-0 shadow-none' : 'bg-surface-800 border border-[var(--border-base)] rounded-2xl p-6 shadow-xl'}`}>
+                        {!inline && <div className="px-1 text-xs font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-6 border-b border-[var(--border-base)] pb-3">Configuration & Settings</div>}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                        <div className={`grid grid-cols-1 ${inline ? '' : 'md:grid-cols-2'} gap-6 relative z-10`}>
                             {parameters.map((param: any) => (
                                 <form.Field
                                     key={param.name}
@@ -257,18 +270,18 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                                             param={param}
                                             value={field.state.value}
                                             onChange={(updates) => {
-                                                // Handle complex updates from ComboBox (like labels)
                                                 Object.entries(updates).forEach(([key, val]) => {
                                                     if (key === param.name) {
                                                         field.handleChange(val);
                                                     } else {
-                                                        // This is a bit hacky for labels, but TanStack Form
-                                                        // usually manages individual fields. 
-                                                        // For _DISPLAY_ fields, we might need a separate Field or just use Node data.
-                                                        // For now let's just use the main value.
                                                         form.setFieldValue(key as any, val as any);
                                                     }
                                                 });
+                                                // Trigger upstream update immediately for real-time application
+                                                if (node) {
+                                                    const updatedFormData = { ...form.state.values, ...updates };
+                                                    onChange(node.id, updatedFormData);
+                                                }
                                             }}
                                             isReadOnly={isReadOnly}
                                         />
@@ -278,12 +291,6 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                         </div>
                     </div>
 
-                    {!isReadOnly && (
-                        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-[var(--text-muted)] bg-surface-800/50 py-3 px-4 rounded-xl shadow-inner w-fit mx-auto border border-[var(--border-base)]">
-                            <span className="material-icons opacity-70 text-brand text-[16px]">info</span>
-                            <span>{isDirty ? 'You have unsaved changes' : 'All parameters are up to date'}</span>
-                        </div>
-                    )}
                 </form>
             </div>
 

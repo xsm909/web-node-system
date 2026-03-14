@@ -36,7 +36,7 @@ export function Navigator({ initialScene }: NavigatorProps) {
         setPushedStack(prev => {
             const newStack = [...prev];
             if (newStack.length > 0) {
-                newStack[newStack.length - 1] = { id: Math.random().toString(36).substring(7), component };
+                newStack[newStack.length - 1] = { id: prev[prev.length - 1].id, component };
                 return newStack;
             }
             return [{ id: Math.random().toString(36).substring(7), component }];

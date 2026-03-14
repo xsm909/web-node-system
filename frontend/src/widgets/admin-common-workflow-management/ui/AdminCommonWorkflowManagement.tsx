@@ -33,13 +33,58 @@ const AdminWorkflowEditorView = ({
     canSave,
     isEditModalOpen,
     setIsEditModalOpen,
+    isConsoleVisible,
     setIsConsoleVisible,
+    executionLogs,
+    liveRuntimeData,
     handleNodesChange,
     handleEdgesChange,
+    nodesRef,
+    edgesRef,
     onBack,
-    onEditNode,
-    onNodeSelect
+    onEditNode
 }: any) => {
+    const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+
+    const handleParamsChange = useCallback((nodeId: string, params: any) => {
+        const currentNodes = nodesRef.current || [];
+        const updatedNodes = currentNodes.map((n: any) =>
+            n.id === nodeId ? { ...n, data: { ...n.data, params } } : n
+        );
+
+        setActiveWorkflow((prev: any) => {
+            if (!prev) return prev;
+            return { 
+                ...prev, 
+                graph: { 
+                    ...prev.graph, 
+                    nodes: updatedNodes,
+                    edges: edgesRef.current || prev.graph?.edges || []
+                } 
+            };
+        });
+
+        if (selectedNode?.id === nodeId) {
+            setSelectedNode((prev: any) => prev ? { ...prev, data: { ...prev.data, params } } : prev);
+        }
+    }, [setActiveWorkflow, selectedNode?.id]);
+
+    const handleNodeSelect = useCallback((node: Node | null) => {
+        if (!node || !nodeTypes) {
+            setSelectedNode(null);
+            return;
+        }
+        const ntDef = nodeTypes.find((t: any) =>
+            (node.data?.nodeTypeId && t.id === node.data.nodeTypeId) ||
+            t.name.toLowerCase() === (node.data?.nodeType || node.data?.label || '').toLowerCase()
+        );
+        if (!ntDef || !ntDef.parameters?.length) {
+            setSelectedNode(null);
+            return;
+        }
+        setSelectedNode(node);
+    }, [nodeTypes]);
+
     return (
         <div className="flex-1 flex flex-col min-h-0 w-full relative">
             <AppHeader
@@ -93,41 +138,67 @@ const AdminWorkflowEditorView = ({
                 }
             />
             
-            {activeWorkflow && (
-                <WorkflowGraph
-                    workflow={activeWorkflow}
-                    nodeTypes={nodeTypes}
-                    isReadOnly={false}
-                    onNodesChangeCallback={handleNodesChange}
-                    onEdgesChangeCallback={handleEdgesChange}
-                    onNodeDoubleClickCallback={onEditNode}
-                    onNodeSelectCallback={onNodeSelect}
-                    activeNodeIds={activeNodeIds}
-                />
-            )}
+            <div className="flex-1 flex flex-col min-h-0 relative">
+                <div className="flex-1 flex min-h-0 relative">
+                    <div className="flex-1 relative">
+                        {activeWorkflow && (
+                            <WorkflowGraph
+                                workflow={activeWorkflow}
+                                nodeTypes={nodeTypes}
+                                isReadOnly={false}
+                                onNodesChangeCallback={handleNodesChange}
+                                onEdgesChangeCallback={handleEdgesChange}
+                                onNodeDoubleClickCallback={onEditNode}
+                                onNodeSelectCallback={handleNodeSelect}
+                                activeNodeIds={activeNodeIds}
+                            />
+                        )}
 
-            {isEditModalOpen && activeWorkflow && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
-                        <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
-                            <h2 className="text-sm font-bold truncate">Edit Workflow Data</h2>
-                            <button
-                                className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
-                                onClick={() => setIsEditModalOpen(false)}
-                            >
-                                <Icon name="close" size={20} />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-hidden">
-                            <WorkflowDataEditorTabs
-                                key={activeWorkflow.id}
-                                data={activeWorkflow.workflow_data ?? EMPTY_OBJ}
-                                onChange={(d: any) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
+                        {isEditModalOpen && activeWorkflow && (
+                            <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                                <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
+                                    <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
+                                        <h2 className="text-sm font-bold truncate">Edit Workflow Data</h2>
+                                        <button
+                                            className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
+                                            onClick={() => setIsEditModalOpen(false)}
+                                        >
+                                            <Icon name="close" size={20} />
+                                        </button>
+                                    </div>
+                                    <div className="flex-1 overflow-hidden">
+                                        <WorkflowDataEditorTabs
+                                            key={activeWorkflow.id}
+                                            data={activeWorkflow.workflow_data ?? EMPTY_OBJ}
+                                            onChange={(d: any) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {selectedNode && (
+                        <div className="w-[400px] border-l border-[var(--border-base)] bg-[var(--bg-app)] shadow-2xl z-20 animate-in slide-in-from-right duration-300">
+                            <NodeEditorView
+                                inline
+                                node={selectedNode}
+                                nodeTypes={nodeTypes}
+                                onChange={handleParamsChange}
+                                onClose={() => setSelectedNode(null)}
+                                onBack={() => setSelectedNode(null)}
                             />
                         </div>
-                    </div>
+                    )}
                 </div>
-            )}
+
+                <Console
+                    logs={executionLogs}
+                    isVisible={isConsoleVisible}
+                    onClose={() => setIsConsoleVisible(false)}
+                    runtimeData={liveRuntimeData}
+                />
+            </div>
         </div>
     );
 };
@@ -152,40 +223,18 @@ const AdminWorkflowsTabWithNavigator = ({
     canSave,
     isEditModalOpen,
     setIsEditModalOpen,
+    isConsoleVisible,
     setIsConsoleVisible,
+    executionLogs,
+    liveRuntimeData,
     setRenameInputValue,
     handleNodesChange,
     handleEdgesChange,
+    nodesRef,
+    edgesRef,
     onEditNode
 }: any) => {
     const nav = useNavigator();
-
-    const handleParamsChange = useCallback((nodeId: string, params: any) => {
-        setActiveWorkflow((prev: any) => {
-            if (!prev) return prev;
-            const updatedNodes = (prev.graph?.nodes || []).map((n: any) =>
-                n.id === nodeId ? { ...n, data: { ...n.data, params } } : n
-            );
-            return { ...prev, graph: { ...prev.graph, nodes: updatedNodes } };
-        });
-    }, [setActiveWorkflow]);
-
-    const handleNodeSelect = useCallback((node: Node | null) => {
-        if (!node || !nodeTypes) return;
-        const ntDef = nodeTypes.find((t: any) =>
-            (node.data?.nodeTypeId && t.id === node.data.nodeTypeId) ||
-            t.name.toLowerCase() === (node.data?.nodeType || node.data?.label || '').toLowerCase()
-        );
-        if (!ntDef || !ntDef.parameters?.length) return;
-        nav.push(
-            <NodeEditorView
-                node={node}
-                nodeTypes={nodeTypes}
-                onChange={handleParamsChange}
-                onBack={() => nav.pop()}
-            />
-        );
-    }, [nav, nodeTypes, handleParamsChange]);
 
     const handleSelectWorkflow = useCallback((wf: any) => {
         loadWorkflow(wf);
@@ -203,18 +252,22 @@ const AdminWorkflowsTabWithNavigator = ({
                 canSave={canSave}
                 isEditModalOpen={isEditModalOpen}
                 setIsEditModalOpen={setIsEditModalOpen}
+                isConsoleVisible={isConsoleVisible}
                 setIsConsoleVisible={setIsConsoleVisible}
+                executionLogs={executionLogs}
+                liveRuntimeData={liveRuntimeData}
                 handleNodesChange={handleNodesChange}
                 handleEdgesChange={handleEdgesChange}
+                nodesRef={nodesRef}
+                edgesRef={edgesRef}
                 onEditNode={onEditNode}
-                onNodeSelect={handleNodeSelect}
                 onBack={() => {
                     setActiveWorkflow(null);
                     nav.pop();
                 }}
             />
         );
-    }, [nodeTypes, isCreating, setActiveWorkflow, saveWorkflow, runWorkflow, isRunning, activeNodeIds, activeClientId, canSave, isEditModalOpen, setIsEditModalOpen, setIsConsoleVisible, handleNodesChange, handleEdgesChange, onEditNode, handleNodeSelect, loadWorkflow, nav]);
+    }, [nodeTypes, isCreating, setActiveWorkflow, saveWorkflow, runWorkflow, isRunning, activeNodeIds, activeClientId, canSave, isEditModalOpen, setIsEditModalOpen, isConsoleVisible, setIsConsoleVisible, executionLogs, liveRuntimeData, handleNodesChange, handleEdgesChange, nodesRef, edgesRef, onEditNode, loadWorkflow, nav]);
 
     useEffect(() => {
         if (activeWorkflow && !nav.canGoBack) {
@@ -238,11 +291,15 @@ const AdminWorkflowsTabWithNavigator = ({
                     canSave={canSave}
                     isEditModalOpen={isEditModalOpen}
                     setIsEditModalOpen={setIsEditModalOpen}
+                    isConsoleVisible={isConsoleVisible}
                     setIsConsoleVisible={setIsConsoleVisible}
+                    executionLogs={executionLogs}
+                    liveRuntimeData={liveRuntimeData}
                     handleNodesChange={handleNodesChange}
                     handleEdgesChange={handleEdgesChange}
+                    nodesRef={nodesRef}
+                    edgesRef={edgesRef}
                     onEditNode={onEditNode}
-                    onNodeSelect={handleNodeSelect}
                     onBack={() => {
                         setActiveWorkflow(null);
                         nav.pop();
@@ -251,7 +308,7 @@ const AdminWorkflowsTabWithNavigator = ({
             );
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeWorkflow, isRunning, isCreating, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, handleNodeSelect]);
+    }, [activeWorkflow, isRunning, isCreating, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, isConsoleVisible, executionLogs, liveRuntimeData]);
 
     return (
         <WorkflowList
@@ -383,19 +440,16 @@ export function AdminCommonWorkflowManagement({
                 canSave={true}
                 isEditModalOpen={isEditModalOpen}
                 setIsEditModalOpen={setIsEditModalOpen}
+                isConsoleVisible={isConsoleVisible}
                 setIsConsoleVisible={setIsConsoleVisible}
+                executionLogs={executionLogs}
+                liveRuntimeData={liveRuntimeData}
                 setRenameInputValue={setRenameInputValue}
                 handleNodesChange={handleNodesChange}
                 handleEdgesChange={handleEdgesChange}
+                nodesRef={nodesRef}
+                edgesRef={edgesRef}
                 onEditNode={handleNodeDoubleClick}
-            />
-
-
-            <Console
-                logs={executionLogs}
-                isVisible={isConsoleVisible}
-                onClose={() => setIsConsoleVisible(false)}
-                runtimeData={liveRuntimeData}
             />
 
             <ConfirmModal
