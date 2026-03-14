@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import type { Node } from 'reactflow';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
-import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
+import type { SelectionItem } from '../../../shared/ui/selection-list/SelectionList';
 import { apiClient } from '../../../shared/api/client';
 import { AppHeader } from '../../app-header';
 import { useForm } from '@tanstack/react-form';
@@ -23,10 +23,11 @@ interface NodeEditorViewProps {
 const ParameterRow: React.FC<{
     param: any;
     value: any;
+    displayValue?: any;
     onChange: (updates: Record<string, any>) => void;
     isReadOnly: boolean;
-}> = ({ param, value, onChange, isReadOnly }) => {
-    const [options, setOptions] = useState<Record<string, SelectionGroup>>({});
+}> = ({ param, value, displayValue, onChange, isReadOnly }) => {
+    const [options, setOptions] = useState<SelectionItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -45,30 +46,22 @@ const ParameterRow: React.FC<{
                     const response = await apiClient.get(endpoint);
                     const data = response.data;
 
-                    const groupedOptions: Record<string, SelectionGroup> = {
-                        '': {
-                            id: 'all',
-                            name: '',
-                            icon: '',
-                            selectable: false,
-                            items: data
-                                .filter((item: any) => {
-                                    if (param.options_source.filters) {
-                                        return Object.entries(param.options_source.filters).every(
-                                            ([key, val]) => item[key] === val
-                                        );
-                                    }
-                                    return true;
-                                })
-                                .map((item: any) => ({
-                                    id: String(item[param.options_source.value_field]),
-                                    name: String(item[param.options_source.label_field]),
-                                    icon: 'bolt'
-                                })),
-                            children: {}
-                        }
-                    };
-                    setOptions(groupedOptions);
+                    const flatOptions: SelectionItem[] = data
+                        .filter((item: any) => {
+                            if (param.options_source.filters) {
+                                return Object.entries(param.options_source.filters).every(
+                                    ([key, val]) => item[key] === val
+                                );
+                            }
+                            return true;
+                        })
+                        .map((item: any) => ({
+                            id: String(item[param.options_source.value_field]),
+                            name: String(item[param.options_source.label_field]),
+                            icon: 'bolt'
+                        }));
+                        
+                    setOptions(flatOptions);
                 } catch (error) {
                     console.error("Failed to fetch options for", param.name, error);
                 } finally {
@@ -81,10 +74,10 @@ const ParameterRow: React.FC<{
 
     const getSelectedLabel = () => {
         if (!value) return "";
-        for (const group of Object.values(options)) {
-            const item = group.items.find(i => i.id === String(value));
-            if (item) return item.name;
-        }
+        const item = options.find(i => i.id === String(value));
+        if (item) return item.name;
+        if (displayValue) return String(displayValue);
+        if (isLoading) return "Loading...";
         return value;
     };
 
@@ -127,7 +120,8 @@ const ParameterRow: React.FC<{
                         label={getSelectedLabel()}
                         icon="bolt"
                         placeholder={isLoading ? "Loading..." : `Select ${param.label.toLowerCase()}...`}
-                        data={options}
+                        data={{}}
+                        items={options}
                         onSelect={(item) => {
                             // Immediately call onChange with BOTH the real ID value and the display label
                             onChange({
@@ -269,6 +263,7 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                                         <ParameterRow
                                             param={param}
                                             value={field.state.value}
+                                            displayValue={form.state.values[`_DISPLAY_${param.name}`]}
                                             onChange={(updates) => {
                                                 Object.entries(updates).forEach(([key, val]) => {
                                                     if (key === param.name) {

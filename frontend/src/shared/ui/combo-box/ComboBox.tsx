@@ -89,6 +89,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     return (
         <div className={`relative ${isSidebar ? 'w-full' : ''} ${className}`}>
             <button
+                type="button"
                 ref={triggerRef}
                 onClick={toggleOpen}
                 className={triggerClasses}

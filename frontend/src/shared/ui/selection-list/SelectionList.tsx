@@ -98,6 +98,7 @@ const SelectionListContent: React.FC<SelectionListContentProps> = ({
                     return (
                         <div key={`group-${label}`} className="group/item relative">
                             <button
+                                type="button"
                                 onMouseEnter={(e) => {
                                     const rect = e.currentTarget.getBoundingClientRect();
                                     const containerRect = e.currentTarget.closest('.selection-list-inner')?.getBoundingClientRect();
@@ -128,6 +129,7 @@ const SelectionListContent: React.FC<SelectionListContentProps> = ({
                                     <div className="flex items-center gap-1">
                                         {isActive && effectiveGroupActions?.map(action => (
                                             <button
+                                                type="button"
                                                 key={action}
                                                 onClick={(e) => { e.stopPropagation(); onAction?.(action, group); }}
                                                 className="p-1 hover:bg-white/20 rounded-md transition-colors"
@@ -158,6 +160,7 @@ const SelectionListContent: React.FC<SelectionListContentProps> = ({
                     return (
                         <div key={`item-${item.id}`} className="group/item relative">
                             <button
+                                type="button"
                                 onMouseEnter={() => {
                                     // Clearing sub-panels at deeper levels when hovering an item
                                     onNavigate?.([...breadcrumb, ''], 0);
@@ -342,7 +345,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                             className="w-full bg-[var(--bg-app)] text-xs text-[var(--text-main)] pl-8 pr-8 py-2.5 rounded-xl border border-[var(--border-base)] outline-none focus:border-brand/50 transition-colors shadow-inner"
                         />
                         {searchQuery && (
-                            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 opacity-40 hover:opacity-100 p-1">
+                            <button type="button" onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 opacity-40 hover:opacity-100 p-1">
                                 <Icon name="close" size={12} />
                             </button>
                         )}
@@ -373,6 +376,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                 const isHighlighted = index === highlightedIndex;
                                 return (
                                     <button
+                                        type="button"
                                         key={item.id}
                                         onClick={() => onSelect(item)}
                                         onMouseEnter={() => setHighlightedIndex(index)}
