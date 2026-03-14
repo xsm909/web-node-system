@@ -1,4 +1,6 @@
 import uuid
+import re
+
 from typing import Dict, Any
 from ..core.database import SessionLocal
 from ..models.workflow import WorkflowExecution
@@ -67,6 +69,25 @@ def get_active_client() -> Dict[str, Any]:
     finally:
         db.close()
 
+def fill_template(template: str, data: dict) -> str:
+    pattern = r"\{([a-zA-Z0-9_.]+)\}"
+
+    def get_value(path, obj):
+        keys = path.split(".")
+        value = obj
+        for k in keys:
+            value = value.get(k)
+            if value is None:
+                return ""
+        if isinstance(value, list):
+            return ", ".join(map(str, value))
+        return str(value)
+
+    def replacer(match):
+        key = match.group(1)
+        return get_value(key, data)
+
+    return re.sub(pattern, replacer, template)
 
 def GetAIByModel(Model: str) -> str:
     """

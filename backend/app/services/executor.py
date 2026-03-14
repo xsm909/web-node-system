@@ -165,7 +165,8 @@ SAFE_GLOBALS = {
     "common": SimpleNamespace(
         get_active_client=common_lib.get_active_client,
         GetAIByModel=common_lib.GetAIByModel,
-        is_valid_json=common_lib.is_valid_json
+        is_valid_json=common_lib.is_valid_json,
+        fill_template=common_lib.fill_template
     ),
     "inner_database": SimpleNamespace(
         unsafe_request=database_lib.unsafe_request
