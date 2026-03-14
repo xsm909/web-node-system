@@ -25,6 +25,7 @@ export interface AppFormViewProps {
     onDiscard?: () => void;
     
     headerRightContent?: React.ReactNode;
+    footer?: React.ReactNode;
     children: React.ReactNode;
     
     saveLabel?: string;
@@ -43,6 +44,7 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     onCancel,
     onDiscard,
     headerRightContent,
+    footer,
     children,
     saveLabel = 'Save Changes'
 }) => {
@@ -91,7 +93,20 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                         </h1>
                     </div>
                 }
-                rightContent={headerRightContent}
+                rightContent={
+                    <div className="flex items-center gap-3">
+                        {headerRightContent}
+                        <button
+                            type="button"
+                            onClick={onSave}
+                            disabled={isSaving}
+                            className={`flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0 ${isSaving ? 'opacity-70 pointer-events-none' : ''}`}
+                            title={saveLabel}
+                        >
+                            <Icon name={isSaving ? 'sync' : 'save'} size={20} className={isSaving ? 'animate-spin' : ''} />
+                        </button>
+                    </div>
+                }
             />
 
             <div className="flex-1 overflow-hidden flex flex-col">
@@ -120,25 +135,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                         {children}
                     </div>
 
-                    <div className="px-10 py-6 bg-[var(--border-muted)]/30 border-t border-[var(--border-base)] flex flex-row items-center gap-4">
-                        <div className="flex-1"></div>
-                        <button
-                            type="button"
-                            className="px-6 py-2.5 rounded-xl text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-all"
-                            onClick={handleBack}
-                            disabled={isSaving}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onSave}
-                            disabled={isSaving}
-                            className={`px-8 py-2.5 rounded-xl bg-brand hover:brightness-110 text-white font-bold shadow-lg shadow-brand/20 active:scale-95 transition-all text-sm flex items-center gap-2 ${isSaving ? 'opacity-70 pointer-events-none' : ''}`}
-                        >
-                            <Icon name={isSaving ? 'sync' : 'save'} size={16} className={isSaving ? 'animate-spin' : ''} />
-                            {isSaving ? 'Saving...' : saveLabel}
-                        </button>
+                    <div className={`${footer ? 'px-10 py-6' : 'h-[10px] opacity-50'} bg-[var(--border-muted)]/30 border-t border-[var(--border-base)] flex flex-row items-center gap-4 overflow-hidden transition-all duration-300`}>
+                        {footer}
                     </div>
                 </div>
 
