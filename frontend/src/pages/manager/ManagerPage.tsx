@@ -23,6 +23,7 @@ import { useClientStore } from '../../features/workflow-management/model/clientS
 import { WorkflowList } from '../../widgets/workflow-list';
 import { Navigator, useNavigator } from '../../shared/ui/navigator';
 import { NodeEditorView } from '../../widgets/node-editor-view';
+import { PromptViewer } from '../../widgets/prompt-viewer/ui/PromptViewer';
 
 import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
 
@@ -489,7 +490,7 @@ export default function ManagerPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
-    const [activeTab, setActiveTabState] = useState<'workflows' | 'reports' | 'ai-tasks' | 'client-metadata'>('workflows');
+    const [activeTab, setActiveTabState] = useState<'workflows' | 'reports' | 'ai-tasks' | 'client-metadata' | 'prompts'>('workflows');
     const [resetNonce, setResetNonce] = useState(0);
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -541,7 +542,7 @@ export default function ManagerPage() {
         isSaving: isInterceptSaving
     } = useNavigationIntercept();
 
-    const setActiveTab = useCallback((tab: 'workflows' | 'reports' | 'ai-tasks' | 'client-metadata') => {
+    const setActiveTab = useCallback((tab: 'workflows' | 'reports' | 'ai-tasks' | 'client-metadata' | 'prompts') => {
         handleIntercept(() => {
             // If switching TO workflows, or clicking Workflows again, clear selection to show list
             if (tab === 'workflows') {
@@ -606,6 +607,13 @@ export default function ManagerPage() {
                 icon: 'info',
                 isActive: activeTab === 'client-metadata',
                 onClick: () => setActiveTab('client-metadata'),
+            },
+            {
+                id: 'prompts',
+                label: 'Prompt Viewer',
+                icon: 'description',
+                isActive: activeTab === 'prompts',
+                onClick: () => setActiveTab('prompts'),
             }
         ] : []),
     ];
@@ -739,6 +747,21 @@ export default function ManagerPage() {
                         onToggleSidebar={toggleSidebar}
                         isSidebarOpen={isSidebarOpen}
                     />
+                ) : activeTab === 'prompts' ? (
+                    <div className="flex-1 flex flex-col relative overflow-hidden">
+                        <AppHeader
+                            onToggleSidebar={toggleSidebar}
+                            isSidebarOpen={isSidebarOpen}
+                            leftContent={
+                                <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
+                                    Prompt Viewer
+                                </h1>
+                            }
+                        />
+                        <div className="flex-1 p-8 overflow-y-auto">
+                            <PromptViewer referenceId={activeClientId || undefined} />
+                        </div>
+                    </div>
                 ) : (
                     <ReportManagement
                         onToggleSidebar={toggleSidebar}

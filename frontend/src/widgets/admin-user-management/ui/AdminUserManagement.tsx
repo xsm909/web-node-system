@@ -21,7 +21,7 @@ interface AdminUserManagementProps {
 export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onToggleSidebar, isSidebarOpen }) => {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [view, setView] = useState<'list' | 'edit'>('list');
-    const [activeTab, setActiveTab] = useState<'common' | 'metadata'>('common');
+    const [activeTab, setActiveTab] = useState<'common' | 'metadata' | 'prompts'>('common');
     const [isFormDirty, setIsFormDirty] = useState(false);
     const editorRef = useRef<UserEditorRef>(null);
 
@@ -128,7 +128,8 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 onCancel={handleBack}
                 tabs={selectedUser.role === 'client' ? [
                     { id: 'common', label: 'Common Profile' },
-                    { id: 'metadata', label: 'Client Metadata' }
+                    { id: 'metadata', label: 'Client Metadata' },
+                    { id: 'prompts', label: 'Prompt Viewer' }
                 ] : [
                     { id: 'common', label: 'Common Profile' }
                 ]}

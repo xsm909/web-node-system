@@ -16,6 +16,7 @@ def list_prompts(
     entity_type: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
     datatype: Optional[str] = Query(None),
+    reference_id: Optional[UUID] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -28,6 +29,9 @@ def list_prompts(
         query = query.filter(Prompt.category == category)
     if datatype:
         query = query.filter(Prompt.datatype == datatype)
+    if reference_id:
+        query = query.filter(Prompt.reference_id == reference_id)
+    
     return query.all()
 
 @router.get("/{prompt_id}", response_model=PromptSchema)

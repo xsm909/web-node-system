@@ -5,12 +5,13 @@ import type { User } from '../../../entities/user/model/types';
 import { ComboBox } from '../../../shared/ui/combo-box';
 import type { SelectionGroup } from '../../../shared/ui/selection-list';
 import { ClientMetadataManagement } from '../../client-metadata-management/ui/ClientMetadataManagement';
+import { PromptViewer } from '../../prompt-viewer/ui/PromptViewer';
 import { FormField } from '../../../shared/ui/form-field';
 
 interface UserEditorProps {
     user: User;
     onSaveSuccess?: () => void;
-    activeTab?: 'common' | 'metadata';
+    activeTab?: 'common' | 'metadata' | 'prompts';
     onDirtyChange?: (isDirty: boolean) => void;
 }
 
@@ -156,6 +157,10 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
 
             {activeTab === 'metadata' && user.role === 'client' && (
                 <ClientMetadataManagement activeClientId={user.id} hideHeader={true} />
+            )}
+
+            {activeTab === 'prompts' && user.role === 'client' && (
+                <PromptViewer referenceId={user.id} />
             )}
         </div>
     );

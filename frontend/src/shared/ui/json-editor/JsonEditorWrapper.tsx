@@ -19,6 +19,11 @@ export const JsonEditorWrapper: React.FC<JsonEditorWrapperProps> = ({
     const [isLoaded, setIsLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Reset isLoaded when schema changes to prevent update effects until new editor ready
+    useEffect(() => {
+        setIsLoaded(false);
+    }, [schema]);
+
     const onChangeRef = useRef(onChange);
     useEffect(() => {
         onChangeRef.current = onChange;
@@ -46,15 +51,14 @@ export const JsonEditorWrapper: React.FC<JsonEditorWrapperProps> = ({
                 startval: value || {},
                 theme: 'tailwind',
                 disable_edit_json: true,
-                disable_properties: false,
+                disable_properties: readOnly,
                 disable_collapse: true,
-                no_additional_properties: false,
+                no_additional_properties: readOnly,
+                disable_array_add: readOnly,
+                disable_array_delete: readOnly,
+                disable_array_reorder: readOnly,
                 object_layout: 'normal',
             });
-
-            if (readOnly) {
-                jsonEditorInstance.current.disable();
-            }
 
             jsonEditorInstance.current.on('change', () => {
                 const currentOnChange = onChangeRef.current;
@@ -64,11 +68,15 @@ export const JsonEditorWrapper: React.FC<JsonEditorWrapperProps> = ({
             });
 
             jsonEditorInstance.current.on('ready', () => {
+                if (readOnly) {
+                    jsonEditorInstance.current.disable();
+                }
                 setIsLoaded(true);
             });
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to initialize JSONEditor:", e);
-            setError("Failed to render editor: Invalid Schema.");
+            console.error("Problematic Schema:", validSchema);
+            setError(`Failed to render editor: ${e.message || 'Invalid Schema'}`);
         }
 
         return () => {
@@ -84,8 +92,11 @@ export const JsonEditorWrapper: React.FC<JsonEditorWrapperProps> = ({
     // In our semantic flow, the editor drives the data mostly, but let's sync if needed.
     useEffect(() => {
         if (jsonEditorInstance.current && isLoaded && value) {
+            console.log(`[JsonEditorWrapper] Value update check. isLoaded: ${isLoaded}, currentEditorReady: ${!!jsonEditorInstance.current.root}`);
             // Check if different to avoid infinite loops and losing focus
-            if (JSON.stringify(jsonEditorInstance.current.getValue()) !== JSON.stringify(value)) {
+            const currentVal = jsonEditorInstance.current.getValue();
+            if (JSON.stringify(currentVal) !== JSON.stringify(value)) {
+                console.log("[JsonEditorWrapper] Setting new value in editor");
                 jsonEditorInstance.current.setValue(value);
             }
         }

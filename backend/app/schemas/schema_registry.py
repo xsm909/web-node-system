@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, Any, List
+import json
 from uuid import UUID
 from datetime import datetime
 
@@ -11,6 +12,16 @@ class SchemaBase(BaseModel):
     meta: Optional[Dict[str, Any]] = None
     is_system: bool = False
     lock: bool = False
+
+    @field_validator('content', mode='before')
+    @classmethod
+    def parse_content(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return v
+        return v
 
 class SchemaCreate(SchemaBase):
     pass
@@ -99,6 +110,16 @@ class ExternalSchemaCacheResponse(BaseModel):
     content: Dict[str, Any]
     etag: Optional[str] = None
     last_fetched: datetime
+
+    @field_validator('content', mode='before')
+    @classmethod
+    def parse_content(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return v
+        return v
 
     class Config:
         from_attributes = True

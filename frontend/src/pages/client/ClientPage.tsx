@@ -4,6 +4,7 @@ import { apiClient } from '../../shared/api/client';
 import { ThemeToggle } from '../../shared/ui/theme-toggle/ThemeToggle';
 import { ClientMetadataManagement } from '../../widgets/client-metadata-management/ui/ClientMetadataManagement';
 import { Icon } from '../../shared/ui/icon';
+import { PromptViewer } from '../../widgets/prompt-viewer/ui/PromptViewer';
 
 interface WorkflowResult {
     id: string;
@@ -13,9 +14,12 @@ interface WorkflowResult {
     result_summary: string;
 }
 
+type TabType = 'workflows' | 'metadata' | 'prompts';
+
 export default function ClientPage() {
     const { logout, user } = useAuthStore();
     const [results, setResults] = useState<WorkflowResult[]>([]);
+    const [activeTab, setActiveTab] = useState<TabType>('workflows');
 
     useEffect(() => {
         apiClient.get('/client/results').then((r) => setResults(r.data)).catch(() => { });
@@ -27,6 +31,12 @@ export default function ClientPage() {
         success: { color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-400/10', ring: 'ring-emerald-400/20' },
         failed: { color: 'text-red-600 dark:text-red-400', bg: 'bg-red-400/10', ring: 'ring-red-400/20' },
     };
+
+    const tabs = [
+        { id: 'workflows', label: 'Workflows', icon: 'play' },
+        { id: 'metadata', label: 'Profile Data', icon: 'data_object' },
+        { id: 'prompts', label: 'Prompts Viewer', icon: 'description' },
+    ];
 
     return (
         <div className="min-h-screen bg-surface-900 text-[var(--text-main)] flex flex-col font-sans selection:bg-brand/30">
@@ -43,11 +53,11 @@ export default function ClientPage() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {user?.email && (
+                    {user?.username && (
                         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-800 border border-[var(--border-base)]">
                             <div className="w-2 h-2 rounded-full bg-emerald-500" />
                             <span className="text-[11px] font-semibold text-[var(--text-muted)] truncate max-w-[180px]">
-                                {user.email}
+                                {user.username}
                             </span>
                         </div>
                     )}
@@ -66,97 +76,142 @@ export default function ClientPage() {
                 </div>
             </header>
 
-            <main className="flex-1 w-full max-w-7xl mx-auto px-8 py-12 space-y-16">
-
-                {/* ─── My Profile Data ─── */}
-                <section>
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <div className="flex items-center gap-3 mb-1">
-                                <div className="p-2 rounded-xl bg-brand/10 border border-brand/20">
-                                    <Icon name="data_object" size={18} className="text-brand" />
-                                </div>
-                                <h2 className="text-2xl font-bold tracking-tight">My Profile Data</h2>
-                            </div>
-                            <p className="text-[var(--text-muted)] text-sm font-medium opacity-70 ml-11">
-                                Your metadata records — click any row to edit.
-                            </p>
-                        </div>
-                    </div>
-                    <ClientMetadataManagement activeClientId={user?.id} hideHeader={true} />
-                </section>
-
-                {/* ─── My Workflows ─── */}
-                <section>
-                    <div className="flex items-center justify-between mb-8">
-                        <div>
-                            <div className="flex items-center gap-3 mb-1">
-                                <div className="p-2 rounded-xl bg-surface-700 border border-[var(--border-base)]">
-                                    <Icon name="play" size={18} className="text-[var(--text-muted)]" />
-                                </div>
-                                <h2 className="text-2xl font-bold tracking-tight">My Workflows</h2>
-                            </div>
-                            <p className="text-[var(--text-muted)] text-sm font-medium opacity-70 ml-11">
-                                Monitoring your automated processes and result summaries.
-                            </p>
-                        </div>
-                        <button className="px-6 py-3 rounded-2xl bg-brand text-white text-sm font-bold shadow-xl shadow-brand/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2">
-                            <Icon name="add" size={16} />
-                            New Execution
+            {/* ─── Tab Switcher ─── */}
+            <div className="bg-surface-800/50 backdrop-blur-sm border-b border-[var(--border-base)] sticky top-20 z-40">
+                <div className="max-w-7xl mx-auto px-8 flex items-center gap-8">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as TabType)}
+                            className={`
+                                relative flex items-center gap-2.5 py-5 text-sm font-bold transition-all
+                                ${activeTab === tab.id 
+                                    ? 'text-brand' 
+                                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)] opacity-60 hover:opacity-100'
+                                }
+                            `}
+                        >
+                            <Icon name={tab.icon} size={16} className={activeTab === tab.id ? 'text-brand' : 'text-[var(--text-muted)]'} />
+                            <span>{tab.label}</span>
+                            {activeTab === tab.id && (
+                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand rounded-t-full shadow-[0_-2px_6px_rgba(var(--brand-rgb),0.3)] animate-in fade-in slide-in-from-bottom-1 duration-300" />
+                            )}
                         </button>
-                    </div>
+                    ))}
+                </div>
+            </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {results.length === 0 && (
-                            <div className="col-span-full flex flex-col items-center justify-center py-20 px-4 rounded-3xl border-2 border-dashed border-[var(--border-base)] bg-[var(--border-muted)]/30">
-                                <div className="w-16 h-16 rounded-full bg-[var(--border-base)] flex items-center justify-center mb-4 opacity-40">
-                                    <Icon name="play" size={24} className="text-[var(--text-muted)]" />
-                                </div>
-                                <p className="text-[var(--text-muted)] font-medium opacity-60">No workflow results detected yet.</p>
-                            </div>
-                        )}
-
-                        {results.map((r) => (
-                            <div
-                                key={r.id}
-                                className="group relative flex flex-col bg-surface-800 border border-[var(--border-base)] rounded-3xl p-6 transition-all hover:bg-[var(--border-muted)]/50 hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-black/40"
-                            >
-                                <div className="flex items-start justify-between mb-6">
-                                    <div className="p-3 rounded-2xl bg-[var(--border-muted)] border border-[var(--border-base)] group-hover:bg-brand/10 group-hover:border-brand/20 transition-all">
-                                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)] group-hover:text-brand transition-colors opacity-60 group-hover:opacity-100">
-                                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                                            <polyline points="14 2 14 8 20 8" />
-                                            <line x1="16" y1="13" x2="8" y2="13" />
-                                            <line x1="16" y1="17" x2="8" y2="17" />
-                                            <polyline points="10 9 9 9 8 9" />
-                                        </svg>
+            <main className="flex-1 w-full max-w-7xl mx-auto px-8 py-10">
+                {activeTab === 'metadata' && (
+                    <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <div className="p-2 rounded-xl bg-brand/10 border border-brand/20">
+                                        <Icon name="data_object" size={18} className="text-brand" />
                                     </div>
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 ring-inset ${statusConfig[r.status].color} ${statusConfig[r.status].bg} ${statusConfig[r.status].ring}`}>
-                                        {r.status}
-                                    </span>
+                                    <h2 className="text-2xl font-bold tracking-tight">My Profile Data</h2>
                                 </div>
+                                <p className="text-[var(--text-muted)] text-sm font-medium opacity-70 ml-11">
+                                    Your metadata records — click any row to edit.
+                                </p>
+                            </div>
+                        </div>
+                        <ClientMetadataManagement activeClientId={user?.id} hideHeader={true} />
+                    </section>
+                )}
 
-                                <h3 className="text-lg font-bold text-[var(--text-main)] mb-2 group-hover:text-brand transition-colors">{r.workflow_name}</h3>
-                                <p className="text-sm text-[var(--text-muted)] line-clamp-2 mb-6 flex-1 opacity-80">{r.result_summary || 'No output data recorded for this run.'}</p>
+                {activeTab === 'workflows' && (
+                    <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        <div className="flex items-center justify-between mb-10">
+                            <div>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <div className="p-2 rounded-xl bg-surface-700 border border-[var(--border-base)]">
+                                        <Icon name="play" size={18} className="text-[var(--text-muted)]" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold tracking-tight">My Workflows</h2>
+                                </div>
+                                <p className="text-[var(--text-muted)] text-sm font-medium opacity-70 ml-11">
+                                    Monitoring your automated processes and result summaries.
+                                </p>
+                            </div>
+                            <button className="px-6 py-3 rounded-2xl bg-brand text-white text-sm font-bold shadow-xl shadow-brand/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2">
+                                <Icon name="add" size={16} />
+                                New Execution
+                            </button>
+                        </div>
 
-                                <div className="flex items-center justify-between pt-4 border-t border-[var(--border-base)] mt-auto">
-                                    <div className="flex items-center gap-2">
-                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)] opacity-40">
-                                            <circle cx="12" cy="12" r="10" />
-                                            <polyline points="12 6 12 12 16 14" />
-                                        </svg>
-                                        <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tight opacity-40">
-                                            {new Date(r.created_at).toLocaleDateString()}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {results.length === 0 && (
+                                <div className="col-span-full flex flex-col items-center justify-center py-20 px-4 rounded-3xl border-2 border-dashed border-[var(--border-base)] bg-[var(--border-muted)]/30">
+                                    <div className="w-16 h-16 rounded-full bg-[var(--border-base)] flex items-center justify-center mb-4 opacity-40">
+                                        <Icon name="play" size={24} className="text-[var(--text-muted)]" />
+                                    </div>
+                                    <p className="text-[var(--text-muted)] font-medium opacity-60">No workflow results detected yet.</p>
+                                </div>
+                            )}
+
+                            {results.map((r) => (
+                                <div
+                                    key={r.id}
+                                    className="group relative flex flex-col bg-surface-800 border border-[var(--border-base)] rounded-3xl p-6 transition-all hover:bg-[var(--border-muted)]/50 hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-black/40"
+                                >
+                                    <div className="flex items-start justify-between mb-6">
+                                        <div className="p-3 rounded-2xl bg-[var(--border-muted)] border border-[var(--border-base)] group-hover:bg-brand/10 group-hover:border-brand/20 transition-all">
+                                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)] group-hover:text-brand transition-colors opacity-60 group-hover:opacity-100">
+                                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                                                <polyline points="14 2 14 8 20 8" />
+                                                <line x1="16" y1="13" x2="8" y2="13" />
+                                                <line x1="16" y1="17" x2="8" y2="17" />
+                                                <polyline points="10 9 9 9 8 9" />
+                                            </svg>
+                                        </div>
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 ring-inset ${statusConfig[r.status].color} ${statusConfig[r.status].bg} ${statusConfig[r.status].ring}`}>
+                                            {r.status}
                                         </span>
                                     </div>
-                                    <button className="text-[10px] font-bold text-brand uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                                        View Details →
-                                    </button>
+
+                                    <h3 className="text-lg font-bold text-[var(--text-main)] mb-2 group-hover:text-brand transition-colors">{r.workflow_name}</h3>
+                                    <p className="text-sm text-[var(--text-muted)] line-clamp-2 mb-6 flex-1 opacity-80">{r.result_summary || 'No output data recorded for this run.'}</p>
+
+                                    <div className="flex items-center justify-between pt-4 border-t border-[var(--border-base)] mt-auto">
+                                        <div className="flex items-center gap-2">
+                                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)] opacity-40">
+                                                <circle cx="12" cy="12" r="10" />
+                                                <polyline points="12 6 12 12 16 14" />
+                                            </svg>
+                                            <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tight opacity-40">
+                                                {new Date(r.created_at).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        <button className="text-[10px] font-bold text-brand uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                                            View Details →
+                                        </button>
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {activeTab === 'prompts' && (
+                    <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <div className="p-2 rounded-xl bg-brand/10 border border-brand/20">
+                                        <Icon name="description" size={18} className="text-brand" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold tracking-tight">Prompts Viewer</h2>
+                                </div>
+                                <p className="text-[var(--text-muted)] text-sm font-medium opacity-70 ml-11">
+                                    Review your generated prompts and technical instructions.
+                                </p>
                             </div>
-                        ))}
-                    </div>
-                </section>
+                        </div>
+                        <PromptViewer referenceId={user?.id} />
+                    </section>
+                )}
             </main>
         </div>
     );
