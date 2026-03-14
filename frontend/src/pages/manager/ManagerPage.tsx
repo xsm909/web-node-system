@@ -23,7 +23,6 @@ import { useClientStore } from '../../features/workflow-management/model/clientS
 import { WorkflowList } from '../../widgets/workflow-list';
 import { Navigator, useNavigator } from '../../shared/ui/navigator';
 import { NodeEditorView } from '../../widgets/node-editor-view';
-import { eraseCookie } from '../../shared/lib/cookieUtils';
 
 const EMPTY_OBJ = {};
 
@@ -488,9 +487,8 @@ export default function ManagerPage() {
     const setActiveTab = useCallback((tab: 'workflows' | 'reports' | 'ai-tasks' | 'client-metadata') => {
         // If switching TO workflows, or clicking Workflows again, clear selection to show list
         if (tab === 'workflows') {
-            console.log('[ManagerPage] Explicit sidebar click. Clearing active workflow and cookie.');
+            console.log('[ManagerPage] Explicit sidebar click. Clearing active workflow.');
             setActiveWorkflow(null);
-            eraseCookie('active_workflow_id');
             // Force reset of the navigator state
             setResetNonce(n => n + 1);
         }

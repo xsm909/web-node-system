@@ -8,8 +8,7 @@ import { AdminCommonWorkflowManagement } from '../../widgets/admin-common-workfl
 import { useNodeTypeManagement } from '../../features/node-type-management';
 import { apiClient } from '../../shared/api/client';
 import type { NodeType } from '../../entities/node-type/model/types';
-import { getCookie, setCookie, eraseCookie } from '../../shared/lib/cookieUtils';
-
+import { getCookie, setCookie } from '../../shared/lib/cookieUtils';
 import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskManagement';
 import { ReportManagement } from '../../widgets/report-management';
 import { AdminSchemaManagement } from '../../widgets/admin-schema-management/ui/AdminSchemaManagement';
@@ -143,9 +142,6 @@ export default function AdminPage() {
     const setActiveTab = (tab: 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') => {
         if (activeTab === tab) {
             setResetNonce(n => n + 1);
-            if (tab === 'workflows') {
-                eraseCookie('active_workflow_id');
-            }
         }
         setCookie('active_admin_tab', tab);
         setActiveTabState(tab);
