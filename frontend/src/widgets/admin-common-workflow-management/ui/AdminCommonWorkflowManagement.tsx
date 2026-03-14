@@ -20,6 +20,7 @@ import { AppParametersView } from '../../../shared/ui/app-parameters-view/AppPar
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const EMPTY_OBJ = {};
+let globalIsParamsExpanded = false;
 
 // We can reuse the WorkflowEditorView structure from ManagerPage
 const AdminWorkflowEditorView = ({
@@ -47,7 +48,15 @@ const AdminWorkflowEditorView = ({
 }: any) => {
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [isDirty, setIsDirty] = useState(false);
-    const [isParamsExpanded, setIsParamsExpanded] = useState(false);
+    const [isParamsExpanded, setIsParamsExpanded] = useState(globalIsParamsExpanded);
+
+    const handleToggleParams = useCallback(() => {
+        setIsParamsExpanded(prev => {
+            const newValue = !prev;
+            globalIsParamsExpanded = newValue;
+            return newValue;
+        });
+    }, []);
 
     // Track initial state to detect changes from external data (edit modal)
     const initialWorkflowRef = useRef<string | null>(null);
@@ -80,7 +89,7 @@ const AdminWorkflowEditorView = ({
 
     const onNodesChange = useCallback((nodes: Node[]) => {
         handleNodesChange(nodes);
-        
+
         // Sync to parent state so changes are preserved if we remount (e.g. returning from Node Type editor)
         setActiveWorkflow((prev: any) => {
             if (!prev) return prev;
@@ -132,13 +141,13 @@ const AdminWorkflowEditorView = ({
 
         setActiveWorkflow((prev: any) => {
             if (!prev) return prev;
-            return { 
-                ...prev, 
-                graph: { 
-                    ...prev.graph, 
+            return {
+                ...prev,
+                graph: {
+                    ...prev.graph,
                     nodes: updatedNodes,
                     edges: edgesRef.current || prev.graph?.edges || []
-                } 
+                }
             };
         });
 
@@ -211,74 +220,74 @@ const AdminWorkflowEditorView = ({
                     <div className="flex-1 flex flex-col min-h-0 relative">
                         <div className="flex-1 flex min-h-0 relative">
                             <div className="flex-1 flex flex-col relative workflow-editor-container">
-                            {activeWorkflow && (
-                                <WorkflowGraph
-                                    workflow={activeWorkflow}
-                                    nodeTypes={nodeTypes}
-                                    isReadOnly={false}
-                                    onNodesChangeCallback={onNodesChange}
-                                    onEdgesChangeCallback={onEdgesChange}
-                                    onNodeDoubleClickCallback={onEditNode}
-                                    onNodeSelectCallback={handleNodeSelect}
-                                    activeNodeIds={activeNodeIds}
-                                />
-                            )}
+                                {activeWorkflow && (
+                                    <WorkflowGraph
+                                        workflow={activeWorkflow}
+                                        nodeTypes={nodeTypes}
+                                        isReadOnly={false}
+                                        onNodesChangeCallback={onNodesChange}
+                                        onEdgesChangeCallback={onEdgesChange}
+                                        onNodeDoubleClickCallback={onEditNode}
+                                        onNodeSelectCallback={handleNodeSelect}
+                                        activeNodeIds={activeNodeIds}
+                                    />
+                                )}
 
-                            {isEditModalOpen && activeWorkflow && (
-                                <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                                    <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
-                                        <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
-                                            <h2 className="text-sm font-bold truncate">Edit Workflow Data</h2>
-                                            <button
-                                                className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
-                                                onClick={() => setIsEditModalOpen(false)}
-                                            >
-                                                <Icon name="close" size={20} />
-                                            </button>
-                                        </div>
-                                        <div className="flex-1 overflow-hidden">
-                                            <WorkflowDataEditorTabs
-                                                key={activeWorkflow.id}
-                                                data={activeWorkflow.workflow_data ?? EMPTY_OBJ}
-                                                onChange={(d: any) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
-                                            />
+                                {isEditModalOpen && activeWorkflow && (
+                                    <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                                        <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
+                                            <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
+                                                <h2 className="text-sm font-bold truncate">Edit Workflow Data</h2>
+                                                <button
+                                                    className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
+                                                    onClick={() => setIsEditModalOpen(false)}
+                                                >
+                                                    <Icon name="close" size={20} />
+                                                </button>
+                                            </div>
+                                            <div className="flex-1 overflow-hidden">
+                                                <WorkflowDataEditorTabs
+                                                    key={activeWorkflow.id}
+                                                    data={activeWorkflow.workflow_data ?? EMPTY_OBJ}
+                                                    onChange={(d: any) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
+
+                            <AppParametersView
+                                title="Node Properties"
+                                isExpanded={isParamsExpanded}
+                                onToggle={handleToggleParams}
+                                placeholder="No node selected"
+                            >
+                                {selectedNode && (
+                                    <NodeEditorView
+                                        inline
+                                        node={selectedNode}
+                                        nodeTypes={nodeTypes}
+                                        onChange={handleParamsChange}
+                                        onBack={() => {
+                                            setSelectedNode(null);
+                                            setIsParamsExpanded(false);
+                                        }}
+                                    />
+                                )}
+                            </AppParametersView>
                         </div>
 
-                        <AppParametersView
-                            title="Node Properties"
-                            isExpanded={isParamsExpanded}
-                            onToggle={() => setIsParamsExpanded(!isParamsExpanded)}
-                            placeholder={selectedNode ? "This node has no configurable parameters" : "Select a node to view its parameters"}
-                        >
-                            {selectedNode && (
-                                <NodeEditorView
-                                    inline
-                                    node={selectedNode}
-                                    nodeTypes={nodeTypes}
-                                    onChange={handleParamsChange}
-                                    onBack={() => {
-                                        setSelectedNode(null);
-                                        setIsParamsExpanded(false);
-                                    }}
-                                />
-                            )}
-                        </AppParametersView>
+                        <Console
+                            logs={executionLogs}
+                            isVisible={isConsoleVisible}
+                            onClose={() => setIsConsoleVisible(false)}
+                            runtimeData={liveRuntimeData}
+                        />
                     </div>
-
-                    <Console
-                        logs={executionLogs}
-                        isVisible={isConsoleVisible}
-                        onClose={() => setIsConsoleVisible(false)}
-                        runtimeData={liveRuntimeData}
-                    />
                 </div>
             </div>
-        </div>
-    </AppFormView>
+        </AppFormView>
     );
 };
 

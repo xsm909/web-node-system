@@ -28,7 +28,7 @@ export const AppParametersView: React.FC<AppParametersViewProps> = ({
                     <div className="flex items-center justify-between mb-3 px-2">
                         <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{title}</h3>
                     </div>
-                    
+
                     <div className="flex-1 overflow-y-auto px-2 pb-4 flex flex-col space-y-4 custom-scrollbar min-h-0">
                         {children || (
                             <div className="flex flex-col items-center justify-center py-4 text-center opacity-40">
