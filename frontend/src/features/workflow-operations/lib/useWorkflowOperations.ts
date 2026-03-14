@@ -19,6 +19,7 @@ export function useWorkflowOperations({
     onExecutionComplete
 }: UseWorkflowOperationsProps) {
     const [isRunning, setIsRunning] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [executionLogs, setExecutionLogs] = useState([]);
     const [currentExecutionId, setCurrentExecutionId] = useState<string | null>(null);
     const [liveRuntimeData, setLiveRuntimeData] = useState<Record<string, any>>({});
@@ -39,16 +40,21 @@ export function useWorkflowOperations({
 
     const saveWorkflow = async () => {
         if (!activeWorkflow) return;
-        await apiClient.put(`/workflows/workflows/${activeWorkflow.id}`, {
-            graph: { nodes: nodesRef.current, edges: edgesRef.current },
-            workflow_data: activeWorkflow.workflow_data,
-            runtime_data: activeWorkflow.runtime_data,
-        });
-        if (onUpdateLocalWorkflow) {
-            onUpdateLocalWorkflow({
-                ...activeWorkflow,
-                graph: { nodes: nodesRef.current, edges: edgesRef.current }
+        setIsSaving(true);
+        try {
+            await apiClient.put(`/workflows/workflows/${activeWorkflow.id}`, {
+                graph: { nodes: nodesRef.current, edges: edgesRef.current },
+                workflow_data: activeWorkflow.workflow_data,
+                runtime_data: activeWorkflow.runtime_data,
             });
+            if (onUpdateLocalWorkflow) {
+                onUpdateLocalWorkflow({
+                    ...activeWorkflow,
+                    graph: { nodes: nodesRef.current, edges: edgesRef.current }
+                });
+            }
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -134,6 +140,7 @@ export function useWorkflowOperations({
         saveWorkflow,
         runWorkflow,
         isRunning,
+        isSaving,
         executionLogs,
         liveRuntimeData,
         setLiveRuntimeData,

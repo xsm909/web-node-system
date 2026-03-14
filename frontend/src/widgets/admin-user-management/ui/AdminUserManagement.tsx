@@ -5,8 +5,9 @@ import {
 } from '@tanstack/react-table';
 import { apiClient } from '../../../shared/api/client';
 import type { User } from '../../../entities/user/model/types';
-import { UserEditor, type UserEditorRef } from './UserEditor';
 import { AppHeader } from '../../app-header';
+import { AppFormView } from '../../../shared/ui/app-form-view';
+import { UserEditor, type UserEditorRef } from './UserEditor';
 import { Icon } from '../../../shared/ui/icon';
 import { AppTable } from '../../../shared/ui/app-table';
 
@@ -21,6 +22,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [view, setView] = useState<'list' | 'edit'>('list');
     const [activeTab, setActiveTab] = useState<'common' | 'metadata'>('common');
+    const [isFormDirty, setIsFormDirty] = useState(false);
     const editorRef = useRef<UserEditorRef>(null);
 
     const { data: users = [], isLoading, refetch } = useQuery({
@@ -96,7 +98,56 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
         refetch();
     };
 
-    const isSaving = editorRef.current?.isSaving;
+    const isSaving = editorRef.current?.isSaving || false;
+
+    if (view === 'edit') {
+        if (!selectedUser) {
+            return (
+                <AppFormView
+                    title="Add User"
+                    parentTitle="User Management"
+                    icon="person"
+                    isDirty={isFormDirty}
+                    isSaving={isSaving}
+                    onSave={() => {}}
+                    onCancel={handleBack}
+                >
+                    <div className="p-8 text-center text-[var(--text-muted)] opacity-50">User creation not implemented via Editor.</div>
+                </AppFormView>
+            );
+        }
+
+        return (
+            <AppFormView
+                title={selectedUser.username}
+                parentTitle="User Management"
+                icon="person"
+                isDirty={isFormDirty}
+                isSaving={isSaving}
+                onSave={() => editorRef.current?.handleSave()}
+                onCancel={handleBack}
+                tabs={selectedUser.role === 'client' ? [
+                    { id: 'common', label: 'Common Profile' },
+                    { id: 'metadata', label: 'Client Metadata' }
+                ] : [
+                    { id: 'common', label: 'Common Profile' }
+                ]}
+                activeTab={activeTab}
+                onTabChange={(id) => setActiveTab(id as 'common' | 'metadata')}
+                saveLabel="Save User"
+            >
+                <div className="max-w-5xl mx-auto w-full">
+                    <UserEditor
+                        ref={editorRef}
+                        user={selectedUser}
+                        onSaveSuccess={handleBack}
+                        activeTab={activeTab}
+                        onDirtyChange={setIsFormDirty}
+                    />
+                </div>
+            </AppFormView>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
@@ -105,89 +156,39 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 isSidebarOpen={isSidebarOpen}
                 leftContent={
                     <div className="flex items-center gap-3">
-                        {view !== 'list' && (
-                            <button
-                                onClick={handleBack}
-                                className="p-2 -ml-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors"
-                            >
-                                <Icon name="back" size={24} />
-                            </button>
-                        )}
                         <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 px-2 lg:px-0">
-                            {view === 'list' ? 'User Management' : (
-                                <span><span className="opacity-40 font-normal">User / </span>{selectedUser?.username}</span>
-                            )}
+                            User Management
                         </h1>
                     </div>
                 }
                 rightContent={
-                    view === 'list' ? (
-                        <button
-                            onClick={() => {
-                                setSelectedUser(null);
-                                setView('edit');
-                                setActiveTab('common');
-                            }}
-                            className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
-                            title="Add User"
-                        >
-                            <Icon name="add" size={20} />
-                        </button>
-                    ) : (
-                        <div className="flex items-center gap-4">
-                            <div className="flex bg-[var(--bg-app)] p-1 rounded-xl border border-[var(--border-base)] shadow-sm">
-                                <button
-                                    onClick={() => setActiveTab('common')}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'common' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
-                                >
-                                    Common
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('metadata')}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'metadata' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
-                                >
-                                    Client Metadata
-                                </button>
-                            </div>
-                            <button
-                                onClick={() => editorRef.current?.handleSave()}
-                                disabled={isSaving}
-                                className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
-                                title={isSaving ? "Saving..." : "Save Changes"}
-                            >
-                                <Icon name={isSaving ? "sync" : "save"} size={20} className={isSaving ? "animate-spin" : ""} />
-                            </button>
-                        </div>
-                    )
+                    <button
+                        onClick={() => {
+                            setSelectedUser(null);
+                            setView('edit');
+                            setActiveTab('common');
+                        }}
+                        className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
+                        title="Add User"
+                    >
+                        <Icon name="add" size={20} />
+                    </button>
                 }
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
                 searchPlaceholder="Search by username, role or ID..."
             />
 
-            {view === 'list' ? (
-                <AppTable
-                    data={filteredUsers}
-                    columns={columns}
-                    isLoading={isLoading && users.length === 0}
-                    onRowClick={handleRowClick}
-                    isSearching={searchQuery.trim().length > 0}
-                    config={{
-                        emptyMessage: 'No users found.'
-                    }}
-                />
-            ) : (
-                selectedUser && (
-                    <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
-                        <UserEditor
-                            ref={editorRef}
-                            user={selectedUser}
-                            onSaveSuccess={handleBack}
-                            activeTab={activeTab}
-                        />
-                    </div>
-                )
-            )}
+            <AppTable
+                data={filteredUsers}
+                columns={columns}
+                isLoading={isLoading && users.length === 0}
+                onRowClick={handleRowClick}
+                isSearching={searchQuery.trim().length > 0}
+                config={{
+                    emptyMessage: 'No users found.'
+                }}
+            />
         </div>
     );
 };

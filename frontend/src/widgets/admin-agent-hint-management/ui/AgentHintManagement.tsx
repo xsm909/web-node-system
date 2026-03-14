@@ -6,6 +6,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppHeader } from '../../../widgets/app-header';
+import { AppFormView } from '../../../shared/ui/app-form-view';
 import { createColumnHelper } from '@tanstack/react-table';
 import { marked } from 'marked';
 
@@ -34,21 +35,34 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
     const [key, setKey] = useState('');
     const [category, setCategory] = useState('');
     const [hintContent, setHintContent] = useState('');
+    const [initialFormState, setInitialFormState] = useState({ key: '', category: '', hintContent: '' });
 
     const handleEdit = (hint: AgentHint) => {
         setSelectedHint(hint);
-        setKey(hint.key);
-        setCategory(hint.category || '');
-        setHintContent(hint.hint);
+        const data = {
+            key: hint.key,
+            category: hint.category || '',
+            hintContent: hint.hint
+        };
+        setKey(data.key);
+        setCategory(data.category);
+        setHintContent(data.hintContent);
+        setInitialFormState(data);
         setIsEditing(true);
         setIsPreview(false);
     };
 
     const handleCreateNew = () => {
         setSelectedHint(null);
-        setKey('');
-        setCategory('');
-        setHintContent('');
+        const data = {
+            key: '',
+            category: '',
+            hintContent: ''
+        };
+        setKey(data.key);
+        setCategory(data.category);
+        setHintContent(data.hintContent);
+        setInitialFormState(data);
         setIsEditing(true);
         setIsPreview(false);
     };
@@ -70,6 +84,10 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
             });
         }
     };
+
+    const isDirty = key !== initialFormState.key ||
+                    category !== initialFormState.category ||
+                    hintContent !== initialFormState.hintContent;
 
     const filteredHints = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -137,51 +155,55 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
 
     if (isEditing) {
         return (
-            <div className="flex flex-col h-[calc(100vh-12rem)] border border-gray-700 rounded-2xl overflow-hidden bg-surface-800 shadow-xl shadow-black/20 animate-in zoom-in-95 duration-200 m-8">
-                <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-surface-900">
-                    <div className="flex gap-4 items-center flex-1 pr-8">
-                        <input
-                            type="text"
-                            placeholder="Hint Key (e.g., sql-optimization)"
-                            value={key}
-                            onChange={e => setKey(e.target.value)}
-                            disabled={!!selectedHint}
-                            className={`w-1/4 bg-surface-950 border border-gray-700 rounded-lg px-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-brand ${selectedHint ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Category (e.g., SQL|Optimization)"
-                            value={category}
-                            onChange={e => setCategory(e.target.value)}
-                            className="w-1/4 bg-surface-950 border border-gray-700 rounded-lg px-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-brand"
-                        />
+            <AppFormView
+                title={selectedHint ? selectedHint.key : (key ? `${key} (New)` : 'New Agent Hint')}
+                parentTitle="Agent Hints"
+                icon="description"
+                isDirty={isDirty}
+                isSaving={updateMutation.isPending || createMutation.isPending}
+                onSave={handleSave}
+                onCancel={() => setIsEditing(false)}
+                saveLabel={selectedHint ? "Save Hint" : "Create Hint"}
+                tabs={[
+                    { id: 'edit', label: 'Editor' },
+                    { id: 'preview', label: 'Preview' }
+                ]}
+                activeTab={isPreview ? 'preview' : 'edit'}
+                onTabChange={(id) => setIsPreview(id === 'preview')}
+            >
+                <div className="flex flex-col gap-6 max-w-5xl mx-auto h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
+                    <div className="grid grid-cols-2 gap-8 mb-2">
+                        <div className="space-y-3">
+                            <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Hint Key</label>
+                            <input
+                                type="text"
+                                placeholder="Hint Key (e.g., sql-optimization)"
+                                value={key}
+                                onChange={e => setKey(e.target.value)}
+                                disabled={!!selectedHint}
+                                className={`w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold text-lg ${selectedHint ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            />
+                        </div>
+                        <div className="space-y-3">
+                            <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Category</label>
+                            <input
+                                type="text"
+                                placeholder="e.g., SQL|Optimization"
+                                value={category}
+                                onChange={e => setCategory(e.target.value)}
+                                className="w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold text-lg"
+                            />
+                        </div>
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setIsEditing(false)}
-                            className="px-4 py-2 rounded-xl bg-surface-700 hover:bg-surface-600 transition-colors text-sm font-medium"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            disabled={updateMutation.isPending || createMutation.isPending}
-                            className="px-4 py-2 rounded-xl bg-brand hover:brightness-110 transition-colors text-white text-sm font-bold flex items-center gap-2"
-                        >
-                            <Icon name="save" size={16} />
-                            Save Hint
-                        </button>
-                    </div>
-                </div>
-                <div className="flex-1 flex flex-col bg-[var(--bg-app)] min-h-0">
-                    <div className="flex-1 overflow-hidden relative">
+
+                    <div className="flex-1 flex flex-col min-h-[400px] relative rounded-xl border border-[var(--border-base)] overflow-hidden bg-[var(--bg-app)] shadow-inner ring-1 ring-black/20 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand transition-all">
                         {isPreview ? (
-                            <div className="absolute inset-0 p-8 overflow-auto bg-[var(--bg-app)]">
+                            <div className="absolute inset-0 p-8 overflow-auto bg-[var(--bg-app)] custom-scrollbar">
                                 <div
                                     className="markdown-content text-[var(--text-main)]"
-                                    dangerouslySetInnerHTML={{ __html: marked.parse(hintContent) }}
+                                    dangerouslySetInnerHTML={{ __html: marked.parse(hintContent) as string }}
                                 />
-                                {!hintContent && <span className="italic text-[var(--text-muted)]">No content to preview</span>}
+                                {!hintContent && <span className="italic text-[var(--text-muted)] opacity-50">No content to preview</span>}
                             </div>
                         ) : (
                             <div className="absolute inset-0">
@@ -192,26 +214,8 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                             </div>
                         )}
                     </div>
-                    <div className="flex items-center justify-center p-3 border-t border-gray-700 bg-surface-900 gap-4">
-                        <div className="flex bg-surface-950 p-1 rounded-xl border border-gray-700">
-                            <button
-                                onClick={() => setIsPreview(false)}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${!isPreview ? 'bg-brand text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                            >
-                                <Icon name="edit" size={14} />
-                                Edit
-                            </button>
-                            <button
-                                onClick={() => setIsPreview(true)}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${isPreview ? 'bg-brand text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                            >
-                                <Icon name="visibility" size={14} />
-                                Preview
-                            </button>
-                        </div>
-                    </div>
                 </div>
-            </div>
+            </AppFormView>
         );
     }
 

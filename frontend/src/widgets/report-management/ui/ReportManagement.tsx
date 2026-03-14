@@ -6,6 +6,7 @@ import { AppHeader } from '../../app-header';
 import { Icon } from '../../../shared/ui/icon';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
+import { AppFormView } from '../../../shared/ui/app-form-view';
 
 import { ReportList } from './ReportList';
 import { ReportEditor, type ReportEditorRef } from './ReportEditor';
@@ -36,6 +37,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const reportViewerRef = useRef<ReportViewerRef>(null);
     const reportEditorRef = useRef<ReportEditorRef>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [reportEditorIsDirty, setReportEditorIsDirty] = useState(false);
 
     useEffect(() => {
         const fetchReports = async () => {
@@ -172,6 +174,39 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         return <div className="p-8 text-center text-[var(--text-muted)]">Loading reports...</div>;
     }
 
+    if (view === 'edit' && isAdmin) {
+        return (
+            <AppFormView
+                title={selectedReport?.name || 'New Report'}
+                parentTitle="Reports Management"
+                icon="description"
+                isDirty={reportEditorIsDirty}
+                isSaving={isSaving}
+                onSave={() => {
+                    setIsSaving(true);
+                    reportEditorRef.current?.handleSave().finally(() => setIsSaving(false));
+                }}
+                onCancel={handleBack}
+                tabs={[
+                    { id: 'details', label: 'Details' },
+                    { id: 'builder', label: 'Builder' }
+                ]}
+                activeTab={activeTab}
+                onTabChange={(id) => setActiveTab(id as 'details' | 'builder')}
+                saveLabel="Save Report"
+            >
+                <ReportEditor
+                    ref={reportEditorRef}
+                    report={selectedReport}
+                    styles={styles}
+                    onBack={handleBack}
+                    activeTab={activeTab}
+                    onDirtyChange={setReportEditorIsDirty}
+                />
+            </AppFormView>
+        );
+    }
+
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden relative">
             <AppHeader
@@ -241,35 +276,6 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                                 labelClassName="font-bold text-sm"
                             />
                         )}
-                        {view === 'edit' && (
-                            <div className="flex items-center gap-4">
-                                <div className="flex bg-[var(--bg-app)] p-1 rounded-xl border border-[var(--border-base)] shadow-sm">
-                                    <button
-                                        onClick={() => setActiveTab('details')}
-                                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'details' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
-                                    >
-                                        Details
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveTab('builder')}
-                                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'builder' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
-                                    >
-                                        Builder
-                                    </button>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setIsSaving(true);
-                                        reportEditorRef.current?.handleSave().finally(() => setIsSaving(false));
-                                    }}
-                                    disabled={isSaving}
-                                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-brand/20 active:scale-95"
-                                >
-                                    <Icon name={isSaving ? "sync" : "save"} size={18} className={isSaving ? "animate-spin" : ""} />
-                                    {isSaving ? "Saving..." : "Save Report"}
-                                </button>
-                            </div>
-                        )}
                     </div>
                 }
                 searchQuery={view === 'list' ? searchQuery : undefined}
@@ -286,16 +292,6 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                         onView={handleView}
                         onDelete={handleDelete}
                         searchQuery={searchQuery}
-                    />
-                )}
-
-                {view === 'edit' && isAdmin && (
-                    <ReportEditor
-                        ref={reportEditorRef}
-                        report={selectedReport}
-                        styles={styles}
-                        onBack={handleBack}
-                        activeTab={activeTab}
                     />
                 )}
 

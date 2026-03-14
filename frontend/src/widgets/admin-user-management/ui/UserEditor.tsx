@@ -11,6 +11,7 @@ interface UserEditorProps {
     user: User;
     onSaveSuccess?: () => void;
     activeTab?: 'common' | 'metadata';
+    onDirtyChange?: (isDirty: boolean) => void;
 }
 
 export interface UserEditorRef {
@@ -18,7 +19,7 @@ export interface UserEditorRef {
     isSaving: boolean;
 }
 
-export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, onSaveSuccess, activeTab = 'common' }, ref) => {
+export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, onSaveSuccess, activeTab = 'common', onDirtyChange }, ref) => {
     const queryClient = useQueryClient();
     const [selectedManagerId, setSelectedManagerId] = useState<string>('');
 
@@ -37,6 +38,16 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
             setSelectedManagerId(currentManager?.id || '');
         }
     }, [user]);
+
+    const isDirty = useMemo(() => {
+        if (user?.role !== 'client') return false;
+        const currentManagerId = user.assigned_managers?.[0]?.id || '';
+        return selectedManagerId !== currentManagerId;
+    }, [user, selectedManagerId]);
+
+    useEffect(() => {
+        onDirtyChange?.(isDirty);
+    }, [isDirty, onDirtyChange]);
 
     const managersData: Record<string, SelectionGroup> = useMemo(() => {
         const data: Record<string, SelectionGroup> = {};

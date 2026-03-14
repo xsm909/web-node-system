@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Node, Edge } from 'reactflow';
 import { Console } from '../../console/ui/Console';
 import { WorkflowDataEditorTabs } from '../../workflow-data-editor';
-import { AppHeader } from '../../app-header';
 import { WorkflowList } from '../../workflow-list';
 import { useNavigator } from '../../../shared/ui/navigator';
 import { useWorkflowOperations } from '../../../features/workflow-operations';
@@ -14,6 +13,8 @@ import { WorkflowGraph } from '../../workflow-graph';
 import { NodeEditorView } from '../../node-editor-view';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { useClientStore } from '../../../features/workflow-management/model/clientStore';
+import { AppFormView } from '../../../shared/ui/app-form-view';
+
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -23,14 +24,13 @@ const EMPTY_OBJ = {};
 const AdminWorkflowEditorView = ({
     activeWorkflow,
     nodeTypes,
-    isCreating,
     setActiveWorkflow,
     saveWorkflow,
     runWorkflow,
     isRunning,
+    isSaving,
     activeNodeIds,
     activeClientId,
-    canSave,
     isEditModalOpen,
     setIsEditModalOpen,
     isConsoleVisible,
@@ -45,6 +45,56 @@ const AdminWorkflowEditorView = ({
     onEditNode
 }: any) => {
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+    const [isDirty, setIsDirty] = useState(false);
+
+    // Track initial state to detect changes from external data (edit modal)
+    const initialWorkflowRef = useRef<string | null>(null);
+    const initialNodesStrRef = useRef<string | null>(null);
+    const initialEdgesStrRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        // Only capture initial state once workflow is loaded with its graph
+        if (activeWorkflow?.graph && !initialNodesStrRef.current) {
+            initialNodesStrRef.current = JSON.stringify(activeWorkflow.graph.nodes || []);
+            initialEdgesStrRef.current = JSON.stringify(activeWorkflow.graph.edges || []);
+            initialWorkflowRef.current = JSON.stringify({
+                graph: activeWorkflow.graph,
+                workflow_data: activeWorkflow.workflow_data
+            });
+        }
+    }, [activeWorkflow]);
+
+    useEffect(() => {
+        if (!initialWorkflowRef.current) return;
+
+        const currentDataStr = JSON.stringify({
+            graph: activeWorkflow?.graph,
+            workflow_data: activeWorkflow?.workflow_data
+        });
+        if (initialWorkflowRef.current !== currentDataStr) {
+            setIsDirty(true);
+        }
+    }, [activeWorkflow]);
+
+    const onNodesChange = useCallback((nodes: Node[]) => {
+        handleNodesChange(nodes);
+        if (initialNodesStrRef.current && JSON.stringify(nodes) !== initialNodesStrRef.current) {
+            setIsDirty(true);
+        }
+    }, [handleNodesChange]);
+
+    const onEdgesChange = useCallback((edges: Edge[]) => {
+        handleEdgesChange(edges);
+        if (initialEdgesStrRef.current && JSON.stringify(edges) !== initialEdgesStrRef.current) {
+            setIsDirty(true);
+        }
+    }, [handleEdgesChange]);
+
+    const onSaveInternal = async () => {
+        await saveWorkflow();
+        setIsDirty(false);
+        onBack();
+    };
 
     const handleParamsChange = useCallback((nodeId: string, params: any) => {
         const currentNodes = nodesRef.current || [];
@@ -86,120 +136,110 @@ const AdminWorkflowEditorView = ({
     }, [nodeTypes]);
 
     return (
-        <div className="flex-1 flex flex-col min-h-0 w-full relative">
-            <AppHeader
-                onBack={onBack}
-                onToggleSidebar={() => { }} // not needed when back button is present
-                isSidebarOpen={false}
-                leftContent={
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
-                            {activeWorkflow?.name}
-                        </h1>
-                        <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-surface-700 text-[var(--text-main)] opacity-70 border border-[var(--border-base)]">
-                            {activeWorkflow?.owner_id === 'common' ? 'Common' : 'Admin Workflow'}
-                        </span>
-                    </div>
-                }
-                rightContent={
-                    <div className="flex items-center gap-2">
-                        <button
-                            className="p-2.5 rounded-xl hover:bg-surface-700 text-gray-400 hover:text-white transition-colors border border-transparent hover:border-[var(--border-base)] group"
-                            onClick={() => setIsEditModalOpen(true)}
-                            title="Edit Workflow Data"
-                        >
-                            <Icon name="data_object" size={20} className="group-hover:scale-110 transition-transform" />
-                        </button>
-                        <button
-                            onClick={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
-                            disabled={isRunning}
-                            className={`
-                                flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg active:scale-95 border
-                                ${isRunning
-                                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
-                                    : 'bg-emerald-500 text-white border-transparent hover:brightness-110 hover:shadow-emerald-500/20'
-                                }
-                            `}
-                        >
-                            <Icon name={isRunning ? "stop" : "play_arrow"} size={20} className={isRunning ? "animate-pulse" : ""} />
-                            <span>{isRunning ? 'Running...' : 'Play'}</span>
-                        </button>
-                        {canSave && (
-                            <button
-                                onClick={saveWorkflow}
-                                disabled={isCreating}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-brand text-white rounded-xl hover:brightness-110 transition-all font-bold shadow-lg shadow-brand/20 active:scale-95 disabled:opacity-50 border border-transparent"
-                            >
-                                <Icon name={isCreating ? "refresh" : "save"} size={20} className={isCreating ? "animate-spin" : ""} />
-                                <span>Save</span>
-                            </button>
-                        )}
-                    </div>
-                }
-            />
-            
-            <div className="flex-1 flex flex-col min-h-0 relative">
-                <div className="flex-1 flex min-h-0 relative">
-                    <div className="flex-1 relative">
-                        {activeWorkflow && (
-                            <WorkflowGraph
-                                workflow={activeWorkflow}
-                                nodeTypes={nodeTypes}
-                                isReadOnly={false}
-                                onNodesChangeCallback={handleNodesChange}
-                                onEdgesChangeCallback={handleEdgesChange}
-                                onNodeDoubleClickCallback={onEditNode}
-                                onNodeSelectCallback={handleNodeSelect}
-                                activeNodeIds={activeNodeIds}
-                            />
-                        )}
+        <AppFormView
+            title={activeWorkflow?.name || 'Workflow'}
+            parentTitle="Workflows"
+            icon="account_tree"
+            isDirty={isDirty}
+            onSave={onSaveInternal}
+            onCancel={onBack}
+            isSaving={isSaving}
+            saveLabel="Save Workflow"
+            headerRightContent={
+                <div className="flex items-center gap-2">
+                    <button
+                        className="p-2.5 rounded-xl hover:bg-surface-700 text-gray-400 hover:text-white transition-colors border border-transparent hover:border-[var(--border-base)] group"
+                        onClick={() => setIsEditModalOpen(true)}
+                        title="Edit Workflow Data"
+                    >
+                        <Icon name="data_object" size={20} className="group-hover:scale-110 transition-transform" />
+                    </button>
+                    <button
+                        onClick={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
+                        disabled={isRunning}
+                        className={`
+                            flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg active:scale-95 border
+                            ${isRunning
+                                ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+                                : 'bg-emerald-500 text-white border-transparent hover:brightness-110 hover:shadow-emerald-500/20'
+                            }
+                        `}
+                    >
+                        <Icon name={isRunning ? "stop" : "play_arrow"} size={20} className={isRunning ? "animate-pulse" : ""} />
+                        <span>{isRunning ? 'Running...' : 'Play'}</span>
+                    </button>
+                </div>
+            }
+        >
+            <div className="flex-1 flex flex-col min-h-[600px] relative -m-10">
+                <style>{`
+                    .workflow-editor-container .react-flow__pane {
+                        cursor: crosshair;
+                    }
+                `}</style>
+                <div className="flex-1 flex flex-col min-h-0 relative">
+                    <div className="flex-1 flex min-h-0 relative">
+                        <div className="flex-1 relative workflow-editor-container">
+                            {activeWorkflow && (
+                                <WorkflowGraph
+                                    workflow={activeWorkflow}
+                                    nodeTypes={nodeTypes}
+                                    isReadOnly={false}
+                                    onNodesChangeCallback={onNodesChange}
+                                    onEdgesChangeCallback={onEdgesChange}
+                                    onNodeDoubleClickCallback={onEditNode}
+                                    onNodeSelectCallback={handleNodeSelect}
+                                    activeNodeIds={activeNodeIds}
+                                />
+                            )}
 
-                        {isEditModalOpen && activeWorkflow && (
-                            <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                                <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
-                                    <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
-                                        <h2 className="text-sm font-bold truncate">Edit Workflow Data</h2>
-                                        <button
-                                            className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
-                                            onClick={() => setIsEditModalOpen(false)}
-                                        >
-                                            <Icon name="close" size={20} />
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 overflow-hidden">
-                                        <WorkflowDataEditorTabs
-                                            key={activeWorkflow.id}
-                                            data={activeWorkflow.workflow_data ?? EMPTY_OBJ}
-                                            onChange={(d: any) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
-                                        />
+                            {isEditModalOpen && activeWorkflow && (
+                                <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                                    <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
+                                        <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
+                                            <h2 className="text-sm font-bold truncate">Edit Workflow Data</h2>
+                                            <button
+                                                className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
+                                                onClick={() => setIsEditModalOpen(false)}
+                                            >
+                                                <Icon name="close" size={20} />
+                                            </button>
+                                        </div>
+                                        <div className="flex-1 overflow-hidden">
+                                            <WorkflowDataEditorTabs
+                                                key={activeWorkflow.id}
+                                                data={activeWorkflow.workflow_data ?? EMPTY_OBJ}
+                                                onChange={(d: any) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
+                            )}
+                        </div>
+
+                        {selectedNode && (
+                            <div className="w-[400px] border-l border-[var(--border-base)] bg-[var(--bg-app)] shadow-2xl z-20 animate-in slide-in-from-right duration-300">
+                                <NodeEditorView
+                                    inline
+                                    node={selectedNode}
+                                    nodeTypes={nodeTypes}
+                                    onChange={handleParamsChange}
+                                    onClose={() => setSelectedNode(null)}
+                                    onBack={() => setSelectedNode(null)}
+                                />
                             </div>
                         )}
                     </div>
 
-                    {selectedNode && (
-                        <div className="w-[400px] border-l border-[var(--border-base)] bg-[var(--bg-app)] shadow-2xl z-20 animate-in slide-in-from-right duration-300">
-                            <NodeEditorView
-                                inline
-                                node={selectedNode}
-                                nodeTypes={nodeTypes}
-                                onChange={handleParamsChange}
-                                onClose={() => setSelectedNode(null)}
-                                onBack={() => setSelectedNode(null)}
-                            />
-                        </div>
-                    )}
+                    <Console
+                        logs={executionLogs}
+                        isVisible={isConsoleVisible}
+                        onClose={() => setIsConsoleVisible(false)}
+                        runtimeData={liveRuntimeData}
+                    />
                 </div>
-
-                <Console
-                    logs={executionLogs}
-                    isVisible={isConsoleVisible}
-                    onClose={() => setIsConsoleVisible(false)}
-                    runtimeData={liveRuntimeData}
-                />
             </div>
-        </div>
+        </AppFormView>
     );
 };
 
@@ -207,7 +247,6 @@ const AdminWorkflowsTabWithNavigator = ({
     workflowsByOwner,
     activeWorkflow,
     nodeTypes,
-    isCreating,
     setWorkflowToDelete,
     setWorkflowToRename,
     loadWorkflow,
@@ -216,6 +255,7 @@ const AdminWorkflowsTabWithNavigator = ({
     saveWorkflow,
     runWorkflow,
     isRunning,
+    isSaving,
     activeNodeIds,
     isSidebarOpen,
     onToggleSidebar,
@@ -242,11 +282,11 @@ const AdminWorkflowsTabWithNavigator = ({
             <AdminWorkflowEditorView
                 activeWorkflow={wf}
                 nodeTypes={nodeTypes}
-                isCreating={isCreating}
                 setActiveWorkflow={setActiveWorkflow}
                 saveWorkflow={saveWorkflow}
                 runWorkflow={runWorkflow}
                 isRunning={isRunning}
+                isSaving={isSaving}
                 activeNodeIds={activeNodeIds}
                 activeClientId={activeClientId}
                 canSave={canSave}
@@ -267,7 +307,7 @@ const AdminWorkflowsTabWithNavigator = ({
                 }}
             />
         );
-    }, [nodeTypes, isCreating, setActiveWorkflow, saveWorkflow, runWorkflow, isRunning, activeNodeIds, activeClientId, canSave, isEditModalOpen, setIsEditModalOpen, isConsoleVisible, setIsConsoleVisible, executionLogs, liveRuntimeData, handleNodesChange, handleEdgesChange, nodesRef, edgesRef, onEditNode, loadWorkflow, nav]);
+    }, [nodeTypes, setActiveWorkflow, saveWorkflow, runWorkflow, isRunning, isSaving, activeNodeIds, activeClientId, canSave, isEditModalOpen, setIsEditModalOpen, isConsoleVisible, setIsConsoleVisible, executionLogs, liveRuntimeData, handleNodesChange, handleEdgesChange, nodesRef, edgesRef, onEditNode, loadWorkflow, nav]);
 
     useEffect(() => {
         if (activeWorkflow && !nav.canGoBack) {
@@ -281,11 +321,11 @@ const AdminWorkflowsTabWithNavigator = ({
                 <AdminWorkflowEditorView
                     activeWorkflow={activeWorkflow}
                     nodeTypes={nodeTypes}
-                    isCreating={isCreating}
                     setActiveWorkflow={setActiveWorkflow}
                     saveWorkflow={saveWorkflow}
                     runWorkflow={runWorkflow}
                     isRunning={isRunning}
+                    isSaving={isSaving}
                     activeNodeIds={activeNodeIds}
                     activeClientId={activeClientId}
                     canSave={canSave}
@@ -308,7 +348,7 @@ const AdminWorkflowsTabWithNavigator = ({
             );
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeWorkflow, isRunning, isCreating, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, isConsoleVisible, executionLogs, liveRuntimeData]);
+    }, [activeWorkflow, isRunning, isSaving, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, isConsoleVisible, executionLogs, liveRuntimeData]);
 
     return (
         <WorkflowList
@@ -353,7 +393,6 @@ export function AdminCommonWorkflowManagement({
         workflowsByOwner,
         activeWorkflow,
         nodeTypes,
-        isCreating,
         workflowToDelete,
         workflowToRename,
         setWorkflowToDelete,
@@ -369,6 +408,7 @@ export function AdminCommonWorkflowManagement({
         saveWorkflow,
         runWorkflow,
         isRunning,
+        isSaving,
         executionLogs,
         liveRuntimeData,
         activeNodeIds
@@ -424,7 +464,6 @@ export function AdminCommonWorkflowManagement({
                 workflowsByOwner={workflowsByOwner}
                 activeWorkflow={activeWorkflow}
                 nodeTypes={nodeTypes}
-                isCreating={isCreating}
                 setWorkflowToDelete={setWorkflowToDelete}
                 setWorkflowToRename={setWorkflowToRename}
                 loadWorkflow={loadWorkflow}
@@ -433,6 +472,7 @@ export function AdminCommonWorkflowManagement({
                 saveWorkflow={saveWorkflow}
                 runWorkflow={runWorkflow}
                 isRunning={isRunning}
+                isSaving={isSaving}
                 activeNodeIds={activeNodeIds}
                 isSidebarOpen={isSidebarOpen}
                 onToggleSidebar={onToggleSidebar}

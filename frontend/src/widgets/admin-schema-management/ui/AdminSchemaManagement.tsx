@@ -6,6 +6,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppHeader } from '../../../widgets/app-header';
+import { AppFormView } from '../../../shared/ui/app-form-view';
 import { createColumnHelper } from '@tanstack/react-table';
 
 const columnHelper = createColumnHelper<Schema>();
@@ -33,34 +34,59 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
     const [content, setContent] = useState('{\n  "type": "object",\n  "properties": {}\n}');
     const [isSystem, setIsSystem] = useState(false);
     const [lock, setLock] = useState(false);
+    const [initialFormState, setInitialFormState] = useState({ key: '', category: '', content: '', isSystem: false, lock: false });
 
     const handleEdit = (schema: Schema) => {
         setSelectedSchema(schema);
-        setKey(schema.key);
-        setCategory(schema.category || '');
-        setContent(JSON.stringify(schema.content, null, 2));
-        setIsSystem(schema.is_system);
-        setLock(schema.lock);
+        const data = {
+            key: schema.key,
+            category: schema.category || '',
+            content: JSON.stringify(schema.content, null, 2),
+            isSystem: schema.is_system,
+            lock: schema.lock
+        };
+        setKey(data.key);
+        setCategory(data.category);
+        setContent(data.content);
+        setIsSystem(data.isSystem);
+        setLock(data.lock);
+        setInitialFormState(data);
         setIsEditing(true);
     };
 
     const handleCreateNew = () => {
         setSelectedSchema(null);
-        setKey('');
-        setCategory('');
-        setContent('{\n  "type": "object",\n  "properties": {}\n}');
-        setIsSystem(false);
-        setLock(false);
+        const data = {
+            key: '',
+            category: '',
+            content: '{\n  "type": "object",\n  "properties": {}\n}',
+            isSystem: false,
+            lock: false
+        };
+        setKey(data.key);
+        setCategory(data.category);
+        setContent(data.content);
+        setIsSystem(data.isSystem);
+        setLock(data.lock);
+        setInitialFormState(data);
         setIsEditing(true);
     };
 
     const handleDuplicate = (schema: Schema) => {
         setSelectedSchema(null);
-        setKey(`${schema.key}-copy`);
-        setCategory(schema.category || '');
-        setContent(JSON.stringify(schema.content, null, 2));
-        setIsSystem(false);
-        setLock(false);
+        const data = {
+            key: `${schema.key}-copy`,
+            category: schema.category || '',
+            content: JSON.stringify(schema.content, null, 2),
+            isSystem: false,
+            lock: false
+        };
+        setKey(data.key);
+        setCategory(data.category);
+        setContent(data.content);
+        setIsSystem(data.isSystem);
+        setLock(data.lock);
+        setInitialFormState(data);
         setIsEditing(true);
     };
 
@@ -98,6 +124,12 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
             alert("Invalid JSON format in schema content.");
         }
     };
+
+    const isDirty = key !== initialFormState.key ||
+                    category !== initialFormState.category ||
+                    content !== initialFormState.content ||
+                    isSystem !== initialFormState.isSystem ||
+                    lock !== initialFormState.lock;
 
     const handleDelete = (id: string, is_system: boolean) => {
         if (is_system) {
@@ -212,74 +244,81 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
 
     if (isEditing) {
         return (
-            <div className="flex flex-col h-[calc(100vh-12rem)] border border-gray-700 rounded-2xl overflow-hidden bg-surface-800 shadow-xl shadow-black/20 animate-in zoom-in-95 duration-200 m-8">
-                <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-surface-900">
-                    <div className="flex gap-4 items-center flex-1 pr-8">
-                        <input
-                            type="text"
-                            placeholder="Schema Key (e.g., user-profile)"
-                            value={key}
-                            onChange={e => setKey(e.target.value)}
-                            disabled={!!selectedSchema || lock}
-                            className={`w-1/4 bg-surface-950 border border-gray-700 rounded-lg px-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-brand ${(selectedSchema || lock) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Category (e.g., Common|Info)"
-                            value={category}
-                            onChange={e => setCategory(e.target.value)}
-                            disabled={lock}
-                            className={`w-1/4 bg-surface-950 border border-gray-700 rounded-lg px-4 py-2 text-sm text-[var(--text-main)] outline-none focus:border-brand ${lock ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        />
-                        <label className={`flex items-center gap-2 text-sm text-gray-300 ${lock ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <AppFormView
+                title={selectedSchema ? selectedSchema.key : (key ? `${key} (New)` : 'New Schema')}
+                parentTitle="Schema Registry"
+                icon="data_object"
+                isDirty={isDirty}
+                isSaving={updateMutation.isPending || createMutation.isPending}
+                onSave={handleSave}
+                onCancel={() => setIsEditing(false)}
+                saveLabel={selectedSchema ? "Save Schema" : "Create Schema"}
+                headerRightContent={
+                    selectedSchema ? (
+                        <button
+                            onClick={handleToggleLock}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                                lock 
+                                ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20' 
+                                : 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20'
+                            }`}
+                        >
+                            <Icon name={lock ? 'lock' : 'unlock'} size={14} />
+                            {lock ? 'Unlock to Edit' : 'Lock Schema'}
+                        </button>
+                    ) : undefined
+                }
+            >
+                <div className="flex flex-col gap-6 max-w-4xl mx-auto h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
+                    <div className="grid grid-cols-2 gap-8">
+                        <div className="space-y-3">
+                            <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Schema Key</label>
+                            <input
+                                type="text"
+                                placeholder="Schema Key (e.g., user-profile)"
+                                value={key}
+                                onChange={e => setKey(e.target.value)}
+                                disabled={!!selectedSchema || lock}
+                                className={`w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold text-lg ${(selectedSchema || lock) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            />
+                        </div>
+                        <div className="space-y-3">
+                            <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Category</label>
+                            <input
+                                type="text"
+                                placeholder="e.g., Common|Info"
+                                value={category}
+                                onChange={e => setCategory(e.target.value)}
+                                disabled={lock}
+                                className={`w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold text-lg ${lock ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className={`flex items-center gap-3 text-sm font-bold text-[var(--text-main)] cursor-pointer w-max ${lock ? 'opacity-50 cursor-not-allowed' : 'hover:text-brand transition-colors'}`}>
                             <input
                                 type="checkbox"
                                 checked={isSystem}
                                 onChange={e => setIsSystem(e.target.checked)}
                                 disabled={lock}
-                                className="rounded border-gray-700 text-brand focus:ring-brand"
+                                className="rounded border-[var(--border-base)] text-brand focus:ring-brand w-5 h-5 transition-colors"
                             />
                             System Schema
                         </label>
-                        {selectedSchema && (
-                            <button
-                                onClick={handleToggleLock}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                                    lock 
-                                    ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20' 
-                                    : 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20'
-                                }`}
-                            >
-                                <Icon name={lock ? 'lock' : 'unlock'} size={14} />
-                                {lock ? 'Unlock to Edit' : 'Lock Schema'}
-                            </button>
-                        )}
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setIsEditing(false)}
-                            className="px-4 py-2 rounded-xl bg-surface-700 hover:bg-surface-600 transition-colors text-sm font-medium"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            disabled={updateMutation.isPending || createMutation.isPending || lock}
-                            className={`flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 shadow-lg shadow-brand/20 active:scale-95 shrink-0 transition-all ${lock ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title={updateMutation.isPending || createMutation.isPending ? "Saving..." : "Save Schema"}
-                        >
-                            <Icon name={updateMutation.isPending || createMutation.isPending ? "sync" : "save"} size={20} className={updateMutation.isPending || createMutation.isPending ? "animate-spin" : ""} />
-                        </button>
+
+                    <div className="flex-1 flex flex-col min-h-[500px] mt-4">
+                        <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1 mb-3">JSON Schema Content</label>
+                        <div className="flex-1 rounded-xl bg-[#0a0a0f] border border-[var(--border-base)] overflow-hidden ring-1 ring-black/20 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand transition-all shadow-inner">
+                            <SchemaEditor
+                                initialValue={content}
+                                onChange={setContent}
+                                readOnly={lock}
+                            />
+                        </div>
                     </div>
                 </div>
-                <div className="flex-1 p-4 bg-surface-950 min-h-0">
-                    <SchemaEditor
-                        initialValue={content}
-                        onChange={setContent}
-                        readOnly={lock}
-                    />
-                </div>
-            </div>
+            </AppFormView>
         );
     }
 

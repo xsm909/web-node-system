@@ -9,9 +9,9 @@ import {
 } from '@tanstack/react-table';
 import { apiClient } from '../../../shared/api/client';
 import type { AITask } from '../../../entities/ai-task/model/types';
-import { AITaskEditModal } from './AITaskEditModal';
 import { ManagementTable } from '../../../shared/ui/management-table';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
+import { AITaskEditModal } from './AITaskEditModal';
 
 const columnHelper = createColumnHelper<AITask>();
 

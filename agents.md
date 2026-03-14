@@ -232,3 +232,13 @@ The system supports 4 static node types and 1 dynamic behavior based on graph co
     - **Category Grouping**: Tables with categorizable data must implement collapsible grouping using the `categoryExtractor` pattern.
     - **Interactive Rows**: Use the `onRowClick` pattern for primary interactions like opening edit modals or detail views.
 - **Reference**: Use **Schema Registry** (`AdminSchemaManagement`) and **User Management** (`AdminUserManagement`) as the visual and functional reference for table layouts, header integration, and full-height implementation.
+
+## 12. Standardized Form Layouts (AppFormView)
+
+- **Navigation Stack Principle**: All entity editing forms accessed from the administrator sidebar must act as a distinct layer in a "navigation stack", replacing the list view rather than rendering as a floating card or popup.
+- **Unified Header**: The form must use `AppHeader`. The `leftContent` should display a "Back" button indicating the path, e.g., `<List Name> / <Item Name>`. The header may contain supplementary actions in the `rightContent` if necessary for the form context.
+- **Flat Layout**: The form body should be full-height and span the content area without breaking into disparate visual cards.
+- **Tabbed Interface**: Where applicable, forms with multiple sections must use a standardized tab interface matching the platform aesthetic.
+- **Dirty State Tracking**: Forms must track unsaved changes (`isDirty`). If a user attempts to navigate back while the form is dirty, a 3-way confirmation modal must appear allowing the user to "Save Changes", "Discard", or "Stay and Edit".
+- **Sticky Footer Action Bar**: Include a sticky bottom footer bar containing consistent "Cancel" and primary "Save Changes" execution buttons.
+- **Shared Implementation**: Forms must implement this standard by referencing the shared `AppFormView` component.

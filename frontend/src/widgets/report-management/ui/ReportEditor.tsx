@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle, useMemo } from "react";
+import { useState, forwardRef, useImperativeHandle, useMemo, useRef, useEffect } from "react";
 import type { Report, ReportParameter, ReportStyle, ReportType } from "../../../entities/report/model/types";
 import { Icon } from "../../../shared/ui/icon";
 import { apiClient } from "../../../shared/api/client";
@@ -15,6 +15,7 @@ interface ReportEditorProps {
     styles: ReportStyle[];
     onBack: () => void;
     activeTab: 'details' | 'builder';
+    onDirtyChange?: (dirty: boolean) => void;
 }
 
 export interface ReportEditorRef {
@@ -22,7 +23,7 @@ export interface ReportEditorRef {
     isSaving: boolean;
 }
 
-export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ report, styles, onBack, activeTab }, ref) => {
+export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ report, styles, onBack, activeTab, onDirtyChange }, ref) => {
     const { theme } = useThemeStore();
     const [isSaving, setIsSaving] = useState(false);
 
@@ -46,6 +47,39 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     const [category, setCategory] = useState(report?.category || '');
     const [parameters, setParameters] = useState<ReportParameter[]>(report?.parameters || []);
     const [meta, setMeta] = useState<Record<string, any>>(report?.meta || {});
+
+    // Track initial state by watching any field change from initial
+    const initialRef = useRef<any>(null);
+
+    useEffect(() => {
+        if (report && !initialRef.current) {
+            initialRef.current = {
+                name: report.name || '',
+                type: report.type || 'global',
+                description: report.description || '',
+                query: report.query || '',
+                template: report.template || '',
+                styleId: report.style_id || '',
+                category: report.category || '',
+                parameters: JSON.stringify(report.parameters || []),
+            };
+        }
+    }, [report]);
+
+    useEffect(() => {
+        if (!initialRef.current) return;
+
+        const changed =
+            name !== initialRef.current.name ||
+            type !== initialRef.current.type ||
+            description !== initialRef.current.description ||
+            query !== initialRef.current.query ||
+            template !== initialRef.current.template ||
+            styleId !== initialRef.current.styleId ||
+            category !== initialRef.current.category ||
+            JSON.stringify(parameters) !== initialRef.current.parameters;
+        onDirtyChange?.(changed);
+    }, [name, type, description, query, template, styleId, category, parameters]);
 
     const handleAddParameter = () => {
         setParameters([
@@ -126,12 +160,10 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     };
 
     return (
-        <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-y-auto">
-            <div className="p-6">
-                <div className="max-w-5xl mx-auto">
-                    {activeTab === 'details' ? (
-                        <div className="max-w-3xl mx-auto space-y-6">
-                            <div className="space-y-4">
+        <div className="max-w-5xl mx-auto">
+            {activeTab === 'details' ? (
+                <div className="max-w-3xl mx-auto space-y-6">
+                    <div className="space-y-4">
                                 <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">General Information</h3>
 
                                 <div className="space-y-1.5">
@@ -340,8 +372,6 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                             </div>
                         </div>
                     )}
-                </div>
-            </div>
         </div>
     );
 });
