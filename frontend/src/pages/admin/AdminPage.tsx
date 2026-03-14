@@ -130,6 +130,9 @@ const WorkflowsTabWithNavigator = ({
 };
 
 
+import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
+import { ConfirmModal } from '../../shared/ui/confirm-modal';
+
 export default function AdminPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints'>(
@@ -139,12 +142,23 @@ export default function AdminPage() {
     const [refreshCount, setRefreshCount] = useState(0);
     const [resetNonce, setResetNonce] = useState(0);
 
+    const {
+        isIntercepted,
+        handleIntercept,
+        confirmSave,
+        confirmDiscard,
+        cancel,
+        isSaving: isInterceptSaving
+    } = useNavigationIntercept();
+
     const setActiveTab = (tab: 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') => {
-        if (activeTab === tab) {
-            setResetNonce(n => n + 1);
-        }
-        setCookie('active_admin_tab', tab);
-        setActiveTabState(tab);
+        handleIntercept(() => {
+            if (activeTab === tab) {
+                setResetNonce(n => n + 1);
+            }
+            setCookie('active_admin_tab', tab);
+            setActiveTabState(tab);
+        });
     };
     const [allNodes, setAllNodes] = useState<NodeType[]>([]);
 
@@ -212,6 +226,28 @@ export default function AdminPage() {
                     )}
                 </div>
             </main>
+
+            <ConfirmModal
+                isOpen={isIntercepted}
+                title="Unsaved Changes"
+                description="You have unsaved changes in the current section. Would you like to save them before switching?"
+                confirmLabel="Save and Switch"
+                cancelLabel="Stay Here"
+                variant="warning"
+                isLoading={isInterceptSaving}
+                onConfirm={confirmSave}
+                onCancel={cancel}
+            >
+                <div className="mt-2">
+                    <button
+                        type="button"
+                        className="w-full px-4 py-3 rounded-2xl text-xs font-bold text-red-500 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all uppercase tracking-widest active:scale-95"
+                        onClick={confirmDiscard}
+                    >
+                        Discard and Switch
+                    </button>
+                </div>
+            </ConfirmModal>
         </div>
     );
 }

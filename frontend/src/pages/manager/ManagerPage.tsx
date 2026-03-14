@@ -24,6 +24,8 @@ import { WorkflowList } from '../../widgets/workflow-list';
 import { Navigator, useNavigator } from '../../shared/ui/navigator';
 import { NodeEditorView } from '../../widgets/node-editor-view';
 
+import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
+
 const EMPTY_OBJ = {};
 
 const WorkflowEditorView = ({
@@ -47,7 +49,8 @@ const WorkflowEditorView = ({
     handleEdgesChange,
     nodesRef,
     edgesRef,
-    onBack
+    onBack,
+    notifyChange
 }: {
     activeWorkflow: any;
     nodeTypes: any;
@@ -70,6 +73,7 @@ const WorkflowEditorView = ({
     nodesRef: React.MutableRefObject<Node[]>;
     edgesRef: React.MutableRefObject<Edge[]>;
     onBack: any;
+    notifyChange?: () => void;
 }) => {
     console.log('[WorkflowEditorView] Rendering for workflow:', activeWorkflow?.id, 'hasGraph:', !!activeWorkflow?.graph);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -176,8 +180,14 @@ const WorkflowEditorView = ({
                                 workflow={activeWorkflow}
                                 nodeTypes={nodeTypes}
                                 isReadOnly={false}
-                                onNodesChangeCallback={handleNodesChange}
-                                onEdgesChangeCallback={handleEdgesChange}
+                                onNodesChangeCallback={(nodes) => {
+                                    handleNodesChange(nodes);
+                                    notifyChange?.();
+                                }}
+                                onEdgesChangeCallback={(edges) => {
+                                    handleEdgesChange(edges);
+                                    notifyChange?.();
+                                }}
                                 onNodeSelectCallback={handleNodeSelect}
                                 activeNodeIds={activeNodeIds}
                             />
@@ -260,7 +270,9 @@ const WorkflowsTabWithNavigator = ({
     handleNodesChange,
     handleEdgesChange,
     nodesRef,
-    edgesRef
+    edgesRef,
+    handleIntercept,
+    notifyChange
 }: {
     workflowsByOwner: any;
     activeWorkflow: any;
@@ -290,10 +302,12 @@ const WorkflowsTabWithNavigator = ({
     handleEdgesChange: any;
     nodesRef: React.MutableRefObject<Node[]>;
     edgesRef: React.MutableRefObject<Edge[]>;
+    handleIntercept: (p: () => void) => void;
+    notifyChange: () => void;
 }) => {
     const nav = useNavigator();
 
-    const handleSelectWorkflow = useCallback(async (wf: any) => {
+    const handleSelectWorkflowActual = useCallback(async (wf: any) => {
         // If it's already full data (e.g. from a fresh create), we can push directly
         // Otherwise, it's just metadata from the list
         const isFullData = !!wf.graph;
@@ -322,6 +336,7 @@ const WorkflowsTabWithNavigator = ({
                     handleEdgesChange={handleEdgesChange}
                     nodesRef={nodesRef}
                     edgesRef={edgesRef}
+                    notifyChange={notifyChange}
                     onBack={() => {
                         setActiveWorkflow(null);
                         nav.pop();
@@ -362,6 +377,7 @@ const WorkflowsTabWithNavigator = ({
                     handleEdgesChange={handleEdgesChange}
                     nodesRef={nodesRef}
                     edgesRef={edgesRef}
+                    notifyChange={notifyChange}
                     onBack={() => {
                         setActiveWorkflow(null);
                         nav.pop();
@@ -369,7 +385,11 @@ const WorkflowsTabWithNavigator = ({
                 />
             );
         }
-    }, [nodeTypes, isCreating, setActiveWorkflow, saveWorkflow, runWorkflow, isRunning, activeNodeIds, activeClientId, canSave, isEditModalOpen, setIsEditModalOpen, setIsConsoleVisible, handleNodesChange, handleEdgesChange, nodesRef, edgesRef, loadWorkflow, nav]);
+    }, [nodeTypes, isCreating, setActiveWorkflow, saveWorkflow, runWorkflow, isRunning, activeNodeIds, activeClientId, canSave, isEditModalOpen, setIsEditModalOpen, setIsConsoleVisible, handleNodesChange, handleEdgesChange, nodesRef, edgesRef, loadWorkflow, nav, notifyChange]);
+
+    const handleSelectWorkflow = useCallback((wf: any) => {
+        handleIntercept(() => handleSelectWorkflowActual(wf));
+    }, [handleIntercept, handleSelectWorkflowActual]);
 
     // Only auto-navigate if on initial scene and activeWorkflow IS ALREADY LOADED with graph
     // (This helps with refresh/deep linking)
@@ -406,6 +426,7 @@ const WorkflowsTabWithNavigator = ({
                     handleEdgesChange={handleEdgesChange}
                     nodesRef={nodesRef}
                     edgesRef={edgesRef}
+                    notifyChange={notifyChange}
                     onBack={() => {
                         setActiveWorkflow(null);
                         nav.pop();
@@ -414,7 +435,7 @@ const WorkflowsTabWithNavigator = ({
             );
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeWorkflow?.id, !!activeWorkflow?.graph, isRunning, isCreating, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, nav.canGoBack]);
+    }, [activeWorkflow?.id, !!activeWorkflow?.graph, isRunning, isCreating, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, nav.canGoBack, notifyChange]);
 
 
     return (
@@ -473,7 +494,8 @@ export default function ManagerPage() {
         isRunning,
         executionLogs,
         liveRuntimeData,
-        activeNodeIds
+        activeNodeIds,
+        notifyChange
     } = useWorkflowOperations({
         activeWorkflow,
         nodesRef,
@@ -484,16 +506,27 @@ export default function ManagerPage() {
         }
     });
 
+    const {
+        isIntercepted,
+        handleIntercept,
+        confirmSave,
+        confirmDiscard,
+        cancel,
+        isSaving: isInterceptSaving
+    } = useNavigationIntercept();
+
     const setActiveTab = useCallback((tab: 'workflows' | 'reports' | 'ai-tasks' | 'client-metadata') => {
-        // If switching TO workflows, or clicking Workflows again, clear selection to show list
-        if (tab === 'workflows') {
-            console.log('[ManagerPage] Explicit sidebar click. Clearing active workflow.');
-            setActiveWorkflow(null);
-            // Force reset of the navigator state
-            setResetNonce(n => n + 1);
-        }
-        setActiveTabState(tab);
-    }, [setActiveWorkflow]);
+        handleIntercept(() => {
+            // If switching TO workflows, or clicking Workflows again, clear selection to show list
+            if (tab === 'workflows') {
+                console.log('[ManagerPage] Explicit sidebar click. Clearing active workflow.');
+                setActiveWorkflow(null);
+                // Force reset of the navigator state
+                setResetNonce(n => n + 1);
+            }
+            setActiveTabState(tab);
+        });
+    }, [setActiveWorkflow, handleIntercept]);
 
     useEffect(() => {
         if (activeWorkflow?.graph) {
@@ -615,6 +648,8 @@ export default function ManagerPage() {
                                     handleEdgesChange={handleEdgesChange}
                                     nodesRef={nodesRef}
                                     edgesRef={edgesRef}
+                                    handleIntercept={handleIntercept}
+                                    notifyChange={notifyChange}
                                 />
                             }
                         />
@@ -685,6 +720,28 @@ export default function ManagerPage() {
                     />
                 )}
             </main>
+
+            <ConfirmModal
+                isOpen={isIntercepted}
+                title="Unsaved Changes"
+                description="You have unsaved changes. Would you like to save them before switching?"
+                confirmLabel="Save and Switch"
+                cancelLabel="Stay Here"
+                variant="warning"
+                isLoading={isInterceptSaving}
+                onConfirm={confirmSave}
+                onCancel={cancel}
+            >
+                <div className="mt-2">
+                    <button
+                        type="button"
+                        className="w-full px-4 py-3 rounded-2xl text-xs font-bold text-red-500 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all uppercase tracking-widest active:scale-95"
+                        onClick={confirmDiscard}
+                    >
+                        Discard and Switch
+                    </button>
+                </div>
+            </ConfirmModal>
         </div >
     );
 }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppHeader } from '../../../widgets/app-header';
 import { ConfirmModal } from '../confirm-modal';
 import { Icon } from '../icon';
+import { useRegisterBlocker } from '../../lib/navigation-guard/useNavigationGuard';
 
 export interface AppFormTab {
     id: string;
@@ -29,6 +30,7 @@ export interface AppFormViewProps {
     children: React.ReactNode;
     
     saveLabel?: string;
+    blockerId?: string;
 }
 
 export const AppFormView: React.FC<AppFormViewProps> = ({
@@ -46,9 +48,18 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     headerRightContent,
     footer,
     children,
-    saveLabel = 'Save Changes'
+    saveLabel = 'Save Changes',
+    blockerId = 'app-form-view'
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
+
+    // Register this form with the navigation guard
+    useRegisterBlocker(
+        blockerId, 
+        isDirty, 
+        onSave, 
+        onDiscard || onCancel
+    );
 
     const handleBack = () => {
         if (isDirty) {

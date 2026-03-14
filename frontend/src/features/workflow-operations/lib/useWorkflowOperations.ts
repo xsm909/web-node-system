@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { Node, Edge } from 'reactflow';
 import { apiClient } from '../../../shared/api/client';
 import type { Workflow } from '../../../entities/workflow/model/types';
+import { useRegisterBlocker } from '../../../shared/lib/navigation-guard/useNavigationGuard';
 
 interface UseWorkflowOperationsProps {
     activeWorkflow: Workflow | null;
@@ -25,13 +26,38 @@ export function useWorkflowOperations({
     const [liveRuntimeData, setLiveRuntimeData] = useState<Record<string, any>>({});
     const [activeNodeIds, setActiveNodeIds] = useState<string[]>([]);
 
+    // We use a nonce to trigger dirty check when nodes/edges change
+    const [changeNonce, setChangeNonce] = useState(0);
+
     useEffect(() => {
         setIsRunning(false);
         setCurrentExecutionId(null);
         setExecutionLogs([]);
         setLiveRuntimeData({});
         setActiveNodeIds([]);
+        setChangeNonce(0);
     }, [activeWorkflow?.id]);
+
+    const isDirty = useMemo(() => {
+        if (!activeWorkflow) return false;
+        
+        // Simple comparison of nodes and edges length first
+        const currentNodes = nodesRef.current || [];
+        const currentEdges = edgesRef.current || [];
+        const initialNodes = activeWorkflow.graph?.nodes || [];
+        const initialEdges = activeWorkflow.graph?.edges || [];
+
+        if (currentNodes.length !== initialNodes.length) return true;
+        if (currentEdges.length !== initialEdges.length) return true;
+
+        // Use stringify for deep comparison as a simple way for graphs
+        // Note: activeWorkflow.graph should be what was originally loaded
+        const currentGraphStr = JSON.stringify({ nodes: currentNodes, edges: currentEdges });
+        const initialGraphStr = JSON.stringify({ nodes: initialNodes, edges: initialEdges });
+
+        return currentGraphStr !== initialGraphStr;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeWorkflow, activeWorkflow?.graph, changeNonce]);
 
     const onExecutionCompleteRef = useRef(onExecutionComplete);
     useEffect(() => {
@@ -53,10 +79,23 @@ export function useWorkflowOperations({
                     graph: { nodes: nodesRef.current, edges: edgesRef.current }
                 });
             }
+            // Reset dirty state by mimicking fresh load
+            setChangeNonce(0);
         } finally {
             setIsSaving(false);
         }
     };
+
+    // Register with navigation guard
+    useRegisterBlocker(
+        activeWorkflow ? `workflow-${activeWorkflow.id}` : 'workflow-editor',
+        isDirty,
+        saveWorkflow,
+        () => {
+            // Discard: we don't need to do anything specifically here 
+            // because navigation will happen and state will be lost/reloaded anyway
+        }
+    );
 
     const pollExecution = useCallback(async (executionId: string) => {
         try {
@@ -144,6 +183,8 @@ export function useWorkflowOperations({
         executionLogs,
         liveRuntimeData,
         setLiveRuntimeData,
-        activeNodeIds
+        activeNodeIds,
+        isDirty,
+        notifyChange: () => setChangeNonce(n => n + 1)
     };
 }
