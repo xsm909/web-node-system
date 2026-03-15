@@ -48,7 +48,6 @@ const AdminWorkflowEditorView = ({
     notifyChange
 }: any) => {
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-    const [isDirty, setIsDirty] = useState(false);
     const [isParamsExpanded, setIsParamsExpanded] = useState(globalIsParamsExpanded);
 
     const handleToggleParams = useCallback(() => {
@@ -76,17 +75,6 @@ const AdminWorkflowEditorView = ({
         }
     }, [activeWorkflow]);
 
-    useEffect(() => {
-        if (!initialWorkflowRef.current) return;
-
-        const currentDataStr = JSON.stringify({
-            graph: activeWorkflow?.graph,
-            workflow_data: activeWorkflow?.workflow_data
-        });
-        if (initialWorkflowRef.current !== currentDataStr) {
-            setIsDirty(true);
-        }
-    }, [activeWorkflow]);
 
     const onNodesChange = useCallback((nodes: Node[]) => {
         handleNodesChange(nodes);
@@ -122,10 +110,8 @@ const AdminWorkflowEditorView = ({
             };
         });
 
-        if (initialNodesStrRef.current && JSON.stringify(nodes) !== initialNodesStrRef.current) {
-            setIsDirty(true);
-        }
-    }, [handleNodesChange, setActiveWorkflow]);
+        notifyChange?.();
+    }, [handleNodesChange, setActiveWorkflow, notifyChange]);
 
     const onEdgesChange = useCallback((edges: Edge[]) => {
         handleEdgesChange(edges);
@@ -142,14 +128,11 @@ const AdminWorkflowEditorView = ({
             };
         });
 
-        if (initialEdgesStrRef.current && JSON.stringify(edges) !== initialEdgesStrRef.current) {
-            setIsDirty(true);
-        }
-    }, [handleEdgesChange, setActiveWorkflow]);
+        notifyChange?.();
+    }, [handleEdgesChange, setActiveWorkflow, notifyChange]);
 
     const onSaveInternal = async () => {
         await saveWorkflow();
-        setIsDirty(false);
         onBack();
     };
 
@@ -200,7 +183,7 @@ const AdminWorkflowEditorView = ({
             title={activeWorkflow?.name || 'Workflow'}
             parentTitle="Workflows"
             icon="account_tree"
-            isDirty={isDirty}
+            isDirty={notifyChange.isDirty} // Pass isDirty from operations hook
             onSave={onSaveInternal}
             onCancel={onBack}
             isSaving={isSaving}
@@ -393,10 +376,10 @@ const AdminWorkflowsTabWithNavigator = ({
 
     // Only replace scene if we are in the editor and graph JUST arrived
     const hasGraph = !!activeWorkflow?.graph;
-    const prevHasGraphRef = useRef(hasGraph);
 
     useEffect(() => {
-        if (hasGraph && !prevHasGraphRef.current && nav.canGoBack) {
+        if (hasGraph && nav.canGoBack) {
+            console.log('[AdminWorkflowsTab] Refreshing editor scene for:', activeWorkflow?.id);
             nav.replace(
                 <AdminWorkflowEditorView
                     activeWorkflow={activeWorkflow}
@@ -428,7 +411,6 @@ const AdminWorkflowsTabWithNavigator = ({
                 />
             );
         }
-        prevHasGraphRef.current = hasGraph;
     }, [activeWorkflow, isRunning, isSaving, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, isConsoleVisible, executionLogs, liveRuntimeData, nav, notifyChange]);
 
     return (

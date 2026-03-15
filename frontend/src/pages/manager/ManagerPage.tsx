@@ -424,11 +424,10 @@ const WorkflowsTabWithNavigator = ({
 
     // Only replace scene if we are in the editor and graph JUST arrived
     const hasGraph = !!activeWorkflow?.graph;
-    const prevHasGraphRef = useRef(hasGraph);
 
     useEffect(() => {
-        if (hasGraph && !prevHasGraphRef.current && nav.canGoBack) {
-            console.log('[WorkflowsTab] Graph arrived, upgrading scene for:', activeWorkflow.id);
+        if (hasGraph && nav.canGoBack) {
+            console.log('[WorkflowsTab] Refreshing editor scene for:', activeWorkflow?.id);
             nav.replace(
                 <WorkflowEditorView
                     activeWorkflow={activeWorkflow}
@@ -459,8 +458,7 @@ const WorkflowsTabWithNavigator = ({
                 />
             );
         }
-        prevHasGraphRef.current = hasGraph;
-    }, [activeWorkflow?.id, hasGraph, isRunning, isCreating, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, nav, notifyChange]);
+    }, [activeWorkflow?.id, activeWorkflow, isRunning, isCreating, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, nav, notifyChange]);
 
 
     return (

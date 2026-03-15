@@ -70,6 +70,8 @@ export function useWorkflowOperations({
         const dirty = currentStr !== initialWorkflowRef.current;
         if (dirty) {
             console.log('[useWorkflowOperations] isDirty: true');
+        } else {
+            console.log('[useWorkflowOperations] isDirty: false');
         }
         return dirty;
     }, [activeWorkflow?.id, activeWorkflow?.workflow_data, changeNonce, nodesRef, edgesRef]);
