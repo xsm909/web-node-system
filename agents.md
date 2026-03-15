@@ -242,3 +242,154 @@ The system supports 4 static node types and 1 dynamic behavior based on graph co
 - **Dirty State Tracking**: Forms must track unsaved changes (`isDirty`). If a user attempts to navigate back while the form is dirty, a 3-way confirmation modal must appear allowing the user to "Save Changes", "Discard", or "Stay and Edit".
 - **Sticky Footer Action Bar**: Include a sticky bottom footer bar containing consistent "Cancel" and primary "Save Changes" execution buttons.
 - **Shared Implementation**: Forms must implement this standard by referencing the shared `AppFormView` component.
+
+## 13. External Model Usage Policy (Gemini & OpenAI)
+
+When developing agents in this project, external model usage must
+strictly follow the patterns described below. The purpose of this
+section is to standardize how agents access LLM capabilities and
+web-grounded information.
+
+Only the functionality demonstrated in the reference examples is
+allowed.
+
+### 13.1 Allowed Providers
+
+Agents may interact only with:
+
+-   Google Gemini via `google.genai`
+-   OpenAI models via the `openai` client
+
+No other SDKs, wrappers, or unofficial libraries should be used.
+
+------------------------------------------------------------------------
+
+## 13.2 Google Gemini Usage
+
+Gemini must be used through the official `google.genai` client.
+
+Example reference pattern:
+
+``` python
+from google import genai
+from google.genai import types
+
+client = genai.Client()
+
+grounding_tool = types.Tool(
+    google_search=types.GoogleSearch()
+)
+
+config = types.GenerateContentConfig(
+    tools=[grounding_tool]
+)
+
+response = client.models.generate_content(
+    model="gemini-3-flash-preview",
+    contents="Who won the euro 2024?",
+    config=config,
+)
+
+print(response.text)
+```
+
+### 13.2.1 Mandatory Grounding
+
+When agents require external knowledge or up‑to‑date information,
+**Google Search Grounding must be used**.
+
+This is critical for:
+
+-   factual questions
+-   current events
+-   statistics
+-   verification of claims
+-   information that may change over time
+
+Grounding is enabled through:
+
+``` python
+types.Tool(google_search=types.GoogleSearch())
+```
+
+This tool must be included inside `GenerateContentConfig`.
+
+### 13.2.2 When Grounding Must Be Used
+
+Agents should enable Google Search grounding whenever:
+
+-   the task requires real-world knowledge
+-   the answer depends on recent events
+-   the user asks factual questions
+-   the model must reduce hallucinations
+
+Grounding allows Gemini to connect its response to live search results
+and produce more reliable outputs.
+
+------------------------------------------------------------------------
+
+## 13.3 OpenAI Usage
+
+OpenAI must be used via the official `OpenAI` client.
+
+Reference pattern:
+
+``` python
+from openai import OpenAI
+
+client = OpenAI()
+
+response = client.responses.create(
+    model="gpt-5",
+    tools=[{"type": "web_search"}],
+    input="What was a positive news story from today?"
+)
+
+print(response.output_text)
+```
+
+### 13.3.1 Web Search Tool
+
+When using OpenAI models, agents may use the built-in web search
+capability through:
+
+    tools=[{"type": "web_search"}]
+
+This enables the model to retrieve current information when required.
+
+### 13.3.2 Model Usage
+
+Agents should call models only through:
+
+    client.responses.create()
+
+The response text must be read from:
+
+    response.output_text
+
+------------------------------------------------------------------------
+
+## 13.4 Design Principles
+
+All agents must follow these principles when interacting with LLM
+providers:
+
+1.  **Use official SDKs only**
+2.  **Prefer grounded answers when factual accuracy matters**
+3.  **Use search tools for real‑time information**
+4.  **Avoid building custom scraping or retrieval systems when the
+    provider tool exists**
+5.  **Keep the integration minimal and predictable**
+
+------------------------------------------------------------------------
+
+## 13.5 Summary
+
+For this project:
+
+-   Gemini must use **Google Search Grounding**
+-   OpenAI must use **web_search**
+-   Only the demonstrated API patterns are permitted
+
+This ensures consistent behavior across all agents and improves
+reliability when answering real‑world questions.
