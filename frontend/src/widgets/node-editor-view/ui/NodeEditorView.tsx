@@ -164,6 +164,8 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
     inline = false,
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
+    // Capture initial parameters when node is first opened to detect changes
+    const [initialParams] = useState(() => JSON.stringify(node?.data.params || {}));
 
     const nodeTypeData = nodeTypes.find(t => t.name === node?.data.label);
     const allParameters = nodeTypeData?.parameters || [];
@@ -182,15 +184,26 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
         },
     });
 
-    const [isDirty, setIsDirty] = useState(false);
+
+    // Downward synchronization: update form if node data changes externally
     useEffect(() => {
-        setIsDirty(form.state.isDirty);
-    }, [form.state.isDirty]);
+        if (node?.data.params) {
+            // Only reset if data actually differs to avoid feedback loops
+            if (JSON.stringify(node.data.params) !== JSON.stringify(form.state.values)) {
+                form.reset(node.data.params);
+            }
+        }
+    }, [node?.data.params, form]);
 
     if (!node || parameters.length === 0) return null;
 
     const handleBack = () => {
-        if (isDirty && !isReadOnly) {
+        const currentParams = JSON.stringify(form.state.values);
+        const reallyDirty = currentParams !== initialParams;
+        
+        console.log('[NodeEditorView] handleBack reallyDirty:', reallyDirty, 'isReadOnly:', isReadOnly);
+        
+        if (reallyDirty && !isReadOnly) {
             setShowConfirmBack(true);
         } else {
             onBack();
@@ -252,7 +265,8 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                                                 });
                                                 // Trigger upstream update immediately for real-time application
                                                 if (node) {
-                                                    const updatedFormData = { ...form.state.values, ...updates };
+                                                    const updatedFormData = { ...(node.data.params || {}), ...updates };
+                                                    console.log('[NodeEditorView] onChange triggered for node:', node.id, 'updates:', updates, 'final params:', updatedFormData);
                                                     onChange(node.id, updatedFormData);
                                                 }
                                             }}

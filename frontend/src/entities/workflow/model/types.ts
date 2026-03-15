@@ -6,5 +6,5 @@ export interface Workflow {
     workflow_data?: any;
     runtime_data?: any;
     graph?: any;
-    category?: 'personal' | 'common';
+    category?: string;
 }

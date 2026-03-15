@@ -30,6 +30,7 @@ class WorkflowUpdate(BaseModel):
 
 class WorkflowRename(BaseModel):
     name: str
+    category: Optional[str] = None
 
 
 class WorkflowOut(BaseModel):
@@ -37,6 +38,7 @@ class WorkflowOut(BaseModel):
     name: str
     status: Optional[str] = "draft"
     owner_id: str # Changed from UUID to str
+    category: Optional[str] = "general"
 
     class Config:
         from_attributes = True
@@ -126,42 +128,22 @@ def get_assigned_users(current_user: User = Depends(get_current_user), db: Sessi
 
 @router.get("/users/{user_id}/workflows", response_model=List[WorkflowOut])
 def get_user_workflows(user_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
-    # Admins can see everything
-    if current_user.role == "admin":
-        return db.query(Workflow).filter(Workflow.owner_id == user_id).all()
-        
-    # Ensure manager has access to this user or it's themselves, or it's "common"
-    is_common = user_id == "common"
-    
-    if not is_common and user_id != str(current_user.id):
-        if current_user.role == "client":
+    # Admins can see everything, other users can see their own
+    if current_user.role != "admin":
+        if user_id != str(current_user.id):
              raise HTTPException(status_code=403, detail="Access denied")
-             
-        client_ids = [str(u.id) for u in current_user.assigned_clients]
-        if user_id not in client_ids:
-            raise HTTPException(status_code=403, detail="Access denied")
-            
-    # Load workflows for user plus any "common" ones if they are asking for themselves or clients
-    query = db.query(Workflow).filter(Workflow.owner_id == user_id)
-    return query.all()
+    
+    return db.query(Workflow).filter(Workflow.owner_id == user_id).all()
 
 
 @router.post("/workflows", response_model=WorkflowOut)
 def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
-    is_common = data.owner_id == "common" or data.category == "common"
-    if is_common and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can create common workflows")
-    if current_user.role != "admin" and not is_common and uuid.UUID(data.owner_id) != current_user.id:
-        client_ids = [str(u.id) for u in current_user.assigned_clients]
-        if data.owner_id not in client_ids:
-            raise HTTPException(status_code=403, detail="Access denied")
-    
     wf = Workflow(
-        name=data.name, 
-        owner_id=data.owner_id, 
+        name=data.name,
+        owner_id=str(current_user.id),
         created_by=current_user.id,
-        category=data.category,
-        graph={
+        category=data.category or "general",
+        graph=data.graph or {
             "nodes": [
                 {
                     "id": "node_start", 
@@ -172,7 +154,9 @@ def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_curre
                 }
             ], 
             "edges": []
-        }
+        },
+        workflow_data=data.workflow_data or {},
+        status=WorkflowStatus.draft
     )
     db.add(wf)
     db.commit()
@@ -189,12 +173,9 @@ def get_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_curren
     if current_user.role == "admin":
         return wf
 
-    is_common = wf.owner_id == "common"
-    if not is_common and wf.owner_id != str(current_user.id):
-        client_ids = [str(u.id) for u in current_user.assigned_clients]
-        if wf.owner_id not in client_ids:
-            if current_user.role != "admin": # Double check for admin
-                raise HTTPException(status_code=403, detail="Access denied")
+    # Enforce strict ownership: only creator or admin
+    if current_user.role != "admin" and wf.owner_id != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Access denied")
     return wf
 
 
@@ -204,13 +185,9 @@ def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: 
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
     
-    is_common = wf.owner_id == "common"
-    if is_common and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can modify common workflows")
-    if current_user.role != "admin" and not is_common and wf.owner_id != str(current_user.id):
-        client_ids = [str(u.id) for u in current_user.assigned_clients]
-        if wf.owner_id not in client_ids:
-            raise HTTPException(status_code=403, detail="Access denied")
+    # Enforce strict ownership: only creator or admin
+    if current_user.role != "admin" and wf.owner_id != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Access denied")
     
     wf.graph = data.graph
     
@@ -231,18 +208,46 @@ def rename_workflow(workflow_id: uuid.UUID, data: WorkflowRename, current_user: 
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
     
-    is_common = wf.owner_id == "common"
-    if is_common and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can rename common workflows")
-    if current_user.role != "admin" and not is_common and wf.owner_id != str(current_user.id):
+    if current_user.role != "admin" and wf.owner_id != str(current_user.id):
         client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
     
-    wf.name = data.name
+    if data.name:
+        wf.name = data.name
+    if data.category:
+        wf.category = data.category
+
     db.commit()
     db.refresh(wf)
     return wf
+
+
+@router.post("/workflows/{workflow_id}/duplicate", response_model=WorkflowOut)
+def duplicate_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
+    wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
+    if not wf:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    if current_user.role != "admin" and wf.owner_id != str(current_user.id):
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
+        if wf.owner_id not in client_ids:
+            raise HTTPException(status_code=403, detail="Access denied")
+    
+    new_wf = Workflow(
+        name=f"Copy of {wf.name}",
+        owner_id=str(current_user.id),
+        created_by=current_user.id,
+        graph=wf.graph,
+        category=wf.category,
+        workflow_data=wf.workflow_data,
+        status=WorkflowStatus.draft
+    )
+
+    db.add(new_wf)
+    db.commit()
+    db.refresh(new_wf)
+    return new_wf
 
 
 @router.delete("/workflows/{workflow_id}")
@@ -251,10 +256,7 @@ def delete_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_cur
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
     
-    is_common = wf.owner_id == "common"
-    if is_common and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can delete common workflows")
-    if current_user.role != "admin" and not is_common and wf.owner_id != str(current_user.id):
+    if current_user.role != "admin" and wf.owner_id != str(current_user.id):
         client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
@@ -274,8 +276,7 @@ def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = No
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
     
-    is_common = wf.owner_id == "common"
-    if current_user.role != "admin" and not is_common and wf.owner_id != str(current_user.id):
+    if current_user.role != "admin" and wf.owner_id != str(current_user.id):
         client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
@@ -311,11 +312,9 @@ def list_workflow_executions(workflow_id: uuid.UUID, current_user: User = Depend
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
     # Access control — common workflows are accessible by any authenticated user
-    is_common = wf.owner_id == "common"
-    if not is_common and current_user.role != "admin" and wf.owner_id != str(current_user.id):
-        client_ids = [str(u.id) for u in current_user.assigned_clients]
-        if wf.owner_id not in client_ids:
-            raise HTTPException(status_code=403, detail="Access denied")
+    # Enforce strict ownership: only creator or admin
+    if current_user.role != "admin" and wf.owner_id != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Access denied")
     
     return db.query(WorkflowExecution).filter(WorkflowExecution.workflow_id == workflow_id).order_by(WorkflowExecution.started_at.desc()).limit(10).all()
 
@@ -332,11 +331,9 @@ def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(
     
     wf = db.query(Workflow).filter(Workflow.id == execution.workflow_id).first()
     # Common workflows can be executed/viewed by any authenticated user
-    is_common = wf.owner_id == "common"
-    if not is_common and current_user.role != "admin" and wf.owner_id != str(current_user.id):
-        client_ids = [str(u.id) for u in current_user.assigned_clients]
-        if wf.owner_id not in client_ids:
-            raise HTTPException(status_code=403, detail="Access denied")
+    # Enforce strict ownership: only creator or admin
+    if current_user.role != "admin" and wf.owner_id != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Access denied")
     
     # Construct response and explicitly map execution runtime_data to the response schema using alias or field mapping since the frontend expects current_runtime_data
     response = ExecutionOut.model_validate(execution)

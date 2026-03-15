@@ -44,7 +44,8 @@ const AdminWorkflowEditorView = ({
     nodesRef,
     edgesRef,
     onBack,
-    onEditNode
+    onEditNode,
+    notifyChange
 }: any) => {
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [isDirty, setIsDirty] = useState(false);
@@ -93,11 +94,30 @@ const AdminWorkflowEditorView = ({
         // Sync to parent state so changes are preserved if we remount (e.g. returning from Node Type editor)
         setActiveWorkflow((prev: any) => {
             if (!prev) return prev;
+
+            // Merge graph nodes with existing parameters from parent state
+            const mergedNodes = nodes.map((gn: any) => {
+                const existing = prev.graph?.nodes?.find((en: any) => en.id === gn.id);
+                const finalParams = existing?.data?.params || gn.data?.params || {};
+                return {
+                    ...gn,
+                    data: {
+                        ...gn.data,
+                        params: finalParams
+                    }
+                };
+            });
+
+            console.log('[AdminCommonWorkflow] onNodesChange (graph update) Merging nodes. Preserving params from state.');
+            
+            // Update the ref so save uses merged data
+            nodesRef.current = mergedNodes;
+
             return {
                 ...prev,
                 graph: {
                     ...prev.graph,
-                    nodes: nodes
+                    nodes: mergedNodes
                 }
             };
         });
@@ -134,10 +154,12 @@ const AdminWorkflowEditorView = ({
     };
 
     const handleParamsChange = useCallback((nodeId: string, params: any) => {
+        console.log('[AdminCommonWorkflow] handleParamsChange nodeId:', nodeId, 'params:', params);
         const currentNodes = nodesRef.current || [];
         const updatedNodes = currentNodes.map((n: any) =>
             n.id === nodeId ? { ...n, data: { ...n.data, params } } : n
         );
+        nodesRef.current = updatedNodes;
 
         setActiveWorkflow((prev: any) => {
             if (!prev) return prev;
@@ -154,7 +176,8 @@ const AdminWorkflowEditorView = ({
         if (selectedNode?.id === nodeId) {
             setSelectedNode((prev: any) => prev ? { ...prev, data: { ...prev.data, params } } : prev);
         }
-    }, [setActiveWorkflow, selectedNode?.id]);
+        notifyChange?.();
+    }, [setActiveWorkflow, setSelectedNode, notifyChange, selectedNode?.id, nodesRef, edgesRef]);
 
     const handleNodeSelect = useCallback((node: Node | null) => {
         if (!node || !nodeTypes) {
@@ -265,6 +288,7 @@ const AdminWorkflowEditorView = ({
                             >
                                 {selectedNode && (
                                     <NodeEditorView
+                                        key={selectedNode.id}
                                         inline
                                         node={selectedNode}
                                         nodeTypes={nodeTypes}
@@ -292,13 +316,14 @@ const AdminWorkflowEditorView = ({
 };
 
 const AdminWorkflowsTabWithNavigator = ({
-    workflowsByOwner,
+    workflows,
     activeWorkflow,
     nodeTypes,
     setWorkflowToDelete,
     setWorkflowToRename,
     loadWorkflow,
     handleCreateWorkflow,
+    handleDuplicateWorkflow,
     setActiveWorkflow,
     saveWorkflow,
     runWorkflow,
@@ -316,11 +341,13 @@ const AdminWorkflowsTabWithNavigator = ({
     executionLogs,
     liveRuntimeData,
     setRenameInputValue,
+    setRenameCategoryValue,
     handleNodesChange,
     handleEdgesChange,
     nodesRef,
     edgesRef,
-    onEditNode
+    onEditNode,
+    notifyChange
 }: any) => {
     const nav = useNavigator();
 
@@ -349,6 +376,7 @@ const AdminWorkflowsTabWithNavigator = ({
                 nodesRef={nodesRef}
                 edgesRef={edgesRef}
                 onEditNode={onEditNode}
+                notifyChange={notifyChange}
                 onBack={() => {
                     setActiveWorkflow(null);
                     nav.pop();
@@ -363,8 +391,12 @@ const AdminWorkflowsTabWithNavigator = ({
         }
     }, [activeWorkflow, nav.canGoBack, handleSelectWorkflow]);
 
+    // Only replace scene if we are in the editor and graph JUST arrived
+    const hasGraph = !!activeWorkflow?.graph;
+    const prevHasGraphRef = useRef(hasGraph);
+
     useEffect(() => {
-        if (activeWorkflow && nav.canGoBack) {
+        if (hasGraph && !prevHasGraphRef.current && nav.canGoBack) {
             nav.replace(
                 <AdminWorkflowEditorView
                     activeWorkflow={activeWorkflow}
@@ -388,6 +420,7 @@ const AdminWorkflowsTabWithNavigator = ({
                     nodesRef={nodesRef}
                     edgesRef={edgesRef}
                     onEditNode={onEditNode}
+                    notifyChange={notifyChange}
                     onBack={() => {
                         setActiveWorkflow(null);
                         nav.pop();
@@ -395,17 +428,17 @@ const AdminWorkflowsTabWithNavigator = ({
                 />
             );
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeWorkflow, isRunning, isSaving, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, isConsoleVisible, executionLogs, liveRuntimeData]);
+        prevHasGraphRef.current = hasGraph;
+    }, [activeWorkflow, isRunning, isSaving, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, isConsoleVisible, executionLogs, liveRuntimeData, nav, notifyChange]);
 
     return (
         <WorkflowList
-            workflowsByOwner={workflowsByOwner}
+            workflows={workflows}
             isSidebarOpen={isSidebarOpen}
             onToggleSidebar={onToggleSidebar}
             onSelectWorkflow={handleSelectWorkflow}
-            onCreateWorkflow={(name, ownerId) => {
-                handleCreateWorkflow(name, ownerId).then((newWf: any) => {
+            onCreateWorkflow={(name) => {
+                handleCreateWorkflow(name, 'Analys').then((newWf: any) => {
                     if (newWf) handleSelectWorkflow(newWf);
                 });
             }}
@@ -413,7 +446,9 @@ const AdminWorkflowsTabWithNavigator = ({
             onRenameWorkflow={(wf) => {
                 setWorkflowToRename(wf);
                 setRenameInputValue(wf.name);
+                setRenameCategoryValue(wf.category || 'personal');
             }}
+            onDuplicateWorkflow={(wf: any) => handleDuplicateWorkflow(wf.id)}
         />
     );
 };
@@ -433,12 +468,13 @@ export function AdminCommonWorkflowManagement({
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [renameInputValue, setRenameInputValue] = useState('');
+    const [renameCategoryValue, setRenameCategoryValue] = useState<string>('personal');
 
     const nodesRef = useRef<Node[]>([]);
     const edgesRef = useRef<Edge[]>([]);
 
     const {
-        workflowsByOwner,
+        workflows,
         activeWorkflow,
         nodeTypes,
         workflowToDelete,
@@ -448,6 +484,7 @@ export function AdminCommonWorkflowManagement({
         loadWorkflow,
         handleCreateWorkflow,
         confirmDeleteWorkflow,
+        handleDuplicateWorkflow,
         handleRenameWorkflow,
         setActiveWorkflow
     } = useWorkflowManagement(refreshTrigger);
@@ -459,7 +496,8 @@ export function AdminCommonWorkflowManagement({
         isSaving,
         executionLogs,
         liveRuntimeData,
-        activeNodeIds
+        activeNodeIds,
+        notifyChange
     } = useWorkflowOperations({
         activeWorkflow,
         nodesRef,
@@ -509,7 +547,7 @@ export function AdminCommonWorkflowManagement({
     return (
         <div className="flex-1 flex flex-col min-w-0 relative h-full">
             <AdminWorkflowsTabWithNavigator
-                workflowsByOwner={workflowsByOwner}
+                workflows={workflows}
                 activeWorkflow={activeWorkflow}
                 nodeTypes={nodeTypes}
                 setWorkflowToDelete={setWorkflowToDelete}
@@ -533,11 +571,14 @@ export function AdminCommonWorkflowManagement({
                 executionLogs={executionLogs}
                 liveRuntimeData={liveRuntimeData}
                 setRenameInputValue={setRenameInputValue}
+                setRenameCategoryValue={setRenameCategoryValue}
+                handleDuplicateWorkflow={handleDuplicateWorkflow}
                 handleNodesChange={handleNodesChange}
                 handleEdgesChange={handleEdgesChange}
                 nodesRef={nodesRef}
                 edgesRef={edgesRef}
                 onEditNode={handleNodeDoubleClick}
+                notifyChange={notifyChange}
             />
 
             <ConfirmModal
@@ -552,30 +593,44 @@ export function AdminCommonWorkflowManagement({
             <ConfirmModal
                 isOpen={!!workflowToRename}
                 title="Rename Workflow"
-                description={`Enter a new name for "${workflowToRename?.name}".`}
-                confirmLabel="Rename"
+                description={`Update properties for "${workflowToRename?.name}".`}
+                confirmLabel="Update"
                 variant="success"
                 onConfirm={() => {
                     if (workflowToRename) {
-                        handleRenameWorkflow(workflowToRename.id, renameInputValue);
+                        handleRenameWorkflow(workflowToRename.id, renameInputValue, renameCategoryValue);
                     }
                     setWorkflowToRename(null);
                 }}
                 onCancel={() => setWorkflowToRename(null)}
             >
-                <input
-                    autoFocus
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-medium"
-                    placeholder="Workflow name"
-                    value={renameInputValue}
-                    onChange={(e) => setRenameInputValue(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && workflowToRename && renameInputValue.trim()) {
-                            handleRenameWorkflow(workflowToRename.id, renameInputValue);
-                            setWorkflowToRename(null);
-                        }
-                    }}
-                />
+                <div className="flex flex-col gap-4">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider ml-1">Name</label>
+                        <input
+                            autoFocus
+                            className="w-full px-4 py-3 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-medium"
+                            placeholder="Workflow name"
+                            value={renameInputValue}
+                            onChange={(e) => setRenameInputValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && workflowToRename && renameInputValue.trim()) {
+                                    handleRenameWorkflow(workflowToRename.id, renameInputValue, renameCategoryValue);
+                                    setWorkflowToRename(null);
+                                }
+                            }}
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider ml-1">Category</label>
+                        <input
+                            className="w-full px-4 py-3 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-brand transition-all font-medium"
+                            placeholder="e.g. personal, common, Analys"
+                            value={renameCategoryValue}
+                            onChange={(e) => setRenameCategoryValue(e.target.value)}
+                        />
+                    </div>
+                </div>
             </ConfirmModal>
         </div>
     );

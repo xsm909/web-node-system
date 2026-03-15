@@ -10,7 +10,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
     const { user: currentUser } = useAuthStore();
     const { activeClientId, setAssignedUsers } = useClientStore();
     const [assignedUsers, setAssignedUsersState] = useState<AssignedUser[]>([]);
-    const [workflowsByOwner, setWorkflowsByOwner] = useState<Record<string, Workflow[]>>({});
+    const [workflows, setWorkflows] = useState<Workflow[]>([]);
     const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
 
@@ -18,12 +18,9 @@ export function useWorkflowManagement(refreshTrigger?: number) {
     const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
     const [workflowToRename, setWorkflowToRename] = useState<Workflow | null>(null);
 
-    // Auto-close workflow if it doesn't belong to the active context (client or personal)
+    // Auto-close workflow if it doesn't belong to the active context (client or current user)
     useEffect(() => {
         if (activeWorkflow) {
-            if (activeWorkflow.owner_id === 'common') {
-                return;
-            }
             const isPersonal = activeWorkflow.owner_id === currentUser?.id;
             const belongsToActiveClient = activeClientId && activeWorkflow.owner_id === activeClientId;
 
@@ -31,21 +28,16 @@ export function useWorkflowManagement(refreshTrigger?: number) {
                 setActiveWorkflow(null);
             }
         }
-    }, [activeClientId, activeWorkflow, currentUser?.id, currentUser?.role]);
+    }, [activeClientId, activeWorkflow, currentUser?.id]);
 
-    const loadWorkflowsForUser = useCallback(async (userId: string, isPersonal = false) => {
+    const loadWorkflowsForUser = useCallback(async (userId: string) => {
         try {
-            const normalizedUserId = userId.toLowerCase();
-            const { data } = await apiClient.get(`/workflows/users/${normalizedUserId}/workflows`);
+            const { data } = await apiClient.get(`/workflows/users/${userId.toLowerCase()}/workflows`);
 
-            setWorkflowsByOwner(prev => {
-                const newState = { ...prev };
-                if (isPersonal) {
-                    newState['personal'] = data;
-                } else {
-                    newState[normalizedUserId] = data;
-                }
-                return newState;
+            setWorkflows(prev => {
+                // Remove existing workflows for this user to avoid duplicates on refresh
+                const otherUsersWorkflows = prev.filter(w => w.owner_id.toLowerCase() !== userId.toLowerCase());
+                return [...otherUsersWorkflows, ...data];
             });
         } catch (e) {
             console.error(`Failed to load workflows for user ${userId}`, e);
@@ -63,16 +55,12 @@ export function useWorkflowManagement(refreshTrigger?: number) {
                 setAssignedUsersState(users);
                 setAssignedUsers(users);
 
-                // 1. Load personal workflows
+                // Load workflows for current user
                 if (currentUser?.id) {
-                    await loadWorkflowsForUser(currentUser.id, true);
+                    await loadWorkflowsForUser(currentUser.id);
                 }
 
-                // 2. Load common workflows
-                const { data: commonWfs } = await apiClient.get('/workflows/common');
-                setWorkflowsByOwner(prev => ({ ...prev, common: commonWfs }));
-
-                // 3. Load other users' workflows (avoiding re-loading personal if possible)
+                // Load workflows for all assigned clients (if admin or manager)
                 for (const user of users) {
                     if (user.id.toLowerCase() === currentUser?.id?.toLowerCase()) continue;
                     await loadWorkflowsForUser(user.id);
@@ -82,7 +70,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
             }
         };
         init();
-    }, [currentUser?.id, currentUser?.role, loadWorkflowsForUser, setAssignedUsers]);
+    }, [currentUser?.id, loadWorkflowsForUser, setAssignedUsers]);
 
     useEffect(() => {
         if (refreshTrigger !== undefined && refreshTrigger > 0) {
@@ -103,26 +91,17 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         }
     };
 
-    const handleCreateWorkflow = async (name: string, ownerId: string, category: 'personal' | 'common' = 'personal') => {
-        const normalizedOwnerId = ownerId.toLowerCase();
-        const isCommon = normalizedOwnerId === 'common';
-        const effectiveOwnerId = normalizedOwnerId === 'personal' ? currentUser?.id : normalizedOwnerId;
-        if (!effectiveOwnerId) return;
-
-        const effectiveCategory = isCommon ? 'common' : category;
+    const handleCreateWorkflow = async (name: string, category: string = 'general') => {
+        if (!currentUser?.id) return;
 
         setIsCreating(true);
         try {
             const { data } = await apiClient.post('/workflows/workflows', {
                 name,
-                owner_id: effectiveOwnerId,
-                category: effectiveCategory
+                category
             });
 
-            setWorkflowsByOwner((prev) => ({
-                ...prev,
-                [normalizedOwnerId]: [...(prev[normalizedOwnerId] || []), data]
-            }));
+            setWorkflows((prev) => [...prev, data]);
             loadWorkflow(data);
         } finally {
             setIsCreating(false);
@@ -135,13 +114,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         try {
             await apiClient.delete(`/workflows/workflows/${workflowToDelete.id}`);
 
-            setWorkflowsByOwner((prev) => {
-                const newWorkflows = { ...prev };
-                for (const ownerId in newWorkflows) {
-                    newWorkflows[ownerId] = newWorkflows[ownerId].filter(w => w.id !== workflowToDelete.id);
-                }
-                return newWorkflows;
-            });
+            setWorkflows((prev) => prev.filter(w => w.id !== workflowToDelete.id));
 
             if (activeWorkflow?.id === workflowToDelete.id) {
                 setActiveWorkflow(null);
@@ -153,21 +126,29 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         }
     };
 
-    const handleRenameWorkflow = async (workflowId: string, newName: string) => {
+    const handleDuplicateWorkflow = async (workflowId: string) => {
+        try {
+            const { data } = await apiClient.post(`/workflows/workflows/${workflowId}/duplicate`);
+            
+            setWorkflows((prev) => [...prev, data]);
+            
+            return data;
+        } catch (error) {
+            console.error('Failed to duplicate workflow', error);
+            throw error;
+        }
+    };
+
+    const handleRenameWorkflow = async (workflowId: string, newName: string, newCategory?: string) => {
         if (!newName.trim()) return;
         try {
             const { data } = await apiClient.patch(`/workflows/workflows/${workflowId}/rename`, {
                 name: newName,
+                category: newCategory
             });
 
-            setWorkflowsByOwner((prev) => {
-                const newWorkflows = { ...prev };
-                for (const ownerId in newWorkflows) {
-                    newWorkflows[ownerId] = newWorkflows[ownerId].map(w =>
-                        w.id === workflowId ? { ...w, name: data.name } : w
-                    );
-                }
-                return newWorkflows;
+            setWorkflows((prev) => {
+                return prev.map(w => w.id === workflowId ? data : w);
             });
 
             if (activeWorkflow?.id === workflowId) {
@@ -180,7 +161,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
 
     return {
         assignedUsers,
-        workflowsByOwner,
+        workflows,
         activeWorkflow,
         nodeTypes,
         isCreating,
@@ -192,6 +173,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         loadWorkflow,
         handleCreateWorkflow,
         confirmDeleteWorkflow,
+        handleDuplicateWorkflow,
         handleRenameWorkflow,
         setActiveWorkflow
     };

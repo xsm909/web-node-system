@@ -180,6 +180,34 @@ export function WorkflowGraph({
         }
     }, [workflow, setViewport, setCenter, fitView, setNodes, setEdges, nodeTypes]);
 
+    // Downward synchronization: update internal nodes state when workflow.graph.nodes changes externally (e.g. from parameters panel)
+    useEffect(() => {
+        if (!workflow?.graph?.nodes) return;
+        const externalNodes = workflow.graph.nodes;
+        
+        setNodes(nds => {
+            let hasChanges = false;
+            const nextNodes = nds.map(localNode => {
+                const externalNode = externalNodes.find((en: any) => en.id === localNode.id);
+                if (!externalNode) return localNode;
+
+                // If params changed externally, sync them to local state
+                if (JSON.stringify(localNode.data?.params) !== JSON.stringify(externalNode.data?.params)) {
+                    hasChanges = true;
+                    return {
+                        ...localNode,
+                        data: {
+                            ...localNode.data,
+                            params: externalNode.data?.params
+                        }
+                    };
+                }
+                return localNode;
+            });
+            return hasChanges ? nextNodes : nds;
+        });
+    }, [workflow?.graph?.nodes, setNodes]);
+
     // Save viewport state on change
     const onMoveEnd = useCallback((_event: any, viewport: { x: number, y: number, zoom: number }) => {
         if (workflow?.id) {
@@ -193,7 +221,6 @@ export function WorkflowGraph({
         const nodesStr = JSON.stringify(nodes.map(n => ({ 
             id: n.id, 
             position: n.position, 
-            data: n.data?.params,
             nodeTypeId: n.data?.nodeTypeId 
         })));
         if (nodesStr !== lastNodesRef.current) {

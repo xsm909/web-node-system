@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import type { Workflow } from '../../../entities/workflow/model/types';
-import { useClientStore } from '../../../features/workflow-management/model/clientStore';
 import { useAuthStore } from '../../../features/auth/store';
 import { AppTable } from '../../../shared/ui/app-table';
 import { createColumnHelper } from '@tanstack/react-table';
@@ -9,54 +8,41 @@ import { AppHeader } from '../../app-header';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
 interface WorkflowListProps {
-    workflowsByOwner: Record<string, Workflow[]>;
+    workflows: Workflow[];
     isSidebarOpen: boolean;
     onToggleSidebar: () => void;
     onSelectWorkflow: (wf: Workflow) => void;
-    onCreateWorkflow: (name: string, ownerId: string) => void;
+    onCreateWorkflow: (name: string) => void;
     onDeleteWorkflow: (wf: Workflow) => void;
     onRenameWorkflow: (wf: Workflow) => void;
+    onDuplicateWorkflow: (wf: Workflow) => void;
 }
 
-const columnHelper = createColumnHelper<Workflow & { categoryLabel: string; isCommon: boolean }>();
+const columnHelper = createColumnHelper<Workflow & { categoryLabel: string }>();
 
 export const WorkflowList: React.FC<WorkflowListProps> = ({
-    workflowsByOwner,
+    workflows,
     isSidebarOpen,
     onToggleSidebar,
     onSelectWorkflow,
     onCreateWorkflow,
     onDeleteWorkflow,
     onRenameWorkflow,
+    onDuplicateWorkflow,
 }) => {
-    const { activeClientId } = useClientStore();
     const { user: currentUser } = useAuthStore();
     const isAdmin = currentUser?.role === 'admin';
 
     const [searchQuery, setSearchQuery] = React.useState('');
-    const [createModalOpen, setCreateModalOpen] = React.useState<{ isOpen: boolean; ownerId: string }>({ isOpen: false, ownerId: '' });
+    const [createModalOpen, setCreateModalOpen] = React.useState<boolean>(false);
     const [createInputValue, setCreateInputValue] = React.useState('');
 
-    const flattenedWorkflows = useMemo(() => {
-        const result: Array<Workflow & { categoryLabel: string; isCommon: boolean }> = [];
-
-        // Common Workflows
-        const commonWfs = workflowsByOwner['common'] || [];
-        commonWfs.forEach(wf => result.push({ ...wf, categoryLabel: 'Common Workflows', isCommon: true }));
-
-        // Personal Workflows
-        const personalWfs = workflowsByOwner['personal'] || [];
-        personalWfs.forEach(wf => result.push({ ...wf, categoryLabel: 'My Workflows', isCommon: false }));
-
-        // Client Workflows
-        if (activeClientId) {
-            const normalizedClientId = activeClientId.toLowerCase();
-            const clientWfs = workflowsByOwner[normalizedClientId] || [];
-            clientWfs.forEach(wf => result.push({ ...wf, categoryLabel: 'Client Workflows', isCommon: false }));
-        }
-
-        return result;
-    }, [workflowsByOwner, activeClientId]);
+    const flattenedWorkflows = useMemo((): Array<Workflow & { categoryLabel: string }> => {
+        return workflows.map(wf => ({
+            ...wf,
+            categoryLabel: (wf.category || 'general').toUpperCase()
+        }));
+    }, [workflows]);
 
     const filteredWorkflows = useMemo(() => {
         const q = searchQuery.toLowerCase().trim();
@@ -88,7 +74,8 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
             header: () => <div className="text-right">Actions</div>,
             cell: info => {
                 const wf = info.row.original;
-                const canEditDelete = isAdmin || !wf.isCommon;
+                const isOwner = currentUser?.id && wf.owner_id === currentUser.id;
+                const canEditDelete = isAdmin || isOwner;
                 if (!canEditDelete) return null;
 
                 return (
@@ -101,6 +88,13 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                             <Icon name="drive_file_rename_outline" size={16} />
                         </button>
                         <button
+                            onClick={(e) => { e.stopPropagation(); onDuplicateWorkflow(wf); }}
+                            className="p-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors text-gray-400 hover:text-brand"
+                            title="Duplicate"
+                        >
+                            <Icon name="content_copy" size={16} />
+                        </button>
+                        <button
                             onClick={(e) => { e.stopPropagation(); onDeleteWorkflow(wf); }}
                             className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400"
                             title="Delete"
@@ -111,7 +105,7 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                 );
             }
         })
-    ], [isAdmin, onRenameWorkflow, onDeleteWorkflow]);
+    ], [isAdmin, currentUser?.id, onRenameWorkflow, onDuplicateWorkflow, onDeleteWorkflow]);
 
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
@@ -127,9 +121,7 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                     <button
                         className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
                         onClick={() => {
-                            // Default to personal workspace if no client is selected, otherwise client workspace
-                            const defaultOwner = activeClientId ? activeClientId.toLowerCase() : 'personal';
-                            setCreateModalOpen({ isOpen: true, ownerId: defaultOwner });
+                            setCreateModalOpen(true);
                             setCreateInputValue('');
                         }}
                         title="New Workflow"
@@ -155,18 +147,18 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
             />
 
             <ConfirmModal
-                isOpen={createModalOpen.isOpen}
+                isOpen={createModalOpen}
                 title="New Workflow"
                 description="Enter a name for the new workflow."
                 confirmLabel="Create"
                 variant="success"
                 onConfirm={() => {
                     if (createInputValue.trim()) {
-                        onCreateWorkflow(createInputValue, createModalOpen.ownerId);
+                        onCreateWorkflow(createInputValue);
                     }
-                    setCreateModalOpen({ isOpen: false, ownerId: '' });
+                    setCreateModalOpen(false);
                 }}
-                onCancel={() => setCreateModalOpen({ isOpen: false, ownerId: '' })}
+                onCancel={() => setCreateModalOpen(false)}
             >
                 <input
                     autoFocus
@@ -176,8 +168,8 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                     onChange={(e) => setCreateInputValue(e.target.value)}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && createInputValue.trim()) {
-                            onCreateWorkflow(createInputValue, createModalOpen.ownerId);
-                            setCreateModalOpen({ isOpen: false, ownerId: '' });
+                            onCreateWorkflow(createInputValue);
+                            setCreateModalOpen(false);
                         }
                     }}
                 />

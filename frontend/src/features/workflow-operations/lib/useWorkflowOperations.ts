@@ -29,6 +29,9 @@ export function useWorkflowOperations({
     // We use a nonce to trigger dirty check when nodes/edges change
     const [changeNonce, setChangeNonce] = useState(0);
 
+    // Stable reference for dirty check
+    const initialWorkflowRef = useRef<string | null>(null);
+
     useEffect(() => {
         setIsRunning(false);
         setCurrentExecutionId(null);
@@ -36,28 +39,40 @@ export function useWorkflowOperations({
         setLiveRuntimeData({});
         setActiveNodeIds([]);
         setChangeNonce(0);
+        
+        // Capture initial baseline when workflow changes
+        if (activeWorkflow) {
+            initialWorkflowRef.current = JSON.stringify({
+                nodes: activeWorkflow.graph?.nodes || [],
+                edges: activeWorkflow.graph?.edges || [],
+                workflow_data: activeWorkflow.workflow_data
+            });
+            console.log('[useWorkflowOperations] Baseline captured for workflow:', activeWorkflow.id);
+        } else {
+            initialWorkflowRef.current = null;
+        }
     }, [activeWorkflow?.id]);
 
     const isDirty = useMemo(() => {
-        if (!activeWorkflow) return false;
+        if (!activeWorkflow || !initialWorkflowRef.current) return false;
         
-        // Simple comparison of nodes and edges length first
         const currentNodes = nodesRef.current || [];
         const currentEdges = edgesRef.current || [];
-        const initialNodes = activeWorkflow.graph?.nodes || [];
-        const initialEdges = activeWorkflow.graph?.edges || [];
+        const currentData = activeWorkflow.workflow_data;
 
-        if (currentNodes.length !== initialNodes.length) return true;
-        if (currentEdges.length !== initialEdges.length) return true;
+        // Compare current refs/state against the stable baseline
+        const currentStr = JSON.stringify({
+            nodes: currentNodes,
+            edges: currentEdges,
+            workflow_data: currentData
+        });
 
-        // Use stringify for deep comparison as a simple way for graphs
-        // Note: activeWorkflow.graph should be what was originally loaded
-        const currentGraphStr = JSON.stringify({ nodes: currentNodes, edges: currentEdges });
-        const initialGraphStr = JSON.stringify({ nodes: initialNodes, edges: initialEdges });
-
-        return currentGraphStr !== initialGraphStr;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeWorkflow, activeWorkflow?.graph, changeNonce]);
+        const dirty = currentStr !== initialWorkflowRef.current;
+        if (dirty) {
+            console.log('[useWorkflowOperations] isDirty: true');
+        }
+        return dirty;
+    }, [activeWorkflow?.id, activeWorkflow?.workflow_data, changeNonce, nodesRef, edgesRef]);
 
     const onExecutionCompleteRef = useRef(onExecutionComplete);
     useEffect(() => {
@@ -68,18 +83,28 @@ export function useWorkflowOperations({
         if (!activeWorkflow) return;
         setIsSaving(true);
         try {
+            const graph = { nodes: nodesRef.current, edges: edgesRef.current };
             await apiClient.put(`/workflows/workflows/${activeWorkflow.id}`, {
-                graph: { nodes: nodesRef.current, edges: edgesRef.current },
+                graph,
                 workflow_data: activeWorkflow.workflow_data,
                 runtime_data: activeWorkflow.runtime_data,
             });
+            
+            // Update baseline after successful save
+            initialWorkflowRef.current = JSON.stringify({
+                nodes: graph.nodes,
+                edges: graph.edges,
+                workflow_data: activeWorkflow.workflow_data
+            });
+            console.log('[useWorkflowOperations] Save success. Baseline updated.');
+
             if (onUpdateLocalWorkflow) {
                 onUpdateLocalWorkflow({
                     ...activeWorkflow,
-                    graph: { nodes: nodesRef.current, edges: edgesRef.current }
+                    graph
                 });
             }
-            // Reset dirty state by mimicking fresh load
+            // Reset dirty state trigger
             setChangeNonce(0);
         } finally {
             setIsSaving(false);
@@ -185,6 +210,6 @@ export function useWorkflowOperations({
         setLiveRuntimeData,
         activeNodeIds,
         isDirty,
-        notifyChange: () => setChangeNonce(n => n + 1)
+        notifyChange: useCallback(() => setChangeNonce(n => n + 1), [])
     };
 }
