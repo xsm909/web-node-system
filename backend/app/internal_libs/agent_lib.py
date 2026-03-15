@@ -234,31 +234,40 @@ AVAILABLE TOOLS:
                 # Gemini prefers the JSON schema for complex structures or when cleaning is needed
                 cleaned_schema = _clean_schema_for_gemini(AgentStep.model_json_schema())
                 
+                # Section 13: Mandatory Grounding for Gemini
+                grounding_tool = types.Tool(google_search=types.GoogleSearch())
+                
                 resp = client.models.generate_content(
                     model=model,
                     contents=contents,
                     config=types.GenerateContentConfig(
+                        tools=[grounding_tool],
                         response_mime_type="application/json",
                         # We skip response_schema for Gemini here because it restricts dynamic dictionaries like 'parameters'
                         # if we don't define every possible key upfront. Prompting is sufficient for JSON structure.
-                        system_instruction=system_prompt,
-                        tools=gemini_native_tools if gemini_native_tools else None
+                        system_instruction=system_prompt
                     )
                 )
                 response_text = resp.text
             else:
-                # OpenAI / Perplexity
-                openai_response_format = {"type": "json_object"}
-                if provider == "perplexity":
-                    # Perplexity does not support 'json_object' yet (causes 400 error)
-                    openai_response_format = {"type": "text"}
-
-                resp = client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    response_format=openai_response_format
-                )
-                response_text = resp.choices[0].message.content
+                # OpenAI (Perplexity remains on completions for now as it's a proxy)
+                if provider == "openai":
+                    # Section 13: OpenAI responses.create pattern
+                    resp = client.responses.create(
+                        model=model,
+                        tools=[{"type": "web_search"}],
+                        input=task if i == 0 else messages[-1]["content"] # Simplification for loop
+                    )
+                    # Note: Section 13 uses input=... and response.output_text
+                    response_text = resp.output_text
+                else:
+                    # Perplexity (Proxy for OpenAI-compatible but doesn't support 'responses')
+                    resp = client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        response_format={"type": "text"}
+                    )
+                    response_text = resp.choices[0].message.content
 
             system_log(f"[AGENT] AI raw response: {response_text[:300]}...", level="system")
             
