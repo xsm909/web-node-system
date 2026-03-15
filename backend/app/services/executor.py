@@ -210,6 +210,7 @@ SAFE_GLOBALS = {
         clear_recent_records_by_entity_and_category=response_lib.clear_recent_records_by_entity_and_category,
         add_response=response_lib.add_response,
         update_response_meta=response_lib.update_response_meta,
+        update_response_meta_by_key=response_lib.update_response_meta_by_key,
         get_responses_by_period_and_category=response_lib.get_responses_by_period_and_category
     ),
     "datetime": datetime,
@@ -673,6 +674,7 @@ class WorkflowExecutor:
                     clear_recent_records_by_entity_and_category=response_lib.clear_recent_records_by_entity_and_category,
                     add_response=response_lib.add_response,
                     update_response_meta=response_lib.update_response_meta,
+                    update_response_meta_by_key=response_lib.update_response_meta_by_key,
                     get_responses_by_period_and_category=response_lib.get_responses_by_period_and_category
                 ),
                 "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),

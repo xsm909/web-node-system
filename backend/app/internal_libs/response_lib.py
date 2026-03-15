@@ -1,6 +1,7 @@
 import uuid
+import json
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from ..core.database import SessionLocal
 from ..models.response import Response
 from .logger_lib import system_log
@@ -237,7 +238,88 @@ def update_response_meta(
     finally:
         db.close()
 
-from typing import Any, Dict, List, Optional, Union
+def update_response_meta_by_key(
+    record_id: Union[str, uuid.UUID],
+    key: str,
+    value: Any
+) -> Dict[str, Any]:
+    """
+    Updates or adds a specific key/value pair in the 'meta' field of a record.
+
+    Args:
+        record_id: The ID of the record (UUID or string).
+        key: The key in the meta dictionary to update.
+        value: The new value (can be any serializable type).
+
+    Returns:
+        A dictionary with the status of the operation.
+    """
+    system_log(
+        f"[RESPONSE_LIB] Updating meta key '{key}' for record_id: {record_id}",
+        level="system"
+    )
+
+    db = SessionLocal()
+    try:
+        # Resolve UUID
+        r_uuid = uuid.UUID(record_id) if isinstance(record_id, str) else record_id
+
+        # Fetch record
+        record = db.query(Response).filter(
+            Response.id == r_uuid
+        ).first()
+
+        if not record:
+            system_log(
+                f"[RESPONSE_LIB] Record not found for key update: {record_id}",
+                level="error"
+            )
+            return {
+                "status": "error",
+                "message": f"Record {record_id} not found"
+            }
+
+        # Update specific key in meta
+        meta_val = record.meta
+        if isinstance(meta_val, str):
+            try:
+                current_meta = json.loads(meta_val)
+            except Exception:
+                current_meta = {}
+        elif isinstance(meta_val, dict):
+            current_meta = dict(meta_val)
+        else:
+            current_meta = {}
+
+        current_meta[key] = value
+        
+        # Re-assign to trigger SQLAlchemy change tracking for JSON fields
+        record.meta = current_meta
+        
+        db.commit()
+
+        system_log(
+            f"[RESPONSE_LIB] Successfully updated meta key '{key}' for record: {record_id}",
+            level="system"
+        )
+
+        return {
+            "status": "success"
+        }
+
+    except Exception as e:
+        db.rollback()
+        system_log(
+            f"[RESPONSE_LIB] Error updating meta key: {str(e)}",
+            level="error"
+        )
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+    finally:
+        db.close()
+
 
 def get_responses_by_period_and_category(
     reference_id: Union[str, uuid.UUID],
