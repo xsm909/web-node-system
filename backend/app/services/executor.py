@@ -5,7 +5,7 @@ Uses RestrictedPython to safely execute node code.
 import traceback
 import time
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 import ast
@@ -209,8 +209,12 @@ SAFE_GLOBALS = {
     "response_data": SimpleNamespace(
         clear_recent_records_by_entity_and_category=response_lib.clear_recent_records_by_entity_and_category,
         add_response=response_lib.add_response,
-        update_response_meta=response_lib.update_response_meta
+        update_response_meta=response_lib.update_response_meta,
+        get_responses_by_period_and_category=response_lib.get_responses_by_period_and_category
     ),
+    "datetime": datetime,
+    "time": time,
+    "timedelta": timedelta,
     "workflow": None,  # Will be injected per-execution
 }
 
@@ -668,7 +672,8 @@ class WorkflowExecutor:
                 "response_data": SimpleNamespace(
                     clear_recent_records_by_entity_and_category=response_lib.clear_recent_records_by_entity_and_category,
                     add_response=response_lib.add_response,
-                    update_response_meta=response_lib.update_response_meta
+                    update_response_meta=response_lib.update_response_meta,
+                    get_responses_by_period_and_category=response_lib.get_responses_by_period_and_category
                 ),
                 "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),
             }
