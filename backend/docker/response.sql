@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS response (
     category VARCHAR,
     context JSONB,
     context_type VARCHAR(25),
-    meta JSONB
+    meta JSONB,
+    raw TEXT
 );
 
 -- Add indexes for common lookups

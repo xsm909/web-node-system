@@ -17,3 +17,4 @@ class Response(Base):
     context = Column(JSON, nullable=True)
     context_type = Column(String(25), nullable=True)
     meta = Column(JSON, nullable=True)
+    raw = Column(String, nullable=True)

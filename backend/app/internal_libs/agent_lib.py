@@ -249,6 +249,7 @@ AVAILABLE TOOLS:
                     )
                 )
                 response_text = resp.text
+                #system_log(f"[AGENT] GEMINI response: {resp}", level="system")
             else:
                 # OpenAI (Perplexity remains on completions for now as it's a proxy)
                 if provider == "openai":
@@ -260,6 +261,7 @@ AVAILABLE TOOLS:
                     )
                     # Note: Section 13 uses input=... and response.output_text
                     response_text = resp.output_text
+                    #system_log(f"[AGENT] OPENAI response: {resp}", level="system")
                 else:
                     # Perplexity (Proxy for OpenAI-compatible but doesn't support 'responses')
                     resp = client.chat.completions.create(
@@ -268,8 +270,9 @@ AVAILABLE TOOLS:
                         response_format={"type": "text"}
                     )
                     response_text = resp.choices[0].message.content
+                    #system_log(f"[AGENT] PERPLEXITY response: {resp}", level="system")
 
-            system_log(f"[AGENT] AI raw response: {response_text[:300]}...", level="system")
+            #system_log(f"[AGENT] AI raw response: {response_text[:300]}...", level="system")
             
             # Robust JSON extraction
             cleaned_json = _extract_json(response_text)
