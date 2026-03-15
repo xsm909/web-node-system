@@ -82,27 +82,55 @@ def _extract_json(text: str) -> str:
     in_string = False
     escape = False
     
-    for i, char in enumerate(candidate_text):
-        if char == '"' and not escape:
-            in_string = not in_string
+    # 4. Try parsing all candidate JSON objects if the first one fails
+    # This matches the user's error where '[tysonfoodservice.com]' was found but isn't valid JSON.
+    # We look for all potential start positions of { or [
+    candidates = []
+    for match in re.finditer(r'[\{\[]', text):
+        start_pos = match.start()
+        current_candidate = text[start_pos:]
         
-        if not in_string:
-            if char == '{':
-                brace_count += 1
-            elif char == '}':
-                brace_count -= 1
-            elif char == '[':
-                bracket_count += 1
-            elif char == ']':
-                bracket_count -= 1
+        brace_count = 0
+        bracket_count = 0
+        in_string = False
+        escape = False
+        
+        for i, char in enumerate(current_candidate):
+            if char == '"' and not escape:
+                in_string = not in_string
+            if not in_string:
+                if char == '{': brace_count += 1
+                elif char == '}': brace_count -= 1
+                elif char == '[': bracket_count += 1
+                elif char == ']': bracket_count -= 1
+                
+                if brace_count == 0 and bracket_count == 0:
+                    candidates.append(current_candidate[:i+1])
+                    break
             
-            if brace_count == 0 and bracket_count == 0:
-                return candidate_text[:i+1]
-        
-        if char == '\\':
-            escape = not escape
-        else:
-            escape = False
+            if char == '\\': escape = not escape
+            else: escape = False
+            
+    import json
+    # Return the first one that is TRULY valid JSON
+    # We prioritize candidates that are dictionaries (objects) over lists
+    valid_candidates = []
+    for c in candidates:
+        try:
+            parsed = json.loads(c)
+            valid_candidates.append((c, parsed))
+        except:
+            continue
+            
+    # Priority 1: First dictionary
+    for c, parsed in valid_candidates:
+        if isinstance(parsed, dict):
+            return c
+            
+    # Priority 2: First list
+    for c, parsed in valid_candidates:
+        if isinstance(parsed, list):
+            return c
             
     return text
 
@@ -254,10 +282,20 @@ AVAILABLE TOOLS:
                 # OpenAI (Perplexity remains on completions for now as it's a proxy)
                 if provider == "openai":
                     # Section 13: OpenAI responses.create pattern
+                    # We construct a single string input from messages for context
+                    # Current agents.md example shows a single string for 'input'
+                    formatted_input = ""
+                    for m in messages:
+                        prefix = "User: " if m["role"] == "user" else "Assistant: "
+                        formatted_input += f"{prefix}{m['content']}\n"
+                    
+                    # If this is not the first iteration, the last message in history is the error feedback
+                    # This ensures the model knows what it needs to fix.
+                    
                     resp = client.responses.create(
                         model=model,
                         tools=[{"type": "web_search"}],
-                        input=task if i == 0 else messages[-1]["content"] # Simplification for loop
+                        input=formatted_input.strip()
                     )
                     # Note: Section 13 uses input=... and response.output_text
                     response_text = resp.output_text
@@ -276,7 +314,15 @@ AVAILABLE TOOLS:
             
             # Robust JSON extraction
             cleaned_json = _extract_json(response_text)
-            step = AgentStep.model_validate_json(cleaned_json)
+            
+            try:
+                step = AgentStep.model_validate_json(cleaned_json)
+            except Exception as ve:
+                error_msg = f"Invalid JSON response: {str(ve)}. Please ensure you return ONLY a JSON object matching the AgentStep schema. Raw received: {response_text[:200]}"
+                system_log(f"[AGENT] Validation error: {error_msg}", level="error")
+                messages.append({"role": "assistant", "content": response_text})
+                messages.append({"role": "user", "content": error_msg})
+                continue
             
             # Save assistant message to history
             messages.append({"role": "assistant", "content": response_text})
@@ -333,10 +379,19 @@ AVAILABLE TOOLS:
                         messages.append({"role": "user", "content": f"Your final_answer did not match the schema: {ve}. Please fix and try again."})
                         continue
                 
-                return step.final_answer if isinstance(step.final_answer, str) else json.dumps(step.final_answer, ensure_ascii=False)
+                return {
+                    "response_text": step.final_answer if isinstance(step.final_answer, str) else json.dumps(step.final_answer, ensure_ascii=False),
+                    "response_raw": resp
+                }
 
         except Exception as e:
             system_log(f"[AGENT] Loop error: {str(e)}", level="error")
-            return f"Error: {str(e)}"
+            return {
+                "response_text": f"Error: {str(e)}",
+                "response_raw": locals().get("resp")
+            }
 
-    return "Error: Maximum iterations reached."
+    return {
+        "response_text": "Error: Maximum iterations reached.",
+        "response_raw": None
+    }

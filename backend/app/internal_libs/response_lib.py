@@ -79,7 +79,8 @@ def add_response(
     context_type: str,
     reference_id: Optional[Union[str, uuid.UUID]] = None,
     reference_type: Optional[str] = None,
-    meta: Optional[Dict[str, Any]] = None
+    meta: Optional[Dict[str, Any]] = None,
+    raw: Optional[str] = None
 ) -> Union[str, Dict[str, Any]]:
     """
     Adds a new record to the 'response' table.
@@ -112,6 +113,10 @@ def add_response(
         if reference_id:
             ref_uuid = uuid.UUID(reference_id) if isinstance(reference_id, str) else reference_id
 
+        # Ensure raw is a string (TEXT column)
+        if raw is not None and not isinstance(raw, str):
+            raw = str(raw)
+
         new_record = Response(
             entity_id=e_uuid,
             entity_type=entity_type,
@@ -120,7 +125,8 @@ def add_response(
             context_type=context_type,
             reference_id=ref_uuid,
             reference_type=reference_type,
-            meta=meta
+            meta=meta,
+            raw=raw
         )
 
         db.add(new_record)
