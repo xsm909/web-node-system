@@ -381,17 +381,20 @@ AVAILABLE TOOLS:
                 
                 return {
                     "response_text": step.final_answer if isinstance(step.final_answer, str) else json.dumps(step.final_answer, ensure_ascii=False),
-                    "response_raw": resp
+                    "response_raw": resp,
+                    "success": True
                 }
 
         except Exception as e:
             system_log(f"[AGENT] Loop error: {str(e)}", level="error")
             return {
                 "response_text": f"Error: {str(e)}",
-                "response_raw": locals().get("resp")
+                "response_raw": locals().get("resp"),
+                "success": False
             }
 
     return {
         "response_text": "Error: Maximum iterations reached.",
-        "response_raw": None
+        "response_raw": None,
+        "success": False
     }
