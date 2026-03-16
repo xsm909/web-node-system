@@ -12,6 +12,7 @@ class Prompt(Base):
     entity_id = Column(UUID(as_uuid=True), nullable=False, index=True) # ID of the client or record
     entity_type = Column(String, nullable=False, index=True) # 'client' or 'record'
     content = Column(JSONB, nullable=False) # The actual prompt data
+    raw = Column(String, nullable=True) # Raw text version of the prompt
     category = Column(String, nullable=True, index=True) # Category like 'Common|Prompt'
     datatype = Column(String, nullable=False, index=True) # Key of schema (datatype)
     reference_id = Column(UUID(as_uuid=True), nullable=True, index=True) # Optional reference ID

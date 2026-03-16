@@ -35,7 +35,8 @@ def add_prompt(
     content: Dict[str, Any],
     datatype: str,
     reference_id: Optional[str] = None,
-    meta: Optional[Dict[str, Any]] = None
+    meta: Optional[Dict[str, Any]] = None,
+    raw: Optional[str] = None
 ) -> str:
     """
     Adds a new prompt to the database.
@@ -48,6 +49,7 @@ def add_prompt(
         datatype: The key of the schema (datatype)
         reference_id: Optional reference ID
         meta: Optional technical metadata
+        raw: Optional raw text version of the prompt
         
     Returns:
         The ID of the newly created prompt as a string, or an error dictionary.
@@ -67,6 +69,14 @@ def add_prompt(
         # Ensure content and meta are JSON-serializable
         serializable_content = _make_serializable(content)
         serializable_meta = _make_serializable(meta) if meta else None
+        
+        # Handle raw field serialization
+        serializable_raw = raw
+        if raw is not None and not isinstance(raw, str):
+            serializable_raw = _make_serializable(raw)
+            if not isinstance(serializable_raw, str):
+                import json
+                serializable_raw = json.dumps(serializable_raw, ensure_ascii=False)
 
         new_prompt = Prompt(
             entity_id=e_uuid,
@@ -75,7 +85,8 @@ def add_prompt(
             content=serializable_content,
             datatype=datatype,
             reference_id=ref_uuid,
-            meta=serializable_meta
+            meta=serializable_meta,
+            raw=serializable_raw
         )
         
         db.add(new_prompt)
@@ -121,6 +132,7 @@ def get_prompts_by_category_with_reference_id(category: str, reference_id: str) 
                 "datatype": p.datatype,
                 "reference_id": str(p.reference_id) if p.reference_id else None,
                 "meta": p.meta,
+                "raw": p.raw,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
                 "updated_at": p.updated_at.isoformat() if p.updated_at else None
             }
@@ -161,6 +173,7 @@ def get_prompts_by_category_with_id(category: str, entity_id: str) -> list:
                 "datatype": p.datatype,
                 "reference_id": str(p.reference_id) if p.reference_id else None,
                 "meta": p.meta,
+                "raw": p.raw,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
                 "updated_at": p.updated_at.isoformat() if p.updated_at else None
             }
