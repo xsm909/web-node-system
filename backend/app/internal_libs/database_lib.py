@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Optional
 from sqlalchemy import text
 from ..core.database import SessionLocal
 from ..models.workflow import WorkflowExecution
@@ -7,7 +7,7 @@ from ..models.user import RoleEnum, User
 from .logger_lib import system_log
 from .context_lib import execution_context
 
-def unsafe_request(sql_query: str) -> List[Dict[str, Any]]:
+def unsafe_request(sql_query: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """
     Executes a raw SQL query.
 
@@ -89,7 +89,7 @@ def unsafe_request(sql_query: str) -> List[Dict[str, Any]]:
         )
 
         # Execute SQL
-        result = db.execute(text(sql_query))
+        result = db.execute(text(sql_query), params or {})
 
         rows = None
 
