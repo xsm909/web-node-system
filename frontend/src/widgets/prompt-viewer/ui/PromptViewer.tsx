@@ -153,7 +153,7 @@ export const PromptViewer: React.FC<PromptViewerProps> = ({ referenceId }) => {
     }), [selectedPrompt]);
 
     return (
-        <div className="flex-1 min-h-0 flex w-full overflow-hidden transition-all">
+        <div className="flex-1 h-full min-h-0 flex w-full overflow-hidden transition-all">
             {/* Left Panel: List */}
             <div className="w-1/3 border-r border-[var(--border-base)] flex flex-col min-h-0 bg-surface-900/40">
                 <div className="p-4 border-b border-[var(--border-base)] bg-surface-800/50 backdrop-blur-sm">
@@ -176,7 +176,7 @@ export const PromptViewer: React.FC<PromptViewerProps> = ({ referenceId }) => {
             </div>
 
             {/* Right Panel: Content */}
-            <div className="flex-1 flex flex-col min-h-0 bg-surface-800">
+            <div className="flex-1 h-full flex flex-col min-h-0 bg-surface-900/60 relative overflow-hidden">
                 {selectedPrompt ? (
                     <>
                         <div className="p-4 border-b border-[var(--border-base)] bg-surface-900/20 flex items-center justify-between">

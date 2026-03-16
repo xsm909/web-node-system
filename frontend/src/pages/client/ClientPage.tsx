@@ -195,7 +195,7 @@ export default function ClientPage() {
                 )}
 
                 {activeTab === 'prompts' && (
-                    <section className="flex-1 min-h-0 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <section className="flex-1 h-full min-h-0 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <PromptViewer referenceId={user?.id} />
                     </section>
                 )}

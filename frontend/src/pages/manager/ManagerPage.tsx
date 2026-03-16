@@ -647,7 +647,7 @@ export default function ManagerPage() {
             />
 
 
-            <main className="flex-1 flex flex-col min-w-0 relative">
+            <main className="flex-1 flex flex-col min-h-0 min-w-0 relative">
                 {activeTab === 'workflows' ? (
                     <>
                         <Navigator
@@ -766,7 +766,7 @@ export default function ManagerPage() {
                         isSidebarOpen={isSidebarOpen}
                     />
                 ) : activeTab === 'prompts' ? (
-                    <div className="flex-1 min-h-0 flex flex-col relative overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <div className="flex-1 h-full min-h-0 flex flex-col relative overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <PromptViewer referenceId={activeClientId || undefined} />
                     </div>
                 ) : (

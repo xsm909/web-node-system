@@ -99,7 +99,7 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
     const selectedManager = managers.find(m => m.id === selectedManagerId);
 
     return (
-        <div className={`animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col ${activeTab === 'prompts' ? 'flex-1 min-h-0' : 'min-h-[500px]'}`}>
+        <div className={`animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col ${activeTab === 'prompts' ? 'flex-1 h-full min-h-0' : 'min-h-[500px]'}`}>
             {activeTab === 'common' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="bg-surface-800 rounded-[2rem] border border-[var(--border-base)] p-8 space-y-6 shadow-xl shadow-black/5">

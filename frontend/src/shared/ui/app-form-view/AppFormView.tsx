@@ -146,7 +146,7 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                 )}
 
                 <div className={`flex-1 flex flex-col min-h-0 ${fullHeight ? '' : 'overflow-hidden'}`}>
-                    <div className={`flex-1 flex flex-col ${noPadding ? '' : 'p-10'} ${fullHeight ? '' : 'overflow-y-auto custom-scrollbar'}`}>
+                    <div className={`flex-1 flex flex-col min-h-0 ${noPadding ? '' : 'p-10'} ${fullHeight ? '' : 'overflow-y-auto custom-scrollbar'}`}>
                         {children}
                     </div>
 
