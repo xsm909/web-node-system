@@ -35,6 +35,7 @@ async def lifespan(app: FastAPI):
         db.execute(text("ALTER TABLE node_types ALTER COLUMN parameters SET NOT NULL;"))
         
         # Migrations for prompts
+        db.execute(text("ALTER TABLE prompts ALTER COLUMN content TYPE JSONB USING content::jsonb;"))
         db.execute(text("ALTER TABLE prompts ADD COLUMN IF NOT EXISTS meta JSONB;"))
         
         db.commit()
