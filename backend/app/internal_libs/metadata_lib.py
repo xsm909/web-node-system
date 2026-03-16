@@ -8,7 +8,16 @@ from .logger_lib import system_log
 
 def _serialize_record(record: Record) -> Dict[str, Any]:
     """Helper to convert Record and its children to a hierarchical dictionary."""
-    data = record.data.copy() if record.data else {}
+    raw_data = record.data if record.data is not None else {}
+    
+    # If the data is not a dictionary (e.g., a list or basic type),
+    # we wrap it or handle it so we can still attach metadata keys.
+    if isinstance(raw_data, dict):
+        data = raw_data.copy()
+    else:
+        # If it's a list or primitive, we provide it under a 'value' key
+        # this prevents "list indices must be integers" error when attaching __schema__ etc.
+        data = {"value": raw_data}
     
     # Identify schema and ID
     if record.schema:
