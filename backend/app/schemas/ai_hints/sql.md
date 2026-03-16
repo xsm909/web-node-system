@@ -87,6 +87,7 @@ Storage of LLM prompts / instruction templates linked to entities.
 | created_at   | timestamptz       | YES      | now()       | —                                                                          |
 | updated_at   | timestamptz       | YES      | now()       | —                                                                          |
 | reference_id | uuid              | YES      | —           | Optional reference to another object (example output, parent prompt…)     |
+| meta         | jsonb             | YES      | —           | Additional technical metadata (model name, version, provider, etc.)       |
 
 ---
 

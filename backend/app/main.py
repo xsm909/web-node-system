@@ -34,6 +34,9 @@ async def lifespan(app: FastAPI):
         db.execute(text("ALTER TABLE node_types ALTER COLUMN output_schema SET NOT NULL;"))
         db.execute(text("ALTER TABLE node_types ALTER COLUMN parameters SET NOT NULL;"))
         
+        # Migrations for prompts
+        db.execute(text("ALTER TABLE prompts ADD COLUMN IF NOT EXISTS meta JSONB;"))
+        
         db.commit()
     except Exception as e:
         print(f"Migration error: {e}")

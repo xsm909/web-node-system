@@ -10,17 +10,28 @@ interface Prompt {
     content: any;
     created_at: string;
     datatype: string;
+    meta?: any;
 }
 
 interface PromptViewerProps {
     referenceId?: string;
 }
 
-const MinimalistPromptView: React.FC<{ content: any }> = ({ content }) => {
+const MinimalistPromptView: React.FC<{ content: any, meta?: any }> = ({ content, meta }) => {
     if (!content) return null;
 
-    const description = content.description;
-    const prompts = Array.isArray(content.prompts) ? content.prompts : [];
+    // Handle nested response_text which is common in agent history
+    let effectiveContent = content;
+    if (content.response_text && typeof content.response_text === 'string') {
+        try {
+            effectiveContent = JSON.parse(content.response_text);
+        } catch (e) {
+            console.warn('Failed to parse nested response_text:', e);
+        }
+    }
+
+    const description = effectiveContent.description;
+    const prompts = Array.isArray(effectiveContent.prompts) ? effectiveContent.prompts : [];
 
     return (
         <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar p-8 select-text text-[14px] leading-relaxed font-medium text-[var(--text-main)]">
@@ -47,9 +58,24 @@ const MinimalistPromptView: React.FC<{ content: any }> = ({ content }) => {
                 )}
 
                 {!description && prompts.length === 0 && (
-                    <pre className="p-4 bg-[var(--border-muted)]/10 rounded-xl font-mono text-[12px] opacity-70 border border-[var(--border-base)]">
-                        {JSON.stringify(content, null, 2)}
-                    </pre>
+                    <div className="space-y-2">
+                        <div className="opacity-40 text-[11px] font-bold uppercase tracking-wider">Raw content:</div>
+                        <pre className="p-4 bg-[var(--border-muted)]/10 rounded-xl font-mono text-[12px] opacity-70 border border-[var(--border-base)] overflow-x-auto">
+                            {JSON.stringify(content, null, 2)}
+                        </pre>
+                    </div>
+                )}
+
+                {meta && (
+                    <div className="pt-8 border-t border-[var(--border-base)]/50">
+                        <div className="flex items-center gap-2 mb-4 opacity-40">
+                            <Icon name="info" size={14} />
+                            <span className="text-[11px] font-bold uppercase tracking-wider">Technical Metadata</span>
+                        </div>
+                        <pre className="p-4 bg-[var(--border-muted)]/10 rounded-xl font-mono text-[11px] opacity-70 border border-[var(--border-base)] overflow-x-auto">
+                            {JSON.stringify(meta, null, 2)}
+                        </pre>
+                    </div>
                 )}
             </div>
         </div>
@@ -81,15 +107,28 @@ export const PromptViewer: React.FC<PromptViewerProps> = ({ referenceId }) => {
 
     const columns = useMemo<ColumnDef<Prompt>[]>(() => [
         {
-            accessorKey: 'content.description',
+            accessorKey: 'content',
             header: 'Description',
             cell: ({ row }) => {
-                const description = row.original.content?.description || 'No description';
+                const content = row.original.content;
+                let description = content?.description;
+                
+                // Fallback for nested response_text
+                if (!description && content?.response_text && typeof content.response_text === 'string') {
+                    try {
+                        const parsed = JSON.parse(content.response_text);
+                        description = parsed.description;
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+
+                const finalDescription = description || row.original.datatype || 'No description';
                 const date = new Date(row.original.created_at).toLocaleString();
                 return (
                     <div className="flex flex-col py-1">
                         <span className="font-bold text-[13px] text-[var(--text-main)] truncate max-w-[200px]">
-                            {description}
+                            {finalDescription}
                         </span>
                         <span className="text-[10px] text-[var(--text-muted)] opacity-60">
                             {date}
@@ -156,7 +195,7 @@ export const PromptViewer: React.FC<PromptViewerProps> = ({ referenceId }) => {
                             </div>
                         </div>
                         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                            <MinimalistPromptView content={selectedPrompt.content} />
+                            <MinimalistPromptView content={selectedPrompt.content} meta={selectedPrompt.meta} />
                         </div>
                     </>
                 ) : (

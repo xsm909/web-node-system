@@ -4,13 +4,38 @@ from ..core.database import SessionLocal
 from ..models.prompt import Prompt
 from .logger_lib import system_log
 
+def _make_serializable(data: Any) -> Any:
+    """Recursively converts objects to JSON-serializable types."""
+    if isinstance(data, dict):
+        return {str(k): _make_serializable(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [_make_serializable(i) for i in data]
+    elif isinstance(data, (str, int, float, bool, type(None))):
+        return data
+    elif isinstance(data, uuid.UUID):
+        return str(data)
+    else:
+        # Handle complex objects like SDK responses or Pydantic models
+        if hasattr(data, "model_dump"):
+            return _make_serializable(data.model_dump())
+        elif hasattr(data, "dict") and callable(getattr(data, "dict")):
+            return _make_serializable(data.dict())
+        try:
+            # Try to catch anything that might have a to_dict or similar
+            if hasattr(data, "__dict__"):
+                return _make_serializable(data.__dict__)
+            return str(data)
+        except:
+            return str(data)
+
 def add_prompt(
     entity_id: str,
     entity_type: str,
     category: str,
     content: Dict[str, Any],
     datatype: str,
-    reference_id: Optional[str] = None
+    reference_id: Optional[str] = None,
+    meta: Optional[Dict[str, Any]] = None
 ) -> str:
     """
     Adds a new prompt to the database.
@@ -22,6 +47,7 @@ def add_prompt(
         content: The actual prompt content as a dictionary
         datatype: The key of the schema (datatype)
         reference_id: Optional reference ID
+        meta: Optional technical metadata
         
     Returns:
         The ID of the newly created prompt as a string, or an error dictionary.
@@ -38,13 +64,18 @@ def add_prompt(
         if reference_id:
             ref_uuid = uuid.UUID(reference_id) if isinstance(reference_id, str) else reference_id
 
+        # Ensure content and meta are JSON-serializable
+        serializable_content = _make_serializable(content)
+        serializable_meta = _make_serializable(meta) if meta else None
+
         new_prompt = Prompt(
             entity_id=e_uuid,
             entity_type=entity_type,
             category=category,
-            content=content,
+            content=serializable_content,
             datatype=datatype,
-            reference_id=ref_uuid
+            reference_id=ref_uuid,
+            meta=serializable_meta
         )
         
         db.add(new_prompt)
@@ -89,6 +120,7 @@ def get_prompts_by_category_with_reference_id(category: str, reference_id: str) 
                 "category": p.category,
                 "datatype": p.datatype,
                 "reference_id": str(p.reference_id) if p.reference_id else None,
+                "meta": p.meta,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
                 "updated_at": p.updated_at.isoformat() if p.updated_at else None
             }
@@ -128,6 +160,7 @@ def get_prompts_by_category_with_id(category: str, entity_id: str) -> list:
                 "category": p.category,
                 "datatype": p.datatype,
                 "reference_id": str(p.reference_id) if p.reference_id else None,
+                "meta": p.meta,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
                 "updated_at": p.updated_at.isoformat() if p.updated_at else None
             }

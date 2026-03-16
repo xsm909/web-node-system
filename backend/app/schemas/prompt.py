@@ -11,10 +11,11 @@ class PromptBase(BaseModel):
     category: Optional[str] = None
     datatype: str
     reference_id: Optional[UUID] = None
+    meta: Optional[Dict[str, Any]] = None
 
-    @field_validator('content', mode='before')
+    @field_validator('content', 'meta', mode='before')
     @classmethod
-    def parse_content(cls, v: Any) -> Any:
+    def parse_json_fields(cls, v: Any) -> Any:
         if isinstance(v, str):
             try:
                 return json.loads(v)
@@ -29,6 +30,7 @@ class PromptUpdate(BaseModel):
     content: Optional[Dict[str, Any]] = None
     category: Optional[str] = None
     datatype: Optional[str] = None
+    meta: Optional[Dict[str, Any]] = None
 
 class Prompt(PromptBase):
     id: UUID

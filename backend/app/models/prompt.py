@@ -14,6 +14,7 @@ class Prompt(Base):
     category = Column(String, nullable=True, index=True) # Category like 'Common|Prompt'
     datatype = Column(String, nullable=False, index=True) # Key of schema (datatype)
     reference_id = Column(UUID(as_uuid=True), nullable=True, index=True) # Optional reference ID
+    meta = Column(JSON, nullable=True) # Additional technical metadata
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
