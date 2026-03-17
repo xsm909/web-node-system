@@ -41,6 +41,44 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const [isGenerating, setIsGenerating] = useState(false);
     const [reportEditorIsDirty, setReportEditorIsDirty] = useState(false);
 
+    const handleHeaderCompile = async () => {
+        if (isCompiling || view !== 'edit' || activeTab !== 'code') return;
+        setIsCompiling(true);
+        try {
+            await reportEditorRef.current?.handleCompile();
+        } finally {
+            setIsCompiling(false);
+        }
+    };
+
+    const handleHeaderGenerate = async () => {
+        if (isGenerating || view !== 'edit') return;
+        setIsGenerating(true);
+        try {
+            await reportEditorRef.current?.handleGenerate();
+            setActiveTab('preview');
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (view !== 'edit') return;
+
+            if (e.key === 'F5') {
+                e.preventDefault();
+                handleHeaderCompile();
+            } else if (e.key === 'F9') {
+                e.preventDefault();
+                handleHeaderGenerate();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [view, activeTab, isCompiling, isGenerating]);
+
     useEffect(() => {
         const fetchReports = async () => {
             setIsLoading(true);
@@ -202,34 +240,19 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     <div className="flex gap-2">
                         {activeTab === 'code' && (
                             <button
-                                onClick={async () => {
-                                    setIsCompiling(true);
-                                    try {
-                                        await reportEditorRef.current?.handleCompile();
-                                    } finally {
-                                        setIsCompiling(false);
-                                    }
-                                }}
+                                onClick={handleHeaderCompile}
                                 disabled={isCompiling}
                                 className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] hover:bg-[var(--bg-hover)] transition-all shadow-lg active:scale-95 disabled:opacity-50 shrink-0"
-                                title="Compile"
+                                title="Compile (F5)"
                             >
                                 <Icon name={isCompiling ? "refresh" : "code"} size={18} className={isCompiling ? "animate-spin" : ""} />
                             </button>
                         )}
                         <button
-                            onClick={async () => {
-                                setIsGenerating(true);
-                                try {
-                                    await reportEditorRef.current?.handleGenerate();
-                                    setActiveTab('preview');
-                                } finally {
-                                    setIsGenerating(false);
-                                }
-                            }}
+                            onClick={handleHeaderGenerate}
                             disabled={isGenerating}
                             className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 disabled:opacity-50 shrink-0"
-                            title="Generate"
+                            title="Generate (F9)"
                         >
                             <Icon name={isGenerating ? "refresh" : "play"} size={18} className={isGenerating ? "animate-spin" : ""} />
                         </button>
