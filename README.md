@@ -155,8 +155,27 @@ def run(inputs, params):
 ```
 
 ---
-
-## Advanced Node Settings (Branching & Custom Outputs)
+ 
+ ## Python Code Completion (Autofill)
+ 
+ The system provides dynamic code completion in the Python editors (Node Library and Reports). To keep the suggestions in sync with your `executor.py` and `internal_libs`, use the sync script.
+ 
+ ### How it works
+ The script parses `backend/app/services/executor.py` to extract:
+ - All namespaces in `SAFE_GLOBALS` (e.g., `libs`, `openai`, `gemini`, `prompts`).
+ - All allowed modules in `ALLOWED_MODULES`.
+ - Core built-ins and boilerplate snippets.
+ 
+ ### Syncing Hints
+ Whenever you expose new functions or libraries to the node sandbox, run the following command to update the frontend hints:
+ ```bash
+ docker compose exec backend python -m app.scripts.sync_autofill_python
+ ```
+ This will regenerate `backend/app/resources/python_hints.json`, which is then served to the frontend.
+ 
+ ---
+ 
+ ## Advanced Node Settings (Branching & Custom Outputs)
 
 You can create complex nodes with multiple output handles (branches) by using special markers and logic in the `NodeParameters` class.
 

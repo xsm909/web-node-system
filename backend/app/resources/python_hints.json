@@ -1,0 +1,873 @@
+[
+    {
+        "label": "math",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "json",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "datetime",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "re",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "random",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "base64",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "hashlib",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "time",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "collections",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "itertools",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "functools",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "decimal",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "statistics",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "print",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "len",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "range",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "enumerate",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "zip",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "map",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "filter",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "list",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "dict",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "set",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "tuple",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "str",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "int",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "float",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "bool",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "abs",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "round",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "min",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "max",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "sum",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "sorted",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "reversed",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "isinstance",
+        "type": "function",
+        "detail": "Built-in",
+        "boost": 2
+    },
+    {
+        "label": "libs",
+        "type": "variable",
+        "detail": "libs namespace",
+        "boost": 3
+    },
+    {
+        "label": "libs.ask_ai",
+        "type": "function",
+        "detail": "libs function",
+        "boost": 4
+    },
+    {
+        "label": "libs.check_ai",
+        "type": "function",
+        "detail": "libs function",
+        "boost": 4
+    },
+    {
+        "label": "libs.calculator",
+        "type": "function",
+        "detail": "libs function",
+        "boost": 4
+    },
+    {
+        "label": "libs.database_query",
+        "type": "function",
+        "detail": "libs function",
+        "boost": 4
+    },
+    {
+        "label": "libs.http_request",
+        "type": "function",
+        "detail": "libs function",
+        "boost": 4
+    },
+    {
+        "label": "libs.http_search",
+        "type": "function",
+        "detail": "libs function",
+        "boost": 4
+    },
+    {
+        "label": "libs.smart_search",
+        "type": "function",
+        "detail": "libs function",
+        "boost": 4
+    },
+    {
+        "label": "libs.read_workflow_data",
+        "type": "function",
+        "detail": "libs function",
+        "boost": 4
+    },
+    {
+        "label": "libs.read_runtime_data",
+        "type": "function",
+        "detail": "libs function",
+        "boost": 4
+    },
+    {
+        "label": "libs.write_runtime_data",
+        "type": "function",
+        "detail": "libs function",
+        "boost": 4
+    },
+    {
+        "label": "openai",
+        "type": "variable",
+        "detail": "openai namespace",
+        "boost": 3
+    },
+    {
+        "label": "openai.create_new_conversation",
+        "type": "function",
+        "detail": "openai function",
+        "boost": 4
+    },
+    {
+        "label": "openai.set_prompt",
+        "type": "function",
+        "detail": "openai function",
+        "boost": 4
+    },
+    {
+        "label": "openai.ask_chat",
+        "type": "function",
+        "detail": "openai function",
+        "boost": 4
+    },
+    {
+        "label": "openai.ask_single",
+        "type": "function",
+        "detail": "openai function",
+        "boost": 4
+    },
+    {
+        "label": "openai.perform_web_search",
+        "type": "function",
+        "detail": "openai function",
+        "boost": 4
+    },
+    {
+        "label": "gemini",
+        "type": "variable",
+        "detail": "gemini namespace",
+        "boost": 3
+    },
+    {
+        "label": "gemini.create_new_conversation",
+        "type": "function",
+        "detail": "gemini function",
+        "boost": 4
+    },
+    {
+        "label": "gemini.set_prompt",
+        "type": "function",
+        "detail": "gemini function",
+        "boost": 4
+    },
+    {
+        "label": "gemini.ask_chat",
+        "type": "function",
+        "detail": "gemini function",
+        "boost": 4
+    },
+    {
+        "label": "gemini.ask_single",
+        "type": "function",
+        "detail": "gemini function",
+        "boost": 4
+    },
+    {
+        "label": "gemini.perform_web_search",
+        "type": "function",
+        "detail": "gemini function",
+        "boost": 4
+    },
+    {
+        "label": "perplexity",
+        "type": "variable",
+        "detail": "perplexity namespace",
+        "boost": 3
+    },
+    {
+        "label": "perplexity.create_new_conversation",
+        "type": "function",
+        "detail": "perplexity function",
+        "boost": 4
+    },
+    {
+        "label": "perplexity.set_prompt",
+        "type": "function",
+        "detail": "perplexity function",
+        "boost": 4
+    },
+    {
+        "label": "perplexity.ask_chat",
+        "type": "function",
+        "detail": "perplexity function",
+        "boost": 4
+    },
+    {
+        "label": "perplexity.ask_single",
+        "type": "function",
+        "detail": "perplexity function",
+        "boost": 4
+    },
+    {
+        "label": "perplexity.perform_web_search",
+        "type": "function",
+        "detail": "perplexity function",
+        "boost": 4
+    },
+    {
+        "label": "common",
+        "type": "variable",
+        "detail": "common namespace",
+        "boost": 3
+    },
+    {
+        "label": "common.get_active_client",
+        "type": "function",
+        "detail": "common function",
+        "boost": 4
+    },
+    {
+        "label": "common.GetAIByModel",
+        "type": "function",
+        "detail": "common function",
+        "boost": 4
+    },
+    {
+        "label": "common.is_valid_json",
+        "type": "function",
+        "detail": "common function",
+        "boost": 4
+    },
+    {
+        "label": "common.fill_template",
+        "type": "function",
+        "detail": "common function",
+        "boost": 4
+    },
+    {
+        "label": "inner_database",
+        "type": "variable",
+        "detail": "inner_database namespace",
+        "boost": 3
+    },
+    {
+        "label": "inner_database.unsafe_request",
+        "type": "function",
+        "detail": "inner_database function",
+        "boost": 4
+    },
+    {
+        "label": "analytics",
+        "type": "variable",
+        "detail": "analytics namespace",
+        "boost": 3
+    },
+    {
+        "label": "analytics.process_request",
+        "type": "function",
+        "detail": "analytics function",
+        "boost": 4
+    },
+    {
+        "label": "analytics.process_analytics_request",
+        "type": "function",
+        "detail": "analytics function",
+        "boost": 4
+    },
+    {
+        "label": "meta",
+        "type": "variable",
+        "detail": "meta namespace",
+        "boost": 3
+    },
+    {
+        "label": "meta.get_metadata",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_metadata_by_id",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_all_metadata",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_all_client_metadata",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_metadata_by_schema",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_client_metadata_by_schema",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_owner_metadata_by_schema",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "metadata",
+        "type": "variable",
+        "detail": "metadata namespace",
+        "boost": 3
+    },
+    {
+        "label": "metadata.get_metadata",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_metadata_by_id",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_all_metadata",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_all_client_metadata",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_metadata_by_schema",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_client_metadata_by_schema",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_owner_metadata_by_schema",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "schema",
+        "type": "variable",
+        "detail": "schema namespace",
+        "boost": 3
+    },
+    {
+        "label": "schema.get_schema_by_key",
+        "type": "function",
+        "detail": "schema function",
+        "boost": 4
+    },
+    {
+        "label": "schema.get_all_schemas",
+        "type": "function",
+        "detail": "schema function",
+        "boost": 4
+    },
+    {
+        "label": "agent",
+        "type": "variable",
+        "detail": "agent namespace",
+        "boost": 3
+    },
+    {
+        "label": "agent.run",
+        "type": "function",
+        "detail": "agent function",
+        "boost": 4
+    },
+    {
+        "label": "agent.get_agent_hint_by_key",
+        "type": "function",
+        "detail": "agent function",
+        "boost": 4
+    },
+    {
+        "label": "prompts",
+        "type": "variable",
+        "detail": "prompts namespace",
+        "boost": 3
+    },
+    {
+        "label": "prompts.add_prompt",
+        "type": "function",
+        "detail": "prompts function",
+        "boost": 4
+    },
+    {
+        "label": "prompts.get_prompts_by_category_with_reference_id",
+        "type": "function",
+        "detail": "prompts function",
+        "boost": 4
+    },
+    {
+        "label": "prompts.get_prompts_by_category_with_id",
+        "type": "function",
+        "detail": "prompts function",
+        "boost": 4
+    },
+    {
+        "label": "prompts.delete_prompts_by_period",
+        "type": "function",
+        "detail": "prompts function",
+        "boost": 4
+    },
+    {
+        "label": "response_data",
+        "type": "variable",
+        "detail": "response_data namespace",
+        "boost": 3
+    },
+    {
+        "label": "response_data.clear_recent_records_by_entity_and_category",
+        "type": "function",
+        "detail": "response_data function",
+        "boost": 4
+    },
+    {
+        "label": "response_data.add_response",
+        "type": "function",
+        "detail": "response_data function",
+        "boost": 4
+    },
+    {
+        "label": "response_data.update_response_meta",
+        "type": "function",
+        "detail": "response_data function",
+        "boost": 4
+    },
+    {
+        "label": "response_data.update_response_meta_by_key",
+        "type": "function",
+        "detail": "response_data function",
+        "boost": 4
+    },
+    {
+        "label": "response_data.get_responses_by_period_and_category",
+        "type": "function",
+        "detail": "response_data function",
+        "boost": 4
+    },
+    {
+        "label": "analytics",
+        "type": "variable",
+        "detail": "analytics namespace",
+        "boost": 3
+    },
+    {
+        "label": "analytics.process_request",
+        "type": "function",
+        "detail": "analytics function",
+        "boost": 4
+    },
+    {
+        "label": "analytics.process_analytics_request",
+        "type": "function",
+        "detail": "analytics function",
+        "boost": 4
+    },
+    {
+        "label": "meta",
+        "type": "variable",
+        "detail": "meta namespace",
+        "boost": 3
+    },
+    {
+        "label": "meta.get_metadata",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_metadata_by_id",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_all_metadata",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_all_client_metadata",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_metadata_by_schema",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_client_metadata_by_schema",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "meta.get_owner_metadata_by_schema",
+        "type": "function",
+        "detail": "meta function",
+        "boost": 4
+    },
+    {
+        "label": "metadata",
+        "type": "variable",
+        "detail": "metadata namespace",
+        "boost": 3
+    },
+    {
+        "label": "metadata.get_metadata",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_metadata_by_id",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_all_metadata",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_all_client_metadata",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_metadata_by_schema",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_client_metadata_by_schema",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "metadata.get_owner_metadata_by_schema",
+        "type": "function",
+        "detail": "metadata function",
+        "boost": 4
+    },
+    {
+        "label": "schema",
+        "type": "variable",
+        "detail": "schema namespace",
+        "boost": 3
+    },
+    {
+        "label": "schema.get_schema_by_key",
+        "type": "function",
+        "detail": "schema function",
+        "boost": 4
+    },
+    {
+        "label": "schema.get_all_schemas",
+        "type": "function",
+        "detail": "schema function",
+        "boost": 4
+    },
+    {
+        "label": "agent",
+        "type": "variable",
+        "detail": "agent namespace",
+        "boost": 3
+    },
+    {
+        "label": "agent.run",
+        "type": "function",
+        "detail": "agent function",
+        "boost": 4
+    },
+    {
+        "label": "agent.get_agent_hint_by_key",
+        "type": "function",
+        "detail": "agent function",
+        "boost": 4
+    },
+    {
+        "label": "prompts",
+        "type": "variable",
+        "detail": "prompts namespace",
+        "boost": 3
+    },
+    {
+        "label": "prompts.add_prompt",
+        "type": "function",
+        "detail": "prompts function",
+        "boost": 4
+    },
+    {
+        "label": "prompts.get_prompts_by_category_with_reference_id",
+        "type": "function",
+        "detail": "prompts function",
+        "boost": 4
+    },
+    {
+        "label": "prompts.get_prompts_by_category_with_id",
+        "type": "function",
+        "detail": "prompts function",
+        "boost": 4
+    },
+    {
+        "label": "prompts.delete_prompts_by_period",
+        "type": "function",
+        "detail": "prompts function",
+        "boost": 4
+    },
+    {
+        "label": "response_data",
+        "type": "variable",
+        "detail": "response_data namespace",
+        "boost": 3
+    },
+    {
+        "label": "response_data.clear_recent_records_by_entity_and_category",
+        "type": "function",
+        "detail": "response_data function",
+        "boost": 4
+    },
+    {
+        "label": "response_data.add_response",
+        "type": "function",
+        "detail": "response_data function",
+        "boost": 4
+    },
+    {
+        "label": "response_data.update_response_meta",
+        "type": "function",
+        "detail": "response_data function",
+        "boost": 4
+    },
+    {
+        "label": "response_data.update_response_meta_by_key",
+        "type": "function",
+        "detail": "response_data function",
+        "boost": 4
+    },
+    {
+        "label": "response_data.get_responses_by_period_and_category",
+        "type": "function",
+        "detail": "response_data function",
+        "boost": 4
+    },
+    {
+        "label": "run",
+        "type": "function",
+        "detail": "Standard entry point: run(inputs, params)",
+        "snippet": "def run(inputs, params):\n    ${1:}\n    return ${2:{}}",
+        "boost": 10
+    }
+]

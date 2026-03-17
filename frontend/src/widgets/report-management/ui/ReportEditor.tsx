@@ -9,6 +9,8 @@ import { vscodeDark, vscodeLight } from "@uiw/codemirror-theme-vscode";
 import { indentUnit } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import { useThemeStore } from "../../../shared/lib/theme/store";
+import { autocompletion, snippetCompletion } from "@codemirror/autocomplete";
+import { getPythonHints, type PythonHint } from "../../../shared/api/python-hints";
 
 interface ReportEditorProps {
     report?: Report | null;
@@ -29,12 +31,74 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     const [isCompiling, setIsCompiling] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
 
+    const [dynamicHints, setDynamicHints] = useState<PythonHint[]>([]);
+
+    useEffect(() => {
+        const fetchHints = async () => {
+            const hints = await getPythonHints();
+            setDynamicHints(hints);
+        };
+        fetchHints();
+    }, []);
+
     const editorTheme = useMemo(() => (theme === "dark" ? vscodeDark : vscodeLight), [theme]);
+    
     const pythonExtensions = useMemo(() => [
         python(),
         indentUnit.of('    '),
         EditorState.tabSize.of(4),
-    ], []);
+        autocompletion({
+            override: [
+                (context) => {
+                    const word = context.matchBefore(/[\w\.]*/);
+                    if (!word || (word.from === word.to && !context.explicit)) return null;
+                    
+                    const isMethod = word.text.includes('.');
+                    let currentHints = dynamicHints;
+
+                    if (isMethod) {
+                        const parts = word.text.split('.');
+                        const prefix = parts.slice(0, -1).join('.');
+                        currentHints = dynamicHints.filter(h => h.label.startsWith(prefix + '.'));
+                        
+                        return {
+                            from: word.from + prefix.length + 1,
+                            options: currentHints.map(h => ({
+                                label: h.label.split('.').pop() || h.label,
+                                type: h.type,
+                                detail: h.detail,
+                                boost: h.boost
+                            }))
+                        };
+                    }
+
+                    return {
+                        from: word.from,
+                        options: [
+                            ...dynamicHints.filter(h => !h.label.includes('.')).map(h => {
+                                if (h.snippet) {
+                                    return snippetCompletion(h.snippet, {
+                                        label: h.label,
+                                        detail: h.detail,
+                                        type: h.type,
+                                        boost: h.boost
+                                    });
+                                }
+                                return {
+                                    label: h.label,
+                                    type: h.type,
+                                    detail: h.detail,
+                                    boost: h.boost
+                                };
+                            }),
+                            { label: 'parameters', type: 'variable', detail: 'Report parameters' },
+                            { label: 'mode', type: 'variable', detail: 'Execution mode' },
+                        ]
+                    };
+                }
+            ]
+        })
+    ], [dynamicHints]);
     const htmlExtensions = useMemo(() => [
         html(),
         indentUnit.of('    '),

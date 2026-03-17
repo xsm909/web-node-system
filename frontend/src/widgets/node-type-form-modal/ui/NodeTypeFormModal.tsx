@@ -10,6 +10,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { useForm } from '@tanstack/react-form';
 import { AppFormView } from '../../../shared/ui/app-form-view';
+import { getPythonHints, type PythonHint } from '../../../shared/api/python-hints';
 
 interface NodeTypeFormViewProps {
     onClose: () => void;
@@ -128,6 +129,15 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<FormTab>(defaultTab || 'info');
     const [cursorPosition, setCursorPosition] = useState<{ anchor: number, head: number } | null>(null);
+    const [dynamicHints, setDynamicHints] = useState<PythonHint[]>([]);
+
+    useEffect(() => {
+        const fetchHints = async () => {
+            const hints = await getPythonHints();
+            setDynamicHints(hints);
+        };
+        fetchHints();
+    }, []);
 
     // Load saved cursor position on mount
     useEffect(() => {
@@ -179,26 +189,55 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         autocompletion({
             override: [
                 (context) => {
-                    const word = context.matchBefore(/\w*/);
-                    if (word && word.from === word.to && !context.explicit) return null;
+                    const word = context.matchBefore(/[\w\.]*/);
+                    if (!word || (word.from === word.to && !context.explicit)) return null;
+                    
+                    const isMethod = word.text.includes('.');
+                    let currentHints = dynamicHints;
+
+                    if (isMethod) {
+                        const parts = word.text.split('.');
+                        const prefix = parts.slice(0, -1).join('.');
+                        currentHints = dynamicHints.filter(h => h.label.startsWith(prefix + '.'));
+                        
+                        return {
+                            from: word.from + prefix.length + 1,
+                            options: currentHints.map(h => ({
+                                label: h.label.split('.').pop() || h.label,
+                                type: h.type,
+                                detail: h.detail,
+                                boost: h.boost
+                            }))
+                        };
+                    }
+
                     return {
-                        from: word ? word.from : context.pos,
+                        from: word.from,
                         options: [
-                            snippetCompletion('def run(inputs, params):\n\t${1:print("Hello")}\n\treturn ${2:{}}', {
-                                label: 'run',
-                                detail: 'Standard node function',
-                                type: 'function'
+                            ...dynamicHints.filter(h => !h.label.includes('.')).map(h => {
+                                if (h.snippet) {
+                                    return snippetCompletion(h.snippet, {
+                                        label: h.label,
+                                        detail: h.detail,
+                                        type: h.type,
+                                        boost: h.boost
+                                    });
+                                }
+                                return {
+                                    label: h.label,
+                                    type: h.type,
+                                    detail: h.detail,
+                                    boost: h.boost
+                                };
                             }),
                             { label: 'inputs', type: 'variable', detail: 'Node input data' },
                             { label: 'params', type: 'variable', detail: 'Node parameters' },
-                            { label: 'print', type: 'function' },
-                            { label: 'return', type: 'keyword' },
                         ]
                     };
                 }
             ]
         })
-    ], []);
+    ], [dynamicHints]);
 
     return (
         <AppFormView
