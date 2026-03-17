@@ -1,5 +1,6 @@
 import uuid
-from typing import Any, Dict, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 from ..core.database import SessionLocal
 from ..models.prompt import Prompt
 from .logger_lib import system_log
@@ -184,3 +185,73 @@ def get_prompts_by_category_with_id(category: str, entity_id: str) -> list:
         return []
     finally:
         db.close()
+
+def delete_prompts_by_period(
+    entity_id: Union[str, uuid.UUID],
+    category: str,
+    data_start: Union[str, datetime],
+    data_end: Union[str, datetime]
+) -> Dict[str, Any]:
+    """
+    Deletes all records from the 'prompts' table for a specific entity_id and category
+    within a given date period (created_at).
+
+    Args:
+        entity_id: The ID of the owner entity (client, record, etc.).
+        category: Category for the prompt (e.g., 'Common|Prompt').
+        data_start: Start of the period (inclusive).
+        data_end: End of the period (inclusive).
+
+    Returns:
+        A dictionary with the status of the operation and the count of deleted records.
+    """
+    if not all([entity_id, category, data_start, data_end]):
+        system_log("[PROMPT_LIB] Skipping delete_prompts_by_period: All fields are mandatory", level="warning")
+        return {"status": "error", "message": "All fields (entity_id, category, data_start, data_end) are mandatory"}
+
+    system_log(
+        f"[PROMPT_LIB] Deleting prompts for entity_id: {entity_id}, category: {category}, "
+        f"period: {data_start} to {data_end}",
+        level="system"
+    )
+
+    db = SessionLocal()
+    try:
+        # Convert string ID to UUID
+        e_uuid = uuid.UUID(entity_id) if isinstance(entity_id, str) else entity_id
+        
+        # Parse dates if they are strings
+        if isinstance(data_start, str):
+            data_start = datetime.fromisoformat(data_start.replace('Z', '+00:00'))
+        if isinstance(data_end, str):
+            data_end = datetime.fromisoformat(data_end.replace('Z', '+00:00'))
+
+        # Perform deletion
+        delete_query = db.query(Prompt).filter(
+            Prompt.entity_id == e_uuid,
+            Prompt.category == category,
+            Prompt.created_at >= data_start,
+            Prompt.created_at <= data_end
+        )
+
+        count = delete_query.count()
+        delete_query.delete(synchronize_session=False)
+        db.commit()
+
+        system_log(f"[PROMPT_LIB] Successfully deleted {count} prompts", level="system")
+        result = {
+            "status": "success",
+            "deleted_count": count
+        }
+
+    except Exception as e:
+        db.rollback()
+        system_log(f"[PROMPT_LIB] Error deleting prompts: {str(e)}", level="error")
+        result = {
+            "status": "error",
+            "message": str(e)
+        }
+    finally:
+        db.close()
+    
+    return result

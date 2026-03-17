@@ -204,7 +204,8 @@ SAFE_GLOBALS = {
     "prompts": SimpleNamespace(
         add_prompt=prompt_lib.add_prompt,
         get_prompts_by_category_with_reference_id=prompt_lib.get_prompts_by_category_with_reference_id,
-        get_prompts_by_category_with_id=prompt_lib.get_prompts_by_category_with_id
+        get_prompts_by_category_with_id=prompt_lib.get_prompts_by_category_with_id,
+        delete_prompts_by_period=prompt_lib.delete_prompts_by_period
     ),
     "response_data": SimpleNamespace(
         clear_recent_records_by_entity_and_category=response_lib.clear_recent_records_by_entity_and_category,
@@ -668,7 +669,8 @@ class WorkflowExecutor:
                 "prompts": SimpleNamespace(
                     add_prompt=prompt_lib.add_prompt,
                     get_prompts_by_category_with_reference_id=prompt_lib.get_prompts_by_category_with_reference_id,
-                    get_prompts_by_category_with_id=prompt_lib.get_prompts_by_category_with_id
+                    get_prompts_by_category_with_id=prompt_lib.get_prompts_by_category_with_id,
+                    delete_prompts_by_period=prompt_lib.delete_prompts_by_period
                 ),
                 "response_data": SimpleNamespace(
                     clear_recent_records_by_entity_and_category=response_lib.clear_recent_records_by_entity_and_category,
