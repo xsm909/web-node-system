@@ -20,11 +20,19 @@ interface PromptViewerProps {
 const MinimalistPromptView: React.FC<{ content: any, meta?: any }> = ({ content, meta }) => {
     if (!content) return null;
 
-    // Handle nested response_text which is common in agent history
+    // Handle nested response_text or content that is a string
     let effectiveContent = content;
-    if (content.response_text && typeof content.response_text === 'string') {
+    if (typeof content === 'string') {
         try {
-            effectiveContent = JSON.parse(content.response_text);
+            effectiveContent = JSON.parse(content);
+        } catch (e) {
+            // ignore
+        }
+    }
+
+    if (effectiveContent?.response_text && typeof effectiveContent.response_text === 'string') {
+        try {
+            effectiveContent = JSON.parse(effectiveContent.response_text);
         } catch (e) {
             console.warn('Failed to parse nested response_text:', e);
         }
@@ -37,22 +45,37 @@ const MinimalistPromptView: React.FC<{ content: any, meta?: any }> = ({ content,
         <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar p-8 select-text text-[14px] leading-relaxed font-medium text-[var(--text-main)]">
             <div className="max-w-4xl space-y-6">
                 {description && (
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2">
                         <span className="opacity-40 whitespace-nowrap">description:</span>
-                        <span>{description}</span>
+                        <div className="whitespace-pre-wrap break-words bg-[var(--border-muted)]/5 p-4 rounded-lg border border-[var(--border-base)]/30">
+                            {description}
+                        </div>
                     </div>
                 )}
                 
                 {prompts.length > 0 && (
                     <div className="space-y-3">
                         <div className="opacity-40">prompts:</div>
-                        <div className="space-y-2 pl-4">
-                            {prompts.map((p: string, i: number) => (
-                                <div key={i} className="flex gap-3">
-                                    <span className="opacity-30 min-w-[20px]">{i + 1}.</span>
-                                    <span>{p}</span>
-                                </div>
-                            ))}
+                        <div className="space-y-4 pl-4">
+                            {prompts.map((p: any, i: number) => {
+                                const isObject = typeof p === 'object' && p !== null;
+                                return (
+                                    <div key={i} className="flex gap-3">
+                                        <span className="opacity-30 min-w-[20px] pt-1">{i + 1}.</span>
+                                        <div className="flex-1 min-w-0">
+                                            {isObject ? (
+                                                <pre className="p-3 bg-[var(--border-muted)]/10 rounded-lg font-mono text-[12px] opacity-70 border border-[var(--border-base)]/50 overflow-x-auto">
+                                                    {JSON.stringify(p, null, 2)}
+                                                </pre>
+                                            ) : (
+                                                <div className="whitespace-pre-wrap break-words">
+                                                    {String(p)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
