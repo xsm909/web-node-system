@@ -115,6 +115,7 @@ const WorkflowsTabWithNavigator = ({
                     });
                 }}
                 allNodes={allNodes}
+                defaultTab="code"
             />
         );
     };

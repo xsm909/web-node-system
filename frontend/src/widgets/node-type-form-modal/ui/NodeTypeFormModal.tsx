@@ -17,6 +17,7 @@ interface NodeTypeFormViewProps {
     initialData?: Partial<NodeType>;
     onSave: (data: Partial<NodeType>) => void;
     allNodes?: NodeType[];
+    defaultTab?: FormTab;
 }
 
 // ─── Category Combo-box ───────────────────────────────────────────────────────
@@ -123,8 +124,25 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     initialData,
     onSave,
     allNodes = [],
+    defaultTab,
 }) => {
-    const [activeTab, setActiveTab] = useState<FormTab>('info');
+    const [activeTab, setActiveTab] = useState<FormTab>(defaultTab || 'info');
+    const [cursorPosition, setCursorPosition] = useState<{ anchor: number, head: number } | null>(null);
+
+    // Load saved cursor position on mount
+    useEffect(() => {
+        if (editingNode?.id) {
+            const saved = localStorage.getItem(`cursor_pos_${editingNode.id}`);
+            if (saved) {
+                try {
+                    const pos = JSON.parse(saved);
+                    setCursorPosition(pos);
+                } catch (e) {
+                    console.error('Failed to parse saved cursor position', e);
+                }
+            }
+        }
+    }, [editingNode?.id]);
 
     const form = useForm({
         defaultValues: {
@@ -320,7 +338,22 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                         value={field.state.value}
                                         height="100%"
                                         theme="dark"
+                                        autoFocus
                                         extensions={codeMirrorExtensions}
+                                        selection={cursorPosition || undefined}
+                                        onUpdate={(update) => {
+                                            if (update.selectionSet && editingNode?.id) {
+                                                const sel = update.state.selection.main;
+                                                const pos = { anchor: sel.anchor, head: sel.head };
+                                                
+                                                // Only save if it's different from what we already have in state
+                                                // (to avoid unnecessary localStorage writes)
+                                                if (JSON.stringify(pos) !== JSON.stringify(cursorPosition)) {
+                                                    localStorage.setItem(`cursor_pos_${editingNode.id}`, JSON.stringify(pos));
+                                                    setCursorPosition(pos);
+                                                }
+                                            }
+                                        }}
                                         onChange={(value) => field.handleChange(value)}
                                         className="h-full text-sm font-mono"
                                         placeholder="# Define your executive logic here..."
