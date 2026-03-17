@@ -599,7 +599,11 @@ export function WorkflowGraph({
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     onNodeClick={onNodeClick}
-                    onNodeDoubleClick={onNodeDoubleClickCallback}
+                    onNodeDoubleClick={(event, node) => {
+                        console.log('[WorkflowGraph] onNodeDoubleClick triggered for node:', node.id);
+                        if (onNodeDoubleClickCallback) onNodeDoubleClickCallback(event, node);
+                        else console.warn('[WorkflowGraph] No onNodeDoubleClickCallback provided');
+                    }}
                     onMouseMove={onMouseMove}
                     onNodeDragStart={() => setMenu(null)}
                     onNodesDelete={() => { setMenu(null); setSelectedNodeId(null); }}

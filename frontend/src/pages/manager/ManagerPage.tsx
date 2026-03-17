@@ -24,6 +24,7 @@ import { WorkflowList } from '../../widgets/workflow-list';
 import { Navigator, useNavigator } from '../../shared/ui/navigator';
 import { NodeEditorView } from '../../widgets/node-editor-view';
 import { PromptViewer } from '../../widgets/prompt-viewer/ui/PromptViewer';
+import { NodeTypeFormView } from '../../widgets/node-type-form-modal';
 
 import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
 
@@ -78,6 +79,7 @@ const WorkflowEditorView = ({
 }) => {
     console.log('[WorkflowEditorView] Rendering for workflow:', activeWorkflow?.id, 'hasGraph:', !!activeWorkflow?.graph);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+    const nav = useNavigator();
 
     // Keyboard shortcut for save
     useEffect(() => {
@@ -134,6 +136,42 @@ const WorkflowEditorView = ({
         }
         setSelectedNode(node);
     }, [nodeTypes]);
+
+    const handleNodeDoubleClick = useCallback((event: React.MouseEvent, node: Node) => {
+        console.log('[WorkflowEditorView] handleNodeDoubleClick ENTER', node.id, node.data);
+        if (!nodeTypes || nodeTypes.length === 0) {
+            console.warn('[WorkflowEditorView] No nodeTypes available for double-click lookup');
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        const nodeLabel = node.data?.label || '';
+        const nodeTypeId = node.data?.nodeTypeId;
+        const nodeTypeRef = node.data?.nodeType;
+
+        const ntDef = nodeTypes.find((t: any) =>
+            (nodeTypeId && t.id === nodeTypeId) ||
+            t.name.toLowerCase() === (nodeTypeRef || nodeLabel).toLowerCase()
+        );
+
+        console.log('[WorkflowEditorView] Double-click lookup result:', ntDef?.name || 'NOT FOUND', 'for label:', nodeLabel);
+
+        if (ntDef) {
+            console.log('[WorkflowEditorView] Opening technical editor for:', ntDef.name);
+            nav.push(
+                <NodeTypeFormView
+                    onClose={() => nav.pop()}
+                    editingNode={ntDef}
+                    onSave={async (_data: any) => {
+                        console.log('[WorkflowEditorView] Technical editor save requested (read-only for manager)');
+                    }}
+                    allNodes={nodeTypes}
+                    defaultTab="code"
+                />
+            );
+        }
+    }, [nodeTypes, nav]);
 
     const isDirty = (notifyChange as any)?.isDirty || false;
 
@@ -255,6 +293,7 @@ const WorkflowEditorView = ({
 
                                     notifyChange?.();
                                 }}
+                                onNodeDoubleClickCallback={handleNodeDoubleClick}
                                 onNodeSelectCallback={handleNodeSelect}
                                 activeNodeIds={activeNodeIds}
                             />

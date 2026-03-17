@@ -136,18 +136,32 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
     }, []);
 
     const handleEditNodeContext = useCallback(async (event: React.MouseEvent, node: Node) => {
-        if (!onEditNodeProp) return;
+        console.log('[WorkflowEditorProvider] handleEditNodeContext ENTER', node.id, node.data);
+        if (!onEditNodeProp) {
+            console.warn('[WorkflowEditorProvider] No onEditNodeProp provided to provider');
+            return;
+        }
         event.preventDefault();
         event.stopPropagation();
+        
+        const nodeLabel = node.data?.label || '';
+        const nodeTypeId = node.data?.nodeTypeId;
+        const nodeTypeRef = node.data?.nodeType;
+
         const ntDef = nodeTypes.find(t =>
-            (node.data?.nodeTypeId && t.id === node.data.nodeTypeId) ||
-            (t.name.toLowerCase() === (node.data?.nodeType || node.data?.label || '').toLowerCase())
+            (nodeTypeId && t.id === nodeTypeId) ||
+            (t.name.toLowerCase() === (nodeTypeRef || nodeLabel).toLowerCase())
         );
+        
+        console.log('[WorkflowEditorProvider] Double-click lookup result:', ntDef?.name || 'NOT FOUND', 'for label:', nodeLabel);
+
         if (ntDef) {
+            console.log('[WorkflowEditorProvider] Double-click detected. Opening specialized editor for:', ntDef.name);
             try {
                 const { data } = await apiClient.get(`/admin/node-types/${ntDef.id}`);
                 onEditNodeProp(data);
             } catch (error) {
+                console.log('[WorkflowEditorProvider] Admin node-type fetch failed (likely non-admin or network), using basic definition');
                 onEditNodeProp(ntDef);
             }
         }
@@ -505,6 +519,7 @@ export function AdminCommonWorkflowManagement({
         <WorkflowEditorProvider
             onToggleSidebar={onToggleSidebar}
             isSidebarOpen={isSidebarOpen}
+            onEditNode={onEditNode}
             refreshTrigger={refreshTrigger}
         >
             <div className="flex-1 flex flex-col min-w-0 relative h-full">
