@@ -37,6 +37,8 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const reportViewerRef = useRef<ReportViewerRef>(null);
     const reportEditorRef = useRef<ReportEditorRef>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isCompiling, setIsCompiling] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [reportEditorIsDirty, setReportEditorIsDirty] = useState(false);
 
     useEffect(() => {
@@ -196,6 +198,43 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 activeTab={activeTab}
                 onTabChange={(id) => setActiveTab(id as any)}
                 saveLabel="Save Report"
+                headerRightContent={
+                    <div className="flex gap-2">
+                        {activeTab === 'code' && (
+                            <button
+                                onClick={async () => {
+                                    setIsCompiling(true);
+                                    try {
+                                        await reportEditorRef.current?.handleCompile();
+                                    } finally {
+                                        setIsCompiling(false);
+                                    }
+                                }}
+                                disabled={isCompiling}
+                                className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] hover:bg-[var(--bg-hover)] transition-all shadow-lg active:scale-95 disabled:opacity-50 shrink-0"
+                                title="Compile"
+                            >
+                                <Icon name={isCompiling ? "refresh" : "code"} size={18} className={isCompiling ? "animate-spin" : ""} />
+                            </button>
+                        )}
+                        <button
+                            onClick={async () => {
+                                setIsGenerating(true);
+                                try {
+                                    await reportEditorRef.current?.handleGenerate();
+                                    setActiveTab('preview');
+                                } finally {
+                                    setIsGenerating(false);
+                                }
+                            }}
+                            disabled={isGenerating}
+                            className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 disabled:opacity-50 shrink-0"
+                            title="Generate"
+                        >
+                            <Icon name={isGenerating ? "refresh" : "play"} size={18} className={isGenerating ? "animate-spin" : ""} />
+                        </button>
+                    </div>
+                }
             >
                 <ReportEditor
                     ref={reportEditorRef}

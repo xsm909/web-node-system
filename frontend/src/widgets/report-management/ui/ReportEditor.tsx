@@ -23,7 +23,11 @@ interface ReportEditorProps {
 
 export interface ReportEditorRef {
     handleSave: () => Promise<void>;
+    handleCompile: () => Promise<void>;
+    handleGenerate: () => Promise<void>;
     isSaving: boolean;
+    isCompiling: boolean;
+    isGenerating: boolean;
 }
 
 export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ report, styles, onBack, activeTab, onTabChange, onDirtyChange }, ref) => {
@@ -160,7 +164,11 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
 
     useImperativeHandle(ref, () => ({
         handleSave,
-        isSaving
+        handleCompile,
+        handleGenerate,
+        isSaving,
+        isCompiling,
+        isGenerating
     }));
 
     const handleSave = async () => {
@@ -217,12 +225,10 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             setConsoleOutput(res.data.console || '');
             if (res.data.success) {
                 setSchemaJson(res.data.schema);
-                setActiveOutputTab('schema');
             } else {
                 if (res.data.validation_reason) {
                     setConsoleOutput(prev => `[VALIDATION FAILED] ${res.data.validation_reason}\n\n${prev}`);
                 }
-                setActiveOutputTab('console');
             }
         } catch (error: any) {
             setConsoleOutput(error.response?.data?.detail || error.message);
@@ -464,24 +470,6 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                 <div className="flex-1 flex flex-col gap-4 overflow-hidden pt-4">
                     <div className="flex justify-between items-center px-1">
                         <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Python Engine</h3>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={handleCompile}
-                                disabled={isCompiling}
-                                className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs font-bold hover:bg-[var(--bg-hover)] transition-all disabled:opacity-50"
-                            >
-                                <Icon name={isCompiling ? "refresh" : "code"} size={14} className={isCompiling ? "animate-spin" : ""} />
-                                Compile
-                            </button>
-                            <button
-                                onClick={handleGenerate}
-                                disabled={isGenerating}
-                                className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-brand text-white text-xs font-bold hover:brightness-110 transition-all disabled:opacity-50"
-                            >
-                                <Icon name={isGenerating ? "refresh" : "play"} size={14} className={isGenerating ? "animate-spin" : ""} />
-                                Generate
-                            </button>
-                        </div>
                     </div>
                     
                     <div className="flex-1 min-h-0 rounded-xl border border-[var(--border-base)] overflow-hidden shadow-sm">
@@ -553,9 +541,13 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
 
             {activeTab === 'preview' && (
                 <div className="flex-1 flex flex-col pt-4 overflow-hidden">
-                    <div className="flex-1 rounded-xl border border-[var(--border-base)] bg-white overflow-auto shadow-inner">
+                    <div className="flex-1 rounded-xl border border-[var(--border-base)] bg-white overflow-hidden shadow-inner relative">
                         {previewHtml ? (
-                            <div className="p-8" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                            <iframe
+                                title="Report Preview"
+                                srcDoc={previewHtml}
+                                className="w-full h-full border-none"
+                            />
                         ) : (
                             <div className="h-full flex items-center justify-center text-[var(--text-muted)] italic text-sm">
                                 Click Generate in the Code tab to see preview.
