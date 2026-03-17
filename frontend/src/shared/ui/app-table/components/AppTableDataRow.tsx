@@ -23,14 +23,17 @@ export function AppTableDataRow<TData>({ row, onClick, level = 0, config }: AppT
             `}
         >
             {row.getVisibleCells().map((cell, index) => {
-                const isFirstCell = index === 0;
+                const isIndentCell = config?.indentColumnId 
+                    ? cell.column.id === config.indentColumnId 
+                    : index === 0;
                 let cellContent = flexRender(cell.column.columnDef.cell, cell.getContext());
+                const isFirstCell = index === 0;
 
                 return (
                     <td
                         key={cell.id}
-                        className="px-6 py-2 text-sm"
-                        style={isFirstCell && level > 0 ? { paddingLeft: `${1.5 + level * 1.5}rem` } : undefined}
+                        className={`py-2 text-sm ${isFirstCell ? 'w-px whitespace-nowrap pl-4 pr-0' : 'px-6'}`}
+                        style={isIndentCell && level > 0 ? { paddingLeft: `${1 + level * 1}rem` } : undefined}
                     >
                         {cellContent}
                     </td>

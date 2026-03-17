@@ -20,7 +20,25 @@ interface ReportListProps {
 export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQuery }: ReportListProps) {
 
     const columns = useMemo(() => [
+        columnHelper.display({
+            id: 'open',
+            header: '',
+            cell: info => {
+                const report = info.row.original;
+                return (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onView(report); }}
+                        className="p-1 rounded-lg bg-[var(--border-muted)] text-[var(--text-main)] hover:bg-[var(--border-base)] transition-all opacity-0 group-hover:opacity-100 flex items-center justify-center"
+                        title="Open Report"
+                    >
+                        <Icon name="play_arrow" size={16} />
+                    </button>
+                );
+            },
+            size: 40,
+        }),
         columnHelper.accessor('name', {
+            id: 'name',
             header: 'Name',
             cell: info => {
                 const report = info.row.original;
@@ -30,7 +48,7 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQ
                             <Icon name="bar_chart" size={16} />
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <span className="text-[var(--text-main)] truncate">{report.name}</span>
+                            <span className="text-[var(--text-main)] truncate font-medium group-hover:text-brand transition-colors">{report.name}</span>
                             <span className="text-[10px] text-[var(--text-muted)] opacity-60 truncate">{report.description || 'No description'}</span>
                         </div>
                     </div>
@@ -52,36 +70,20 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQ
                 const report = info.row.original;
                 return (
                     <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onView(report); }}
-                            className="p-2 rounded-lg bg-[var(--border-muted)] text-[var(--text-main)] hover:bg-[var(--border-base)] transition-colors"
-                            title="Open Report"
-                        >
-                            <Icon name="play" size={16} />
-                        </button>
                         {isAdmin && (
-                            <>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onEdit(report); }}
-                                    className="p-2 rounded-lg text-brand hover:bg-brand/10 transition-colors"
-                                    title="Edit Report"
-                                >
-                                    <Icon name="edit" size={16} />
-                                </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onDelete(report); }}
-                                    className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
-                                    title="Delete Report"
-                                >
-                                    <Icon name="delete" size={16} />
-                                </button>
-                            </>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onDelete(report); }}
+                                className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                                title="Delete Report"
+                            >
+                                <Icon name="delete" size={16} />
+                            </button>
                         )}
                     </div>
                 );
             },
         }),
-    ], [isAdmin, onEdit, onView, onDelete]);
+    ], [isAdmin, onView, onDelete]);
 
     const filteredReports = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -98,9 +100,10 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQ
             data={filteredReports}
             columns={columns}
             isSearching={searchQuery.trim().length > 0}
-            onRowClick={onView}
+            onRowClick={isAdmin ? onEdit : onView}
             config={{
                 categoryExtractor: r => r.category,
+                indentColumnId: 'name',
                 persistCategoryKey: 'report_expanded_categories',
                 emptyMessage: 'No reports found.'
             }}

@@ -84,7 +84,7 @@ export function AppTableCategoryRows<TData>({
                 className="bg-brand/10 hover:bg-brand/20 cursor-pointer transition-colors border-b border-brand/20 group/row"
                 onClick={() => onToggle(path)}
             >
-                <td colSpan={colSpan} className="px-6 py-2" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
+                <td colSpan={colSpan} className="px-6 py-2" style={{ paddingLeft: `${1 + level * 1}rem` }}>
                     <div className="flex items-center gap-2">
                         <Icon
                             name={isExpanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
