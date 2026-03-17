@@ -16,7 +16,7 @@ interface NodeTypeFormViewProps {
     onClose: () => void;
     editingNode: NodeType | null;
     initialData?: Partial<NodeType>;
-    onSave: (data: Partial<NodeType>) => void;
+    onSave: (data: Partial<NodeType>) => Promise<NodeType | void> | void;
     allNodes?: NodeType[];
     defaultTab?: FormTab;
 }
@@ -127,6 +127,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     allNodes = [],
     defaultTab,
 }) => {
+    const [currentNode, setCurrentNode] = useState<Partial<NodeType>>(editingNode || initialData || {});
     const [activeTab, setActiveTab] = useState<FormTab>(defaultTab || 'info');
     const [cursorPosition, setCursorPosition] = useState<{ anchor: number, head: number } | null>(null);
     const [dynamicHints, setDynamicHints] = useState<PythonHint[]>([]);
@@ -141,8 +142,8 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
 
     // Load saved cursor position on mount
     useEffect(() => {
-        if (editingNode?.id) {
-            const saved = localStorage.getItem(`cursor_pos_${editingNode.id}`);
+        if (currentNode?.id) {
+            const saved = localStorage.getItem(`cursor_pos_${currentNode.id}`);
             if (saved) {
                 try {
                     const pos = JSON.parse(saved);
@@ -152,23 +153,45 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                 }
             }
         }
-    }, [editingNode?.id]);
+    }, [currentNode?.id]);
 
     const form = useForm({
         defaultValues: {
-            name: (editingNode?.name || initialData?.name) || '',
-            version: (editingNode?.version || initialData?.version) || '1.0',
-            description: (editingNode?.description || initialData?.description) || '',
-            category: (editingNode?.category || initialData?.category) || '',
-            icon: (editingNode?.icon || initialData?.icon) || 'task',
-            code: (editingNode?.code || initialData?.code) || 'def run(inputs, params):\n    return {}',
-            is_async: (editingNode?.is_async || initialData?.is_async) || false,
-            input_schema: (editingNode?.input_schema || initialData?.input_schema) || {},
-            output_schema: (editingNode?.output_schema || initialData?.output_schema) || {},
-            parameters: (editingNode?.parameters || initialData?.parameters) || [],
+            name: currentNode?.name || '',
+            version: currentNode?.version || '1.0',
+            description: currentNode?.description || '',
+            category: currentNode?.category || '',
+            icon: currentNode?.icon || 'task',
+            code: currentNode?.code || 'def run(inputs, params):\n    return {}',
+            is_async: currentNode?.is_async || false,
+            input_schema: currentNode?.input_schema || {},
+            output_schema: currentNode?.output_schema || {},
+            parameters: currentNode?.parameters || [],
         },
         onSubmit: async ({ value }) => {
-            onSave(value as Partial<NodeType>);
+            // Include ID in submission if we have it
+            const payload = { ...value, id: currentNode?.id };
+            const result = await onSave(payload as Partial<NodeType>);
+            
+            // If onSave returns the newly saved node, we update our baseline
+            if (result) {
+                const updatedNode = result as NodeType;
+                setCurrentNode(updatedNode);
+                form.reset({
+                    name: updatedNode.name || '',
+                    version: updatedNode.version || '1.0',
+                    description: updatedNode.description || '',
+                    category: updatedNode.category || '',
+                    icon: updatedNode.icon || 'task',
+                    code: updatedNode.code || '',
+                    is_async: !!updatedNode.is_async,
+                    input_schema: updatedNode.input_schema || {},
+                    output_schema: updatedNode.output_schema || {},
+                    parameters: updatedNode.parameters || [],
+                });
+            } else {
+                form.reset(value);
+            }
         },
     });
 
@@ -241,13 +264,13 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
 
     return (
         <AppFormView
-            title={editingNode ? editingNode.name : 'New Node Structure'}
+            title={currentNode?.name || 'New Node Structure'}
             parentTitle="Node Library"
             icon="device_hub"
             isDirty={isDirty}
             onSave={() => form.handleSubmit()}
             onCancel={onClose}
-            saveLabel={editingNode ? 'Save Changes' : 'Initialize Node'}
+            saveLabel={currentNode?.id ? 'Save Changes' : 'Initialize Node'}
             tabs={[
                 { id: 'info', label: 'Configuration' },
                 { id: 'code', label: 'Python Engine' },
@@ -381,14 +404,14 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                         extensions={codeMirrorExtensions}
                                         selection={cursorPosition || undefined}
                                         onUpdate={(update) => {
-                                            if (update.selectionSet && editingNode?.id) {
+                                            if (update.selectionSet && currentNode?.id) {
                                                 const sel = update.state.selection.main;
                                                 const pos = { anchor: sel.anchor, head: sel.head };
                                                 
                                                 // Only save if it's different from what we already have in state
                                                 // (to avoid unnecessary localStorage writes)
                                                 if (JSON.stringify(pos) !== JSON.stringify(cursorPosition)) {
-                                                    localStorage.setItem(`cursor_pos_${editingNode.id}`, JSON.stringify(pos));
+                                                    localStorage.setItem(`cursor_pos_${currentNode.id}`, JSON.stringify(pos));
                                                     setCursorPosition(pos);
                                                 }
                                             }

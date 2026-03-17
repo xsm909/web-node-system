@@ -79,6 +79,18 @@ const WorkflowEditorView = ({
     console.log('[WorkflowEditorView] Rendering for workflow:', activeWorkflow?.id, 'hasGraph:', !!activeWorkflow?.graph);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
 
+    // Keyboard shortcut for save
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                e.preventDefault();
+                saveWorkflow();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [saveWorkflow]);
+
     const handleParamsChange = useCallback((nodeId: string, params: any) => {
         console.log('[WorkflowEditorView] handleParamsChange for nodeId:', nodeId, 'new params:', params);
         // Update nodes in nodesRef.current to preserve added nodes and positions
@@ -123,12 +135,15 @@ const WorkflowEditorView = ({
         setSelectedNode(node);
     }, [nodeTypes]);
 
+    const isDirty = (notifyChange as any)?.isDirty || false;
+
     return (
         <div className="flex-1 flex flex-col min-h-0 w-full h-full relative">
             <AppHeader
                 onBack={onBack}
                 onToggleSidebar={() => { }} // not needed when back button is present, but required by prop type
                 isSidebarOpen={false}
+                isDirty={isDirty}
                 leftContent={
                     <div className="flex items-center gap-3">
                         <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
@@ -167,6 +182,7 @@ const WorkflowEditorView = ({
                                 onClick={saveWorkflow}
                                 disabled={isCreating}
                                 className="flex items-center gap-2 px-6 py-2.5 bg-brand text-white rounded-xl hover:brightness-110 transition-all font-bold shadow-lg shadow-brand/20 active:scale-95 disabled:opacity-50 border border-transparent"
+                                title="Save Workflow"
                             >
                                 <Icon name={isCreating ? "refresh" : "save"} size={20} className={isCreating ? "animate-spin" : ""} />
                                 <span>Save</span>

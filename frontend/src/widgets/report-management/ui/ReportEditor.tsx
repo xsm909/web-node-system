@@ -15,14 +15,13 @@ import { getPythonHints, type PythonHint } from "../../../shared/api/python-hint
 interface ReportEditorProps {
     report?: Report | null;
     styles: ReportStyle[];
-    onBack: () => void;
     activeTab: 'general' | 'code' | 'template' | 'preview';
     onTabChange?: (tab: 'general' | 'code' | 'template' | 'preview') => void;
     onDirtyChange?: (dirty: boolean) => void;
 }
 
 export interface ReportEditorRef {
-    handleSave: () => Promise<void>;
+    handleSave: () => Promise<Report | void>;
     handleCompile: () => Promise<void>;
     handleGenerate: () => Promise<void>;
     isSaving: boolean;
@@ -30,7 +29,7 @@ export interface ReportEditorRef {
     isGenerating: boolean;
 }
 
-export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ report, styles, onBack, activeTab, onTabChange, onDirtyChange }, ref) => {
+export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ report, styles, activeTab, onTabChange, onDirtyChange }, ref) => {
     const { theme } = useThemeStore();
     const [isSaving, setIsSaving] = useState(false);
     const [isCompiling, setIsCompiling] = useState(false);
@@ -194,15 +193,34 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
         };
 
         try {
+            let savedReport: Report;
             if (report?.id) {
-                await apiClient.put(`/reports/${report.id}`, payload);
+                const { data } = await apiClient.put(`/reports/${report.id}`, payload);
+                savedReport = data;
             } else {
-                await apiClient.post('/reports', payload);
+                const { data } = await apiClient.post('/reports', payload);
+                savedReport = data;
             }
-            onBack();
+            
+            // Update initial baseline to reset dirty state
+            initialRef.current = {
+                name: savedReport.name || '',
+                type: savedReport.type || 'global',
+                description: savedReport.description || '',
+                code: savedReport.code || '',
+                template: savedReport.template || '',
+                styleId: savedReport.style_id || '',
+                category: savedReport.category || '',
+                parameters: JSON.stringify(savedReport.parameters || []),
+            };
+            onDirtyChange?.(false);
+            
+            // Return saved report so parent can update its state
+            return savedReport;
         } catch (error) {
             console.error("Failed to save report", error);
             alert("Failed to save report.");
+            throw error;
         } finally {
             setIsSaving(false);
         }

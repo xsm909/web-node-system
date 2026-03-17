@@ -66,12 +66,17 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
 
     const handleSave = async () => {
         try {
+            let savedCred: Credential;
             if (editingId) {
-                await apiClient.put(`/admin/credentials/${editingId}`, formData);
+                const { data } = await apiClient.put(`/admin/credentials/${editingId}`, formData);
+                savedCred = data;
             } else {
-                await apiClient.post('/admin/credentials', formData);
+                const { data } = await apiClient.post('/admin/credentials', formData);
+                savedCred = data;
+                setEditingId(savedCred.id);
             }
-            setIsEditing(false);
+            setInitialFormState(savedCred);
+            setFormData(savedCred);
             fetchData();
         } catch {
             alert('Failed to save credential');

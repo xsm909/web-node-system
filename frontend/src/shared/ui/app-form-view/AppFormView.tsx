@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppHeader } from '../../../widgets/app-header';
 import { ConfirmModal } from '../confirm-modal';
 import { Icon } from '../icon';
@@ -65,6 +65,19 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
         onDiscard || onCancel
     );
 
+    // Keyboard shortcut handler
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                e.preventDefault();
+                onSave();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onSave]);
+
     const handleBack = () => {
         if (isDirty) {
             setShowConfirmBack(true);
@@ -88,6 +101,7 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                 onToggleSidebar={() => {}}
                 isSidebarOpen={false}
                 onBack={handleBack}
+                isDirty={isDirty}
                 leftContent={
                     <div className="flex items-center gap-3 ml-2 lg:ml-0">
                         {icon && (

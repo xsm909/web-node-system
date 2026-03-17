@@ -15,19 +15,23 @@ export function useNodeTypeManagement() {
         setIsModalOpen(true);
     };
 
-    const handleSave = async (data: Partial<NodeType>, nodeId?: string, onSuccess?: () => void) => {
+    const handleSave = async (data: Partial<NodeType>, nodeId?: string, onSuccess?: (saved: NodeType) => void) => {
         try {
+            let savedNode: NodeType;
             if (nodeId) {
-                await apiClient.put(`/admin/node-types/${nodeId}`, data);
+                const res = await apiClient.put<NodeType>(`/admin/node-types/${nodeId}`, data);
+                savedNode = res.data;
             } else {
-                await apiClient.post('/admin/node-types', data);
+                const res = await apiClient.post<NodeType>('/admin/node-types', data);
+                savedNode = res.data;
             }
-            setIsModalOpen(false);
-            if (onSuccess) onSuccess();
+            if (onSuccess) onSuccess(savedNode);
+            return savedNode;
         } catch (error: any) {
             console.error('Failed to save node type:', error);
             const message = error.response?.data?.detail || 'Failed to save node type';
             alert(typeof message === 'string' ? message : JSON.stringify(message));
+            throw error;
         }
     };
 

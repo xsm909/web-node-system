@@ -133,7 +133,6 @@ const AdminWorkflowEditorView = ({
 
     const onSaveInternal = async () => {
         await saveWorkflow();
-        onBack();
     };
 
     const handleParamsChange = useCallback((nodeId: string, params: any) => {

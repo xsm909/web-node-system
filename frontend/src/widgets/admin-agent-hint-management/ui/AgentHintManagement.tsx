@@ -76,11 +76,24 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
 
         if (selectedHint) {
             updateMutation.mutate({ id: selectedHint.id, data }, {
-                onSuccess: () => setIsEditing(false)
+                onSuccess: (savedHint) => {
+                    setInitialFormState({
+                        key: savedHint.key,
+                        category: savedHint.category || '',
+                        hintContent: savedHint.hint
+                    });
+                }
             });
         } else {
             createMutation.mutate(data, {
-                onSuccess: () => setIsEditing(false)
+                onSuccess: (savedHint) => {
+                    setSelectedHint(savedHint);
+                    setInitialFormState({
+                        key: savedHint.key,
+                        category: savedHint.category || '',
+                        hintContent: savedHint.hint
+                    });
+                }
             });
         }
     };

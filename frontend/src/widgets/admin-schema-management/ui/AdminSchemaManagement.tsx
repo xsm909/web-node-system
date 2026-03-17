@@ -113,11 +113,28 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
 
             if (selectedSchema) {
                 updateMutation.mutate({ id: selectedSchema.id, data }, {
-                    onSuccess: () => setIsEditing(false)
+                    onSuccess: (savedSchema) => {
+                        setInitialFormState({
+                            key: savedSchema.key,
+                            category: savedSchema.category || '',
+                            content: JSON.stringify(savedSchema.content, null, 2),
+                            isSystem: savedSchema.is_system,
+                            lock: savedSchema.lock
+                        });
+                    }
                 });
             } else {
                 createMutation.mutate(data, {
-                    onSuccess: () => setIsEditing(false)
+                    onSuccess: (savedSchema) => {
+                        setSelectedSchema(savedSchema);
+                        setInitialFormState({
+                            key: savedSchema.key,
+                            category: savedSchema.category || '',
+                            content: JSON.stringify(savedSchema.content, null, 2),
+                            isSystem: savedSchema.is_system,
+                            lock: savedSchema.lock
+                        });
+                    }
                 });
             }
         } catch (e) {

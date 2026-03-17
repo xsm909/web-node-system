@@ -11,6 +11,7 @@ interface AppHeaderProps {
     onSearchChange?: (query: string) => void;
     searchPlaceholder?: string;
     onBack?: () => void;
+    isDirty?: boolean;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -21,7 +22,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     searchQuery,
     onSearchChange,
     searchPlaceholder = "Search...",
-    onBack
+    onBack,
+    isDirty
 }) => {
     return (
         <Header
@@ -44,7 +46,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                             <Icon name="arrow_back" size={22} />
                         </button>
                     )}
-                    {leftContent}
+                    <div className="relative flex items-center">
+                        {leftContent}
+                        {isDirty && (
+                            <div className="flex items-center ml-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shadow-sm shadow-brand/50" title="Unsaved changes" />
+                            </div>
+                        )}
+                    </div>
                 </>
             }
             rightContent={

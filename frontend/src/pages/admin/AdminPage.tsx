@@ -41,9 +41,8 @@ const NodesTabWithNavigator = ({
                 onClose={() => nav.pop()}
                 editingNode={node || null}
                 onSave={(data) => {
-                    handleSave(data, node?.id, () => {
+                    return handleSave(data, data.id || node?.id, () => {
                         setRefreshCount(r => r + 1);
-                        nav.pop();
                     });
                 }}
                 allNodes={allNodes}
@@ -59,9 +58,8 @@ const NodesTabWithNavigator = ({
                 editingNode={null}
                 initialData={{ ...node, name: `${node.name} (Copy)` }}
                 onSave={(data) => {
-                    handleSave(data, undefined, () => {
+                    return handleSave(data, data.id, () => {
                         setRefreshCount(r => r + 1);
-                        nav.pop();
                     });
                 }}
                 allNodes={allNodes}
@@ -109,9 +107,8 @@ const WorkflowsTabWithNavigator = ({
                 onClose={() => nav.pop()}
                 editingNode={node}
                 onSave={(data) => {
-                    handleSave(data, node.id, () => {
+                    return handleSave(data, data.id || node.id, () => {
                         setRefreshCount(r => r + 1);
-                        nav.pop();
                     });
                 }}
                 allNodes={allNodes}

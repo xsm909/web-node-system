@@ -224,7 +224,13 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 isSaving={isSaving}
                 onSave={() => {
                     setIsSaving(true);
-                    reportEditorRef.current?.handleSave().finally(() => setIsSaving(false));
+                    reportEditorRef.current?.handleSave()
+                        .then((savedReport) => {
+                            if (savedReport) {
+                                setSelectedReport(savedReport);
+                            }
+                        })
+                        .finally(() => setIsSaving(false));
                 }}
                 onCancel={handleBack}
                 tabs={[
@@ -263,7 +269,6 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     ref={reportEditorRef}
                     report={selectedReport}
                     styles={styles}
-                    onBack={handleBack}
                     activeTab={activeTab}
                     onTabChange={(id) => setActiveTab(id as any)}
                     onDirtyChange={setReportEditorIsDirty}
