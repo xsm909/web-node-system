@@ -47,7 +47,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const [styleEditorIsDirty, setStyleEditorIsDirty] = useState(false);
 
     const handleHeaderCompile = async () => {
-        if (isCompiling || view !== 'edit' || activeTab !== 'code') return;
+        if (isCompiling || view !== 'edit') return;
         setIsCompiling(true);
         try {
             await reportEditorRef.current?.handleCompile();
@@ -71,7 +71,10 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         const handleKeyDown = (e: KeyboardEvent) => {
             if (view !== 'edit') return;
 
-            if (e.key === 'F5') {
+            if (e.key === 'F4') {
+                e.preventDefault();
+                setActiveTab('code');
+            } else if (e.key === 'F5') {
                 e.preventDefault();
                 handleHeaderCompile();
             } else if (e.key === 'F9') {

@@ -154,6 +154,17 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             }
         }
     }, [currentNode?.id]);
+    
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'F4') {
+                e.preventDefault();
+                setActiveTab('code');
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     const form = useForm({
         defaultValues: {

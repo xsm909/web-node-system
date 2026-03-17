@@ -393,3 +393,14 @@ For this project:
 
 This ensures consistent behavior across all agents and improves
 reliability when answering real‑world questions.
+
+## 14. Keyboard Shortcuts
+
+The platform supports specialized keyboard shortcuts to streamline development and management workflows:
+
+### 14.1 Global Editor Shortcuts
+-   **F4**: Switch to the **Python Code** tab (Node Engine/Report Code) from any other tab.
+
+### 14.2 Report Editor Shortcuts
+-   **F5**: Trigger **Compile** action for the current report script.
+-   **F9**: Trigger **Generate** action to preview the report.
