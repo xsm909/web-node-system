@@ -45,6 +45,7 @@ class ReportParameterOut(ReportParameterBase):
 
 class ReportStyleBase(BaseModel):
     name: str
+    category: Optional[str] = None
     css: str
     is_default: bool = False
 
@@ -53,6 +54,7 @@ class ReportStyleCreate(ReportStyleBase):
 
 class ReportStyleUpdate(BaseModel):
     name: Optional[str] = None
+    category: Optional[str] = None
     css: Optional[str] = None
     is_default: Optional[bool] = None
 

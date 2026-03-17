@@ -11,6 +11,8 @@ import { AppFormView } from '../../../shared/ui/app-form-view';
 import { ReportList } from './ReportList';
 import { ReportEditor, type ReportEditorRef } from './ReportEditor';
 import { ReportViewer, type ReportViewerRef } from './ReportViewer';
+import { StyleList } from './StyleList';
+import { StyleEditor, type StyleEditorRef } from './StyleEditor';
 
 interface ReportManagementProps {
     onToggleSidebar?: () => void;
@@ -23,6 +25,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
 
     type ViewState = 'list' | 'edit' | 'view';
     const [view, setView] = useState<ViewState>('list');
+    const [topTab, setTopTab] = useState<'reports' | 'styles'>('reports');
     const [activeTab, setActiveTab] = useState<'general' | 'code' | 'template' | 'preview'>('general');
     const [reports, setReports] = useState<Report[]>([]);
     const [styles, setStyles] = useState<ReportStyle[]>([]);
@@ -40,6 +43,8 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const [isCompiling, setIsCompiling] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [reportEditorIsDirty, setReportEditorIsDirty] = useState(false);
+    const styleEditorRef = useRef<StyleEditorRef>(null);
+    const [styleEditorIsDirty, setStyleEditorIsDirty] = useState(false);
 
     const handleHeaderCompile = async () => {
         if (isCompiling || view !== 'edit' || activeTab !== 'code') return;
@@ -114,19 +119,37 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         setView('view');
     };
 
+    const handleCreateStyle = () => {
+        setSelectedStyle(null);
+        setView('edit');
+    };
+
+    const handleEditStyle = (style: ReportStyle) => {
+        setSelectedStyle(style);
+        setView('edit');
+    };
+
     const handleDelete = (report: Report) => {
         setIdToDelete(report.id);
+    };
+
+    const handleDeleteStyle = (style: ReportStyle) => {
+        setIdToDelete(style.id);
     };
 
     const confirmDelete = async () => {
         if (!idToDelete) return;
         setIsDeleting(true);
         try {
-            await apiClient.delete(`/reports/${idToDelete}`);
+            if (topTab === 'reports') {
+                await apiClient.delete(`/reports/${idToDelete}`);
+            } else {
+                await apiClient.delete(`/reports/styles/${idToDelete}`);
+            }
             setRefreshTrigger(prev => prev + 1);
         } catch (err) {
-            console.error("Failed to delete report", err);
-            alert("Error deleting report");
+            console.error("Failed to delete", err);
+            alert("Error deleting item");
         } finally {
             setIsDeleting(false);
             setIdToDelete(null);
@@ -139,6 +162,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const handleBack = () => {
         setView('list');
         setSelectedReport(null);
+        setSelectedStyle(null);
         setIsGenerated(false);
         setActiveTab('general');
         setRefreshTrigger(prev => prev + 1);
@@ -210,8 +234,40 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         }
     };
 
+    const [selectedStyle, setSelectedStyle] = useState<ReportStyle | null>(null);
+
     if (isLoading) {
         return <div className="p-8 text-center text-[var(--text-muted)]">Loading reports...</div>;
+    }
+
+    if (view === 'edit' && isAdmin && topTab === 'styles') {
+        return (
+            <AppFormView
+                title={selectedStyle?.name || 'New Style'}
+                parentTitle="Styles Management"
+                icon="palette"
+                isDirty={styleEditorIsDirty}
+                isSaving={isSaving}
+                onSave={() => {
+                    setIsSaving(true);
+                    styleEditorRef.current?.handleSave()
+                        .then((savedStyle: ReportStyle | void) => {
+                            if (savedStyle) {
+                                setSelectedStyle(savedStyle);
+                            }
+                        })
+                        .finally(() => setIsSaving(false));
+                }}
+                onCancel={handleBack}
+                saveLabel="Save Style"
+            >
+                <StyleEditor
+                    ref={styleEditorRef}
+                    style={selectedStyle}
+                    onDirtyChange={setStyleEditorIsDirty}
+                />
+            </AppFormView>
+        );
     }
 
     if (view === 'edit' && isAdmin) {
@@ -303,9 +359,9 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     <div className="flex items-center gap-3">
                         {view === 'list' && isAdmin && (
                             <button
-                                onClick={handleCreate}
+                                onClick={topTab === 'reports' ? handleCreate : handleCreateStyle}
                                 className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
-                                title="Add Report"
+                                title={topTab === 'reports' ? "Add Report" : "Add Style"}
                             >
                                 <Icon name="add" size={20} />
                             </button>
@@ -353,14 +409,43 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 searchPlaceholder="Search reports by name, description or category..."
             />
 
-            <div className="flex-1 overflow-hidden">
-                {view === 'list' && (
+            <div className="flex-1 overflow-hidden flex flex-col">
+                {view === 'list' && isAdmin && (
+                    <div className="flex px-8 border-b border-[var(--border-base)] bg-[var(--bg-app)]">
+                        <button
+                            onClick={() => setTopTab('reports')}
+                            className={`px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all relative ${topTab === 'reports' ? 'text-brand' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                        >
+                            Reports
+                            {topTab === 'reports' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
+                        </button>
+                        <button
+                            onClick={() => setTopTab('styles')}
+                            className={`px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all relative ${topTab === 'styles' ? 'text-brand' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                        >
+                            Styles
+                            {topTab === 'styles' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
+                        </button>
+                    </div>
+                )}
+
+                {view === 'list' && topTab === 'reports' && (
                     <ReportList
                         reports={reports}
                         isAdmin={isAdmin}
                         onEdit={handleEdit}
                         onView={handleView}
                         onDelete={handleDelete}
+                        searchQuery={searchQuery}
+                    />
+                )}
+
+                {view === 'list' && topTab === 'styles' && isAdmin && (
+                    <StyleList
+                        styles={styles}
+                        isAdmin={isAdmin}
+                        onEdit={handleEditStyle}
+                        onDelete={handleDeleteStyle}
                         searchQuery={searchQuery}
                     />
                 )}
@@ -380,8 +465,8 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
 
             <ConfirmModal
                 isOpen={!!idToDelete}
-                title="Delete Report"
-                description="Are you sure you want to delete this report? This action cannot be undone."
+                title={topTab === 'reports' ? "Delete Report" : "Delete Style"}
+                description={`Are you sure you want to delete this ${topTab === 'reports' ? 'report' : 'style'}? This action cannot be undone.`}
                 confirmLabel="Delete"
                 isLoading={isDeleting}
                 onConfirm={confirmDelete}

@@ -13,6 +13,7 @@ export interface ReportParameter {
 export interface ReportStyle {
     id: string;
     name: string;
+    category?: string;
     css: string;
     is_default: boolean;
 }
