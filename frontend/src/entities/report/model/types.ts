@@ -3,9 +3,11 @@ export type ReportType = 'global' | 'client';
 export interface ReportParameter {
     id: string;
     parameter_name: string;
-    source: string;
-    value_field: string;
-    label_field: string;
+    parameter_type: 'text' | 'number' | 'date' | 'date_range' | 'select';
+    default_value?: string;
+    source?: string;
+    value_field?: string;
+    label_field?: string;
 }
 
 export interface ReportStyle {

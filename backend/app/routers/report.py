@@ -5,6 +5,7 @@ from typing import List, Optional, Any, Dict
 import uuid
 import json
 import os
+from datetime import datetime
 from ..core.database import get_db
 from ..core.security import require_role, get_current_user
 from ..models.user import User
@@ -27,9 +28,11 @@ manager_access = Depends(require_role("manager", "admin"))
 # --- Schemas ---
 class ReportParameterBase(BaseModel):
     parameter_name: str
-    source: str
-    value_field: str
-    label_field: str
+    parameter_type: str = "text"
+    default_value: Optional[str] = None
+    source: Optional[str] = None
+    value_field: Optional[str] = None
+    label_field: Optional[str] = None
 
 class ReportParameterCreate(ReportParameterBase):
     pass
@@ -99,12 +102,14 @@ class ReportGenerateRequest(BaseModel):
 class ReportGenerateResponse(BaseModel):
     html: str
     console: Optional[str] = None
+    validation_error: Optional[str] = None
 
 class ReportCompileResponse(BaseModel):
     success: bool
     console: str
     schema: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+    validation_reason: Optional[str] = None
 
 class ReportTemplateGenerateRequest(BaseModel):
     report_id: Optional[uuid.UUID] = None
@@ -227,7 +232,8 @@ def update_report(report_id: uuid.UUID, data: ReportUpdate, db: Session = Depend
         db.query(ReportParameter).filter(ReportParameter.report_id == report.id).delete()
         # add new
         for p in data.parameters:
-            param = ReportParameter(**p.model_dump(), report_id=report.id)
+            param_data = p.model_dump()
+            param = ReportParameter(**param_data, report_id=report.id)
             db.add(param)
             
     db.commit()
@@ -244,16 +250,31 @@ def delete_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_a
     db.commit()
     return {"status": "deleted"}
 
-def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Session) -> Dict[str, Any]:
+def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Session, user_context: Dict[str, Any] = None) -> Dict[str, Any]:
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
         
+    # Inject default values if missing
+    final_params = params.copy()
+    for param_config in report.parameters:
+        p_name = param_config.parameter_name
+        if p_name not in final_params or final_params[p_name] is None or (isinstance(final_params[p_name], str) and not final_params[p_name].strip()):
+            if param_config.default_value is not None:
+                final_params[p_name] = param_config.default_value
+
     # Execute Python logic
     executor = ReportExecutor(report.code)
-    exec_result = executor.execute(params, mode="is_run", execution_id=str(report.id))
+    exec_result = executor.execute(final_params, mode="is_run", user_context=user_context, execution_id=str(report.id))
     
     if not exec_result["success"]:
+        # If it's a validation error (reason provided), we don't raise 400, but return it
+        if "validation_reason" in exec_result and exec_result["validation_reason"]:
+             return {
+                "html": "",
+                "console": exec_result.get("console", ""),
+                "validation_error": exec_result["validation_reason"]
+            }
         raise HTTPException(status_code=400, detail=f"Error executing Python: {exec_result.get('error', 'Unknown error')}\nConsole:\n{exec_result.get('console', '')}")
 
     # Jinja2 Rendering
@@ -265,7 +286,7 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
             "data": data_val,
             "rows": data_val,
             "items": data_val,
-            "params": params
+            "params": final_params
         }
         if isinstance(data_val, dict):
             render_context.update(data_val)
@@ -334,19 +355,21 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
         
     return {
         "html": final_html,
-        "console": exec_result.get("console", "")
+        "console": exec_result.get("console", ""),
+        "validation_error": None
     }
 
 @router.post("/{report_id}/generate", response_model=ReportGenerateResponse)
 def generate_report(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
-    res = _generate_report_html(report_id, data.parameters, db)
+    user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
+    res = _generate_report_html(report_id, data.parameters, db, user_context=user_context)
     final_html = res["html"]
 
     # Optional: Log the report run
     run = ReportRun(
         report_id=report_id,
         executed_by=current_user.id,
-        parameters_json=data.parameters,
+        parameters_json=data.parameters, # Use original raw params for logging
         result_snapshot=None # Opting to not save full HTML to save space, but could if needed.
     )
     db.add(run)
@@ -354,7 +377,8 @@ def generate_report(report_id: uuid.UUID, data: ReportGenerateRequest, db: Sessi
 
     return {
         "html": final_html,
-        "console": res.get("console", "")
+        "console": res.get("console", ""),
+        "validation_error": res.get("validation_error")
     }
 
 @router.post("/{report_id}/pdf")
@@ -387,13 +411,25 @@ def generate_report_pdf(report_id: uuid.UUID, data: ReportGenerateRequest, db: S
 
 @router.post("/{report_id}/csv")
 def generate_report_csv(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    # This was a snippet in the middle, but I need to make sure I don't break logic.
+    # Actually, generate_report_csv calls execute directly.
+    # I'll replace the lines inside it.
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
         
     try:
+        # Inject default values for consistency
+        final_params = data.parameters.copy()
+        for param_config in report.parameters:
+            p_name = param_config.parameter_name
+            if p_name not in final_params or final_params[p_name] is None or (isinstance(final_params[p_name], str) and not final_params[p_name].strip()):
+                if param_config.default_value is not None:
+                    final_params[p_name] = param_config.default_value
+
         executor = ReportExecutor(report.code)
-        exec_result = executor.execute(data.parameters, mode="is_run", execution_id=str(report.id))
+        user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
+        exec_result = executor.execute(final_params, mode="is_run", user_context=user_context, execution_id=str(report.id))
         if not exec_result["success"]:
              raise HTTPException(status_code=400, detail=f"Error executing Python: {exec_result.get('error')}")
         
@@ -509,30 +545,56 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     return {"template": template_text}
 
 @router.post("/{report_id}/compile", response_model=ReportCompileResponse)
-def compile_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_access):
+def compile_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=admin_access):
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     
+    # Inject default values for testing in design mode
+    test_params = {
+        "user": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "name": "Test User",
+            "email": "test@example.com",
+            "role": "client"
+        }
+    }
+    for param_config in report.parameters:
+        if param_config.default_value is not None:
+            # For date types, provide current date if default is empty but type is date
+            val = param_config.default_value
+            if not val and "date" in param_config.parameter_type:
+                val = datetime.now().strftime("%Y-%m-%d")
+            test_params[param_config.parameter_name] = val
+        elif "date" in param_config.parameter_type:
+             test_params[param_config.parameter_name] = datetime.now().strftime("%Y-%m-%d")
+
     executor = ReportExecutor(report.code)
-    # Use empty params for design mode compilation test, or user could provide test params
-    result = executor.execute({}, mode="is_design", execution_id=str(report.id))
+    # Use injected defaults for design mode compilation test
+    user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
+    result = executor.execute(test_params, mode="is_design", user_context=user_context, execution_id=str(report.id))
     
     if result["success"]:
         # Generate schema from data
-        schema = generate_json_schema(result["data"])
+        try:
+            schema = generate_json_schema(result["data"])
+        except:
+            schema = {}
+            
         report.schema_json = schema
         db.commit()
         return {
-            "success": True, 
-            "console": result["console"], 
-            "schema": schema
+            "success": True,
+            "console": result["console"],
+            "schema": schema,
+            "validation_reason": None
         }
     else:
         return {
-            "success": False, 
-            "console": result["console"], 
-            "error": result.get("error")
+            "success": False,
+            "console": result["console"],
+            "error": result.get("error"),
+            "validation_reason": result.get("validation_reason")
         }
 
 @router.get("/{report_id}/options")

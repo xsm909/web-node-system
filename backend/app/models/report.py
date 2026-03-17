@@ -47,9 +47,11 @@ class ReportParameter(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
     report_id = Column(UUID(as_uuid=True), ForeignKey("reports.id"), nullable=False)
     parameter_name = Column(String(255), nullable=False)
-    source = Column(String(255), nullable=False)
-    value_field = Column(String(255), nullable=False)
-    label_field = Column(String(255), nullable=False)
+    parameter_type = Column(String(50), nullable=False, default="text")
+    default_value = Column(String(1000), nullable=True)
+    source = Column(String(255), nullable=True)
+    value_field = Column(String(255), nullable=True)
+    label_field = Column(String(255), nullable=True)
 
     report = relationship("Report", back_populates="parameters")
 

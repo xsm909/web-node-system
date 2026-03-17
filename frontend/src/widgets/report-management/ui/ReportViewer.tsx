@@ -25,6 +25,7 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
     const [options, setOptions] = useState<Record<string, { value: string, label: string }[]>>({});
     const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
     const [isParamsExpanded, setIsParamsExpanded] = useState(true);
+    const [validationReason, setValidationReason] = useState<string | null>(null);
 
     useImperativeHandle(ref, () => ({
         handleGenerate
@@ -48,10 +49,15 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
         if (report.parameters && report.parameters.length > 0) {
             fetchOptions();
 
-            // initialize param string values
+            // initialize param values with default_value if available
             const initialParams: Record<string, any> = {};
             report.parameters.forEach(p => {
-                initialParams[p.parameter_name] = '';
+                if (p.parameter_type === 'date_range') {
+                    initialParams[`${p.parameter_name}_start`] = p.default_value || '';
+                    initialParams[`${p.parameter_name}_end`] = p.default_value || '';
+                } else {
+                    initialParams[p.parameter_name] = p.default_value || '';
+                }
             });
             setParamValues(initialParams);
         }
@@ -62,13 +68,8 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
     };
 
     const handleGenerate = async () => {
-        if (report.parameters && report.parameters.length > 0) {
-            const hasEmptyParam = report.parameters.some(p => !paramValues[p.parameter_name] || String(paramValues[p.parameter_name]).trim() === '');
-            if (hasEmptyParam) {
-                setIsValidationModalOpen(true);
-                return;
-            }
-        }
+        // Local validation removed - we allow the backend to handle it via ParametersProcessing
+        // to show better, custom error messages.
 
         setIsParamsExpanded(false);
         // wait for collapse animation
@@ -76,13 +77,19 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
 
         setIsLoading(true);
         setHtmlData(null);
+        setValidationReason(null);
         onGenerated?.(false, {});
         try {
             const res = await apiClient.post(`/reports/${report.id}/generate`, {
                 parameters: paramValues
             });
-            setHtmlData(res.data.html);
-            onGenerated?.(true, paramValues);
+            if (res.data.validation_error) {
+                setValidationReason(res.data.validation_error);
+                setIsParamsExpanded(true);
+            } else {
+                setHtmlData(res.data.html);
+                onGenerated?.(true, paramValues);
+            }
         } catch (err: any) {
             console.error("Failed to generate report", err);
             alert("Error generating report: " + (err.response?.data?.detail || err.message));
@@ -106,22 +113,15 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                                 {param.parameter_name.replace(/_/g, ' ')}
                             </label>
 
-                            {options[param.parameter_name] && options[param.parameter_name].length > 0 ? (
+                            {param.parameter_type === 'select' && options[param.parameter_name] && options[param.parameter_name].length > 0 ? (
                                 <ComboBox
                                     value={paramValues[param.parameter_name]}
-                                    label={selectedItems[param.parameter_name]?.label || 'Select...'}
+                                    label={selectedItems[param.parameter_name]?.label || (paramValues[param.parameter_name] ? options[param.parameter_name].find(o => String(o.value) === String(paramValues[param.parameter_name]))?.label : null) || 'Select...'}
                                     placeholder={param.parameter_name}
-                                    data={{
-                                        items: {
-                                            id: 'items',
-                                            name: 'Available Options',
-                                            items: options[param.parameter_name].map(opt => ({
-                                                id: opt.value,
-                                                name: opt.label
-                                            })),
-                                            children: {}
-                                        }
-                                    }}
+                                    items={options[param.parameter_name].map(opt => ({
+                                        id: String(opt.value),
+                                        name: opt.label
+                                    }))}
                                     onSelect={(item) => {
                                         handleParamChange(param.parameter_name, item.id);
                                         setSelectedItems(prev => ({ ...prev, [param.parameter_name]: { value: item.id, label: item.name } }));
@@ -129,9 +129,24 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                                     variant="primary"
                                     className="w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl"
                                 />
+                            ) : param.parameter_type === 'date_range' ? (
+                                <div className="grid grid-cols-2 gap-2">
+                                    <input
+                                        type="date"
+                                        value={paramValues[`${param.parameter_name}_start`] || ''}
+                                        onChange={(e) => handleParamChange(`${param.parameter_name}_start`, e.target.value)}
+                                        className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={paramValues[`${param.parameter_name}_end`] || ''}
+                                        onChange={(e) => handleParamChange(`${param.parameter_name}_end`, e.target.value)}
+                                        className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
+                                    />
+                                </div>
                             ) : (
                                 <input
-                                    type="text"
+                                    type={param.parameter_type === 'number' ? 'number' : param.parameter_type === 'date' ? 'date' : 'text'}
                                     value={paramValues[param.parameter_name] || ''}
                                     onChange={(e) => handleParamChange(param.parameter_name, e.target.value)}
                                     className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
@@ -148,6 +163,25 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-brand bg-[var(--bg-app)]/50 backdrop-blur-sm z-20">
                             <div className="w-8 h-8 rounded-full border-t-2 border-brand animate-spin mb-4" />
                             <p className="font-bold text-sm tracking-wide text-[var(--text-main)]">Generating Report...</p>
+                        </div>
+                    ) : validationReason ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-app)] animate-in fade-in duration-300 z-10">
+                             <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/20 p-8 rounded-[2rem] max-w-md shadow-2xl animate-in zoom-in duration-300">
+                                 <div className="w-20 h-20 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                     <Icon name="warning" size={32} className="text-red-500" />
+                                 </div>
+                                 <h4 className="text-xl font-bold text-[var(--text-main)] mb-3">Generation Halted</h4>
+                                 <p className="text-sm text-[var(--text-muted)] mb-8 leading-relaxed px-4">
+                                     {validationReason}
+                                 </p>
+                                 <button 
+                                     onClick={() => setIsParamsExpanded(true)}
+                                     className="px-8 py-3 bg-[var(--text-main)] hover:bg-brand text-[var(--bg-app)] rounded-2xl text-sm font-bold transition-all transform active:scale-95 shadow-xl shadow-brand/10 inline-flex items-center gap-2"
+                                 >
+                                     <Icon name="edit" size={16} />
+                                     Correct Parameters
+                                 </button>
+                             </div>
                         </div>
                     ) : htmlData ? (
                         <iframe

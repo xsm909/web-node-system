@@ -203,6 +203,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     styles={styles}
                     onBack={handleBack}
                     activeTab={activeTab}
+                    onTabChange={(id) => setActiveTab(id as any)}
                     onDirtyChange={setReportEditorIsDirty}
                 />
             </AppFormView>

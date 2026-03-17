@@ -27,6 +27,13 @@ async def lifespan(app: FastAPI):
         # Emergency migration for category column
         db.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS category VARCHAR(255);"))
         
+        # Migrations for report_parameters
+        db.execute(text("ALTER TABLE report_parameters ADD COLUMN IF NOT EXISTS parameter_type VARCHAR(50) DEFAULT 'text';"))
+        db.execute(text("ALTER TABLE report_parameters ADD COLUMN IF NOT EXISTS default_value TEXT;"))
+        db.execute(text("ALTER TABLE report_parameters ALTER COLUMN source DROP NOT NULL;"))
+        db.execute(text("ALTER TABLE report_parameters ALTER COLUMN value_field DROP NOT NULL;"))
+        db.execute(text("ALTER TABLE report_parameters ALTER COLUMN label_field DROP NOT NULL;"))
+
         # Migrations for node_types
         db.execute(text("ALTER TABLE node_types ADD COLUMN IF NOT EXISTS is_async BOOLEAN DEFAULT FALSE;"))
         db.execute(text("ALTER TABLE node_types ADD COLUMN IF NOT EXISTS icon VARCHAR(100) DEFAULT 'task';"))
