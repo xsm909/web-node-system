@@ -3,6 +3,7 @@ from typing import Any, List, Dict, Optional
 from sqlalchemy import text
 from ..core.database import SessionLocal
 from ..models.workflow import WorkflowExecution
+from ..models.report import Report
 from ..models.user import RoleEnum, User
 from .logger_lib import system_log
 from .context_lib import execution_context
@@ -24,46 +25,48 @@ def unsafe_request(sql_query: str, params: Optional[Dict[str, Any]] = None) -> L
     db = SessionLocal()
 
     try:
-        # Resolve execution
+        # Resolve execution or report
         exec_uuid = uuid.UUID(execution_id) if isinstance(execution_id, str) else execution_id
 
+        # 1. Try WorkflowExecution
         execution = (
             db.query(WorkflowExecution)
             .filter(WorkflowExecution.id == exec_uuid)
             .first()
         )
 
-        if not execution or not execution.workflow:
-            system_log(
-                f"[DATABASE_LIB] Execution or workflow not found for {execution_id}",
-                level="error"
-            )
-            raise PermissionError("Execution or workflow not found")
+        owner = None
 
-        # Resolve owner
-        owner = execution.workflow.owner
+        if execution and execution.workflow:
+            # Resolve owner from workflow
+            owner = execution.workflow.owner
 
-        if not owner and execution.workflow.owner_id == "common":
-            creator = (
-                db.query(User)
-                .filter(User.id == execution.workflow.created_by)
-                .first()
-            )
+            if not owner and execution.workflow.owner_id == "common":
+                creator = (
+                    db.query(User)
+                    .filter(User.id == execution.workflow.created_by)
+                    .first()
+                )
+                if creator:
+                    owner = creator
 
-            if creator:
-                owner = creator
+        # 2. Try Report
+        if not owner:
+            report = db.query(Report).filter(Report.id == exec_uuid).first()
+            if report:
+                owner = report.creator
                 system_log(
-                    f"[DATABASE_LIB] Resolved owner as creator "
-                    f"({creator.username}, {creator.role})",
+                    f"[DATABASE_LIB] Resolved owner from Report {report.id} "
+                    f"({owner.username if owner else 'None'})",
                     level="system"
                 )
 
         if not owner:
             system_log(
-                f"[DATABASE_LIB] Could not resolve workflow owner for {execution_id}",
+                f"[DATABASE_LIB] Could not resolve owner for {execution_id} (not a Workflow or Report)",
                 level="error"
             )
-            raise PermissionError("Could not resolve workflow owner")
+            raise PermissionError("Could not resolve execution owner")
 
         # Check role
         allowed_roles = {

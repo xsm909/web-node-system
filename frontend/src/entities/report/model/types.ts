@@ -20,7 +20,8 @@ export interface Report {
     name: string;
     type: ReportType;
     description: string;
-    query: string;
+    code: string;
+    schema_json: Record<string, any>;
     template: string;
     style_id?: string;
     category?: string;

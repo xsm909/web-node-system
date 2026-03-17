@@ -23,7 +23,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
 
     type ViewState = 'list' | 'edit' | 'view';
     const [view, setView] = useState<ViewState>('list');
-    const [activeTab, setActiveTab] = useState<'details' | 'builder'>('details');
+    const [activeTab, setActiveTab] = useState<'general' | 'code' | 'template' | 'preview'>('general');
     const [reports, setReports] = useState<Report[]>([]);
     const [styles, setStyles] = useState<ReportStyle[]>([]);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -100,7 +100,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         setView('list');
         setSelectedReport(null);
         setIsGenerated(false);
-        setActiveTab('details');
+        setActiveTab('general');
         setRefreshTrigger(prev => prev + 1);
     };
 
@@ -188,11 +188,13 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 }}
                 onCancel={handleBack}
                 tabs={[
-                    { id: 'details', label: 'Details' },
-                    { id: 'builder', label: 'Builder' }
+                    { id: 'general', label: 'General' },
+                    { id: 'code', label: 'Code (Python)' },
+                    { id: 'template', label: 'HTML Template' },
+                    { id: 'preview', label: 'Preview' }
                 ]}
                 activeTab={activeTab}
-                onTabChange={(id) => setActiveTab(id as 'details' | 'builder')}
+                onTabChange={(id) => setActiveTab(id as any)}
                 saveLabel="Save Report"
             >
                 <ReportEditor

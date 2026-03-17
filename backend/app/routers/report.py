@@ -9,6 +9,7 @@ from ..core.database import get_db
 from ..core.security import require_role, get_current_user
 from ..models.user import User
 from ..models.report import Report, ReportTypeEnum, ReportParameter, ReportStyle, ReportRun
+from ..services.report_executor import ReportExecutor, generate_json_schema
 from pydantic import BaseModel
 from jinja2 import Environment, meta, Template
 from ..internal_libs.openai.openai_lib import openai_ask_single
@@ -62,7 +63,8 @@ class ReportBase(BaseModel):
     name: str
     type: ReportTypeEnum = ReportTypeEnum.global_type
     description: Optional[str] = None
-    query: str
+    code: str
+    schema_json: Optional[Dict[str, Any]] = {}
     template: str
     style_id: Optional[uuid.UUID] = None
     category: Optional[str] = None
@@ -75,7 +77,8 @@ class ReportUpdate(BaseModel):
     name: Optional[str] = None
     type: Optional[ReportTypeEnum] = None
     description: Optional[str] = None
-    query: Optional[str] = None
+    code: Optional[str] = None
+    schema_json: Optional[Dict[str, Any]] = None
     template: Optional[str] = None
     style_id: Optional[uuid.UUID] = None
     category: Optional[str] = None
@@ -95,10 +98,17 @@ class ReportGenerateRequest(BaseModel):
 
 class ReportGenerateResponse(BaseModel):
     html: str
+    console: Optional[str] = None
+
+class ReportCompileResponse(BaseModel):
+    success: bool
+    console: str
+    schema: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
 
 class ReportTemplateGenerateRequest(BaseModel):
-    query: str
-    additional_info: Optional[str] = None
+    report_id: Optional[uuid.UUID] = None
+    schema_json: Optional[Dict[str, Any]] = None
 
 class ReportTemplateGenerateResponse(BaseModel):
     template: str
@@ -234,24 +244,41 @@ def delete_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_a
     db.commit()
     return {"status": "deleted"}
 
-def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Session) -> str:
+def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Session) -> Dict[str, Any]:
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
         
-    # Execute Query
-    try:
-        exec_params = params.copy()
-        result_query = db.execute(text(report.query), exec_params)
-        columns = result_query.keys()
-        sql_result = [dict(zip(columns, row)) for row in result_query.fetchall()]
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error executing SQL: {str(e)}")
+    # Execute Python logic
+    executor = ReportExecutor(report.code)
+    exec_result = executor.execute(params, mode="is_run", execution_id=str(report.id))
+    
+    if not exec_result["success"]:
+        raise HTTPException(status_code=400, detail=f"Error executing Python: {exec_result.get('error', 'Unknown error')}\nConsole:\n{exec_result.get('console', '')}")
 
     # Jinja2 Rendering
     try:
         jinja_template = Template(report.template)
-        rendered_html = jinja_template.render(data=sql_result, params=params)
+        # context: 'data', 'params', 'rows', 'items' and all keys from data if it's a dict
+        data_val = exec_result["data"]
+        render_context = {
+            "data": data_val,
+            "rows": data_val,
+            "items": data_val,
+            "params": params
+        }
+        if isinstance(data_val, dict):
+            render_context.update(data_val)
+            
+        # Add debugging info to console log if success
+        available_vars = list(render_context.keys())
+        executor.log(f"Rendering template with variables: {', '.join(available_vars)}")
+        if isinstance(data_val, list) and data_val:
+            executor.log(f"Data is a list with {len(data_val)} items. Accessible via 'data', 'rows', or 'items'.")
+        elif isinstance(data_val, dict):
+             executor.log(f"Data is a dictionary. Keys unpacked: {', '.join(data_val.keys())}")
+
+        rendered_html = jinja_template.render(**render_context)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error rendering template: {str(e)}")
         
@@ -305,11 +332,15 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
     else:
         final_html = f"<!DOCTYPE html><html><head><style>{base_pdf_css}\n{css_content}</style></head><body><div class='report-container'>\n{rendered_html}\n</div></body></html>"
         
-    return final_html
+    return {
+        "html": final_html,
+        "console": exec_result.get("console", "")
+    }
 
 @router.post("/{report_id}/generate", response_model=ReportGenerateResponse)
 def generate_report(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
-    final_html = _generate_report_html(report_id, data.parameters, db)
+    res = _generate_report_html(report_id, data.parameters, db)
+    final_html = res["html"]
 
     # Optional: Log the report run
     run = ReportRun(
@@ -321,12 +352,16 @@ def generate_report(report_id: uuid.UUID, data: ReportGenerateRequest, db: Sessi
     db.add(run)
     db.commit()
 
-    return {"html": final_html}
+    return {
+        "html": final_html,
+        "console": res.get("console", "")
+    }
 
 @router.post("/{report_id}/pdf")
 def generate_report_pdf(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
     from weasyprint import HTML
-    final_html = _generate_report_html(report_id, data.parameters, db)
+    res = _generate_report_html(report_id, data.parameters, db)
+    final_html = res["html"]
     
     # Convert HTML to PDF
     pdf_bytes = io.BytesIO()
@@ -357,15 +392,22 @@ def generate_report_csv(report_id: uuid.UUID, data: ReportGenerateRequest, db: S
         raise HTTPException(status_code=404, detail="Report not found")
         
     try:
-        exec_params = data.parameters.copy()
-        result_query = db.execute(text(report.query), exec_params)
-        columns = result_query.keys()
-        rows = result_query.fetchall()
+        executor = ReportExecutor(report.code)
+        exec_result = executor.execute(data.parameters, mode="is_run", execution_id=str(report.id))
+        if not exec_result["success"]:
+             raise HTTPException(status_code=400, detail=f"Error executing Python: {exec_result.get('error')}")
+        
+        data_rows = exec_result["data"]
+        # Assuming data_rows is a list of dicts for CSV
+        if not isinstance(data_rows, list) or (len(data_rows) > 0 and not isinstance(data_rows[0], dict)):
+             raise HTTPException(status_code=400, detail="GenerateReport must return a list of dictionaries for CSV export")
+
+        columns = data_rows[0].keys() if data_rows else []
         
         output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(columns)
-        writer.writerows(rows)
+        writer = csv.DictWriter(output, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(data_rows)
         
         # Log the report run
         run = ReportRun(
@@ -393,7 +435,8 @@ def generate_report_html_file(report_id: uuid.UUID, data: ReportGenerateRequest,
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
         
-    final_html = _generate_report_html(report_id, data.parameters, db)
+    res = _generate_report_html(report_id, data.parameters, db)
+    final_html = res["html"]
     
     # Log the report run
     run = ReportRun(
@@ -465,68 +508,32 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     
     return {"template": template_text}
 
-@router.post("/generate-sql", response_model=ReportSQLGenerateResponse)
-def generate_report_sql(data: ReportSQLGenerateRequest, _=manager_access):
-    prompt_text = data.prompt
-    if not prompt_text:
-        raise HTTPException(status_code=400, detail="Prompt cannot be empty")
-        
-    # Read context from sql_hints.md
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    hints_path = os.path.join(current_dir, "..", "schemas", "ai_hints", "sql.md")
-    hints_content = ""
-    try:
-        with open(hints_path, "r") as f:
-            hints_content = f.read()
-    except Exception as e:
-        print(f"Warning: Could not read sql_hints.md at {hints_path}: {e}")
-        hints_content = "No specific schema hints provided."
-
-    additional_context = ""
-    if data.additional_info:
-        additional_context = f"USER ADDITIONAL REQUIREMENTS: {data.additional_info}"
-
-    ai_prompt = f"""
-    You are an expert SQL query generator for a PostgreSQL database.
+@router.post("/{report_id}/compile", response_model=ReportCompileResponse)
+def compile_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_access):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
     
-    ### CRITICAL INSTRUCTION:
-    - Use ONLY the tables and columns defined in the DATABASE SCHEMA HINTS below.
-    - DO NOT use tables that are not listed (e.g., DO NOT use 'questions', 'answers', 'sessions').
-    - If the user asks for "questions", use the `intermediate_results` table with `category = 'AI_Question'`.
-    - Provide ONLY the raw SQL query, without any markdown formatting, explanations, or 'sql' code blocks.
-    - The query will be used in a report builder that supports Jinja2-style parameters like :ParamName.
-
-    DATABASE SCHEMA HINTS:
-    {hints_content}
-
-    USER PROMPT:
-    {prompt_text}
-
-    {additional_context}
-
-    Important: 
-    - Output ONLY the SQL string.
-    - Do not wrap in ```sql ... ```.
-    - If the user asks for variables, use the :VariableName syntax.
-    - NEVER output multiple `SELECT` statements in one response. The backend only captures the result of the LAST query.
-    - If multiple separate datasets (e.g., two different tables) are requested, you MUST combine them into a single response using `json_build_object`.
-    - Example for multiple datasets: `SELECT json_build_object('table1', (SELECT json_agg(t1) FROM ...), 'table2', (SELECT json_agg(t2) FROM ...)) as combined_data;`
-    - Ensure the entire query returns exactly ONE result set.
-    """
+    executor = ReportExecutor(report.code)
+    # Use empty params for design mode compilation test, or user could provide test params
+    result = executor.execute({}, mode="is_design", execution_id=str(report.id))
     
-    response_text = openai_ask_single(ai_prompt, data.model, timeout=120)
-    
-    if response_text.startswith("Error:") or response_text.startswith("HTTPError"):
-        raise HTTPException(status_code=500, detail=response_text)
-        
-    # Clean up response
-    query_text = response_text
-    query_text = re.sub(r'^```sql\n', '', query_text, flags=re.MULTILINE)
-    query_text = re.sub(r'^```\n', '', query_text, flags=re.MULTILINE)
-    query_text = re.sub(r'```$', '', query_text, flags=re.MULTILINE)
-    query_text = query_text.strip()
-    
-    return {"query": query_text}
+    if result["success"]:
+        # Generate schema from data
+        schema = generate_json_schema(result["data"])
+        report.schema_json = schema
+        db.commit()
+        return {
+            "success": True, 
+            "console": result["console"], 
+            "schema": schema
+        }
+    else:
+        return {
+            "success": False, 
+            "console": result["console"], 
+            "error": result.get("error")
+        }
 
 @router.get("/{report_id}/options")
 def get_report_parameter_options(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
@@ -536,31 +543,48 @@ def get_report_parameter_options(report_id: uuid.UUID, db: Session = Depends(get
          
     options = {}
     for param in report.parameters:
-        if param.source and param.source.strip().lower().startswith("select"):
-            # Execute raw SQL directly
-            try:
-                result = db.execute(text(param.source))
+        source = param.source.strip() if param.source else ""
+        if not source:
+             options[param.parameter_name] = []
+             continue
+
+        try:
+            if source.startswith("@"):
+                # Support for @table-name->value,label
+                parts = source[1:].split("->")
+                table_name = parts[0]
+                fields_str = parts[1] if len(parts) > 1 else "id,name"
+                fields = fields_str.split(",")
+                val_field = fields[0]
+                lbl_field = fields[1] if len(fields) > 1 else val_field
+                
+                if not re.match(r'^\w+$', table_name) or not re.match(r'^\w+$', val_field) or not re.match(r'^\w+$', lbl_field):
+                    options[param.parameter_name] = []
+                    continue
+
+                result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 1000"))
+                options[param.parameter_name] = [
+                    {"value": str(row[0]), "label": str(row[1])} for row in [tuple(r) for r in result.fetchall()]
+                ]
+            elif source.lower().startswith("select"):
+                result = db.execute(text(source))
                 val_field = param.value_field or "value"
                 lbl_field = param.label_field or "label"
+                columns = result.keys()
+                rows = [tuple(r) for r in result.fetchall()]
                 
-                rows = result.fetchall()
-                # Create dictionary mapping from keys
-                if rows and len(rows) > 0:
-                     columns = result.keys()
-                     # make sure the val_field and lbl_field are in the query
-                     options[param.parameter_name] = []
-                     for row in rows:
-                          row_dict = dict(zip(columns, row))
-                          options[param.parameter_name].append({
-                               "value": str(row_dict.get(val_field, row[0])), 
-                               "label": str(row_dict.get(lbl_field, row[1] if len(row) > 1 else row[0]))
-                          })
-                else:
-                     options[param.parameter_name] = []
-            except Exception as e:
-                print(f"Failed to fetch options for {param.parameter_name}: {e}")
+                param_options = []
+                for row in rows:
+                    row_dict = dict(zip(columns, row))
+                    param_options.append({
+                        "value": str(row_dict.get(val_field, row[0])), 
+                        "label": str(row_dict.get(lbl_field, row[1] if len(row) > 1 else row[0]))
+                    })
+                options[param.parameter_name] = param_options
+            else:
                 options[param.parameter_name] = []
-        else:
+        except Exception as e:
+            print(f"Failed to fetch options for {param.parameter_name}: {e}")
             options[param.parameter_name] = []
             
     return options
