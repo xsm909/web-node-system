@@ -63,8 +63,9 @@ export function WorkflowGraph({
     onNodeSelectCallback,
     activeNodeIds = []
 }: WorkflowGraphProps) {
-    const [nodes, setNodes, onNodesChangeRaw] = useNodesState([]);
-    const [edges, setEdges, onEdgesChangeRaw] = useEdgesState([]);
+    const initialNodes = (workflow?.graph?.nodes || []).map((n: any) => n.type === 'default' ? { ...n, type: 'action' } : n);
+    const [nodes, setNodes, onNodesChangeRaw] = useNodesState(initialNodes);
+    const [edges, setEdges, onEdgesChangeRaw] = useEdgesState(workflow?.graph?.edges || []);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const { screenToFlowPosition, setCenter, fitView, setViewport } = useReactFlow();
@@ -86,11 +87,14 @@ export function WorkflowGraph({
             return;
         }
 
-        // If we already have nodes and it's the same workflow, don't overwrite from prop
-        // (preserves local unsaved changes while mounted)
         const hasNodes = nodes.length > 0;
-        if (globalLastCenteredWorkflowId === wf.id && hasNodes) {
-            return;
+        const isSameWorkflow = globalLastCenteredWorkflowId === wf.id;
+
+        if (isSameWorkflow && hasNodes) {
+            // Even if same workflow, check if props have different count (e.g. node added externally)
+            if (nodes.length === (wf.graph?.nodes?.length || 0) && edges.length === (wf.graph?.edges?.length || 0)) {
+                return;
+            }
         }
 
         if (!wf.graph) {
@@ -155,20 +159,17 @@ export function WorkflowGraph({
 
         // Only center/fit the viewport when switching to a DIFFERENT workflow AND we have no cache.
         if (globalLastCenteredWorkflowId !== wf.id) {
+            console.log('[WorkflowGraph] Workflow ID changed from', globalLastCenteredWorkflowId, 'to', wf.id);
             const cachedViewport = globalViewportCache[wf.id];
             
             // Mark as centered/loaded IMMEDIATELY
             globalLastCenteredWorkflowId = wf.id;
             
-            // If we have a cache, ReactFlow will handle it via defaultViewport prop.
-            // If NOT, we perform initial fit.
             if (!cachedViewport) {
                 console.log('[WorkflowGraph] No cached viewport, fitting view...');
                 const timer = setTimeout(() => {
+                    fitView({ padding: 50 });
                     const startNode = loadedNodes.find((n: any) => n.id === 'node_start' || n.type === 'start');
-                    const rect = { padding: 50 };
-                    fitView(rect);
-
                     if (startNode && typeof startNode.position?.x === 'number' && typeof startNode.position?.y === 'number') {
                         if (!isNaN(startNode.position.x) && !isNaN(startNode.position.y)) {
                             setCenter(startNode.position.x + 100, startNode.position.y + 60, { zoom: 0.5, duration: 400 });
@@ -178,7 +179,7 @@ export function WorkflowGraph({
                 return () => clearTimeout(timer);
             }
         }
-    }, [workflow, setViewport, setCenter, fitView, setNodes, setEdges, nodeTypes]);
+    }, [workflow?.id, workflow?.graph, setViewport, setCenter, fitView, setNodes, setEdges, nodeTypes]);
 
     // Downward synchronization: update internal nodes state when workflow.graph.nodes changes externally (e.g. from parameters panel)
     useEffect(() => {
