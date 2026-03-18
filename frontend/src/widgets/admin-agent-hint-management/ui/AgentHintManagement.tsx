@@ -190,7 +190,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 activeTab={isPreview ? 'preview' : 'edit'}
                 onTabChange={(id) => setIsPreview(id === 'preview')}
             >
-                <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
+                <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                     {!isPreview && (
                         <div className="grid grid-cols-2 gap-8 mb-2">
                             <AppInput

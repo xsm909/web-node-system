@@ -187,7 +187,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                 onCancel={() => setIsEditing(false)}
                 saveLabel={editingId ? "Save Credential" : "Add Credential"}
             >
-                <div className="max-w-5xl mx-auto w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
+                <div className="max-w-5xl mx-auto w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                     <header className="mb-8">
                         <p className="text-sm text-[var(--text-muted)] mt-1 opacity-60">Configure your system-wide security keys and tokens.</p>
                     </header>

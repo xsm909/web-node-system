@@ -297,7 +297,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     return (
         <div className="h-full flex flex-col">
             {activeTab === 'general' && (
-                <div className="max-w-5xl mx-auto w-full space-y-6 pt-4">
+                <div className="max-w-5xl mx-auto w-full space-y-6 pt-2">
                     <div className="grid grid-cols-2 gap-6">
                         <AppInput
                             label="Report Name"
@@ -486,7 +486,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             )}
 
             {activeTab === 'code' && (
-                <div className="flex-1 flex flex-col gap-4 overflow-hidden pt-4">
+                <div className="flex-1 flex flex-col gap-4 overflow-hidden pt-2">
                     <div className="flex justify-between items-center px-1">
                         <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Python Engine</h3>
                     </div>
@@ -536,7 +536,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             )}
 
             {activeTab === 'template' && (
-                <div className="flex-1 flex flex-col gap-4 overflow-hidden pt-4">
+                <div className="flex-1 flex flex-col gap-4 overflow-hidden pt-2">
                     <div className="flex justify-between items-center px-1">
                         <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Jinja2 HTML Template</h3>
                         <div className="w-64">
@@ -566,7 +566,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             )}
 
             {activeTab === 'preview' && (
-                <div className="flex-1 flex flex-col pt-4 overflow-hidden">
+                <div className="flex-1 flex flex-col pt-2 overflow-hidden">
                     <div className="flex-1 rounded-xl border border-[var(--border-base)] bg-white overflow-hidden shadow-inner relative">
                         {previewHtml ? (
                             <iframe
