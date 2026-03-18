@@ -168,10 +168,30 @@ def run(inputs, params):
  
  ### Syncing Hints
  Whenever you expose new functions or libraries to the node sandbox, run the following command to update the frontend hints:
+
  ```bash
+ # Execute via Docker Compose
  docker compose exec backend python -m app.scripts.sync_autofill_python
  ```
- This will regenerate `backend/app/resources/python_hints.json`, which is then served to the frontend.
+
+ This will regenerate `backend/app/resources/python_hints.json`, which is then served to the frontend for real-time code completion.
+
+ ---
+
+ ## Branding & UI
+
+ To maintain a consistent look across the platform, use these standard corporate colors:
+
+ - **Primary Brand (Green)**: `#10b981` (Tailwind Emerald 500)
+   - Used for: Primary buttons, active states, success markers.
+   - Variable: `--brand` in `index.css`.
+ - **Brand Hover**: `#059669` (Emerald 600)
+
+ ### Using Brand Colors in Charts
+ When generating reports, use the primary brand color for consistency:
+ ```python
+ charts.bar(data, x='name', y='value', color='#10b981')
+ ```
  
  ---
  

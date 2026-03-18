@@ -6,13 +6,12 @@ import sys
 # Add the app directory to sys.path to allow imports if needed (though we use regex here for simplicity and safety)
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-def extract_hints():
-    executor_path = os.path.join(os.path.dirname(__file__), '..', 'services', 'executor.py')
-    if not os.path.exists(executor_path):
-        print(f"Error: {executor_path} not found")
-        return
+def extract_hints_from_file(file_path):
+    if not os.path.exists(file_path):
+        print(f"Error: {file_path} not found")
+        return []
 
-    with open(executor_path, 'r', encoding='utf-8') as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
     hints = []
@@ -31,21 +30,31 @@ def extract_hints():
                 "boost": 1
             })
 
-    # 2. Extract SAFE_GLOBALS (basic builtins)
-    # We'll just hardcode some common ones or look for them in __builtins__
-    builtins_match = re.search(r'"__builtins__":\s*\{(.*?)\}', content, re.DOTALL)
-    if builtins_match:
-        builtins_str = builtins_match.group(1)
-        # Look for "key": val
-        builtin_items = re.findall(r'"([^"]+)"\s*:', builtins_str)
-        for item in builtin_items:
-            if item.startswith('_'): continue
-            hints.append({
-                "label": item,
-                "type": "function", # most are functions or types acting as functions
-                "detail": "Built-in",
-                "boost": 2
-            })
+    # 2. Extract SAFE_GLOBALS (basic builtins and direct libraries)
+    safe_globals_match = re.search(r'SAFE_GLOBALS\s*=\s*\{(.*?)\n\}', content, re.DOTALL)
+    if safe_globals_match:
+        sg_content = safe_globals_match.group(1)
+        
+        # Look for "key": val where val is a SimpleNamespace OR a direct module/ref
+        # Example: "charts": charts,
+        direct_matches = re.findall(r'"([^"]+)"\s*:\s*([^,]+)', sg_content)
+        for label, val in direct_matches:
+            if "SimpleNamespace" in val: continue
+            if label.startswith('_'): continue
+            if label in ("time", "json", "datetime", "timedelta"):
+                hints.append({
+                    "label": label,
+                    "type": "module",
+                    "detail": f"Built-in {label}",
+                    "boost": 2
+                })
+            else:
+                hints.append({
+                    "label": label,
+                    "type": "variable",
+                    "detail": f"Exposed library: {label}",
+                    "boost": 2
+                })
 
     # 3. Extract Namespaces (libs, openai, gemini, etc)
     # We look for SimpleNamespace definitions in SAFE_GLOBALS
@@ -72,8 +81,46 @@ def extract_hints():
                 "boost": 4
             })
 
+    # 4. Special Case: Charts Module
+    # If "charts": charts is in SAFE_GLOBALS, scan the internal_libs/charts.py file
+    if '"charts": charts' in content or "'charts': charts" in content:
+        charts_path = os.path.join(os.path.dirname(__file__), '..', 'internal_libs', 'charts.py')
+        if os.path.exists(charts_path):
+            with open(charts_path, 'r', encoding='utf-8') as f:
+                charts_content = f.read()
+            
+            # Find all top-level functions in charts.py
+            chart_functions = re.findall(r'^def\s+([a-zA-Z0-9_]+)\(', charts_content, re.MULTILINE)
+            for func in chart_functions:
+                if func.startswith('_') or func == 'apply_corporate_style': continue
+                hints.append({
+                    "label": f"charts.{func}",
+                    "type": "function",
+                    "detail": "Chart generation function",
+                    "boost": 5
+                })
+
+    return hints
+
+def extract_hints():
+    services_dir = os.path.join(os.path.dirname(__file__), '..', 'services')
+    executors = [
+        os.path.join(services_dir, 'executor.py'),
+        os.path.join(services_dir, 'report_executor.py')
+    ]
+    
+    all_hints = []
+    seen_labels = set()
+    
+    for exec_path in executors:
+        file_hints = extract_hints_from_file(exec_path)
+        for hint in file_hints:
+            if hint["label"] not in seen_labels:
+                all_hints.append(hint)
+                seen_labels.add(hint["label"])
+
     # Add standard boilerplate run function
-    hints.append({
+    all_hints.append({
         "label": "run",
         "type": "function",
         "detail": "Standard entry point: run(inputs, params)",
@@ -81,11 +128,20 @@ def extract_hints():
         "boost": 10
     })
 
+    # Add report specific entry point
+    all_hints.append({
+        "label": "GenerateReport",
+        "type": "function",
+        "detail": "Report entry point: GenerateReport(params)",
+        "snippet": "def GenerateReport(params):\n    ${1:}\n    return ${2:{}}, True",
+        "boost": 10
+    })
+
     output_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'python_hints.json')
     with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(hints, f, indent=4)
+        json.dump(all_hints, f, indent=4)
     
-    print(f"Generated {len(hints)} hints to {output_path}")
+    print(f"Generated {len(all_hints)} hints to {output_path}")
 
 if __name__ == "__main__":
     extract_hints()

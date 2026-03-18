@@ -158,6 +158,7 @@ SAFE_GLOBALS = {
     "time": time,
     "datetime": datetime,
     "timedelta": timedelta,
+    "charts": charts,
     "libs": SimpleNamespace(
         ask_ai=ask_single,
         check_ai=check_ai,

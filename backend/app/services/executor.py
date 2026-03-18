@@ -34,6 +34,7 @@ from ..internal_libs import schema_lib
 from ..internal_libs import agent_hints_lib
 from ..internal_libs import prompt_lib
 from ..internal_libs import response_lib
+from ..internal_libs import charts
 from ..internal_libs.logger_lib import executor_logger
 from ..internal_libs.context_lib import execution_context
 
@@ -214,6 +215,7 @@ SAFE_GLOBALS = {
         update_response_meta_by_key=response_lib.update_response_meta_by_key,
         get_responses_by_period_and_category=response_lib.get_responses_by_period_and_category
     ),
+    "charts": charts,
     "datetime": datetime,
     "time": time,
     "timedelta": timedelta,

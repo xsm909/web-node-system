@@ -79,140 +79,158 @@
     },
     {
         "label": "print",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: print",
         "boost": 2
     },
     {
         "label": "len",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: len",
         "boost": 2
     },
     {
         "label": "range",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: range",
         "boost": 2
     },
     {
         "label": "enumerate",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: enumerate",
         "boost": 2
     },
     {
         "label": "zip",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: zip",
         "boost": 2
     },
     {
         "label": "map",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: map",
         "boost": 2
     },
     {
         "label": "filter",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: filter",
         "boost": 2
     },
     {
         "label": "list",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: list",
         "boost": 2
     },
     {
         "label": "dict",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: dict",
         "boost": 2
     },
     {
         "label": "set",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: set",
         "boost": 2
     },
     {
         "label": "tuple",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: tuple",
         "boost": 2
     },
     {
         "label": "str",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: str",
         "boost": 2
     },
     {
         "label": "int",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: int",
         "boost": 2
     },
     {
         "label": "float",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: float",
         "boost": 2
     },
     {
         "label": "bool",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: bool",
         "boost": 2
     },
     {
         "label": "abs",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: abs",
         "boost": 2
     },
     {
         "label": "round",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: round",
         "boost": 2
     },
     {
         "label": "min",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: min",
         "boost": 2
     },
     {
         "label": "max",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: max",
         "boost": 2
     },
     {
         "label": "sum",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: sum",
         "boost": 2
     },
     {
         "label": "sorted",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: sorted",
         "boost": 2
     },
     {
         "label": "reversed",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: reversed",
         "boost": 2
     },
     {
         "label": "isinstance",
-        "type": "function",
-        "detail": "Built-in",
+        "type": "variable",
+        "detail": "Exposed library: isinstance",
+        "boost": 2
+    },
+    {
+        "label": "charts",
+        "type": "variable",
+        "detail": "Exposed library: charts",
+        "boost": 2
+    },
+    {
+        "label": "timedelta",
+        "type": "module",
+        "detail": "Built-in timedelta",
+        "boost": 2
+    },
+    {
+        "label": "workflow",
+        "type": "variable",
+        "detail": "Exposed library: workflow",
         "boost": 2
     },
     {
@@ -648,226 +666,137 @@
         "boost": 4
     },
     {
-        "label": "analytics",
+        "label": "charts.fig_to_svg",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.bar",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.barh",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.area",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.histogram",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.line",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.pie",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.radar",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.heatmap",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.boxplot",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.scatter",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.waterfall",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.gauge",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.funnel",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.gantt",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "charts.violin",
+        "type": "function",
+        "detail": "Chart generation function",
+        "boost": 5
+    },
+    {
+        "label": "getattr",
         "type": "variable",
-        "detail": "analytics namespace",
-        "boost": 3
+        "detail": "Exposed library: getattr",
+        "boost": 2
     },
     {
-        "label": "analytics.process_request",
-        "type": "function",
-        "detail": "analytics function",
-        "boost": 4
-    },
-    {
-        "label": "analytics.process_analytics_request",
-        "type": "function",
-        "detail": "analytics function",
-        "boost": 4
-    },
-    {
-        "label": "meta",
+        "label": "hasattr",
         "type": "variable",
-        "detail": "meta namespace",
-        "boost": 3
+        "detail": "Exposed library: hasattr",
+        "boost": 2
     },
     {
-        "label": "meta.get_metadata",
-        "type": "function",
-        "detail": "meta function",
-        "boost": 4
-    },
-    {
-        "label": "meta.get_metadata_by_id",
-        "type": "function",
-        "detail": "meta function",
-        "boost": 4
-    },
-    {
-        "label": "meta.get_all_metadata",
-        "type": "function",
-        "detail": "meta function",
-        "boost": 4
-    },
-    {
-        "label": "meta.get_all_client_metadata",
-        "type": "function",
-        "detail": "meta function",
-        "boost": 4
-    },
-    {
-        "label": "meta.get_metadata_by_schema",
-        "type": "function",
-        "detail": "meta function",
-        "boost": 4
-    },
-    {
-        "label": "meta.get_client_metadata_by_schema",
-        "type": "function",
-        "detail": "meta function",
-        "boost": 4
-    },
-    {
-        "label": "meta.get_owner_metadata_by_schema",
-        "type": "function",
-        "detail": "meta function",
-        "boost": 4
-    },
-    {
-        "label": "metadata",
+        "label": "setattr",
         "type": "variable",
-        "detail": "metadata namespace",
-        "boost": 3
+        "detail": "Exposed library: setattr",
+        "boost": 2
     },
     {
-        "label": "metadata.get_metadata",
-        "type": "function",
-        "detail": "metadata function",
-        "boost": 4
-    },
-    {
-        "label": "metadata.get_metadata_by_id",
-        "type": "function",
-        "detail": "metadata function",
-        "boost": 4
-    },
-    {
-        "label": "metadata.get_all_metadata",
-        "type": "function",
-        "detail": "metadata function",
-        "boost": 4
-    },
-    {
-        "label": "metadata.get_all_client_metadata",
-        "type": "function",
-        "detail": "metadata function",
-        "boost": 4
-    },
-    {
-        "label": "metadata.get_metadata_by_schema",
-        "type": "function",
-        "detail": "metadata function",
-        "boost": 4
-    },
-    {
-        "label": "metadata.get_client_metadata_by_schema",
-        "type": "function",
-        "detail": "metadata function",
-        "boost": 4
-    },
-    {
-        "label": "metadata.get_owner_metadata_by_schema",
-        "type": "function",
-        "detail": "metadata function",
-        "boost": 4
-    },
-    {
-        "label": "schema",
+        "label": "delattr",
         "type": "variable",
-        "detail": "schema namespace",
-        "boost": 3
-    },
-    {
-        "label": "schema.get_schema_by_key",
-        "type": "function",
-        "detail": "schema function",
-        "boost": 4
-    },
-    {
-        "label": "schema.get_all_schemas",
-        "type": "function",
-        "detail": "schema function",
-        "boost": 4
-    },
-    {
-        "label": "agent",
-        "type": "variable",
-        "detail": "agent namespace",
-        "boost": 3
-    },
-    {
-        "label": "agent.run",
-        "type": "function",
-        "detail": "agent function",
-        "boost": 4
-    },
-    {
-        "label": "agent.get_agent_hint_by_key",
-        "type": "function",
-        "detail": "agent function",
-        "boost": 4
-    },
-    {
-        "label": "prompts",
-        "type": "variable",
-        "detail": "prompts namespace",
-        "boost": 3
-    },
-    {
-        "label": "prompts.add_prompt",
-        "type": "function",
-        "detail": "prompts function",
-        "boost": 4
-    },
-    {
-        "label": "prompts.get_prompts_by_category_with_reference_id",
-        "type": "function",
-        "detail": "prompts function",
-        "boost": 4
-    },
-    {
-        "label": "prompts.get_prompts_by_category_with_id",
-        "type": "function",
-        "detail": "prompts function",
-        "boost": 4
-    },
-    {
-        "label": "prompts.delete_prompts_by_period",
-        "type": "function",
-        "detail": "prompts function",
-        "boost": 4
-    },
-    {
-        "label": "response_data",
-        "type": "variable",
-        "detail": "response_data namespace",
-        "boost": 3
-    },
-    {
-        "label": "response_data.clear_recent_records_by_entity_and_category",
-        "type": "function",
-        "detail": "response_data function",
-        "boost": 4
-    },
-    {
-        "label": "response_data.add_response",
-        "type": "function",
-        "detail": "response_data function",
-        "boost": 4
-    },
-    {
-        "label": "response_data.update_response_meta",
-        "type": "function",
-        "detail": "response_data function",
-        "boost": 4
-    },
-    {
-        "label": "response_data.update_response_meta_by_key",
-        "type": "function",
-        "detail": "response_data function",
-        "boost": 4
-    },
-    {
-        "label": "response_data.get_responses_by_period_and_category",
-        "type": "function",
-        "detail": "response_data function",
-        "boost": 4
+        "detail": "Exposed library: delattr",
+        "boost": 2
     },
     {
         "label": "run",
         "type": "function",
         "detail": "Standard entry point: run(inputs, params)",
         "snippet": "def run(inputs, params):\n    ${1:}\n    return ${2:{}}",
+        "boost": 10
+    },
+    {
+        "label": "GenerateReport",
+        "type": "function",
+        "detail": "Report entry point: GenerateReport(params)",
+        "snippet": "def GenerateReport(params):\n    ${1:}\n    return ${2:{}}, True",
         "boost": 10
     }
 ]

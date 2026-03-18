@@ -86,7 +86,7 @@ def _get_error_svg(msg: str) -> str:
 
 # --- High-Level Charting Functions ---
 
-def bar(data, x, y, title=None, color=None, stacked=False, theme="business", figsize=(8, 4), fontsize=10, bar_width=0.8, font_family='sans-serif') -> str:
+def bar(data, x, y, title=None, color=None, stacked=False, theme="business", figsize=(8, 4), fontsize=10, bar_width=0.8, font_family='sans-serif', xlabel=None, ylabel=None) -> str:
     """Generates a professional vertical bar chart. y can be a single column or a list."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
@@ -120,12 +120,12 @@ def bar(data, x, y, title=None, color=None, stacked=False, theme="business", fig
         if len(y_cols) > 1: ax.legend()
     
     if title: ax.set_title(title, pad=20)
-    ax.set_xlabel(str(x))
-    ax.set_ylabel(str(y_cols[0]) if len(y_cols)==1 else "Value")
+    ax.set_xlabel(xlabel if xlabel else str(x))
+    ax.set_ylabel(ylabel if ylabel else (str(y_cols[0]) if len(y_cols)==1 else "Value"))
     
     return fig_to_svg(fig)
 
-def barh(data, x, y, title=None, color=None, stacked=False, theme="business", figsize=None, fontsize=10, bar_height=0.8, font_family='sans-serif') -> str:
+def barh(data, x, y, title=None, color=None, stacked=False, theme="business", figsize=None, fontsize=10, bar_height=0.8, font_family='sans-serif', xlabel=None, ylabel=None) -> str:
     """Generates a professional horizontal bar chart. x is labels, y is values."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
@@ -161,13 +161,12 @@ def barh(data, x, y, title=None, color=None, stacked=False, theme="business", fi
         if len(y_cols) > 1: ax.legend()
     
     if title: ax.set_title(title, pad=20)
-    ax.set_xlabel(str(y_cols[0]) if len(y_cols)==1 else "Value")
-    ax.set_ylabel(str(x))
-    ax.invert_yaxis()
+    ax.set_xlabel(xlabel if xlabel else (str(y_cols[0]) if len(y_cols)==1 else "Value"))
+    ax.set_ylabel(ylabel if ylabel else str(x))
     
     return fig_to_svg(fig)
 
-def area(data, x, y, title=None, stacked=False, theme="business", figsize=(8, 4), fontsize=10, font_family='sans-serif') -> str:
+def area(data, x, y, title=None, stacked=False, theme="business", figsize=(8, 4), fontsize=10, font_family='sans-serif', xlabel=None, ylabel=None) -> str:
     """Generates a professional area chart."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
@@ -188,10 +187,11 @@ def area(data, x, y, title=None, stacked=False, theme="business", figsize=(8, 4)
         if len(y_cols) > 1: ax.legend()
         
     if title: ax.set_title(title, pad=20)
-    ax.set_xlabel(str(x))
+    ax.set_xlabel(xlabel if xlabel else str(x))
+    ax.set_ylabel(ylabel if ylabel else "Value")
     return fig_to_svg(fig)
 
-def histogram(data, col, bins=20, title=None, theme="business", figsize=(8, 4), fontsize=10, font_family='sans-serif') -> str:
+def histogram(data, col, bins=20, title=None, theme="business", figsize=(8, 4), fontsize=10, font_family='sans-serif', xlabel=None, ylabel=None) -> str:
     """Generates a distribution histogram."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
@@ -203,11 +203,11 @@ def histogram(data, col, bins=20, title=None, theme="business", figsize=(8, 4), 
     ax.hist(df[col].dropna(), bins=bins, color=CORP_COLORS[0], edgecolor='white', alpha=0.8)
     
     if title: ax.set_title(title, pad=20)
-    ax.set_xlabel(str(col))
-    ax.set_ylabel("Frequency")
+    ax.set_xlabel(xlabel if xlabel else str(col))
+    ax.set_ylabel(ylabel if ylabel else "Frequency")
     return fig_to_svg(fig)
 
-def line(data, x, y, title=None, markers=True, theme="business", figsize=(8, 4), fontsize=10, font_family='sans-serif', color=None) -> str:
+def line(data, x, y, title=None, markers=True, theme="business", figsize=(8, 4), fontsize=10, font_family='sans-serif', color=None, xlabel=None, ylabel=None) -> str:
     """Generates a professional line chart."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
@@ -226,8 +226,8 @@ def line(data, x, y, title=None, markers=True, theme="business", figsize=(8, 4),
     if title:
         ax.set_title(title, pad=20)
     
-    ax.set_xlabel(str(x))
-    ax.set_ylabel(str(y))
+    ax.set_xlabel(xlabel if xlabel else str(x))
+    ax.set_ylabel(ylabel if ylabel else str(y))
     
     return fig_to_svg(fig)
 
@@ -264,7 +264,7 @@ def pie(data, labels, values, title=None, theme="business", figsize=(6, 6), font
     plt.tight_layout()
     return fig_to_svg(fig)
 
-def radar(data, labels, values, title=None, theme="business", figsize=(6, 6), fontsize=10, font_family='sans-serif') -> str:
+def radar(data, labels, values, title=None, theme="business", figsize=(6, 6), fontsize=10, font_family='sans-serif', xlabel=None, ylabel=None) -> str:
     """Generates a professional radar (spider) chart."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
@@ -298,7 +298,7 @@ def radar(data, labels, values, title=None, theme="business", figsize=(6, 6), fo
     
     return fig_to_svg(fig)
 
-def heatmap(data, x, y, values, title=None, theme="business", figsize=(8, 6), fontsize=10, font_family='sans-serif') -> str:
+def heatmap(data, x, y, values, title=None, theme="business", figsize=(8, 6), fontsize=10, font_family='sans-serif', xlabel=None, ylabel=None) -> str:
     """Generates a correlation or density heatmap."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
@@ -323,11 +323,13 @@ def heatmap(data, x, y, values, title=None, theme="business", figsize=(8, 6), fo
             ax.text(j, i, pivot.iloc[i, j], ha="center", va="center", color="black", fontsize=fontsize-2)
             
     if title: ax.set_title(title, pad=20)
+    if xlabel: ax.set_xlabel(xlabel)
+    if ylabel: ax.set_ylabel(ylabel)
     fig.colorbar(im, ax=ax)
     plt.tight_layout()
     return fig_to_svg(fig)
 
-def boxplot(data, y, x=None, title=None, figsize=(8, 4), fontsize=10, font_family='sans-serif') -> str:
+def boxplot(data, y, x=None, title=None, figsize=(8, 4), fontsize=10, font_family='sans-serif', xlabel=None, ylabel=None) -> str:
     """Generates a statistical boxplot."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
@@ -347,10 +349,11 @@ def boxplot(data, y, x=None, title=None, figsize=(8, 4), fontsize=10, font_famil
         ax.boxplot([df[c].dropna() for c in y_cols], labels=y_cols)
         
     if title: ax.set_title(title, pad=20)
-    ax.set_ylabel(str(y) if isinstance(y, str) else "Value")
+    ax.set_xlabel(xlabel if xlabel else (str(x) if x else ""))
+    ax.set_ylabel(ylabel if ylabel else (str(y) if isinstance(y, str) else "Value"))
     return fig_to_svg(fig)
 
-def scatter(data, x, y, size=None, title=None, figsize=(8, 4), fontsize=10, font_family='sans-serif') -> str:
+def scatter(data, x, y, size=None, title=None, figsize=(8, 4), fontsize=10, font_family='sans-serif', xlabel=None, ylabel=None) -> str:
     """Generates a professional scatter/bubble plot."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
@@ -369,8 +372,8 @@ def scatter(data, x, y, size=None, title=None, figsize=(8, 4), fontsize=10, font
     ax.scatter(df[x], df[y], s=s, alpha=0.6, color=CORP_COLORS[0], edgecolors='white')
     
     if title: ax.set_title(title, pad=20)
-    ax.set_xlabel(str(x))
-    ax.set_ylabel(str(y))
+    ax.set_xlabel(xlabel if xlabel else str(x))
+    ax.set_ylabel(ylabel if ylabel else str(y))
     return fig_to_svg(fig)
 
 def waterfall(data, labels, values, title=None, figsize=(8, 5), fontsize=10, font_family='sans-serif') -> str:
@@ -461,7 +464,7 @@ def gantt(data, task, start, end, title=None, figsize=(10, 5), fontsize=10, font
     if title: ax.set_title(title, pad=20)
     return fig_to_svg(fig)
 
-def violin(data, y, x=None, title=None, figsize=(8, 4), fontsize=10, font_family='sans-serif') -> str:
+def violin(data, y, x=None, title=None, figsize=(8, 4), fontsize=10, font_family='sans-serif', xlabel=None, ylabel=None) -> str:
     """Generates a violin plot."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
