@@ -1,8 +1,17 @@
 import io
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 from typing import List, Dict, Any, Union, Optional
-import pandas as pd
+
+# Try to import heavy dependencies
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    mpl.use('Agg') # Use non-interactive backend
+    import pandas as pd
+    CHART_LIBS_INSTALLED = True
+except Exception as e:
+    # Catch any exception to prevent backend crash
+    print(f"WARNING: Charts library disabled. Reason: {e}")
+    CHART_LIBS_INSTALLED = False
 
 # --- Standard Corporate Theme Configuration ---
 CORP_COLORS = [
@@ -17,6 +26,8 @@ CORP_COLORS = [
 
 def apply_corporate_style():
     """Applies a clean, modern business style to Matplotlib."""
+    if not CHART_LIBS_INSTALLED:
+        return
     plt.style.use('bmh') # Base style
     mpl.rcParams['axes.facecolor'] = 'white'
     mpl.rcParams['figure.facecolor'] = 'white'
@@ -36,29 +47,46 @@ def apply_corporate_style():
 
 def fig_to_svg(fig) -> str:
     """Converts a Matplotlib figure to a sanitized SVG string."""
+    if not CHART_LIBS_INSTALLED:
+        return ""
     buf = io.StringIO()
     fig.savefig(buf, format='svg', bbox_inches='tight')
     plt.close(fig)
     return buf.getvalue()
 
-def _to_df(data: Any) -> pd.DataFrame:
-    """Helper to convert various input types to a DataFrame."""
+def _to_df(data: Any) -> Any:
+    """Helper to convert various input types to a DataFrame if pandas is available."""
+    if not CHART_LIBS_INSTALLED:
+        return data
+        
     if isinstance(data, pd.DataFrame):
         return data
     if isinstance(data, list):
         return pd.DataFrame(data)
     if isinstance(data, dict):
-        # If it's a dict of lists, or just a dict representing one row
         try:
             return pd.DataFrame(data)
         except:
             return pd.DataFrame([data])
     return pd.DataFrame(data)
 
+def _get_error_svg(msg: str) -> str:
+    """Returns a simple SVG with an error message."""
+    return f"""<svg width="400" height="100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="#fee2e2" />
+        <text x="50%" y="50%" font-family="sans-serif" font-size="12" fill="#b91c1c" text-anchor="middle" dominant-baseline="middle">
+            {msg}
+        </text>
+    </svg>"""
+
 # --- High-Level Charting Functions ---
 
 def bar(data, x, y, title=None, color=None, theme="business") -> str:
     """Generates a professional bar chart."""
+    if not CHART_LIBS_INSTALLED:
+        return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
+        
+    print(f"DEBUG: Generating bar chart for {title or 'unnamed'}")
     apply_corporate_style()
     df = _to_df(data)
     
@@ -78,6 +106,9 @@ def bar(data, x, y, title=None, color=None, theme="business") -> str:
 
 def line(data, x, y, title=None, markers=True, theme="business") -> str:
     """Generates a professional line chart."""
+    if not CHART_LIBS_INSTALLED:
+        return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
+
     apply_corporate_style()
     df = _to_df(data)
     
@@ -96,6 +127,9 @@ def line(data, x, y, title=None, markers=True, theme="business") -> str:
 
 def pie(data, labels, values, title=None, theme="business") -> str:
     """Generates a professional pie chart."""
+    if not CHART_LIBS_INSTALLED:
+        return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
+
     apply_corporate_style()
     df = _to_df(data)
     
@@ -122,6 +156,9 @@ def pie(data, labels, values, title=None, theme="business") -> str:
 
 def scatter(data, x, y, title=None, theme="business") -> str:
     """Generates a professional scatter plot."""
+    if not CHART_LIBS_INSTALLED:
+        return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
+
     apply_corporate_style()
     df = _to_df(data)
     
