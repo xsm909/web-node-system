@@ -30,19 +30,18 @@ export const AppTabs: React.FC<AppTabsProps> = ({
     variant = 'boxed'
 }) => {
     return (
-        <div className={`flex gap-2 ${className}`}>
+        <div className={`flex gap-1.5 items-end relative -mb-px ${className}`}>
             {tabs.map(tab => {
                 const isActive = activeTab === tab.id;
-                
+
                 if (variant === 'underline') {
                     return (
                         <button
                             key={tab.id}
                             type="button"
                             onClick={() => onTabChange(tab.id)}
-                            className={`px-6 py-5 text-sm font-bold transition-all relative flex items-center gap-2.5 ${
-                                isActive ? 'text-brand' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] opacity-60 hover:opacity-100'
-                            }`}
+                            className={`px-6 py-5 text-sm font-bold transition-all relative flex items-center gap-2.5 ${isActive ? 'text-brand' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] opacity-60 hover:opacity-100'
+                                }`}
                         >
                             {tab.icon && <Icon name={tab.icon} size={16} className={isActive ? 'text-brand' : 'text-[var(--text-muted)]'} />}
                             <span>{tab.label}</span>
@@ -59,14 +58,16 @@ export const AppTabs: React.FC<AppTabsProps> = ({
                         key={tab.id}
                         type="button"
                         onClick={() => onTabChange(tab.id)}
-                        className={`px-8 py-3 text-xs font-black uppercase tracking-widest transition-all border-b-2 rounded-t-xl h-full flex items-center justify-center gap-2 ${
-                            isActive
-                                ? 'text-brand border-brand bg-brand/5'
-                                : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] opacity-60 hover:opacity-100'
-                        }`}
+                        className={`px-4 py-1.5 text-sm font-semibold transition-all relative flex items-center justify-center gap-2 rounded-t-lg -mb-px ${isActive
+                            ? 'text-brand bg-[var(--bg-app)] border-t border-l border-r border-[var(--border-base)] shadow-[0_-2px_6px_rgba(0,0,0,0.02)] z-10'
+                            : 'text-[var(--text-muted)] border-t border-l border-r border-transparent hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]/40 hover:border-[var(--border-muted)]/40'
+                            }`}
                     >
-                        {tab.icon && <Icon name={tab.icon} size={14} />}
-                        <span>{tab.label}</span>
+                        {tab.icon && <Icon name={tab.icon} size={16} />}
+                        <span className="relative z-20">{tab.label}</span>
+                        {isActive && (
+                            <div className="absolute inset-0 bg-brand/[0.03] rounded-t-lg z-10" />
+                        )}
                     </button>
                 );
             })}
