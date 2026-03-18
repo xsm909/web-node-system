@@ -252,7 +252,7 @@ def delete_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_a
     db.commit()
     return {"status": "deleted"}
 
-def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Session, user_context: Dict[str, Any] = None) -> Dict[str, Any]:
+def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Session, user_context: Dict[str, Any] = None, for_pdf: bool = False) -> Dict[str, Any]:
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -317,6 +317,8 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
              css_content = default_style.css
              
     # Base PDF CSS
+    pdf_scale = exec_result.get("pdf_scale", 0.5)
+    
     base_pdf_css = """
     @page {
         margin: 1.5cm;
@@ -324,9 +326,9 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
     }
     html, body {
         background-color: white !important;
-        font-size: 10pt !important;
+        font-size: """ + ("10pt" if not for_pdf else "6pt") + """ !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-        line-height: 1.5;
+        line-height: 1.3;
         color: #000 !important;
         margin: 0;
         padding: 0;
@@ -334,15 +336,28 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
     .report-container {
         width: 100%;
         background-color: white !important;
-        padding: 20px;
+        padding: """ + ("20px" if not for_pdf else "0px") + """;
         box-sizing: border-box;
     }
     table {
-        font-size: 10pt !important;
+        font-size: """ + ("10pt" if not for_pdf else f"{int(12 * pdf_scale)}pt") + """ !important;
         width: 100% !important;
         border-collapse: collapse;
+        table-layout: auto;
+    }
+    th, td {
+        word-break: break-all !important;
+        white-space: normal !important;
+    }
+    img, svg {
+        max-width: 100% !important;
+        height: auto !important;
     }
     """
+    
+    if for_pdf:
+        # Scale everything down to the requested scale
+        base_pdf_css += f"\n    body {{ zoom: {pdf_scale} !important; }}\n"
     
     # We want to inject our base CSS and the report-specific CSS.
     if "<html" in rendered_html.lower():
@@ -386,7 +401,7 @@ def generate_report(report_id: uuid.UUID, data: ReportGenerateRequest, db: Sessi
 @router.post("/{report_id}/pdf")
 def generate_report_pdf(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
     from weasyprint import HTML
-    res = _generate_report_html(report_id, data.parameters, db)
+    res = _generate_report_html(report_id, data.parameters, db, for_pdf=True)
     final_html = res["html"]
     
     # Convert HTML to PDF

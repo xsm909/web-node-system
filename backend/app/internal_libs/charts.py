@@ -25,7 +25,7 @@ CORP_COLORS = [
     '#64748b', # Slate 500
 ]
 
-def apply_corporate_style():
+def apply_corporate_style(fontsize: int = 10, font_family: str = 'sans-serif'):
     """Applies a clean, modern business style to Matplotlib."""
     if not CHART_LIBS_INSTALLED:
         return
@@ -41,8 +41,12 @@ def apply_corporate_style():
     mpl.rcParams['ytick.color'] = '#64748b'
     mpl.rcParams['axes.spines.top'] = False
     mpl.rcParams['axes.spines.right'] = False
-    mpl.rcParams['font.size'] = 10
-    mpl.rcParams['axes.titlesize'] = 12
+    mpl.rcParams['font.family'] = font_family
+    mpl.rcParams['font.size'] = fontsize
+    mpl.rcParams['axes.titlesize'] = fontsize + 2
+    mpl.rcParams['axes.labelsize'] = fontsize
+    mpl.rcParams['xtick.labelsize'] = max(6, fontsize - 1)
+    mpl.rcParams['ytick.labelsize'] = max(6, fontsize - 1)
     mpl.rcParams['axes.titleweight'] = 'bold'
     mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=CORP_COLORS)
 
@@ -82,21 +86,25 @@ def _get_error_svg(msg: str) -> str:
 
 # --- High-Level Charting Functions ---
 
-def bar(data, x, y, title=None, color=None, stacked=False, theme="business") -> str:
+def bar(data, x, y, title=None, color=None, stacked=False, theme="business", figsize=(8, 4), fontsize=10, bar_width=0.8, font_family='sans-serif') -> str:
     """Generates a professional vertical bar chart. y can be a single column or a list."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
         
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     y_cols = [y] if isinstance(y, str) else y
     
-    fig, ax = plt.subplots(figsize=(8, 4))
+    # Use provided color(s) or fallback to standard palette
+    palette = [color] if isinstance(color, str) else (color if color else CORP_COLORS)
+    
+    fig, ax = plt.subplots(figsize=figsize)
     
     if stacked and len(y_cols) > 1:
         bottom = None
         for i, col in enumerate(y_cols):
-            ax.bar(df[x].astype(str), df[col], label=col, bottom=bottom)
+            c = palette[i % len(palette)]
+            ax.bar(df[x].astype(str), df[col], label=col, bottom=bottom, width=bar_width, color=c)
             if bottom is None:
                 bottom = df[col].copy()
             else:
@@ -104,9 +112,11 @@ def bar(data, x, y, title=None, color=None, stacked=False, theme="business") -> 
         ax.legend()
     else:
         for i, col in enumerate(y_cols):
-            # If multiple but not stacked, they will overlap; use grouped bars in future or just first
+            # If single series and color is a list, apply list to bars. 
+            # If multiple series, use palette to color each series.
+            series_color = palette[i % len(palette)] if len(y_cols) > 1 else palette
             ax.bar(df[x].astype(str), df[col], label=col if len(y_cols)>1 else None, 
-                   color=color if len(y_cols)==1 else None)
+                   color=series_color, width=bar_width)
         if len(y_cols) > 1: ax.legend()
     
     if title: ax.set_title(title, pad=20)
@@ -115,22 +125,29 @@ def bar(data, x, y, title=None, color=None, stacked=False, theme="business") -> 
     
     return fig_to_svg(fig)
 
-def barh(data, x, y, title=None, color=None, stacked=False, theme="business") -> str:
-    """Generates a professional horizontal bar chart."""
+def barh(data, x, y, title=None, color=None, stacked=False, theme="business", figsize=None, fontsize=10, bar_height=0.8, font_family='sans-serif') -> str:
+    """Generates a professional horizontal bar chart. x is labels, y is values."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
         
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     y_cols = [y] if isinstance(y, str) else y
     
-    h = max(4, len(df) * 0.4)
-    fig, ax = plt.subplots(figsize=(8, h))
+    if not figsize:
+        h = max(4, len(df) * 0.45)
+        figsize = (8, h)
+        
+    # Use provided color(s) or fallback to standard palette
+    palette = [color] if isinstance(color, str) else (color if color else CORP_COLORS)
+        
+    fig, ax = plt.subplots(figsize=figsize)
     
     if stacked and len(y_cols) > 1:
         left = None
         for i, col in enumerate(y_cols):
-            ax.barh(df[x].astype(str), df[col], label=col, left=left)
+            c = palette[i % len(palette)]
+            ax.barh(df[x].astype(str), df[col], label=col, left=left, height=bar_height, color=c)
             if left is None:
                 left = df[col].copy()
             else:
@@ -138,8 +155,9 @@ def barh(data, x, y, title=None, color=None, stacked=False, theme="business") ->
         ax.legend()
     else:
         for i, col in enumerate(y_cols):
+            series_color = palette[i % len(palette)] if len(y_cols) > 1 else palette
             ax.barh(df[x].astype(str), df[col], label=col if len(y_cols)>1 else None,
-                    color=color if len(y_cols)==1 else None)
+                    color=series_color, height=bar_height)
         if len(y_cols) > 1: ax.legend()
     
     if title: ax.set_title(title, pad=20)
@@ -149,16 +167,16 @@ def barh(data, x, y, title=None, color=None, stacked=False, theme="business") ->
     
     return fig_to_svg(fig)
 
-def area(data, x, y, title=None, stacked=False, theme="business") -> str:
+def area(data, x, y, title=None, stacked=False, theme="business", figsize=(8, 4), fontsize=10, font_family='sans-serif') -> str:
     """Generates a professional area chart."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
         
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     y_cols = [y] if isinstance(y, str) else y
     
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=figsize)
     
     if stacked and len(y_cols) > 1:
         ax.stackplot(df[x].astype(str), [df[c] for c in y_cols], labels=y_cols, alpha=0.8)
@@ -173,15 +191,15 @@ def area(data, x, y, title=None, stacked=False, theme="business") -> str:
     ax.set_xlabel(str(x))
     return fig_to_svg(fig)
 
-def histogram(data, col, bins=20, title=None, theme="business") -> str:
+def histogram(data, col, bins=20, title=None, theme="business", figsize=(8, 4), fontsize=10, font_family='sans-serif') -> str:
     """Generates a distribution histogram."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
         
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=figsize)
     ax.hist(df[col].dropna(), bins=bins, color=CORP_COLORS[0], edgecolor='white', alpha=0.8)
     
     if title: ax.set_title(title, pad=20)
@@ -189,18 +207,21 @@ def histogram(data, col, bins=20, title=None, theme="business") -> str:
     ax.set_ylabel("Frequency")
     return fig_to_svg(fig)
 
-def line(data, x, y, title=None, markers=True, theme="business") -> str:
+def line(data, x, y, title=None, markers=True, theme="business", figsize=(8, 4), fontsize=10, font_family='sans-serif', color=None) -> str:
     """Generates a professional line chart."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
 
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # Use provided color(s) or fallback to standard palette
+    colors = [color] if isinstance(color, str) else (color if color else CORP_COLORS)
     
     ax.plot(df[x].astype(str), df[y], marker='o' if markers else None, 
-            linewidth=2, color=CORP_COLORS[0])
+            linewidth=2, color=colors[0])
     
     if title:
         ax.set_title(title, pad=20)
@@ -210,23 +231,27 @@ def line(data, x, y, title=None, markers=True, theme="business") -> str:
     
     return fig_to_svg(fig)
 
-def pie(data, labels, values, title=None, theme="business") -> str:
+def pie(data, labels, values, title=None, theme="business", figsize=(6, 6), fontsize=10, font_family='sans-serif', color=None) -> str:
     """Generates a professional pie chart."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
 
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     
-    fig, ax = plt.subplots(figsize=(6, 6))
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # Use provided color(s) or fallback to standard palette
+    pie_colors = [color] if isinstance(color, str) else (color if color else CORP_COLORS)
     
     patches, texts, autotexts = ax.pie(
         df[values], 
         labels=df[labels].astype(str), 
         autopct='%1.1f%%',
-        colors=CORP_COLORS,
+        colors=pie_colors,
         startangle=140,
-        pctdistance=0.85
+        pctdistance=0.85,
+        textprops={'fontsize': fontsize}
     )
     
     # Make a donut
@@ -239,12 +264,12 @@ def pie(data, labels, values, title=None, theme="business") -> str:
     plt.tight_layout()
     return fig_to_svg(fig)
 
-def radar(data, labels, values, title=None, theme="business") -> str:
+def radar(data, labels, values, title=None, theme="business", figsize=(6, 6), fontsize=10, font_family='sans-serif') -> str:
     """Generates a professional radar (spider) chart."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
         
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     
     categories = df[labels].astype(str).tolist()
@@ -254,7 +279,7 @@ def radar(data, labels, values, title=None, theme="business") -> str:
     # Close the loop safely
     angles.append(angles[0])
     
-    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=figsize, subplot_kw=dict(polar=True))
     
     val_cols = [values] if isinstance(values, str) else values
     
@@ -273,17 +298,17 @@ def radar(data, labels, values, title=None, theme="business") -> str:
     
     return fig_to_svg(fig)
 
-def heatmap(data, x, y, values, title=None, theme="business") -> str:
+def heatmap(data, x, y, values, title=None, theme="business", figsize=(8, 6), fontsize=10, font_family='sans-serif') -> str:
     """Generates a correlation or density heatmap."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
         
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     
     pivot = df.pivot(index=y, columns=x, values=values)
     
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=figsize)
     im = ax.imshow(pivot, cmap='Blues')
     
     ax.set_xticks(np.arange(len(pivot.columns)))
@@ -295,22 +320,22 @@ def heatmap(data, x, y, values, title=None, theme="business") -> str:
     
     for i in range(len(pivot.index)):
         for j in range(len(pivot.columns)):
-            ax.text(j, i, pivot.iloc[i, j], ha="center", va="center", color="black")
+            ax.text(j, i, pivot.iloc[i, j], ha="center", va="center", color="black", fontsize=fontsize-2)
             
     if title: ax.set_title(title, pad=20)
     fig.colorbar(im, ax=ax)
     plt.tight_layout()
     return fig_to_svg(fig)
 
-def boxplot(data, y, x=None, title=None) -> str:
+def boxplot(data, y, x=None, title=None, figsize=(8, 4), fontsize=10, font_family='sans-serif') -> str:
     """Generates a statistical boxplot."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
         
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=figsize)
     
     if x:
         groups = df[x].unique()
@@ -325,14 +350,14 @@ def boxplot(data, y, x=None, title=None) -> str:
     ax.set_ylabel(str(y) if isinstance(y, str) else "Value")
     return fig_to_svg(fig)
 
-def scatter(data, x, y, size=None, title=None) -> str:
+def scatter(data, x, y, size=None, title=None, figsize=(8, 4), fontsize=10, font_family='sans-serif') -> str:
     """Generates a professional scatter/bubble plot."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=figsize)
     
     if size and size in df.columns:
         # Scale relative size, ensure we don't divide by zero
@@ -348,11 +373,11 @@ def scatter(data, x, y, size=None, title=None) -> str:
     ax.set_ylabel(str(y))
     return fig_to_svg(fig)
 
-def waterfall(data, labels, values, title=None) -> str:
+def waterfall(data, labels, values, title=None, figsize=(8, 5), fontsize=10, font_family='sans-serif') -> str:
     """Generates a waterfall chart."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     
     net = df[values].values
@@ -360,7 +385,7 @@ def waterfall(data, labels, values, title=None) -> str:
     base = np.zeros(len(net))
     base[1:] = running_total[:-1]
     
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=figsize)
     colors = ['#10b981' if x >= 0 else '#f43f5e' for x in net]
     ax.bar(df[labels].astype(str), net, bottom=base, color=colors)
     
@@ -370,17 +395,17 @@ def waterfall(data, labels, values, title=None) -> str:
     if title: ax.set_title(title, pad=20)
     return fig_to_svg(fig)
 
-def gauge(value, title=None, min_val=0, max_val=100) -> str:
+def gauge(value, title=None, min_val=0, max_val=100, figsize=(6, 3), fontsize=10, font_family='sans-serif') -> str:
     """Generates a semi-circular gauge using a pie chart trick."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     
     # We use a pie chart where the bottom half (180 degrees) is white/hidden
     # Top half represents the range [min_val, max_val]
     val_norm = max(0, min(1, (value - min_val) / (max_val - min_val)))
     
-    fig, ax = plt.subplots(figsize=(6, 3))
+    fig, ax = plt.subplots(figsize=figsize)
     
     # Pie slices: [Current Value, Remaining to Max, Bottom half (hidden)]
     sizes = [val_norm * 180, (1 - val_norm) * 180, 180]
@@ -393,18 +418,18 @@ def gauge(value, title=None, min_val=0, max_val=100) -> str:
     ax.add_artist(centre_circle)
     
     ax.axis('equal')
-    if title: ax.text(0, -0.1, f"{title}: {value}", ha='center', va='top', fontsize=12, fontweight='bold')
+    if title: ax.text(0, -0.1, f"{title}: {value}", ha='center', va='top', fontsize=fontsize, fontweight='bold')
     
     return fig_to_svg(fig)
 
-def funnel(data, labels, values, title=None) -> str:
+def funnel(data, labels, values, title=None, figsize=(8, 6), fontsize=10, font_family='sans-serif') -> str:
     """Generates a funnel chart."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data).sort_values(values, ascending=False)
     
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=figsize)
     y = np.arange(len(df))
     widths = df[values].values
     offset = (widths.max() - widths) / 2
@@ -416,33 +441,33 @@ def funnel(data, labels, values, title=None) -> str:
     ax.axis('off')
     
     for i, val in enumerate(widths):
-        ax.text(widths.max()/2, i, f"{val}", ha='center', va='center', color='white', weight='bold')
+        ax.text(widths.max()/2, i, f"{val}", ha='center', va='center', color='white', weight='bold', fontsize=fontsize)
     if title: ax.set_title(title, pad=20)
     return fig_to_svg(fig)
 
-def gantt(data, task, start, end, title=None) -> str:
+def gantt(data, task, start, end, title=None, figsize=(10, 5), fontsize=10, font_family='sans-serif') -> str:
     """Generates a Gantt chart."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
     df[start] = pd.to_datetime(df[start])
     df[end] = pd.to_datetime(df[end])
     df['dur'] = (df[end] - df[start]).dt.days
     
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=figsize)
     ax.barh(df[task].astype(str), df['dur'], left=df[start], color=CORP_COLORS[0])
     ax.invert_yaxis()
     if title: ax.set_title(title, pad=20)
     return fig_to_svg(fig)
 
-def violin(data, y, x=None, title=None) -> str:
+def violin(data, y, x=None, title=None, figsize=(8, 4), fontsize=10, font_family='sans-serif') -> str:
     """Generates a violin plot."""
     if not CHART_LIBS_INSTALLED:
         return _get_error_svg("Libraries 'matplotlib' or 'pandas' are not installed.")
-    apply_corporate_style()
+    apply_corporate_style(fontsize=fontsize, font_family=font_family)
     df = _to_df(data)
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=figsize)
     
     if x:
         groups = df[x].unique()

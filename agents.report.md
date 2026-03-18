@@ -74,19 +74,34 @@ def GenerateReport(report_parameters):
         row['display_name'] = f"{row['brand']} (n={row['cases']})"
         
     # 3. Create chart (returns SVG string)
-    # Hint: Use barh (horizontal) for long labels on Y-axis
+    # New: customize size, font family, colors, and bar height
     chart_svg = charts.barh(
         data=result,
         x='display_name',
         y='win_rate',
-        title="Win Rate by Brand"
+        title="Win Rate by Brand",
+        figsize=(10, 6),      # Custom width, height
+        fontsize=12,          # Base font size
+        font_family='serif',  # Custom font family
+        color=['#3b82f6', '#f43f5e', '#10b981'], # Custom corporate colors
+        bar_height=0.6        # Thinner bars
     )
     
+    # 4. Return data, success flag, and OPTIONAL PDF scale (default 0.5)
     return {
         'data': result,
         'my_chart': chart_svg
-    }, True
+    }, True, 0.5
 ```
+
+#### 6.2.1 `GenerateReport` Signature
+The function can return multiple values for fine-grained control:
+1.  **`data`** (dict|list): The context for Jinja2.
+2.  **`success`** (bool): Whether the generation was successful.
+3.  **`scale_or_reason`** (float|str): 
+    -   If a **number** (e.g., `0.8`), it sets the **PDF Export Scale** (zoom).
+    -   If a **string**, it's treated as a `validation_reason` for failure.
+4.  **`scale`** (float, optional): Explicit scale if the 3rd argument is a string reason.
 
 ### 6.3 Template Best Practices (HTML/Jinja2)
 

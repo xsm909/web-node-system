@@ -395,14 +395,24 @@ class ReportExecutor:
             result = safe_call_hook(gen_report_fn, processed_params, mode)
             
             # Support (data, success, reason), (data, success) and just data
+            pdf_scale = 0.5
+            gen_reason = None
             if isinstance(result, tuple):
                 if len(result) >= 3:
-                    result_data, gen_success, gen_reason = result[:3]
-                elif len(result) == 2:
-                    result_data, gen_success = result
+                    third = result[2]
+                    if isinstance(third, (int, float)):
+                        pdf_scale = float(third)
+                    else:
+                        gen_reason = str(third)
+                
+                if len(result) >= 2:
+                    result_data, gen_success = result[:2]
                 else:
                     result_data = result[0]
                     gen_success = True
+                    
+                if len(result) >= 4 and isinstance(result[3], (int, float)):
+                    pdf_scale = float(result[3])
             else:
                 result_data = result
                 gen_success = True
@@ -418,6 +428,7 @@ class ReportExecutor:
             return {
                 "success": True,
                 "data": result_data,
+                "pdf_scale": pdf_scale,
                 "console": self.console_output.getvalue()
             }
 
