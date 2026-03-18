@@ -237,3 +237,37 @@ def run(inputs, params):
         nodeParameters.THEN = nodeParameters.THEN2_FALSE
     return inputs
 ```
+---
+
+## Professional Reports & Data Visualization
+
+The system supports a powerful report generator that combines Python logic, SQL data, and professional graphics.
+
+### Quick Feature Set
+- **Jinja2 Templates**: Fully customizable HTML/CSS reports for PDF export.
+- **Charts Library (15+ Types)**: Built-in support for `bar`, `line`, `radar`, `waterfall`, `heatmap`, `gantt`, etc.
+- **Vector Output**: All charts are rendered as SVGs for crisp, scalable visualizations.
+
+### Example: Comparative Brand Analysis
+In the Report Editor, you can combine a SQL query with a horizontal bar chart (`barh`) for long labels:
+
+**Code**:
+```python
+def GenerateReport(params):
+    data = inner_database.unsafe_request("SELECT brand, score FROM analysis")
+    # Generate horizontal chart
+    chart = charts.barh(data, x='brand', y='score', title="Performance Score Index")
+    return {'data': data, 'main_chart': chart}, True
+```
+
+**Template**:
+```html
+<div class="card">
+    {{ main_chart | safe }}
+</div>
+```
+
+---
+
+## License
+Proprietary - Research & Development Use Only.

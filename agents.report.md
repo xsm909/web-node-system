@@ -11,7 +11,7 @@ The report system has been migrated from a legacy SQL-only approach to a powerfu
 - **Executor**: `ReportExecutor` (in `/backend/app/services/report_executor.py`) uses `RestrictedPython` for secure code execution.
 - **Library Parity**: Reports have access to specialized internal libraries:
     - `inner_database`: Direct safe SQL access via `unsafe_request`.
-    - `charts`: **[NEW]** High-level plotting library for business graphics (SVG).
+    - `charts`: **[NEW]** Comprehensive plotting library (15+ types) for professional business graphics (SVG).
     - `analytics`: Usage and performance tracking.
     - `ai`: Integrated access to Gemini, OpenAI, and Perplexity.
     - `prompt_lib` / `response_lib`: Access to the platform's prompt/response system.
@@ -46,34 +46,81 @@ The report system has been migrated from a legacy SQL-only approach to a powerfu
     - `Manager`: Can generate reports, edit report content (logic/template), and manage parameters.
     - `Client`: Read-only access to assigned report results.
 
-## 6. Graphics and Visualizations (Matplotlib-based)
+### 6. Graphics and Visualizations (15+ Chart Types)
 
-The system provides a built-in `charts` library specifically designed for "Business/Academic" style reports. It generates high-quality **vector SVGs** that are perfectly suited for PDF export via WeasyPrint.
+The system provides a built-in `charts` library specifically designed for "Business/Academic" style reports. It generates high-quality **vector SVGs** using the non-interactive `Agg` backend.
 
-### 6.1 Python Logic Example
-Graphics are generated within the `GenerateReport` function and passed to the template as SVG strings.
+#### 6.1 Available Chart Types
+
+| Category | Function | Sample Usage |
+| :--- | :--- | :--- |
+| **Comparison** | `bar`, `barh` | `charts.bar(data, x='label', y='value', stacked=True)` |
+| **Evolution** | `line`, `area` | `charts.area(data, x='date', y=['v1', 'v2'], stacked=True)` |
+| **Distribution** | `histogram`, `boxplot`, `violin` | `charts.violin(data, y='score', x='group')` |
+| **Relationship** | `scatter`, `heatmap` | `charts.heatmap(data, x='reg', y='cat', values='val')` |
+| **Specialized** | `radar`, `waterfall`, `gauge`, `funnel`, `gantt` | `charts.radar(data, labels='dim', values=['m1', 'm2'])` |
+
+### 6.2 Implementation Checklist (Python Code)
+
+Functions are generated within `GenerateReport` and passed to the template.
 
 ```python
 def GenerateReport(report_parameters):
-    # 1. Get processed data
-    query = "SELECT brand, win_rate FROM statistics"
-    result = inner_database.unsafe_request(query)
+    # 1. Fetch data
+    result = inner_database.unsafe_request("SELECT brand, win_rate, cases FROM stats")
     
-    # 2. Create a chart (returns SVG string)
-    # Available types: bar, line, pie, area, scatter
-    win_graph = charts.bar(
+    # 2. Enrich data if needed (e.g. for long labels in horizontal bars)
+    for row in result:
+        row['display_name'] = f"{row['brand']} (n={row['cases']})"
+        
+    # 3. Create chart (returns SVG string)
+    # Hint: Use barh (horizontal) for long labels on Y-axis
+    chart_svg = charts.barh(
         data=result,
-        x='brand',
+        x='display_name',
         y='win_rate',
-        title="Win Rate by Brand",
-        theme="business", # Applies corporate styling
-        color="#3b82f6"   # Optional custom accent color
+        title="Win Rate by Brand"
     )
     
     return {
-        'result': result,
-        'win_graph': win_graph
+        'data': result,
+        'my_chart': chart_svg
     }, True
+```
+
+### 6.3 Template Best Practices (HTML/Jinja2)
+
+Use the `| safe` filter and clean wrappers for professional layout.
+
+```html
+<div class="report-container" style="font-family: sans-serif; padding: 20px;">
+    <h1>Performance Dashboard</h1>
+    
+    <!-- Chart Wrapper -->
+    <div style="margin: 30px 0; background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 15px;">
+        {{ my_chart | safe }}
+    </div>
+
+    <!-- Data Table -->
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="border-bottom: 2px solid #334155; text-align: left;">
+                <th style="padding: 10px;">Brand</th>
+                <th style="padding: 10px; text-align: right;">Win Rate</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px;">{{ row.brand }}</td>
+                <td style="padding: 10px; text-align: right; color: #3b82f6; font-weight: bold;">
+                    {{ (row.win_rate * 100) | round(1) }}%
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 ```
 
 ### 6.2 Template Example (Jinja2)
