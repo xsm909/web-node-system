@@ -45,6 +45,33 @@ async def lifespan(app: FastAPI):
         db.execute(text("ALTER TABLE prompts ALTER COLUMN content TYPE JSONB USING content::jsonb;"))
         db.execute(text("ALTER TABLE prompts ADD COLUMN IF NOT EXISTS raw TEXT;"))
         db.execute(text("ALTER TABLE prompts ADD COLUMN IF NOT EXISTS meta JSONB;"))
+
+        # Add date_bucket_floor function
+        db.execute(text("""
+CREATE OR REPLACE FUNCTION date_bucket_floor(ts timestamptz, mode text)
+RETURNS timestamptz
+AS $$
+BEGIN
+    CASE mode
+        WHEN 'hour' THEN
+            RETURN date_trunc('hour', ts);
+
+        WHEN 'day' THEN
+            RETURN date_trunc('day', ts);
+
+        WHEN 'month' THEN
+            RETURN date_trunc('month', ts);
+
+        WHEN '15 days' THEN
+            RETURN date_trunc('month', ts)
+                   + ((EXTRACT(DAY FROM ts)::int - 1) / 15) * INTERVAL '15 days';
+
+        ELSE
+            RAISE EXCEPTION 'Unsupported mode: %', mode;
+    END CASE;
+END;
+$$ LANGUAGE plpgsql;
+"""))
         
         db.commit()
     except Exception as e:
