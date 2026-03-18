@@ -58,7 +58,6 @@ export const SchemaEditor: React.FC<SchemaEditorProps> = ({
             crosshairCursor: true,
             highlightSelectionMatches: true,
             closeBrackets: true,
-            autofocus: false,
             defaultKeymap: true,
             searchKeymap: true,
             historyKeymap: true,

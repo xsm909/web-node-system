@@ -8,7 +8,9 @@ import { DataTypeSelect } from '../../../shared/ui/data-type-select';
 import { Icon } from '../../../shared/ui/icon';
 import { ManagementModal } from '../../../shared/ui/management-modal';
 import { AIAssistantButton } from '../../../features/ai-assistant/ui/AIAssistantButton';
+import { AppInput } from '../../../shared/ui/app-input';
 import { FormField } from '../../../shared/ui/form-field';
+
 import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
 
 interface AITaskEditModalProps {
@@ -245,15 +247,14 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
             </div>
 
             {isAdmin && (
-                <FormField label="Description">
-                    <input
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="w-full px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-medium focus:ring-2 focus:ring-brand outline-none transition-all placeholder:opacity-30"
-                        placeholder="Short description of this task..."
-                    />
-                </FormField>
+                <AppInput
+                    label="Description"
+                    value={description}
+                    onChange={setDescription}
+                    placeholder="Short description of this task..."
+                />
             )}
+
 
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -308,11 +309,12 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                     </div>
                 ) : (
                     <div>
-                        <textarea
-                            value={singleValue}
-                            onChange={(e) => setSingleValue(e.target.value)}
+                        <AppInput
+                            label=""
+                            multiline
                             rows={6}
-                            className="w-full px-5 py-4 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-medium focus:ring-2 focus:ring-brand outline-none transition-all resize-none font-sans leading-relaxed placeholder:opacity-30"
+                            value={singleValue}
+                            onChange={setSingleValue}
                             placeholder="Describe the task instructions here..."
                         />
                         <p className="text-[10px] text-[var(--text-muted)] italic opacity-60 ml-1 mt-2">
@@ -320,6 +322,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                         </p>
                     </div>
                 )}
+
             </div>
         </ManagementModal>
     );

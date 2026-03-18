@@ -6,7 +6,9 @@ import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
+import { AppInput } from '../../../shared/ui/app-input';
 import { createColumnHelper } from '@tanstack/react-table';
+
 
 const columnHelper = createColumnHelper<Credential>();
 
@@ -190,35 +192,32 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                         <p className="text-sm text-[var(--text-muted)] mt-1 opacity-60">Configure your system-wide security keys and tokens.</p>
                     </header>
                     <div className="space-y-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-[var(--text-main)] opacity-70 ml-1">Key Name</label>
-                            <input
-                                type="text"
-                                value={formData.key}
-                                onChange={(e) => setFormData({ ...formData, key: e.target.value })}
-                                className="w-full px-4 py-3.5 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-mono font-bold"
-                                placeholder="e.g. GEMINI_API_KEY"
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-[var(--text-main)] opacity-70 ml-1">Value</label>
-                            <textarea
-                                value={formData.value}
-                                onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                                className="w-full px-4 py-3.5 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all min-h-[140px] font-mono font-bold resize-none"
-                                placeholder="Paste secret value here..."
-                                required
-                            />
-                        </div>
+                        <AppInput
+                            label="Key Name"
+                            required
+                            value={formData.key || ''}
+                            onChange={(val) => setFormData({ ...formData, key: val })}
+                            placeholder="e.g. GEMINI_API_KEY"
+                            className="font-mono font-bold"
+                        />
+                        <AppInput
+                            label="Value"
+                            required
+                            multiline
+                            rows={4}
+                            value={formData.value || ''}
+                            onChange={(val) => setFormData({ ...formData, value: val })}
+                            placeholder="Paste secret value here..."
+                            className="font-mono font-bold"
+                        />
                         <div className="grid grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-[var(--text-main)] opacity-70 ml-1">Type</label>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-bold text-[var(--text-main)]">Type</label>
                                 <div className="relative">
                                     <select
                                         value={formData.type}
                                         onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                        className="w-full px-4 py-3.5 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all appearance-none cursor-pointer font-bold"
+                                        className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all outline-none appearance-none cursor-pointer font-bold"
                                     >
                                         <option value="ai">AI / LLM Service</option>
                                         <option value="db">Database Accessory</option>
@@ -230,18 +229,15 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                                     </div>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-[var(--text-main)] opacity-70 ml-1">Description</label>
-                                <input
-                                    type="text"
-                                    value={formData.description || ''}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="w-full px-4 py-3.5 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-medium"
-                                    placeholder="Short purpose note"
-                                />
-                            </div>
+                            <AppInput
+                                label="Description"
+                                value={formData.description || ''}
+                                onChange={(val) => setFormData({ ...formData, description: val })}
+                                placeholder="Short purpose note"
+                            />
                         </div>
                     </div>
+
                 </div>
             </AppFormView>
         );

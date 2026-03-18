@@ -8,6 +8,8 @@ import { apiClient } from '../../../shared/api/client';
 import { AppHeader } from '../../app-header';
 import { useForm } from '@tanstack/react-form';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
+import { AppInput } from '../../../shared/ui/app-input';
+
 
 interface NodeEditorViewProps {
     node: Node | null;
@@ -132,25 +134,20 @@ const ParameterRow: React.FC<{
                         className="w-full"
                     />
                 ) : (
-                    <input
-                        id={`param-${param.name}`}
+                    <AppInput
+                        label={param.label}
                         type={param.type === 'number' ? 'number' : 'text'}
                         value={value ?? ''}
-                        onChange={(e) => {
-                            const val = param.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value;
-                            onChange({ [param.name]: val });
+                        onChange={(val) => {
+                            const parsedVal = param.type === 'number' ? (val === '' ? '' : Number(val)) : val;
+                            onChange({ [param.name]: parsedVal });
                         }}
                         placeholder={`Enter ${param.label.toLowerCase()}...`}
-                        className="w-full px-3 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-xs text-[var(--text-main)] placeholder:text-[var(--text-muted)] opacity-80 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                (e.target as HTMLInputElement).blur();
-                            }
-                        }}
                         disabled={isReadOnly}
                     />
                 )
             )}
+
         </div>
     );
 };

@@ -10,7 +10,9 @@ import { Icon } from '../../../shared/ui/icon';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { useForm } from '@tanstack/react-form';
 import { AppFormView } from '../../../shared/ui/app-form-view';
+import { AppInput } from '../../../shared/ui/app-input';
 import { getPythonHints, type PythonHint } from '../../../shared/api/python-hints';
+
 
 interface NodeTypeFormViewProps {
     onClose: () => void;
@@ -65,23 +67,23 @@ const CategoryComboBox: React.FC<CategoryComboBoxProps> = ({ value, onChange, al
 
     return (
         <div ref={ref} className="relative">
-            <div className="relative">
-                <input
-                    className="w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold"
-                    value={inputValue}
-                    onChange={e => handleInputChange(e.target.value)}
-                    onFocus={() => setOpen(true)}
-                    placeholder="e.g. AI|Chat|Gemini"
-                />
-                <button
-                    type="button"
-                    tabIndex={-1}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 opacity-40 hover:opacity-80 transition-opacity text-[var(--text-main)]"
-                    onClick={() => setOpen(o => !o)}
-                >
-                    <Icon name={open ? 'expand_less' : 'expand_more'} size={16} />
-                </button>
-            </div>
+            <AppInput
+                label=""
+                value={inputValue}
+                onChange={handleInputChange}
+                onFocus={() => setOpen(true)}
+                placeholder="e.g. AI|Chat|Gemini"
+                className="font-bold"
+            />
+            <button
+                type="button"
+                tabIndex={-1}
+                className="absolute right-4 top-1/2 -translate-y-1/2 opacity-40 hover:opacity-80 transition-opacity text-[var(--text-main)] mt-0.5"
+                onClick={() => setOpen(o => !o)}
+            >
+                <Icon name={open ? 'expand_less' : 'expand_more'} size={16} />
+            </button>
+
 
             {open && filtered.length > 0 && (
                 <div className="absolute z-50 top-full mt-2 left-0 right-0 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-150">
@@ -300,39 +302,38 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                 {activeTab === 'info' && (
                     <div className="space-y-10 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="grid grid-cols-4 gap-8">
-                            <div className="col-span-3 space-y-3">
-                                <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Node Identification</label>
+                            <div className="col-span-3">
                                 <form.Field
                                     name="name"
                                     children={(field) => (
-                                        <input
-                                            className="w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold text-lg"
+                                        <AppInput
+                                            label="Node Identification"
                                             value={field.state.value}
-                                            onBlur={field.handleBlur}
-                                            onChange={(e) => field.handleChange(e.target.value)}
+                                            onChange={(val) => field.handleChange(val)}
                                             required
                                             placeholder="Display Name"
+                                            className="text-lg font-bold"
                                         />
                                     )}
                                 />
                             </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1 text-center block">Ver.</label>
+                            <div>
                                 <form.Field
                                     name="version"
                                     children={(field) => (
-                                        <input
-                                            className="w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-mono font-black text-center text-lg"
+                                        <AppInput
+                                            label="Ver."
                                             value={field.state.value}
-                                            onBlur={field.handleBlur}
-                                            onChange={(e) => field.handleChange(e.target.value)}
+                                            onChange={(val) => field.handleChange(val)}
                                             required
                                             placeholder="1.0"
+                                            className="font-mono font-black text-center text-lg"
                                         />
                                     )}
                                 />
                             </div>
                         </div>
+
 
                         <div className="grid grid-cols-3 gap-8">
                             <div className="col-span-1 space-y-3">
@@ -383,21 +384,20 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Functional Description</label>
-                            <form.Field
-                                name="description"
-                                children={(field) => (
-                                    <textarea
-                                        className="w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all min-h-[160px] resize-none font-medium leading-relaxed"
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(e.target.value)}
-                                        placeholder="Provide a comprehensive explanation of the node's purpose and expected inputs/outputs..."
-                                    />
-                                )}
-                            />
-                        </div>
+                        <form.Field
+                            name="description"
+                            children={(field) => (
+                                <AppInput
+                                    label="Functional Description"
+                                    multiline
+                                    rows={6}
+                                    value={field.state.value}
+                                    onChange={(val) => field.handleChange(val)}
+                                    placeholder="Provide a comprehensive explanation of the node's purpose and expected inputs/outputs..."
+                                />
+                            )}
+                        />
+
                     </div>
                 )}
 

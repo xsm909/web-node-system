@@ -6,7 +6,9 @@ import { ComboBox } from '../../../shared/ui/combo-box';
 import type { SelectionGroup } from '../../../shared/ui/selection-list';
 import { ClientMetadataManagement } from '../../client-metadata-management/ui/ClientMetadataManagement';
 import { PromptViewer } from '../../prompt-viewer/ui/PromptViewer';
+import { AppInput } from '../../../shared/ui/app-input';
 import { FormField } from '../../../shared/ui/form-field';
+
 
 interface UserEditorProps {
     user: User;
@@ -105,13 +107,16 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                     <div className="space-y-6">
                         <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] opacity-50 px-1">Account Profile</h3>
                         <div className="grid grid-cols-1 gap-6">
-                            <FormField label="Username">
-                                <div className="px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-bold">
-                                    {user.username}
-                                </div>
-                            </FormField>
-                            <FormField label="Role">
-                                <div className="px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)]">
+                            <AppInput
+                                label="Username"
+                                value={user.username}
+                                onChange={() => {}}
+                                disabled
+                                className="font-bold"
+                            />
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-bold text-[var(--text-main)]">Role</label>
+                                <div className="px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] opacity-50">
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 ring-inset ${user.role === 'admin'
                                         ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-indigo-500/20'
                                         : user.role === 'manager'
@@ -121,8 +126,9 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                                         {user.role}
                                     </span>
                                 </div>
-                            </FormField>
+                            </div>
                         </div>
+
                     </div>
 
                     {user.role === 'client' && (

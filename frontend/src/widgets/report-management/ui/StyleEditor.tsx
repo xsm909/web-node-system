@@ -8,6 +8,8 @@ import { vscodeDark, vscodeLight } from "@uiw/codemirror-theme-vscode";
 import { indentUnit } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import { useThemeStore } from "../../../shared/lib/theme/store";
+import { AppInput } from "../../../shared/ui/app-input";
+
 
 interface StyleEditorProps {
     style?: ReportStyle | null;
@@ -115,27 +117,21 @@ export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style
     return (
         <div className="h-full flex flex-col gap-6 pt-4 max-w-5xl mx-auto w-full">
             <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-[var(--text-main)]">Style Name *</label>
-                    <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all font-medium"
-                        placeholder="e.g. Modern Invoice"
-                    />
-                </div>
-                <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-[var(--text-main)]">Category</label>
-                    <input
-                        type="text"
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all font-medium"
-                        placeholder="e.g. Finance|Invoices"
-                    />
-                </div>
+                <AppInput
+                    label="Style Name"
+                    required
+                    value={name}
+                    onChange={setName}
+                    placeholder="e.g. Modern Invoice"
+                />
+                <AppInput
+                    label="Category"
+                    value={category}
+                    onChange={setCategory}
+                    placeholder="e.g. Finance|Invoices"
+                />
             </div>
+
 
             <div className="flex items-center gap-3 p-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] shadow-sm">
                 <div className="relative flex items-center">

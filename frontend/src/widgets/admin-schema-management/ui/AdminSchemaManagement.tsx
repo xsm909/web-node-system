@@ -7,7 +7,9 @@ import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
+import { AppInput } from '../../../shared/ui/app-input';
 import { createColumnHelper } from '@tanstack/react-table';
+
 
 const columnHelper = createColumnHelper<Schema>();
 
@@ -288,29 +290,24 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
             >
                 <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
                     <div className="grid grid-cols-2 gap-8">
-                        <div className="space-y-3">
-                            <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Schema Key</label>
-                            <input
-                                type="text"
-                                placeholder="Schema Key (e.g., user-profile)"
-                                value={key}
-                                onChange={e => setKey(e.target.value)}
-                                disabled={!!selectedSchema || lock}
-                                className={`w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold text-lg ${(selectedSchema || lock) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            />
-                        </div>
-                        <div className="space-y-3">
-                            <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Category</label>
-                            <input
-                                type="text"
-                                placeholder="e.g., Common|Info"
-                                value={category}
-                                onChange={e => setCategory(e.target.value)}
-                                disabled={lock}
-                                className={`w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold text-lg ${lock ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            />
-                        </div>
+                        <AppInput
+                            label="Schema Key"
+                            placeholder="Schema Key (e.g., user-profile)"
+                            value={key}
+                            onChange={setKey}
+                            disabled={!!selectedSchema || lock}
+                            className={(selectedSchema || lock) ? 'opacity-50' : ''}
+                        />
+                        <AppInput
+                            label="Category"
+                            placeholder="e.g., Common|Info"
+                            value={category}
+                            onChange={setCategory}
+                            disabled={lock}
+                            className={lock ? 'opacity-50' : ''}
+                        />
                     </div>
+
                     <div>
                         <label className={`flex items-center gap-3 text-sm font-bold text-[var(--text-main)] cursor-pointer w-max ${lock ? 'opacity-50 cursor-not-allowed' : 'hover:text-brand transition-colors'}`}>
                             <input

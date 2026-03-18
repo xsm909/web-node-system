@@ -7,7 +7,9 @@ import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
+import { AppInput } from '../../../shared/ui/app-input';
 import { createColumnHelper } from '@tanstack/react-table';
+
 import { marked } from 'marked';
 
 const columnHelper = createColumnHelper<AgentHint>();
@@ -187,29 +189,25 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
                     {!isPreview && (
                         <div className="grid grid-cols-2 gap-8 mb-2">
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Hint Key</label>
-                                <input
-                                    type="text"
-                                    placeholder="Hint Key (e.g., sql-optimization)"
-                                    value={key}
-                                    onChange={e => setKey(e.target.value)}
-                                    disabled={!!selectedHint}
-                                    className={`w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold text-lg ${selectedHint ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Category</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., SQL|Optimization"
-                                    value={category}
-                                    onChange={e => setCategory(e.target.value)}
-                                    className="w-full px-5 py-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-bold text-lg"
-                                />
-                            </div>
+                            <AppInput
+                                label="Hint Key"
+                                placeholder="Hint Key (e.g., sql-optimization)"
+                                value={key}
+                                onChange={setKey}
+                                disabled={!!selectedHint}
+                                className={selectedHint ? 'opacity-50' : ''}
+                                // We keep the "bold text-lg" look if desired, 
+                                // but the requirement is to match Report Editor "Report Name"
+                            />
+                            <AppInput
+                                label="Category"
+                                placeholder="e.g., SQL|Optimization"
+                                value={category}
+                                onChange={setCategory}
+                            />
                         </div>
                     )}
+
 
                     <div className="flex-1 flex flex-col min-h-[400px] relative rounded-xl border border-[var(--border-base)] overflow-hidden bg-[var(--bg-app)] shadow-inner ring-1 ring-black/20 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand transition-all">
                         {isPreview ? (

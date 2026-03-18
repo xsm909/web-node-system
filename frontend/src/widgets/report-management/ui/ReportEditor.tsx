@@ -11,6 +11,8 @@ import { EditorState } from "@codemirror/state";
 import { useThemeStore } from "../../../shared/lib/theme/store";
 import { autocompletion, snippetCompletion } from "@codemirror/autocomplete";
 import { getPythonHints, type PythonHint } from "../../../shared/api/python-hints";
+import { AppInput } from "../../../shared/ui/app-input";
+
 
 interface ReportEditorProps {
     report?: Report | null;
@@ -291,50 +293,42 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             {activeTab === 'general' && (
                 <div className="max-w-5xl mx-auto w-full space-y-6 pt-4">
                     <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-bold text-[var(--text-main)]">Report Name *</label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all"
-                                placeholder="e.g. Monthly Sales"
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-bold text-[var(--text-main)]">Category</label>
-                            <input
-                                type="text"
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all"
-                                placeholder="e.g. Finance|Reports"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-[var(--text-main)]">Description</label>
-                        <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            rows={3}
-                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all resize-none"
-                            placeholder="Describe what this report does..."
+                        <AppInput
+                            label="Report Name"
+                            required
+                            value={name}
+                            onChange={setName}
+                            placeholder="e.g. Monthly Sales"
+                        />
+                        <AppInput
+                            label="Category"
+                            value={category}
+                            onChange={setCategory}
+                            placeholder="e.g. Finance|Reports"
                         />
                     </div>
+
+                    <AppInput
+                        label="Description"
+                        multiline
+                        rows={3}
+                        value={description}
+                        onChange={setDescription}
+                        placeholder="Describe what this report does..."
+                    />
                     
                     <div className="space-y-1.5">
                         <label className="text-sm font-bold text-[var(--text-main)]">Report Type</label>
                         <select
                             value={type}
                             onChange={(e) => setType(e.target.value as ReportType)}
-                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all"
+                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all outline-none"
                         >
                             <option value="global">Global</option>
                             <option value="client">Client-Specific</option>
                         </select>
                     </div>
+
 
                     {/* Parameter Management */}
                     <div className="pt-6 border-t border-[var(--border-base)]">

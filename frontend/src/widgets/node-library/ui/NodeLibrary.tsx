@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { Icon } from '../../../shared/ui/icon/Icon';
+import { AppInput } from '../../../shared/ui/app-input';
 import { buildCategoryTree, type CategoryTreeNode } from '../../../shared/lib/categoryUtils';
+
 import { getCookie, setCookie } from '../../../shared/lib/cookieUtils';
 
 interface NodeLibraryProps {
@@ -50,15 +52,15 @@ export const NodeLibrary: React.FC<NodeLibraryProps> = ({ nodeTypes, onAddNode }
             <div className="flex justify-between items-center px-1">
                 <div className="flex items-center gap-4 flex-1">
                     <h2 className="text-xl font-bold tracking-tight whitespace-nowrap text-[var(--text-main)]">Node Library</h2>
-                    <div className="relative flex-1 max-w-lg">
-                        <Icon name="search" size={14} className="absolute left-4 top-1/2 -translate-y-1/2 opacity-40 text-[var(--text-main)]" />
-                        <input
+                        <AppInput
+                            label=""
                             value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
+                            onChange={setSearchQuery}
                             placeholder="Search nodes by name, category or description..."
-                            className="w-full bg-surface-800 border border-gray-700 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/40 transition-all shadow-inner"
+                            icon="search"
+                            className="w-full"
                         />
-                    </div>
+
                 </div>
             </div>
 
