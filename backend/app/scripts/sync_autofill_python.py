@@ -2,9 +2,70 @@ import re
 import json
 import os
 import sys
+import ast
 
-# Add the app directory to sys.path to allow imports if needed (though we use regex here for simplicity and safety)
+# Add the app directory to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+def get_signatures_from_file(file_path):
+    """Parses a Python file and returns a dict of {func_name: signature_string}."""
+    if not os.path.exists(file_path):
+        return {}
+    
+    with open(file_path, 'r', encoding='utf-8') as f:
+        try:
+            tree = ast.parse(f.read())
+        except Exception as e:
+            print(f"Error parsing {file_path}: {e}")
+            return {}
+
+    signatures = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            # Extract arguments
+            args = []
+            for arg in node.args.args:
+                args.append(arg.arg)
+            if node.args.vararg:
+                args.append(f"*{node.args.vararg.arg}")
+            if node.args.kwarg:
+                args.append(f"**{node.args.kwarg.arg}")
+            
+            signatures[node.name] = f"{node.name}({', '.join(args)})"
+    return signatures
+
+def resolve_internal_lib_map(file_path):
+    """Parses imports in a file to map local names to their source files in internal_libs."""
+    if not os.path.exists(file_path):
+        return {}
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        try:
+            tree = ast.parse(f.read())
+        except:
+            return {}
+
+    import_map = {}
+    base_dir = os.path.join(os.path.dirname(file_path), '..', 'internal_libs')
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            if node.level > 0: # Relative import
+                # Resolve module path
+                module_parts = node.module.split('.') if node.module else []
+                # Simple heuristic for our structure: ..internal_libs.xxx
+                if 'internal_libs' in module_parts:
+                    idx = module_parts.index('internal_libs')
+                    lib_name = module_parts[idx + 1] if len(module_parts) > idx + 1 else None
+                    if lib_name:
+                        lib_path = os.path.join(base_dir, f"{lib_name}.py")
+                        for alias in node.names:
+                            import_map[alias.name] = lib_path
+                elif node.level == 2: # ..something
+                     # Maybe it's a direct import from internal_libs/__init__.py or similar
+                     pass
+
+    return import_map
 
 def extract_hints_from_file(file_path):
     if not os.path.exists(file_path):
@@ -13,10 +74,25 @@ def extract_hints_from_file(file_path):
 
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
+    
+    try:
+        tree = ast.parse(content)
+    except Exception as e:
+        print(f"Error parsing {file_path}: {e}")
+        return []
 
     hints = []
+    import_map = resolve_internal_lib_map(file_path)
+    
+    # Cache for signatures of internal libs
+    lib_signatures_cache = {}
 
-    # 1. Extract ALLOWED_MODULES
+    def get_cached_signature(lib_path, func_name):
+        if lib_path not in lib_signatures_cache:
+            lib_signatures_cache[lib_path] = get_signatures_from_file(lib_path)
+        return lib_signatures_cache[lib_path].get(func_name)
+
+    # 1. Extract ALLOWED_MODULES (using regex for simplicity as it's a simple list)
     modules_match = re.search(r'ALLOWED_MODULES\s*=\s*\[(.*?)\]', content, re.DOTALL)
     if modules_match:
         modules_str = modules_match.group(1)
@@ -30,75 +106,81 @@ def extract_hints_from_file(file_path):
                 "boost": 1
             })
 
-    # 2. Extract SAFE_GLOBALS (basic builtins and direct libraries)
-    safe_globals_match = re.search(r'SAFE_GLOBALS\s*=\s*\{(.*?)\n\}', content, re.DOTALL)
-    if safe_globals_match:
-        sg_content = safe_globals_match.group(1)
-        
-        # Look for "key": val where val is a SimpleNamespace OR a direct module/ref
-        # Example: "charts": charts,
-        direct_matches = re.findall(r'"([^"]+)"\s*:\s*([^,]+)', sg_content)
-        for label, val in direct_matches:
-            if "SimpleNamespace" in val: continue
-            if label.startswith('_'): continue
-            if label in ("time", "json", "datetime", "timedelta"):
-                hints.append({
-                    "label": label,
-                    "type": "module",
-                    "detail": f"Built-in {label}",
-                    "boost": 2
-                })
-            else:
-                hints.append({
-                    "label": label,
-                    "type": "variable",
-                    "detail": f"Exposed library: {label}",
-                    "boost": 2
-                })
-
-    # 3. Extract Namespaces (libs, openai, gemini, etc)
-    # We look for SimpleNamespace definitions in SAFE_GLOBALS
-    namespace_matches = re.finditer(r'"([^"]+)"\s*:\s*SimpleNamespace\((.*?)\)', content, re.DOTALL)
-    for match in namespace_matches:
-        ns_name = match.group(1)
-        ns_content = match.group(2)
-        
-        hints.append({
-            "label": ns_name,
-            "type": "variable",
-            "detail": f"{ns_name} namespace",
-            "boost": 3
-        })
-
-        # Find members in the namespace
-        # pattern: name=path
-        members = re.findall(r'(\w+)\s*=\s*[\w\.]+', ns_content)
-        for member in members:
-            hints.append({
-                "label": f"{ns_name}.{member}",
-                "type": "function",
-                "detail": f"{ns_name} function",
-                "boost": 4
-            })
-
-    # 4. Special Case: Charts Module
-    # If "charts": charts is in SAFE_GLOBALS, scan the internal_libs/charts.py file
-    if '"charts": charts' in content or "'charts': charts" in content:
-        charts_path = os.path.join(os.path.dirname(__file__), '..', 'internal_libs', 'charts.py')
-        if os.path.exists(charts_path):
-            with open(charts_path, 'r', encoding='utf-8') as f:
-                charts_content = f.read()
-            
-            # Find all top-level functions in charts.py
-            chart_functions = re.findall(r'^def\s+([a-zA-Z0-9_]+)\(', charts_content, re.MULTILINE)
-            for func in chart_functions:
-                if func.startswith('_') or func == 'apply_corporate_style': continue
-                hints.append({
-                    "label": f"charts.{func}",
-                    "type": "function",
-                    "detail": "Chart generation function",
-                    "boost": 5
-                })
+    # 2. Extract SAFE_GLOBALS and SimpleNamespaces
+    # We'll look for the SAFE_GLOBALS assignment
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == 'SAFE_GLOBALS':
+                    if isinstance(node.value, ast.Dict):
+                        for k, v in zip(node.value.keys, node.value.values):
+                            if isinstance(k, ast.Constant):
+                                label = k.value
+                                if label.startswith('_'): continue
+                                
+                                # Check if it's a SimpleNamespace
+                                if isinstance(v, ast.Call) and isinstance(v.func, ast.Name) and v.func.id == 'SimpleNamespace':
+                                    hints.append({
+                                        "label": label,
+                                        "type": "variable",
+                                        "detail": f"{label} namespace",
+                                        "boost": 3
+                                    })
+                                    # Process keywords in SimpleNamespace(a=b, ...)
+                                    for kw in v.keywords:
+                                        member_name = kw.arg
+                                        detail = f"{label} function"
+                                        
+                                        # Try to resolve signature
+                                        if isinstance(kw.value, ast.Name):
+                                            ref_name = kw.value.id
+                                            lib_path = import_map.get(ref_name)
+                                            if lib_path:
+                                                sig = get_cached_signature(lib_path, ref_name)
+                                                if sig:
+                                                    detail = sig
+                                        
+                                        hints.append({
+                                            "label": f"{label}.{member_name}",
+                                            "type": "function",
+                                            "detail": detail,
+                                            "boost": 4
+                                        })
+                                else:
+                                    # Direct exposure
+                                    if label in ("time", "json", "datetime", "timedelta"):
+                                        hints.append({
+                                            "label": label,
+                                            "type": "module",
+                                            "detail": f"Built-in {label}",
+                                            "boost": 2
+                                        })
+                                    elif label == "charts":
+                                        # Special handling for charts (defined as a module usually)
+                                        hints.append({
+                                            "label": "charts",
+                                            "type": "module",
+                                            "detail": "Charts library",
+                                            "boost": 2
+                                        })
+                                        charts_path = os.path.join(os.path.dirname(file_path), '..', 'internal_libs', 'charts.py')
+                                        if os.path.exists(charts_path):
+                                            chart_sigs = get_signatures_from_file(charts_path)
+                                            for func, sig in chart_sigs.items():
+                                                if func.startswith('_') or func == 'apply_corporate_style': continue
+                                                hints.append({
+                                                    "label": f"charts.{func}",
+                                                    "type": "function",
+                                                    "detail": sig,
+                                                    "boost": 5
+                                                })
+                                    else:
+                                        hints.append({
+                                            "label": label,
+                                            "type": "variable",
+                                            "detail": f"Exposed library: {label}",
+                                            "boost": 2
+                                        })
 
     return hints
 

@@ -78,162 +78,6 @@
         "boost": 1
     },
     {
-        "label": "print",
-        "type": "variable",
-        "detail": "Exposed library: print",
-        "boost": 2
-    },
-    {
-        "label": "len",
-        "type": "variable",
-        "detail": "Exposed library: len",
-        "boost": 2
-    },
-    {
-        "label": "range",
-        "type": "variable",
-        "detail": "Exposed library: range",
-        "boost": 2
-    },
-    {
-        "label": "enumerate",
-        "type": "variable",
-        "detail": "Exposed library: enumerate",
-        "boost": 2
-    },
-    {
-        "label": "zip",
-        "type": "variable",
-        "detail": "Exposed library: zip",
-        "boost": 2
-    },
-    {
-        "label": "map",
-        "type": "variable",
-        "detail": "Exposed library: map",
-        "boost": 2
-    },
-    {
-        "label": "filter",
-        "type": "variable",
-        "detail": "Exposed library: filter",
-        "boost": 2
-    },
-    {
-        "label": "list",
-        "type": "variable",
-        "detail": "Exposed library: list",
-        "boost": 2
-    },
-    {
-        "label": "dict",
-        "type": "variable",
-        "detail": "Exposed library: dict",
-        "boost": 2
-    },
-    {
-        "label": "set",
-        "type": "variable",
-        "detail": "Exposed library: set",
-        "boost": 2
-    },
-    {
-        "label": "tuple",
-        "type": "variable",
-        "detail": "Exposed library: tuple",
-        "boost": 2
-    },
-    {
-        "label": "str",
-        "type": "variable",
-        "detail": "Exposed library: str",
-        "boost": 2
-    },
-    {
-        "label": "int",
-        "type": "variable",
-        "detail": "Exposed library: int",
-        "boost": 2
-    },
-    {
-        "label": "float",
-        "type": "variable",
-        "detail": "Exposed library: float",
-        "boost": 2
-    },
-    {
-        "label": "bool",
-        "type": "variable",
-        "detail": "Exposed library: bool",
-        "boost": 2
-    },
-    {
-        "label": "abs",
-        "type": "variable",
-        "detail": "Exposed library: abs",
-        "boost": 2
-    },
-    {
-        "label": "round",
-        "type": "variable",
-        "detail": "Exposed library: round",
-        "boost": 2
-    },
-    {
-        "label": "min",
-        "type": "variable",
-        "detail": "Exposed library: min",
-        "boost": 2
-    },
-    {
-        "label": "max",
-        "type": "variable",
-        "detail": "Exposed library: max",
-        "boost": 2
-    },
-    {
-        "label": "sum",
-        "type": "variable",
-        "detail": "Exposed library: sum",
-        "boost": 2
-    },
-    {
-        "label": "sorted",
-        "type": "variable",
-        "detail": "Exposed library: sorted",
-        "boost": 2
-    },
-    {
-        "label": "reversed",
-        "type": "variable",
-        "detail": "Exposed library: reversed",
-        "boost": 2
-    },
-    {
-        "label": "isinstance",
-        "type": "variable",
-        "detail": "Exposed library: isinstance",
-        "boost": 2
-    },
-    {
-        "label": "charts",
-        "type": "variable",
-        "detail": "Exposed library: charts",
-        "boost": 2
-    },
-    {
-        "label": "timedelta",
-        "type": "module",
-        "detail": "Built-in timedelta",
-        "boost": 2
-    },
-    {
-        "label": "workflow",
-        "type": "variable",
-        "detail": "Exposed library: workflow",
-        "boost": 2
-    },
-    {
         "label": "libs",
         "type": "variable",
         "detail": "libs namespace",
@@ -242,61 +86,61 @@
     {
         "label": "libs.ask_ai",
         "type": "function",
-        "detail": "libs function",
+        "detail": "ask_single(prompt, model)",
         "boost": 4
     },
     {
         "label": "libs.check_ai",
         "type": "function",
-        "detail": "libs function",
+        "detail": "check_ai()",
         "boost": 4
     },
     {
         "label": "libs.calculator",
         "type": "function",
-        "detail": "libs function",
+        "detail": "calculator(expression)",
         "boost": 4
     },
     {
         "label": "libs.database_query",
         "type": "function",
-        "detail": "libs function",
+        "detail": "database_query(query)",
         "boost": 4
     },
     {
         "label": "libs.http_request",
         "type": "function",
-        "detail": "libs function",
+        "detail": "http_request(method, url, data)",
         "boost": 4
     },
     {
         "label": "libs.http_search",
         "type": "function",
-        "detail": "libs function",
+        "detail": "http_search(query)",
         "boost": 4
     },
     {
         "label": "libs.smart_search",
         "type": "function",
-        "detail": "libs function",
+        "detail": "smart_search(query, model_config)",
         "boost": 4
     },
     {
         "label": "libs.read_workflow_data",
         "type": "function",
-        "detail": "libs function",
+        "detail": "read_workflow_data(execution_id)",
         "boost": 4
     },
     {
         "label": "libs.read_runtime_data",
         "type": "function",
-        "detail": "libs function",
+        "detail": "read_runtime_data(execution_id)",
         "boost": 4
     },
     {
         "label": "libs.write_runtime_data",
         "type": "function",
-        "detail": "libs function",
+        "detail": "write_runtime_data(data, execution_id)",
         "boost": 4
     },
     {
@@ -666,123 +510,117 @@
         "boost": 4
     },
     {
+        "label": "charts",
+        "type": "module",
+        "detail": "Charts library",
+        "boost": 2
+    },
+    {
         "label": "charts.fig_to_svg",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "fig_to_svg(fig)",
         "boost": 5
     },
     {
         "label": "charts.bar",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "bar(data, x, y, title, color, stacked, theme, figsize, fontsize, bar_width, font_family, xlabel, ylabel)",
         "boost": 5
     },
     {
         "label": "charts.barh",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "barh(data, x, y, title, color, stacked, theme, figsize, fontsize, bar_height, font_family, xlabel, ylabel)",
         "boost": 5
     },
     {
         "label": "charts.area",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "area(data, x, y, title, stacked, theme, figsize, fontsize, font_family, xlabel, ylabel)",
         "boost": 5
     },
     {
         "label": "charts.histogram",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "histogram(data, col, bins, title, theme, figsize, fontsize, font_family, xlabel, ylabel)",
         "boost": 5
     },
     {
         "label": "charts.line",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "line(data, x, y, title, markers, theme, figsize, fontsize, font_family, color, xlabel, ylabel)",
         "boost": 5
     },
     {
         "label": "charts.pie",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "pie(data, labels, values, title, theme, figsize, fontsize, font_family, color)",
         "boost": 5
     },
     {
         "label": "charts.radar",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "radar(data, labels, values, title, theme, figsize, fontsize, font_family, xlabel, ylabel)",
         "boost": 5
     },
     {
         "label": "charts.heatmap",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "heatmap(data, x, y, values, title, theme, figsize, fontsize, font_family, xlabel, ylabel)",
         "boost": 5
     },
     {
         "label": "charts.boxplot",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "boxplot(data, y, x, title, figsize, fontsize, font_family, xlabel, ylabel)",
         "boost": 5
     },
     {
         "label": "charts.scatter",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "scatter(data, x, y, size, title, figsize, fontsize, font_family, xlabel, ylabel)",
         "boost": 5
     },
     {
         "label": "charts.waterfall",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "waterfall(data, labels, values, title, figsize, fontsize, font_family)",
         "boost": 5
     },
     {
         "label": "charts.gauge",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "gauge(value, title, min_val, max_val, figsize, fontsize, font_family)",
         "boost": 5
     },
     {
         "label": "charts.funnel",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "funnel(data, labels, values, title, figsize, fontsize, font_family)",
         "boost": 5
     },
     {
         "label": "charts.gantt",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "gantt(data, task, start, end, title, figsize, fontsize, font_family)",
         "boost": 5
     },
     {
         "label": "charts.violin",
         "type": "function",
-        "detail": "Chart generation function",
+        "detail": "violin(data, y, x, title, figsize, fontsize, font_family, xlabel, ylabel)",
         "boost": 5
     },
     {
-        "label": "getattr",
-        "type": "variable",
-        "detail": "Exposed library: getattr",
+        "label": "timedelta",
+        "type": "module",
+        "detail": "Built-in timedelta",
         "boost": 2
     },
     {
-        "label": "hasattr",
+        "label": "workflow",
         "type": "variable",
-        "detail": "Exposed library: hasattr",
-        "boost": 2
-    },
-    {
-        "label": "setattr",
-        "type": "variable",
-        "detail": "Exposed library: setattr",
-        "boost": 2
-    },
-    {
-        "label": "delattr",
-        "type": "variable",
-        "detail": "Exposed library: delattr",
+        "detail": "Exposed library: workflow",
         "boost": 2
     },
     {

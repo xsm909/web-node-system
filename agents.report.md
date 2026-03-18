@@ -54,11 +54,11 @@ The system provides a built-in `charts` library specifically designed for "Busin
 
 | Category | Function | Sample Usage |
 | :--- | :--- | :--- |
-| **Comparison** | `bar`, `barh` | `charts.bar(data, x='label', y='value', stacked=True)` |
-| **Evolution** | `line`, `area` | `charts.area(data, x='date', y=['v1', 'v2'], stacked=True)` |
-| **Distribution** | `histogram`, `boxplot`, `violin` | `charts.violin(data, y='score', x='group')` |
-| **Relationship** | `scatter`, `heatmap` | `charts.heatmap(data, x='reg', y='cat', values='val')` |
-| **Specialized** | `radar`, `waterfall`, `gauge`, `funnel`, `gantt` | `charts.radar(data, labels='dim', values=['m1', 'm2'])` |
+| **Comparison** | `bar`, `barh` | Bars. Supports `stacked`, `xlabel`, `ylabel`, `color`. |
+| **Evolution** | `line`, `area` | Trends. Supports `markers`, `xlabel`, `ylabel`, `color`. |
+| **Distribution** | `histogram`, `boxplot`, `violin` | Data spreads. Supports `xlabel`, `ylabel`. |
+| **Relationship** | `scatter`, `bubble`, `heatmap` | Correlations. Supports `xlabel`, `ylabel`. |
+| **Specialized** | `radar`, `waterfall`, `gauge`, `funnel`, `gantt` | Process flows & KPI. Supports `xlabel`, `ylabel`. |
 
 ### 6.2 Implementation Checklist (Python Code)
 
@@ -84,7 +84,9 @@ def GenerateReport(report_parameters):
         fontsize=12,          # Base font size
         font_family='serif',  # Custom font family
         color=['#3b82f6', '#f43f5e', '#10b981'], # Custom corporate colors
-        bar_height=0.6        # Thinner bars
+        bar_height=0.6,       # Thinner bars
+        xlabel="Brand Names", # Custom X-axis label
+        ylabel="Success %"    # Custom Y-axis label
     )
     
     # 4. Return data, success flag, and OPTIONAL PDF scale (default 0.5)
