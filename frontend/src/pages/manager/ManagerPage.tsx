@@ -4,7 +4,8 @@ import type { Node, Edge } from 'reactflow';
 
 
 
-import { Console } from '../../widgets/console/ui/Console';
+import { AppConsole, AppConsoleLogLine } from '../../shared/ui/app-console';
+import type { ConsoleLog } from '../../shared/ui/app-console';
 import { ConfirmModal } from '../../shared/ui/confirm-modal';
 import { WorkflowGraph } from '../../widgets/workflow-graph';
 import { WorkflowDataEditorTabs } from '../../widgets/workflow-data-editor';
@@ -77,8 +78,10 @@ const WorkflowEditorView = ({
     onBack: any;
     notifyChange?: () => void;
 }) => {
-    console.log('[WorkflowEditorView] Rendering for workflow:', activeWorkflow?.id, 'hasGraph:', !!activeWorkflow?.graph);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+    const [showSystemLogs, setShowSystemLogs] = useState(false);
+    const [activeConsoleTab, setActiveConsoleTab] = useState<'logs' | 'runtime'>('logs');
+    const [consoleHeight, setConsoleHeight] = useState(280);
     const nav = useNavigator();
 
     // Keyboard shortcut for save
@@ -337,12 +340,65 @@ const WorkflowEditorView = ({
                     )}
                 </div>
 
-                <Console
-                    logs={executionLogs}
+                <AppConsole
+                    tabs={[
+                        { id: 'logs', label: 'Debug Console' },
+                        { id: 'runtime', label: 'Runtime Data' }
+                    ]}
+                    activeTab={activeConsoleTab}
+                    onTabChange={(id) => setActiveConsoleTab(id as any)}
                     isVisible={isConsoleVisible}
                     onClose={() => setIsConsoleVisible(false)}
-                    runtimeData={liveRuntimeData}
-                />
+                    resizable
+                    height={consoleHeight}
+                    onHeightChange={setConsoleHeight}
+                    headerActions={
+                        <div className="flex items-center gap-2">
+                            {activeConsoleTab === 'logs' && (
+                                <button
+                                    onClick={() => setShowSystemLogs(!showSystemLogs)}
+                                    title={showSystemLogs ? "Hide system messages" : "Show system messages"}
+                                    className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest leading-none px-2 py-1.5 rounded-lg transition-colors ${showSystemLogs
+                                        ? 'bg-[var(--bg-app)] text-[var(--text-main)] border border-[var(--border-base)]'
+                                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-base)]'
+                                        }`}
+                                >
+                                    <Icon name={showSystemLogs ? "visibility" : "visibility_off"} size={14} />
+                                    <span>Sys Logs</span>
+                                </button>
+                            )}
+                        </div>
+                    }
+                >
+                    <div className="flex-1 overflow-auto p-4 custom-scrollbar min-h-0 h-full">
+                        {activeConsoleTab === 'logs' ? (
+                            <div className="space-y-1">
+                                {executionLogs
+                                    .filter(log => showSystemLogs || log.level !== 'system')
+                                    .map((log, i) => (
+                                        <AppConsoleLogLine key={i} log={log as ConsoleLog} />
+                                    ))}
+                                {executionLogs.length === 0 && (
+                                    <div className="text-[var(--text-muted)] italic text-sm py-4">
+                                        {'>'} Waiting for workflow execution logs...
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="h-full">
+                                {!liveRuntimeData || Object.keys(liveRuntimeData).length === 0 ? (
+                                    <div className="text-[var(--text-muted)] italic text-sm py-4">
+                                        {'>'} Runtime data is empty. Run the workflow to see live data here.
+                                    </div>
+                                ) : (
+                                    <pre className="text-[var(--text-main)] text-xs leading-relaxed whitespace-pre-wrap break-all font-mono">
+                                        {JSON.stringify(liveRuntimeData, null, 2)}
+                                    </pre>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </AppConsole>
             </div>
         </div>
     );

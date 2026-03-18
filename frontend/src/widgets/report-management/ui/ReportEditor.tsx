@@ -14,6 +14,7 @@ import { getPythonHints, type PythonHint } from "../../../shared/api/python-hint
 import { AppInput } from "../../../shared/ui/app-input";
 import { AppCategoryInput } from "../../../shared/ui/app-category-input/AppCategoryInput";
 import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
+import { AppConsole, AppConsoleLogLine } from "../../../shared/ui/app-console";
 
 
 interface ReportEditorProps {
@@ -501,29 +502,36 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                         />
                     </div>
 
-                    <div className="h-48 flex flex-col border border-[var(--border-base)] rounded-xl overflow-hidden bg-[var(--bg-app)] shadow-inner">
-                        <div className="flex bg-[var(--bg-header)] border-b border-[var(--border-base)] px-2">
-                            <button
-                                onClick={() => setActiveOutputTab('console')}
-                                className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeOutputTab === 'console' ? 'text-brand border-b-2 border-brand' : 'text-[var(--text-muted)] opacity-60'}`}
-                            >
-                                Console
-                            </button>
-                            <button
-                                onClick={() => setActiveOutputTab('schema')}
-                                className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeOutputTab === 'schema' ? 'text-brand border-b-2 border-brand' : 'text-[var(--text-muted)] opacity-60'}`}
-                            >
-                                Data Schema
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-auto p-4 font-mono text-xs whitespace-pre-wrap selection:bg-brand/20">
+                    <AppConsole
+                        tabs={[
+                            { id: 'console', label: 'Console' },
+                            { id: 'schema', label: 'Data Schema' }
+                        ]}
+                        activeTab={activeOutputTab}
+                        onTabChange={(id) => setActiveOutputTab(id as any)}
+                        className="h-48"
+                    >
+                        <div className="p-4 font-mono text-xs whitespace-pre-wrap selection:bg-brand/20 h-full">
                             {activeOutputTab === 'console' ? (
-                                consoleOutput || <span className="opacity-30 italic">No output yet. Click Compile to run.</span>
+                                consoleOutput ? (
+                                    consoleOutput.split('\n').map((line, i) => (
+                                        <AppConsoleLogLine
+                                            key={i}
+                                            log={{
+                                                timestamp: new Date().toISOString(),
+                                                message: line,
+                                                level: line.startsWith('[VALIDATION FAILED]') ? 'error' : 'info'
+                                            }}
+                                        />
+                                    ))
+                                ) : (
+                                    <span className="opacity-30 italic">No output yet. Click Compile to run.</span>
+                                )
                             ) : (
                                 JSON.stringify(schemaJson, null, 2) || <span className="opacity-30 italic">No schema generated.</span>
                             )}
                         </div>
-                    </div>
+                    </AppConsole>
                 </div>
             )}
 
