@@ -8,6 +8,8 @@ import { AppTable } from '../../../shared/ui/app-table';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
+import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
+import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { createColumnHelper } from '@tanstack/react-table';
 
 
@@ -37,6 +39,8 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
     const [isSystem, setIsSystem] = useState(false);
     const [lock, setLock] = useState(false);
     const [initialFormState, setInitialFormState] = useState({ key: '', category: '', content: '', isSystem: false, lock: false });
+
+    const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(schemas), [schemas]);
 
     const handleEdit = (schema: Schema) => {
         setSelectedSchema(schema);
@@ -296,20 +300,20 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                             value={key}
                             onChange={setKey}
                             disabled={!!selectedSchema || lock}
-                            className={(selectedSchema || lock) ? 'opacity-50' : ''}
+                            showCopy={!!selectedSchema || lock}
                         />
-                        <AppInput
+                        <AppCategoryInput
                             label="Category"
                             placeholder="e.g., Common|Info"
                             value={category}
                             onChange={setCategory}
+                            allPaths={allCategoryPaths}
                             disabled={lock}
-                            className={lock ? 'opacity-50' : ''}
                         />
                     </div>
 
                     <div>
-                        <label className={`flex items-center gap-3 text-sm font-bold text-[var(--text-main)] cursor-pointer w-max ${lock ? 'opacity-50 cursor-not-allowed' : 'hover:text-brand transition-colors'}`}>
+                        <label className={`flex items-center gap-3 text-sm font-bold text-[var(--text-main)] cursor-pointer w-max ${lock ? 'cursor-not-allowed' : 'hover:text-brand transition-colors'}`}>
                             <input
                                 type="checkbox"
                                 checked={isSystem}
@@ -322,7 +326,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                     </div>
 
                     <div className="flex-1 flex flex-col min-h-[500px] mt-4">
-                        <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1 mb-3">JSON Schema Content</label>
+                        <label className="text-xs font-black text-[var(--text-main)] uppercase tracking-widest ml-1 mb-3">JSON Schema Content</label>
                         <div className="flex-1 rounded-xl bg-[#0a0a0f] border border-[var(--border-base)] overflow-hidden ring-1 ring-black/20 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand transition-all shadow-inner">
                             <SchemaEditor
                                 initialValue={content}

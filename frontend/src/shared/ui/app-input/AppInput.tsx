@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Icon } from '../icon';
 
 export interface AppInputProps {
-
     label: string;
     value: string;
     onChange: (value: string) => void;
@@ -18,9 +17,8 @@ export interface AppInputProps {
     onFocus?: () => void;
     onBlur?: () => void;
     icon?: string;
+    showCopy?: boolean; // New prop to show copy button
 }
-
-
 
 export const AppInput: React.FC<AppInputProps> = ({
     label,
@@ -38,10 +36,18 @@ export const AppInput: React.FC<AppInputProps> = ({
     onFocus,
     onBlur,
     icon,
+    showCopy = false,
 }) => {
+    const [copied, setCopied] = useState(false);
 
+    const handleCopy = () => {
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
-    const baseStyles = "w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-[var(--text-muted)]";
+    // Keep border and label normal, only fade the inner text when disabled
+    const baseStyles = "w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all outline-none disabled:cursor-not-allowed disabled:text-[var(--text-muted)] disabled:opacity-100 placeholder:text-[var(--text-muted)]";
     
     return (
         <div className={`space-y-1.5 ${className}`}>
@@ -49,7 +55,7 @@ export const AppInput: React.FC<AppInputProps> = ({
                 {label} {required && <span className="text-red-500">*</span>}
             </label>
             
-            <div className="relative">
+            <div className="relative group/input">
                 {multiline ? (
                     <textarea
                         value={value}
@@ -61,16 +67,15 @@ export const AppInput: React.FC<AppInputProps> = ({
                         onFocus={onFocus}
                         onBlur={onBlur}
                     />
-
                 ) : (
-                    <>
+                    <div className="relative flex items-center">
                         <input
                             type={type}
                             value={value}
                             onChange={(e) => onChange(e.target.value)}
                             placeholder={placeholder}
                             disabled={disabled}
-                            className={`${baseStyles} ${icon ? 'pl-10' : ''}`}
+                            className={`${baseStyles} ${icon ? 'pl-10' : ''} ${(disabled && showCopy) ? 'pr-12' : ''}`}
                             onFocus={onFocus}
                             onBlur={onBlur}
                         />
@@ -79,7 +84,19 @@ export const AppInput: React.FC<AppInputProps> = ({
                                 <Icon name={icon} size={16} />
                             </div>
                         )}
-                    </>
+                        
+                        {disabled && showCopy && value && (
+                            <button
+                                type="button"
+                                onClick={handleCopy}
+                                className="absolute right-2 p-2 rounded-lg hover:bg-brand/10 text-brand transition-all flex items-center gap-1.5 active:scale-95"
+                                title="Copy to clipboard"
+                            >
+                                <Icon name={copied ? 'check' : 'content_copy'} size={14} />
+                                {copied && <span className="text-[10px] font-bold uppercase tracking-tighter">Copied</span>}
+                            </button>
+                        )}
+                    </div>
                 )}
             </div>
 

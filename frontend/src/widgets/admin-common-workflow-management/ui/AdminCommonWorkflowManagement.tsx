@@ -15,6 +15,8 @@ import type { NodeType } from '../../../entities/node-type/model/types';
 import { useClientStore } from '../../../features/workflow-management/model/clientStore';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppParametersView } from '../../../shared/ui/app-parameters-view/AppParametersView';
+import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
+import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -545,8 +547,11 @@ const WorkflowModals = () => {
         setRenameInputValue,
         renameCategoryValue,
         setRenameCategoryValue,
-        setWorkflowToRename
+        setWorkflowToRename,
+        workflows
     } = useWorkflowEditor();
+
+    const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(workflows), [workflows]);
 
     return (
         <>
@@ -584,15 +589,13 @@ const WorkflowModals = () => {
                             onChange={(e) => setRenameInputValue(e.target.value)}
                         />
                     </div>
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider ml-1">Category</label>
-                        <input
-                            className="w-full px-4 py-3 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-brand transition-all font-medium"
-                            placeholder="e.g. personal, common, Analys"
-                            value={renameCategoryValue}
-                            onChange={(e) => setRenameCategoryValue(e.target.value)}
-                        />
-                    </div>
+                    <AppCategoryInput
+                        label="Category"
+                        placeholder="e.g. personal, common, Analys"
+                        value={renameCategoryValue}
+                        onChange={setRenameCategoryValue}
+                        allPaths={allCategoryPaths}
+                    />
                 </div>
             </ConfirmModal>
         </>

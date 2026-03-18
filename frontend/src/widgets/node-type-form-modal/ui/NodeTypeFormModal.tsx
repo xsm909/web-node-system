@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
@@ -11,6 +11,7 @@ import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { useForm } from '@tanstack/react-form';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
+import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
 import { getPythonHints, type PythonHint } from '../../../shared/api/python-hints';
 
 
@@ -23,99 +24,7 @@ interface NodeTypeFormViewProps {
     defaultTab?: FormTab;
 }
 
-// ─── Category Combo-box ───────────────────────────────────────────────────────
 
-interface CategoryComboBoxProps {
-    value: string;
-    onChange: (v: string) => void;
-    allNodes: NodeType[];
-}
-
-const CategoryComboBox: React.FC<CategoryComboBoxProps> = ({ value, onChange, allNodes }) => {
-    const [open, setOpen] = useState(false);
-    const [inputValue, setInputValue] = useState(value);
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => { setInputValue(value); }, [value]);
-
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, []);
-
-    const allPaths = useMemo(() => getUniqueCategoryPaths(allNodes), [allNodes]);
-
-    const filtered = useMemo(() => {
-        const q = inputValue.toLowerCase();
-        return q ? allPaths.filter(p => p.toLowerCase().includes(q)) : allPaths;
-    }, [allPaths, inputValue]);
-
-    const handleSelect = (path: string) => {
-        setInputValue(path);
-        onChange(path);
-        setOpen(false);
-    };
-
-    const handleInputChange = (v: string) => {
-        setInputValue(v);
-        onChange(v);
-        setOpen(true);
-    };
-
-    return (
-        <div ref={ref} className="relative">
-            <AppInput
-                label=""
-                value={inputValue}
-                onChange={handleInputChange}
-                onFocus={() => setOpen(true)}
-                placeholder="e.g. AI|Chat|Gemini"
-                className="font-bold"
-            />
-            <button
-                type="button"
-                tabIndex={-1}
-                className="absolute right-4 top-1/2 -translate-y-1/2 opacity-40 hover:opacity-80 transition-opacity text-[var(--text-main)] mt-0.5"
-                onClick={() => setOpen(o => !o)}
-            >
-                <Icon name={open ? 'expand_less' : 'expand_more'} size={16} />
-            </button>
-
-
-            {open && filtered.length > 0 && (
-                <div className="absolute z-50 top-full mt-2 left-0 right-0 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-150">
-                    {filtered.map(path => {
-                        const parts = path.split('|');
-                        const depth = parts.length - 1;
-                        const isLeaf = !allPaths.some(p => p.startsWith(path + '|'));
-                        return (
-                            <button
-                                key={path}
-                                type="button"
-                                className={`w-full text-left px-5 py-2.5 text-sm transition-colors hover:bg-brand/10 hover:text-brand flex items-center gap-2 ${value === path ? 'bg-brand/10 text-brand' : 'text-[var(--text-muted)]'}`}
-                                style={{ paddingLeft: `${20 + depth * 16}px` }}
-                                onClick={() => handleSelect(path)}
-                            >
-                                <span className={`text-[10px] mr-1 opacity-40 ${isLeaf ? '' : 'text-brand'}`}>
-                                    {isLeaf ? '●' : '▶'}
-                                </span>
-                                <span className="font-bold">{parts[parts.length - 1]}</span>
-                                {depth > 0 && (
-                                    <span className="text-[10px] opacity-40 ml-auto font-mono">
-                                        {parts.slice(0, -1).join(' › ')}
-                                    </span>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
-    );
-};
 
 // ─── Main View ───────────────────────────────────────────────────────────────
 
@@ -133,6 +42,8 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     const [activeTab, setActiveTab] = useState<FormTab>(defaultTab || 'info');
     const [cursorPosition, setCursorPosition] = useState<{ anchor: number, head: number } | null>(null);
     const [dynamicHints, setDynamicHints] = useState<PythonHint[]>([]);
+    
+    const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(allNodes), [allNodes]);
 
     useEffect(() => {
         const fetchHints = async () => {
@@ -301,8 +212,8 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             >
                 {activeTab === 'info' && (
                     <div className="space-y-10 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="grid grid-cols-4 gap-8">
-                            <div className="col-span-3">
+                        <div className="grid grid-cols-12 gap-8 items-end">
+                            <div className="col-span-6">
                                 <form.Field
                                     name="name"
                                     children={(field) => (
@@ -313,16 +224,30 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                             required
                                             placeholder="Display Name"
                                             className="text-lg font-bold"
+                                            showCopy={!!editingNode}
                                         />
                                     )}
                                 />
                             </div>
-                            <div>
+                            <div className="col-span-4">
+                                <form.Field
+                                    name="category"
+                                    children={(field) => (
+                                        <AppCategoryInput
+                                            label="Category"
+                                            value={field.state.value}
+                                            onChange={(v) => field.handleChange(v)}
+                                            allPaths={allCategoryPaths}
+                                        />
+                                    )}
+                                />
+                            </div>
+                            <div className="col-span-2">
                                 <form.Field
                                     name="version"
                                     children={(field) => (
                                         <AppInput
-                                            label="Ver."
+                                            label="Version"
                                             value={field.state.value}
                                             onChange={(val) => field.handleChange(val)}
                                             required
@@ -334,26 +259,23 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                             </div>
                         </div>
 
-
-                        <div className="grid grid-cols-3 gap-8">
-                            <div className="col-span-1 space-y-3">
-                                <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">
-                                    Category Path
-                                    <span className="normal-case font-medium ml-2 opacity-50">pipe-separated</span>
-                                </label>
-                                <form.Field
-                                    name="category"
-                                    children={(field) => (
-                                        <CategoryComboBox
-                                            value={field.state.value}
-                                            onChange={(v) => field.handleChange(v)}
-                                            allNodes={allNodes}
-                                        />
-                                    )}
+                        <form.Field
+                            name="description"
+                            children={(field) => (
+                                <AppInput
+                                    label="Description"
+                                    multiline
+                                    rows={4}
+                                    value={field.state.value}
+                                    onChange={(val) => field.handleChange(val)}
+                                    placeholder="Brief explanation of what this node does..."
                                 />
-                            </div>
-                            <div className="col-span-1 space-y-3">
-                                <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Node Icon</label>
+                            )}
+                        />
+
+                        <div className="grid grid-cols-2 gap-8 pt-6 border-t border-[var(--border-base)]">
+                            <div className="space-y-3">
+                                <label className="text-xs font-black text-[var(--text-main)] tracking-widest ml-1">Node Icon</label>
                                 <form.Field
                                     name="icon"
                                     children={(field) => (
@@ -364,39 +286,25 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                     )}
                                 />
                             </div>
-                            <div className="col-span-1 space-y-3">
-                                <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Execution Mode</label>
+                            <div className="space-y-3">
+                                <label className="text-xs font-black text-[var(--text-main)] tracking-widest ml-1">Execution Mode</label>
                                 <form.Field
                                     name="is_async"
                                     children={(field) => (
                                         <div
-                                            className={`flex items-center gap-3 px-5 py-4 rounded-xl border transition-all cursor-pointer select-none ${field.state.value ? 'bg-brand/10 border-brand/50 text-brand' : 'bg-[var(--bg-app)] border-[var(--border-base)] text-[var(--text-muted)]'}`}
+                                            className={`flex items-center gap-3 px-5 py-4 rounded-xl border transition-all cursor-pointer select-none h-[58px] ${field.state.value ? 'bg-brand/10 border-brand/50 text-brand' : 'bg-[var(--bg-app)] border-[var(--border-base)] text-[var(--text-muted)]'}`}
                                             onClick={() => field.handleChange(!field.state.value)}
                                         >
                                             <Icon name={field.state.value ? 'sync' : 'bolt'} size={20} className={field.state.value ? 'animate-spin-slow' : ''} />
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-bold">{field.state.value ? 'Async Node' : 'Sync Node'}</span>
-                                                <span className="text-[9px] uppercase tracking-tighter opacity-60">{field.state.value ? 'Runs as task' : 'Direct execution'}</span>
+                                                <span className="text-[9px] uppercase tracking-tighter text-[var(--text-muted)]">{field.state.value ? 'Runs as task' : 'Direct execution'}</span>
                                             </div>
                                         </div>
                                     )}
                                 />
                             </div>
                         </div>
-
-                        <form.Field
-                            name="description"
-                            children={(field) => (
-                                <AppInput
-                                    label="Functional Description"
-                                    multiline
-                                    rows={6}
-                                    value={field.state.value}
-                                    onChange={(val) => field.handleChange(val)}
-                                    placeholder="Provide a comprehensive explanation of the node's purpose and expected inputs/outputs..."
-                                />
-                            )}
-                        />
 
                     </div>
                 )}

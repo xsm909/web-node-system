@@ -8,6 +8,8 @@ import { AppTable } from '../../../shared/ui/app-table';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
+import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
+import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { createColumnHelper } from '@tanstack/react-table';
 
 import { marked } from 'marked';
@@ -38,6 +40,8 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
     const [category, setCategory] = useState('');
     const [hintContent, setHintContent] = useState('');
     const [initialFormState, setInitialFormState] = useState({ key: '', category: '', hintContent: '' });
+
+    const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(hints), [hints]);
 
     const handleEdit = (hint: AgentHint) => {
         setSelectedHint(hint);
@@ -195,15 +199,14 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                                 value={key}
                                 onChange={setKey}
                                 disabled={!!selectedHint}
-                                className={selectedHint ? 'opacity-50' : ''}
-                                // We keep the "bold text-lg" look if desired, 
-                                // but the requirement is to match Report Editor "Report Name"
+                                showCopy={!!selectedHint}
                             />
-                            <AppInput
+                            <AppCategoryInput
                                 label="Category"
                                 placeholder="e.g., SQL|Optimization"
                                 value={category}
                                 onChange={setCategory}
+                                allPaths={allCategoryPaths}
                             />
                         </div>
                     )}

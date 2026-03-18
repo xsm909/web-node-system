@@ -105,18 +105,19 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
             {activeTab === 'common' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div className="space-y-6">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] opacity-50 px-1">Account Profile</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Account Profile</h3>
                         <div className="grid grid-cols-1 gap-6">
                             <AppInput
                                 label="Username"
                                 value={user.username}
                                 onChange={() => {}}
                                 disabled
+                                showCopy
                                 className="font-bold"
                             />
                             <div className="space-y-1.5">
                                 <label className="text-sm font-bold text-[var(--text-main)]">Role</label>
-                                <div className="px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] opacity-50">
+                                <div className="px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)]">
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 ring-inset ${user.role === 'admin'
                                         ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-indigo-500/20'
                                         : user.role === 'manager'
@@ -133,7 +134,7 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
 
                     {user.role === 'client' && (
                         <div className="space-y-6">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] opacity-50 px-1">Management</h3>
+                            <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Management</h3>
                             <div className="space-y-3">
                                 <FormField label="Responsible Manager">
                                     <ComboBox

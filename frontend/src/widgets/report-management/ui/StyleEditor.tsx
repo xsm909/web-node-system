@@ -9,10 +9,13 @@ import { indentUnit } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import { useThemeStore } from "../../../shared/lib/theme/store";
 import { AppInput } from "../../../shared/ui/app-input";
+import { AppCategoryInput } from "../../../shared/ui/app-category-input/AppCategoryInput";
+import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
 
 
 interface StyleEditorProps {
     style?: ReportStyle | null;
+    allStyles?: ReportStyle[];
     onDirtyChange?: (dirty: boolean) => void;
 }
 
@@ -21,9 +24,11 @@ export interface StyleEditorRef {
     isSaving: boolean;
 }
 
-export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style, onDirtyChange }, ref) => {
+export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style, allStyles = [], onDirtyChange }, ref) => {
     const { theme } = useThemeStore();
     const [isSaving, setIsSaving] = useState(false);
+
+    const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(allStyles), [allStyles]);
 
     const editorTheme = useMemo(() => (theme === "dark" ? vscodeDark : vscodeLight), [theme]);
     
@@ -124,11 +129,12 @@ export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style
                     onChange={setName}
                     placeholder="e.g. Modern Invoice"
                 />
-                <AppInput
+                <AppCategoryInput
                     label="Category"
                     value={category}
                     onChange={setCategory}
                     placeholder="e.g. Finance|Invoices"
+                    allPaths={allCategoryPaths}
                 />
             </div>
 

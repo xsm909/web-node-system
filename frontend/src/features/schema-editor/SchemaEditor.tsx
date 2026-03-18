@@ -28,8 +28,8 @@ export const SchemaEditor: React.FC<SchemaEditorProps> = ({
   };
 
   return (
-    <div className="w-full h-full border border-gray-700 rounded-lg overflow-hidden flex flex-col">
-      <div className="bg-gray-00 text-gray-200 text-xs px-3 py-1 flex justify-between items-center border-b border-gray-700">
+    <div className="w-full h-full border border-[var(--border-base)] rounded-xl overflow-hidden flex flex-col bg-[var(--bg-app)]">
+      <div className="bg-[var(--bg-app)] text-[var(--text-main)] text-[10px] font-black uppercase tracking-widest px-4 py-2 flex justify-between items-center border-b border-[var(--border-base)]">
         <span>JSON Schema Editor</span>
       </div>
       <div className="flex-1 min-h-0">

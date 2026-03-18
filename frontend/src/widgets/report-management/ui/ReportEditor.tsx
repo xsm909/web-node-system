@@ -12,10 +12,13 @@ import { useThemeStore } from "../../../shared/lib/theme/store";
 import { autocompletion, snippetCompletion } from "@codemirror/autocomplete";
 import { getPythonHints, type PythonHint } from "../../../shared/api/python-hints";
 import { AppInput } from "../../../shared/ui/app-input";
+import { AppCategoryInput } from "../../../shared/ui/app-category-input/AppCategoryInput";
+import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
 
 
 interface ReportEditorProps {
     report?: Report | null;
+    reports?: Report[];
     styles: ReportStyle[];
     activeTab: 'general' | 'code' | 'template' | 'preview';
     onTabChange?: (tab: 'general' | 'code' | 'template' | 'preview') => void;
@@ -31,11 +34,13 @@ export interface ReportEditorRef {
     isGenerating: boolean;
 }
 
-export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ report, styles, activeTab, onTabChange, onDirtyChange }, ref) => {
+export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ report, reports = [], styles, activeTab, onTabChange, onDirtyChange }, ref) => {
     const { theme } = useThemeStore();
     const [isSaving, setIsSaving] = useState(false);
     const [isCompiling, setIsCompiling] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+
+    const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(reports), [reports]);
 
     const [dynamicHints, setDynamicHints] = useState<PythonHint[]>([]);
 
@@ -300,11 +305,12 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                             onChange={setName}
                             placeholder="e.g. Monthly Sales"
                         />
-                        <AppInput
+                        <AppCategoryInput
                             label="Category"
                             value={category}
                             onChange={setCategory}
                             placeholder="e.g. Finance|Reports"
+                            allPaths={allCategoryPaths}
                         />
                     </div>
 

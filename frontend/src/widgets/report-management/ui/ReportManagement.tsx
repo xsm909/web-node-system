@@ -268,6 +268,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 <StyleEditor
                     ref={styleEditorRef}
                     style={selectedStyle}
+                    allStyles={styles}
                     onDirtyChange={setStyleEditorIsDirty}
                 />
             </AppFormView>
@@ -328,6 +329,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 <ReportEditor
                     ref={reportEditorRef}
                     report={selectedReport}
+                    reports={reports}
                     styles={styles}
                     activeTab={activeTab}
                     onTabChange={(id) => setActiveTab(id as any)}

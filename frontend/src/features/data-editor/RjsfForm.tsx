@@ -48,10 +48,10 @@ function BaseInputTemplate(props: BaseInputTemplateProps) {
             onChange={(e) => onChange(e.target.value === '' ? options.emptyValue : e.target.value)}
             onBlur={(e) => onBlur(id, e.target.value)}
             onFocus={(e) => onFocus(id, e.target.value)}
-            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] outline-none transition-all disabled:opacity-100 disabled:text-[var(--text-muted)] disabled:cursor-not-allowed ${
                 hasError 
                     ? 'border-red-500 ring-1 ring-red-500/20' 
-                    : 'border-gray-700 focus:border-brand focus:ring-1 focus:ring-brand/20'
+                    : 'border-[var(--border-base)] focus:border-brand focus:ring-1 focus:ring-brand/20'
             }`}
         />
     );
@@ -79,10 +79,10 @@ function TextareaWidget(props: WidgetProps) {
             onChange={(e) => onChange(e.target.value === '' ? options.emptyValue : e.target.value)}
             onBlur={(e) => onBlur(id, e.target.value)}
             onFocus={(e) => onFocus(id, e.target.value)}
-            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] outline-none transition-all resize-none disabled:opacity-50 ${
+            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] outline-none transition-all resize-none disabled:opacity-100 disabled:text-[var(--text-muted)] ${
                 hasError 
                     ? 'border-red-500 ring-1 ring-red-500/20' 
-                    : 'border-gray-700 focus:border-brand focus:ring-1 focus:ring-brand/20'
+                    : 'border-[var(--border-base)] focus:border-brand focus:ring-1 focus:ring-brand/20'
             }`}
         />
     );
@@ -187,10 +187,10 @@ function SelectWidget(props: WidgetProps) {
             required={required}
             disabled={disabled || readonly}
             onChange={(e) => onChange(e.target.value)}
-            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] outline-none transition-all appearance-none disabled:opacity-50 ${
+            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] outline-none transition-all appearance-none disabled:opacity-100 disabled:text-[var(--text-muted)] ${
                 hasError 
                     ? 'border-red-500 ring-1 ring-red-500/20' 
-                    : 'border-gray-700 focus:border-brand focus:ring-1 focus:ring-brand/20'
+                    : 'border-[var(--border-base)] focus:border-brand focus:ring-1 focus:ring-brand/20'
             }`}
         >
             {!required && <option value="">— Select —</option>}
@@ -268,7 +268,7 @@ function FieldTemplate(props: FieldTemplateProps) {
                 </label>
             )}
             {renderedDescription && (
-                <div className="text-[11px] text-[var(--text-muted)] opacity-60 -mt-1">{renderedDescription}</div>
+                <div className="text-[11px] text-[var(--text-muted)] -mt-1">{renderedDescription}</div>
             )}
             {children}
             {renderedErrors && (
@@ -290,10 +290,10 @@ function ObjectFieldTemplate(props: ObjectFieldTemplateProps) {
     return (
         <div className="space-y-2">
             {title && (
-                <div className="pb-2 border-b border-gray-700/50">
+                <div className="pb-2 border-b border-[var(--border-base)]/50">
                     <h3 className="text-sm font-bold text-[var(--text-main)]">{title}</h3>
                     {renderedDescription && (
-                        <div className="text-xs text-[var(--text-muted)] opacity-60 mt-0.5">{renderedDescription}</div>
+                        <div className="text-xs text-[var(--text-muted)] mt-0.5">{renderedDescription}</div>
                     )}
                 </div>
             )}
@@ -451,7 +451,7 @@ function ArrayFieldTemplate(props: ArrayFieldTemplateProps) {
                 ))}
             </div>
             {items.length === 0 && (
-                <div className="text-xs text-[var(--text-muted)] italic opacity-50 px-1 py-4 text-center border-2 border-dashed border-gray-800/30 rounded-2xl">
+                <div className="text-xs text-[var(--text-muted)] italic px-1 py-4 text-center border-2 border-dashed border-[var(--border-base)]/30 rounded-2xl">
                     No items yet
                 </div>
             )}
