@@ -286,7 +286,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                     ) : undefined
                 }
             >
-                <div className="flex flex-col gap-6 max-w-4xl mx-auto h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
+                <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
                     <div className="grid grid-cols-2 gap-8">
                         <div className="space-y-3">
                             <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Schema Key</label>

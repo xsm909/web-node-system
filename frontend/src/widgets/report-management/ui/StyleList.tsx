@@ -51,13 +51,7 @@ export function StyleList({ styles, isAdmin, onEdit, onDelete, searchQuery }: St
                     <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                         {isAdmin && (
                             <>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onEdit(style); }}
-                                    className="p-2 rounded-lg text-brand hover:bg-brand/10 transition-colors"
-                                    title="Edit Style"
-                                >
-                                    <Icon name="edit" size={16} />
-                                </button>
+
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onDelete(style); }}
                                     className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"

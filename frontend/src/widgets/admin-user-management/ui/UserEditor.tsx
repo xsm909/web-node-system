@@ -99,11 +99,11 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
     const selectedManager = managers.find(m => m.id === selectedManagerId);
 
     return (
-        <div className={`animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col ${activeTab === 'prompts' ? 'flex-1 h-full min-h-0' : 'min-h-[500px]'}`}>
+        <div className={`animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col ${(activeTab === 'prompts' || activeTab === 'metadata') ? 'flex-1 h-full min-h-0' : 'min-h-[500px]'}`}>
             {activeTab === 'common' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-surface-800 rounded-[2rem] border border-[var(--border-base)] p-8 space-y-6 shadow-xl shadow-black/5">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] opacity-50 px-2">Account Profile</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-6">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] opacity-50 px-1">Account Profile</h3>
                         <div className="grid grid-cols-1 gap-6">
                             <FormField label="Username">
                                 <div className="px-5 py-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] font-bold">
@@ -126,8 +126,8 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                     </div>
 
                     {user.role === 'client' && (
-                        <div className="bg-surface-800 rounded-[2rem] border border-[var(--border-base)] p-8 space-y-6 shadow-xl shadow-black/5">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] opacity-50 px-2">Management</h3>
+                        <div className="space-y-6">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] opacity-50 px-1">Management</h3>
                             <div className="space-y-3">
                                 <FormField label="Responsible Manager">
                                     <ComboBox
@@ -155,11 +155,11 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                 </div>
             )}
 
-            {activeTab === 'metadata' && user.role === 'client' && (
+            {activeTab === 'metadata' && (
                 <ClientMetadataManagement activeClientId={user.id} hideHeader={true} />
             )}
 
-            {activeTab === 'prompts' && user.role === 'client' && (
+            {activeTab === 'prompts' && (
                 <PromptViewer referenceId={user.id} />
             )}
         </div>

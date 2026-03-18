@@ -126,12 +126,10 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 isSaving={isSaving}
                 onSave={() => editorRef.current?.handleSave()}
                 onCancel={handleBack}
-                tabs={selectedUser.role === 'client' ? [
+                tabs={[
                     { id: 'common', label: 'Common Profile' },
                     { id: 'metadata', label: 'Client Metadata' },
                     { id: 'prompts', label: 'Prompt Viewer' }
-                ] : [
-                    { id: 'common', label: 'Common Profile' }
                 ]}
                 activeTab={activeTab}
                 onTabChange={(id) => setActiveTab(id as 'common' | 'metadata' | 'prompts')}
@@ -139,7 +137,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 noPadding={activeTab === 'prompts'}
                 fullHeight={activeTab === 'prompts'}
             >
-                <div className={activeTab === 'prompts' ? 'flex-1 h-full min-h-0 w-full flex flex-col' : 'max-w-5xl mx-auto w-full'}>
+                <div className={(activeTab === 'prompts' || activeTab === 'metadata') ? 'flex-1 h-full min-h-0 w-full flex flex-col' : 'max-w-5xl mx-auto w-full'}>
                     <UserEditor
                         ref={editorRef}
                         user={selectedUser}

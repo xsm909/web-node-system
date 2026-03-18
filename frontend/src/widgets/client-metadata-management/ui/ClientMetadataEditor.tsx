@@ -176,7 +176,7 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
     return (
         <div className="flex flex-col h-full">
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-surface-950/20 rounded-3xl border border-[var(--border-base)]">
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-5xl mx-auto w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
                     {saveError && (
                         <div className="mb-6 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-medium flex flex-col gap-2">
                             <div className="flex items-center gap-3">

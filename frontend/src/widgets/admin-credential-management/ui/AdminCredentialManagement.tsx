@@ -148,16 +148,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                 const c = info.row.original;
                 return (
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenEdit(c);
-                            }}
-                            className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand border border-[var(--border-base)] transition-all active:scale-90"
-                            title="Edit Credential"
-                        >
-                            <Icon name="edit" size={14} />
-                        </button>
+
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -194,7 +185,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                 onCancel={() => setIsEditing(false)}
                 saveLabel={editingId ? "Save Credential" : "Add Credential"}
             >
-                <div className="max-w-4xl mx-auto h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
+                <div className="max-w-5xl mx-auto w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
                     <header className="mb-8">
                         <p className="text-sm text-[var(--text-muted)] mt-1 opacity-60">Configure your system-wide security keys and tokens.</p>
                     </header>
@@ -289,6 +280,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                 data={filteredCredentials}
                 columns={columns}
                 isSearching={searchQuery.trim().length > 0}
+                onRowClick={handleOpenEdit}
                 config={{
                     categoryExtractor: c => c.type,
                     persistCategoryKey: 'credential_expanded_categories',

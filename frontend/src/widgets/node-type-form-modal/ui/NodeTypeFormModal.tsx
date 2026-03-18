@@ -298,7 +298,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                 className="h-full"
             >
                 {activeTab === 'info' && (
-                    <div className="space-y-10 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="space-y-10 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="grid grid-cols-4 gap-8">
                             <div className="col-span-3 space-y-3">
                                 <label className="text-xs font-black text-[var(--text-main)] opacity-60 uppercase tracking-widest ml-1">Node Identification</label>
@@ -402,7 +402,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                 )}
 
                 {activeTab === 'code' && (
-                    <div className="h-full max-w-screen-xl mx-auto flex flex-col group animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="h-full w-full mx-auto flex flex-col group animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="flex-1 rounded-xl bg-[#0a0a0f] border border-[var(--border-base)] overflow-hidden ring-1 ring-black/20 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand transition-all shadow-inner min-h-[500px]">
                             <form.Field
                                 name="code"
