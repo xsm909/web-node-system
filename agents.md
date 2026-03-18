@@ -243,6 +243,12 @@ The system supports 4 static node types and 1 dynamic behavior based on graph co
 - **Sticky Footer Action Bar**: Include a sticky bottom footer bar containing consistent "Cancel" and primary "Save Changes" execution buttons.
 - **Shared Implementation**: Forms must implement this standard by referencing the shared `AppFormView` component.
 
+### 12.1 Layout Width Standards
+
+To maintain visual rhythm and usability, follow these width rules within `AppFormView`:
+- **Full Width (100%)**: Used for any tab or section containing a **code editor** (CodeMirror), **rich text/markdown editor**, or **graph/preview** area. These elements require maximum horizontal space for productivity. **All preview modes must always use 100% width.**
+- **Narrow Width (`max-w-5xl`)**: Used for standard **property forms**, configuration rows, or simple attribute lists. This prevents input fields from stretching excessively on large screens, improving readability.
+
 ## 13. External Model Usage Policy (Gemini & OpenAI)
 
 When developing agents in this project, external model usage must

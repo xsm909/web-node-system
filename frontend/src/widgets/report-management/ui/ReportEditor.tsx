@@ -289,7 +289,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     return (
         <div className="h-full flex flex-col">
             {activeTab === 'general' && (
-                <div className="max-w-3xl mx-auto w-full space-y-6 pt-4">
+                <div className="max-w-5xl mx-auto w-full space-y-6 pt-4">
                     <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-1.5">
                             <label className="text-sm font-bold text-[var(--text-main)]">Report Name *</label>
