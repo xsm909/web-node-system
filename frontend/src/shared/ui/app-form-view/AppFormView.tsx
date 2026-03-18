@@ -4,17 +4,16 @@ import { ConfirmModal } from '../confirm-modal';
 import { Icon } from '../icon';
 import { useRegisterBlocker } from '../../lib/navigation-guard/useNavigationGuard';
 
-export interface AppFormTab {
-    id: string;
-    label: string;
-}
+import { AppTabs, type AppTab } from '../app-tabs';
+
+export type { AppTab as AppFormTab };
 
 export interface AppFormViewProps {
     title: string;
     parentTitle?: string;
     icon?: string;
     
-    tabs?: AppFormTab[];
+    tabs?: AppTab[];
     activeTab?: string;
     onTabChange?: (tabId: string) => void;
     
@@ -139,23 +138,13 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
             />
 
             <div className="flex-1 overflow-hidden flex flex-col">
-                {tabs && tabs.length > 0 && (
+                {tabs && tabs.length > 0 && activeTab && (
                     <header className="px-10 pt-6 pb-0 border-b border-[var(--border-base)]">
-                        <div className="flex gap-2">
-                            {tabs.map(tab => (
-                                <button
-                                    key={tab.id}
-                                    type="button"
-                                    className={`px-8 py-3 text-xs font-black uppercase tracking-widest transition-all border-b-2 rounded-t-xl ${activeTab === tab.id
-                                        ? 'text-brand border-brand bg-brand/5'
-                                        : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] opacity-60 hover:opacity-100'
-                                        }`}
-                                    onClick={() => onTabChange && onTabChange(tab.id)}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
+                        <AppTabs 
+                            tabs={tabs} 
+                            activeTab={activeTab} 
+                            onTabChange={(id) => onTabChange && onTabChange(id)} 
+                        />
                     </header>
                 )}
 

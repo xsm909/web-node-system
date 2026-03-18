@@ -7,6 +7,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppFormView } from '../../../shared/ui/app-form-view';
+import { AppTabs } from '../../../shared/ui/app-tabs';
 
 import { ReportList } from './ReportList';
 import { ReportEditor, type ReportEditorRef } from './ReportEditor';
@@ -414,21 +415,16 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {view === 'list' && isAdmin && (
-                    <div className="flex px-8 border-b border-[var(--border-base)] bg-[var(--bg-app)]">
-                        <button
-                            onClick={() => setTopTab('reports')}
-                            className={`px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all relative ${topTab === 'reports' ? 'text-brand' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
-                        >
-                            Reports
-                            {topTab === 'reports' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
-                        </button>
-                        <button
-                            onClick={() => setTopTab('styles')}
-                            className={`px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all relative ${topTab === 'styles' ? 'text-brand' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
-                        >
-                            Styles
-                            {topTab === 'styles' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />}
-                        </button>
+                    <div className="px-8 border-b border-[var(--border-base)] bg-[var(--bg-app)]">
+                        <AppTabs
+                            tabs={[
+                                { id: 'reports', label: 'Reports', icon: 'description' },
+                                { id: 'styles', label: 'Styles', icon: 'palette' },
+                            ]}
+                            activeTab={topTab}
+                            onTabChange={(id) => setTopTab(id as 'reports' | 'styles')}
+                            variant="underline"
+                        />
                     </div>
                 )}
 

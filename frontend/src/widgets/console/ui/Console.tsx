@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { AppTabs } from '../../../shared/ui/app-tabs';
 
 interface LogEntry {
     timestamp: string;
@@ -62,6 +63,11 @@ export function Console({
     // Filter logs based on the toggle state (only system logs are considered secondary)
     const filteredLogs = logs.filter(log => showSystemLogs || log.level !== 'system');
 
+    const tabs = [
+        { id: 'logs', label: 'Debug Console' },
+        { id: 'runtime', label: 'Runtime Data' }
+    ];
+
     return (
         <div
             style={{ height: `${height}px` }}
@@ -71,29 +77,17 @@ export function Console({
                 className="absolute -top-1 left-0 right-0 h-2 cursor-row-resize z-50 hover:bg-brand/50 transition-colors"
                 onMouseDown={handleMouseDown}
             />
-            <header className="flex items-center justify-between px-6 py-2 bg-[var(--border-muted)] border-b border-[var(--border-base)]">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => setActiveTab('logs')}
-                        className={`text-[10px] font-bold uppercase tracking-widest leading-none px-3 py-1.5 rounded-lg transition-colors ${activeTab === 'logs'
-                            ? 'bg-[var(--bg-app)] text-brand border border-[var(--border-base)]'
-                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-base)]'
-                            }`}
-                    >
-                        Debug Console
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('runtime')}
-                        className={`text-[10px] font-bold uppercase tracking-widest leading-none px-3 py-1.5 rounded-lg transition-colors ${activeTab === 'runtime'
-                            ? 'bg-[var(--bg-app)] text-brand border border-[var(--border-base)]'
-                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-base)]'
-                            }`}
-                    >
-                        Runtime Data
-                        {hasRuntimeData && (
-                            <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-brand animate-pulse align-middle" />
-                        )}
-                    </button>
+            <header className="flex items-center justify-between px-6 py-1 bg-[var(--border-muted)] border-b border-[var(--border-base)]">
+                <div className="flex items-center">
+                    <AppTabs
+                        tabs={tabs}
+                        activeTab={activeTab}
+                        onTabChange={(id: string) => setActiveTab(id as any)}
+                        className="h-10"
+                    />
+                    {activeTab === 'runtime' && hasRuntimeData && (
+                        <span className="ml-2 w-2 h-2 rounded-full bg-brand animate-pulse" title="Live data available" />
+                    )}
                 </div>
                 <div className="flex items-center gap-3">
                     {activeTab === 'logs' && (

@@ -5,6 +5,7 @@ import { ThemeToggle } from '../../shared/ui/theme-toggle/ThemeToggle';
 import { ClientMetadataManagement } from '../../widgets/client-metadata-management/ui/ClientMetadataManagement';
 import { Icon } from '../../shared/ui/icon';
 import { PromptViewer } from '../../widgets/prompt-viewer/ui/PromptViewer';
+import { AppTabs } from '../../shared/ui/app-tabs';
 
 interface WorkflowResult {
     id: string;
@@ -33,7 +34,7 @@ export default function ClientPage() {
     };
 
     const tabs = [
-        { id: 'workflows', label: 'Workflows', icon: 'play' },
+        { id: 'workflows', label: 'Workflows', icon: 'play_arrow' },
         { id: 'metadata', label: 'Profile Data', icon: 'data_object' },
         { id: 'prompts', label: 'Prompts Viewer', icon: 'description' },
     ];
@@ -78,26 +79,13 @@ export default function ClientPage() {
 
             {/* ─── Tab Switcher ─── */}
             <div className="bg-surface-800/50 backdrop-blur-sm border-b border-[var(--border-base)] sticky top-20 z-40">
-                <div className="max-w-7xl mx-auto px-8 flex items-center gap-8">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as TabType)}
-                            className={`
-                                relative flex items-center gap-2.5 py-5 text-sm font-bold transition-all
-                                ${activeTab === tab.id 
-                                    ? 'text-brand' 
-                                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)] opacity-60 hover:opacity-100'
-                                }
-                            `}
-                        >
-                            <Icon name={tab.icon} size={16} className={activeTab === tab.id ? 'text-brand' : 'text-[var(--text-muted)]'} />
-                            <span>{tab.label}</span>
-                            {activeTab === tab.id && (
-                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand rounded-t-full shadow-[0_-2px_6px_rgba(var(--brand-rgb),0.3)] animate-in fade-in slide-in-from-bottom-1 duration-300" />
-                            )}
-                        </button>
-                    ))}
+                <div className="max-w-7xl mx-auto px-8 flex items-center">
+                    <AppTabs
+                        variant="underline"
+                        tabs={tabs}
+                        activeTab={activeTab}
+                        onTabChange={(id) => setActiveTab(id as TabType)}
+                    />
                 </div>
             </div>
 
@@ -127,7 +115,7 @@ export default function ClientPage() {
                             <div>
                                 <div className="flex items-center gap-3 mb-1">
                                     <div className="p-2 rounded-xl bg-surface-700 border border-[var(--border-base)]">
-                                        <Icon name="play" size={18} className="text-[var(--text-muted)]" />
+                                        <Icon name="play_arrow" size={18} className="text-[var(--text-muted)]" />
                                     </div>
                                     <h2 className="text-2xl font-bold tracking-tight">My Workflows</h2>
                                 </div>
@@ -145,7 +133,7 @@ export default function ClientPage() {
                             {results.length === 0 && (
                                 <div className="col-span-full flex flex-col items-center justify-center py-20 px-4 rounded-3xl border-2 border-dashed border-[var(--border-base)] bg-[var(--border-muted)]/30">
                                     <div className="w-16 h-16 rounded-full bg-[var(--border-base)] flex items-center justify-center mb-4 opacity-40">
-                                        <Icon name="play" size={24} className="text-[var(--text-muted)]" />
+                                        <Icon name="play_arrow" size={24} className="text-[var(--text-muted)]" />
                                     </div>
                                     <p className="text-[var(--text-muted)] font-medium opacity-60">No workflow results detected yet.</p>
                                 </div>
