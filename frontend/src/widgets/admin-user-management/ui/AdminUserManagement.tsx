@@ -128,14 +128,14 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 onCancel={handleBack}
                 tabs={[
                     { id: 'common', label: 'Common Profile' },
-                    { id: 'metadata', label: 'Client Metadata' },
-                    { id: 'prompts', label: 'Prompt Viewer' }
+                    { id: 'metadata', label: 'Metadata' },
+                    ...(selectedUser.role === 'client' ? [{ id: 'prompts', label: 'Prompt Viewer' }] : [])
                 ]}
                 activeTab={activeTab}
                 onTabChange={(id) => setActiveTab(id as 'common' | 'metadata' | 'prompts')}
                 saveLabel="Save User"
-                noPadding={activeTab === 'prompts'}
-                fullHeight={activeTab === 'prompts'}
+                noPadding={activeTab === 'prompts' || activeTab === 'metadata'}
+                fullHeight={activeTab === 'prompts' || activeTab === 'metadata'}
             >
                 <div className={(activeTab === 'prompts' || activeTab === 'metadata') ? 'flex-1 h-full min-h-0 w-full flex flex-col' : 'max-w-5xl mx-auto w-full'}>
                     <UserEditor

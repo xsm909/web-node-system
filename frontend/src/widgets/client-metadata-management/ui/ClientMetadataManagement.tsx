@@ -386,7 +386,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 )}
 
                 {isAdmin && activeClientId && (
-                    <div className="flex justify-start">
+                    <div className="flex justify-start px-10 pt-4">
                         <div onClick={(e) => { e.stopPropagation(); setNestingParentId(null); }}>
                             <ComboBox
                                 data={comboData}
