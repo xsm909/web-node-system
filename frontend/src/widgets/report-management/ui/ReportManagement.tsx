@@ -70,17 +70,22 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (view !== 'edit') return;
+            if (view === 'list') return;
 
-            if (e.key === 'F4') {
+            if (e.key === 'F2' && view === 'view') {
                 e.preventDefault();
-                setActiveTab('code');
-            } else if (e.key === 'F5') {
-                e.preventDefault();
-                handleHeaderCompile();
-            } else if (e.key === 'F9') {
-                e.preventDefault();
-                handleHeaderGenerate();
+                handleBack();
+            } else if (view === 'edit') {
+                if (e.key === 'F4') {
+                    e.preventDefault();
+                    setActiveTab('code');
+                } else if (e.key === 'F5') {
+                    e.preventDefault();
+                    handleHeaderCompile();
+                } else if (e.key === 'F9') {
+                    e.preventDefault();
+                    handleHeaderGenerate();
+                }
             }
         };
 

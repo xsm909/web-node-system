@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AppHeader } from '../../../widgets/app-header';
 import { ConfirmModal } from '../confirm-modal';
 import { Icon } from '../icon';
@@ -64,26 +64,29 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
         onDiscard || onCancel
     );
 
+    const handleBack = useCallback(() => {
+        if (isDirty) {
+            setShowConfirmBack(true);
+        } else {
+            onCancel();
+        }
+    }, [isDirty, onCancel]);
+
     // Keyboard shortcut handler
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 's') {
                 e.preventDefault();
                 onSave();
+            } else if (e.key === 'F2') {
+                e.preventDefault();
+                handleBack();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onSave]);
-
-    const handleBack = () => {
-        if (isDirty) {
-            setShowConfirmBack(true);
-        } else {
-            onCancel();
-        }
-    };
+    }, [onSave, handleBack]);
 
     const handleDiscard = () => {
         setShowConfirmBack(false);

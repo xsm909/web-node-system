@@ -405,6 +405,7 @@ reliability when answering real‑world questions.
 The platform supports specialized keyboard shortcuts to streamline development and management workflows:
 
 ### 14.1 Global Editor Shortcuts
+-   **F2**: Navigate **Back** (to the parent list) from any editor or detail view.
 -   **F4**: Switch to the **Python Code** tab (Node Engine/Report Code) from any other tab.
 
 ### 14.2 Report Editor Shortcuts
