@@ -15,6 +15,8 @@ import { AppInput } from "../../../shared/ui/app-input";
 import { AppCategoryInput } from "../../../shared/ui/app-category-input/AppCategoryInput";
 import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
 import { AppConsole, AppConsoleLogLine } from "../../../shared/ui/app-console";
+import { QueryBuilderModal } from "../../../features/query-builder/ui/QueryBuilderModal";
+import { keymap } from "@codemirror/view";
 
 
 interface ReportEditorProps {
@@ -115,6 +117,51 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             ]
         })
     ], [dynamicHints]);
+
+    const [isQueryBuilderOpen, setIsQueryBuilderOpen] = useState(false);
+    const [queryRange, setQueryRange] = useState({ from: 0, to: 0 });
+    const [editorRef, setEditorRef] = useState<any>(null);
+
+    const queryBuilderExtension = useMemo(() => [
+        keymap.of([{
+            key: "F1",
+            run: (view) => {
+                const pos = view.state.selection.main.head;
+                const line = view.state.doc.lineAt(pos);
+                const lineText = line.text;
+                const posInLine = pos - line.from;
+
+                const stringRegex = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/g;
+                let match;
+                let rangeFound = false;
+                while ((match = stringRegex.exec(lineText)) !== null) {
+                    const start = match.index;
+                    const end = start + match[0].length;
+                    
+                    if (posInLine >= start && posInLine <= end) {
+                        setQueryRange({
+                            from: line.from + start + 1,
+                            to: line.from + end - 1
+                        });
+                        rangeFound = true;
+                        break;
+                    }
+                }
+
+                if (!rangeFound) {
+                    setQueryRange({ from: pos, to: pos });
+                }
+
+                setIsQueryBuilderOpen(true);
+                return true;
+            }
+        }])
+    ], []);
+
+    const combinedPythonExtensions = useMemo(() => [
+        ...pythonExtensions,
+        ...queryBuilderExtension
+    ], [pythonExtensions, queryBuilderExtension]);
     const htmlExtensions = useMemo(() => [
         html(),
         indentUnit.of('    '),
@@ -496,11 +543,32 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                             value={code}
                             height="100%"
                             theme={editorTheme}
-                            extensions={pythonExtensions}
+                            extensions={combinedPythonExtensions}
                             onChange={(value) => setCode(value)}
+                            onCreateEditor={(view) => {
+                                setEditorRef(view);
+                            }}
                             className="h-full text-sm font-mono"
                         />
                     </div>
+
+                    <QueryBuilderModal
+                        isOpen={isQueryBuilderOpen}
+                        onClose={() => setIsQueryBuilderOpen(false)}
+                        onDone={(newSql) => {
+                            if (editorRef) {
+                                editorRef.dispatch({
+                                    changes: {
+                                        from: queryRange.from,
+                                        to: queryRange.to,
+                                        insert: newSql
+                                    },
+                                    selection: { anchor: queryRange.from + newSql.length }
+                                });
+                            }
+                            setIsQueryBuilderOpen(false);
+                        }}
+                    />
 
                     <AppConsole
                         tabs={[
