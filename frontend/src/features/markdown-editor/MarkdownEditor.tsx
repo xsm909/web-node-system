@@ -30,7 +30,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
     return (
         <div className="w-full h-full flex flex-col min-h-0">
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 rounded-xl border border-[var(--border-base)] overflow-hidden focus-within:border-brand transition-all shadow-sm">
                 <CodeMirror
                     value={code}
                     height="100%"

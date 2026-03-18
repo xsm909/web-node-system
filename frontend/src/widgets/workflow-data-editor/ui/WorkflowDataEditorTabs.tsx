@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
+import { useThemeStore } from '../../../shared/lib/theme/store';
+import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 
 interface WorkflowDataEditorProps {
     data: any;
@@ -11,7 +13,10 @@ export const WorkflowDataEditorTabs: React.FC<WorkflowDataEditorProps> = ({
     data,
     onChange,
 }) => {
+    const { theme } = useThemeStore();
     const [dataStr, setDataStr] = useState(() => JSON.stringify(data, null, 2));
+
+    const editorTheme = useMemo(() => (theme === "dark" ? vscodeDark : vscodeLight), [theme]);
 
     const codeMirrorExtensions = useMemo(() => [json()], []);
 
@@ -29,7 +34,7 @@ export const WorkflowDataEditorTabs: React.FC<WorkflowDataEditorProps> = ({
     };
 
     return (
-        <div className="w-full h-full flex flex-col bg-surface-900 overflow-hidden">
+        <div className="w-full h-full flex flex-col bg-[var(--bg-app)] overflow-hidden">
             <header className="px-6 pt-6 pb-2 border-b border-[var(--border-base)]">
                 <div className="flex items-center justify-between">
                     <div className="text-[10px] font-black text-brand uppercase tracking-[0.2em]">Workflow Configuration Data</div>
@@ -38,11 +43,11 @@ export const WorkflowDataEditorTabs: React.FC<WorkflowDataEditorProps> = ({
 
             <div className="flex-1 overflow-hidden relative">
                 <div className="absolute inset-0 flex flex-col pt-4 px-6 pb-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="flex-1 rounded-2xl border border-[var(--border-base)] overflow-hidden ring-1 ring-black/20 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand transition-all shadow-inner">
+                    <div className="flex-1 rounded-xl border border-[var(--border-base)] overflow-hidden focus-within:border-brand transition-all shadow-sm">
                         <CodeMirror
                             value={dataStr}
                             height="100%"
-                            theme="dark"
+                            theme={editorTheme}
                             extensions={codeMirrorExtensions}
                             onChange={handleChange}
                             className="h-full text-sm font-mono"

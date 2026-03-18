@@ -166,7 +166,7 @@ export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style
                         <span>4 spaces</span>
                     </div>
                 </div>
-                <div className="flex-1 min-h-0 rounded-2xl border border-[var(--border-base)] overflow-hidden shadow-sm bg-[var(--bg-app)]">
+                <div className="flex-1 min-h-0 rounded-xl border border-[var(--border-base)] overflow-hidden shadow-sm bg-[var(--bg-app)] focus-within:border-brand transition-all">
                     <CodeMirror
                         value={cssContent}
                         height="100%"

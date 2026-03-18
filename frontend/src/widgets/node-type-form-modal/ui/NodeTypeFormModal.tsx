@@ -13,6 +13,8 @@ import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
 import { getPythonHints, type PythonHint } from '../../../shared/api/python-hints';
+import { useThemeStore } from '../../../shared/lib/theme/store';
+import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 
 
 interface NodeTypeFormViewProps {
@@ -38,10 +40,13 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     allNodes = [],
     defaultTab,
 }) => {
+    const { theme } = useThemeStore();
     const [currentNode, setCurrentNode] = useState<Partial<NodeType>>(editingNode || initialData || {});
     const [activeTab, setActiveTab] = useState<FormTab>(defaultTab || 'info');
     const [cursorPosition, setCursorPosition] = useState<{ anchor: number, head: number } | null>(null);
     const [dynamicHints, setDynamicHints] = useState<PythonHint[]>([]);
+    
+    const editorTheme = useMemo(() => (theme === "dark" ? vscodeDark : vscodeLight), [theme]);
     
     const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(allNodes), [allNodes]);
 
@@ -311,14 +316,14 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
 
                 {activeTab === 'code' && (
                     <div className="h-full w-full mx-auto flex flex-col group animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="flex-1 rounded-xl bg-[#0a0a0f] border border-[var(--border-base)] overflow-hidden ring-1 ring-black/20 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand transition-all shadow-inner min-h-[500px]">
+                        <div className="flex-1 rounded-xl border border-[var(--border-base)] overflow-hidden focus-within:border-brand transition-all shadow-sm min-h-[500px]">
                             <form.Field
                                 name="code"
                                 children={(field) => (
                                     <CodeMirror
                                         value={field.state.value}
                                         height="100%"
-                                        theme="dark"
+                                        theme={editorTheme}
                                         autoFocus
                                         extensions={codeMirrorExtensions}
                                         selection={cursorPosition || undefined}

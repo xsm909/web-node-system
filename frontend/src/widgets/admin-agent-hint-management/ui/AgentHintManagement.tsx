@@ -212,9 +212,9 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                     )}
 
 
-                    <div className="flex-1 flex flex-col min-h-[400px] relative rounded-xl border border-[var(--border-base)] overflow-hidden bg-[var(--bg-app)] shadow-inner ring-1 ring-black/20 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand transition-all">
+                    <div className="flex-1 flex flex-col min-h-[400px] relative">
                         {isPreview ? (
-                            <div className="absolute inset-0 p-8 overflow-auto bg-[var(--bg-app)] custom-scrollbar">
+                            <div className="absolute inset-0 p-8 overflow-auto bg-[var(--bg-app)] custom-scrollbar rounded-xl border border-[var(--border-base)]">
                                 <div
                                     className="markdown-content text-[var(--text-main)]"
                                     dangerouslySetInnerHTML={{ __html: marked.parse(hintContent) as string }}

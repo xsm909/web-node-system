@@ -327,13 +327,11 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
 
                     <div className="flex-1 flex flex-col min-h-[500px] mt-4">
                         <label className="text-xs font-black text-[var(--text-main)] uppercase tracking-widest ml-1 mb-3">JSON Schema Content</label>
-                        <div className="flex-1 rounded-xl bg-[#0a0a0f] border border-[var(--border-base)] overflow-hidden ring-1 ring-black/20 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand transition-all shadow-inner">
-                            <SchemaEditor
-                                initialValue={content}
-                                onChange={setContent}
-                                readOnly={lock}
-                            />
-                        </div>
+                        <SchemaEditor
+                            initialValue={content}
+                            onChange={setContent}
+                            readOnly={lock}
+                        />
                     </div>
                 </div>
             </AppFormView>

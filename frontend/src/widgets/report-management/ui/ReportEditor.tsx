@@ -490,7 +490,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                         <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Python Engine</h3>
                     </div>
                     
-                    <div className="flex-1 min-h-0 rounded-xl border border-[var(--border-base)] overflow-hidden shadow-sm">
+                    <div className="flex-1 min-h-0 rounded-xl border border-[var(--border-base)] overflow-hidden shadow-sm focus-within:border-brand transition-all">
                         <CodeMirror
                             value={code}
                             height="100%"
@@ -544,7 +544,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                             </select>
                         </div>
                     </div>
-                    <div className="flex-1 min-h-0 rounded-xl border border-[var(--border-base)] overflow-hidden shadow-sm">
+                    <div className="flex-1 min-h-0 rounded-xl border border-[var(--border-base)] overflow-hidden shadow-sm focus-within:border-brand transition-all">
                         <CodeMirror
                             value={template}
                             height="100%"
