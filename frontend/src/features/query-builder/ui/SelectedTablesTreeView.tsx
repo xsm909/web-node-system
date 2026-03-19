@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-    DndContext,
-    closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    type DragEndEvent
-} from '@dnd-kit/core';
+import { useDraggable } from '@dnd-kit/core';
 import {
     SortableContext,
-    sortableKeyboardCoordinates,
     verticalListSortingStrategy,
     useSortable
 } from '@dnd-kit/sortable';
@@ -21,8 +12,6 @@ import type { QueryTable, SelectedField, MultiQueryState } from '../model/types'
 interface SelectedTablesTreeViewProps {
     tables: QueryTable[];
     selectedFields: SelectedField[];
-    onAddField: (field: SelectedField) => void;
-    onRemoveField: (id: string) => void;
     onRemoveTable: (alias: string) => void;
     onMoveTable: (activeId: string, overId: string) => void;
     getColumns: (tableName: string) => Promise<any[]>;
@@ -32,31 +21,10 @@ interface SelectedTablesTreeViewProps {
 export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
     tables,
     selectedFields,
-    onAddField,
-    onRemoveField,
     onRemoveTable,
-    onMoveTable,
     getColumns,
     queryState
 }) => {
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 8,
-            },
-        }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
-
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (over && active.id !== over.id) {
-            onMoveTable(active.id as string, over.id as string);
-        }
-    };
-
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-2xl overflow-hidden shadow-sm">
             <div className="bg-[var(--bg-alt)] px-4 py-3 border-b border-[var(--border-base)] flex items-center justify-between">
@@ -66,29 +34,21 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
                 </h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
+                <SortableContext
+                    items={tables.map(t => t.alias)}
+                    strategy={verticalListSortingStrategy}
                 >
-                    <SortableContext
-                        items={tables.map(t => t.alias)}
-                        strategy={verticalListSortingStrategy}
-                    >
-                        {tables.map(table => (
-                            <TableTreeItem 
-                                key={table.alias}
-                                table={table}
-                                selectedFields={selectedFields.filter(f => f.tableAlias === table.alias)}
-                                onAddField={onAddField}
-                                onRemoveField={onRemoveField}
-                                onRemoveTable={onRemoveTable}
-                                getColumns={getColumns}
-                                queryState={queryState}
-                            />
-                        ))}
-                    </SortableContext>
-                </DndContext>
+                    {tables.map(table => (
+                        <TableTreeItem 
+                            key={table.alias}
+                            table={table}
+                            selectedFields={selectedFields.filter(f => f.tableAlias === table.alias)}
+                            onRemoveTable={onRemoveTable}
+                            getColumns={getColumns}
+                            queryState={queryState}
+                        />
+                    ))}
+                </SortableContext>
                 
                 {tables.length === 0 && (
                     <div className="h-32 flex flex-col items-center justify-center opacity-40 border-2 border-dashed border-[var(--border-base)] rounded-xl m-2">
@@ -101,7 +61,7 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
     );
 };
 
-const TableTreeItem = ({ table, selectedFields, onAddField, onRemoveField, onRemoveTable, getColumns, queryState }: any) => {
+const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, queryState }: any) => {
     const [isExpanded, setIsExpanded] = useState(true);
     const [columns, setColumns] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -154,23 +114,31 @@ const TableTreeItem = ({ table, selectedFields, onAddField, onRemoveField, onRem
     const isAllSelected = selectedFields.some((f: any) => f.columnName === '*');
 
     return (
-        <div ref={setNodeRef} style={style} className="flex flex-col">
-            <div className="group flex items-center gap-1 p-1 rounded-lg hover:bg-brand/5 transition-all">
-                <div 
-                    {...attributes} 
-                    {...listeners} 
-                    className="p-1 cursor-grab active:cursor-grabbing text-[var(--text-muted)] hover:text-brand opacity-0 group-hover:opacity-100 transition-all"
-                >
+        <div 
+            ref={setNodeRef} 
+            style={style} 
+            {...attributes}
+            {...listeners}
+            className="group flex flex-col"
+        >
+            <div className="flex items-center gap-1 p-1 rounded-lg hover:bg-brand/5 border border-transparent hover:border-brand/10 transition-all cursor-grab active:cursor-grabbing">
+                <div className="p-1 text-[var(--text-muted)] group-hover:text-brand transition-all">
                     <Icon name="drag_indicator" size={14} />
                 </div>
                 
                 <button 
-                    onClick={() => setIsExpanded(!isExpanded)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExpanded(!isExpanded);
+                    }}
                     className="p-1 rounded hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand transition-all"
                 >
                     <Icon name={isExpanded ? 'expand_more' : 'chevron_right'} size={16} />
                 </button>
-                <div className="flex-1 flex items-center gap-2 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+                <div className="flex-1 flex items-center gap-2 cursor-pointer" onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                }}>
                     <Icon name="table_chart" size={14} className="text-brand" />
                     <span className="text-xs font-bold text-[var(--text-main)]">{table.tableName}</span>
                     {table.alias !== table.tableName && (
@@ -178,7 +146,10 @@ const TableTreeItem = ({ table, selectedFields, onAddField, onRemoveField, onRem
                     )}
                 </div>
                 <button 
-                    onClick={() => onRemoveTable(table.alias)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveTable(table.alias);
+                    }}
                     className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-all"
                 >
                     <Icon name="delete" size={14} />
@@ -187,69 +158,54 @@ const TableTreeItem = ({ table, selectedFields, onAddField, onRemoveField, onRem
 
             {isExpanded && (
                 <div className="ml-10 mt-0.5 space-y-0.5 border-l-2 border-brand/10 pl-2 mb-2 animate-in slide-in-from-left-2 duration-200">
-                    <div 
-                        className={`flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer transition-all ${
-                            isAllSelected ? 'bg-brand/5 text-brand' : 'hover:bg-brand/5'
-                        }`}
-                        onClick={() => {
-                            if (isAllSelected) {
-                                const field = selectedFields.find((f: any) => f.columnName === '*');
-                                onRemoveField(field.id);
-                            } else {
-                                onAddField({
-                                    id: `${table.alias}_all_${Date.now()}`,
-                                    tableAlias: table.alias,
-                                    columnName: '*'
-                                });
-                            }
-                        }}
-                    >
-                        <div className={`w-3 h-3 rounded border flex items-center justify-center transition-all ${
-                            isAllSelected ? 'bg-brand border-brand text-white' : 'border-[var(--border-base)]'
-                        }`}>
-                            {isAllSelected && <Icon name="check" size={8} />}
-                        </div>
-                        <span className="text-[11px] font-bold">All Columns (*)</span>
-                    </div>
+                    <DraggableColumn 
+                        col={{ name: '*', type: 'ALL' }}
+                        tableAlias={table.alias}
+                        isSelected={isAllSelected}
+                        label="All Columns (*)"
+                    />
 
                     {loading ? (
                         <div className="px-2 py-1 text-[10px] text-[var(--text-muted)] italic">Loading columns...</div>
                     ) : (
-                        columns.map(col => {
-                            const isSelected = selectedFields.some((f: any) => f.columnName === col.name);
-                            return (
-                                <div 
-                                    key={col.name}
-                                    className={`flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer transition-all ${
-                                        isSelected ? 'bg-brand/5 text-brand font-medium' : 'hover:bg-brand/5 text-[var(--text-main)]'
-                                    }`}
-                                    onClick={() => {
-                                        if (isSelected) {
-                                            const field = selectedFields.find((f: any) => f.columnName === col.name);
-                                            onRemoveField(field.id);
-                                        } else {
-                                            onAddField({
-                                                id: `${table.alias}_${col.name}_${Date.now()}`,
-                                                tableAlias: table.alias,
-                                                columnName: col.name
-                                            });
-                                        }
-                                    }}
-                                >
-                                    <div className={`w-3 h-3 rounded border flex items-center justify-center transition-all ${
-                                        isSelected ? 'bg-brand border-brand text-white' : 'border-[var(--border-base)]'
-                                    }`}>
-                                        {isSelected && <Icon name="check" size={8} />}
-                                    </div>
-                                    <span className="text-[11px] truncate">{col.name}</span>
-                                    <span className="ml-auto text-[8px] text-[var(--text-muted)] opacity-50 font-mono">{col.type}</span>
-                                </div>
-                            );
-                        })
+                        columns.map(col => (
+                            <DraggableColumn 
+                                key={col.name}
+                                col={col}
+                                tableAlias={table.alias}
+                                isSelected={selectedFields.some((f: any) => f.columnName === col.name)}
+                            />
+                        ))
                     )}
                 </div>
             )}
         </div>
     );
 };
+
+const DraggableColumn = ({ col, tableAlias, isSelected, label }: any) => {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `source-field:${tableAlias}:${col.name}`,
+    });
+
+    return (
+        <div 
+            ref={setNodeRef}
+            {...attributes}
+            {...listeners}
+            className={`flex items-center gap-2 px-2 py-1 rounded-md cursor-grab active:cursor-grabbing transition-all ${
+                isSelected ? 'bg-brand/5 text-brand font-medium' : 'hover:bg-brand/5 text-[var(--text-main)]'
+            } ${isDragging ? 'opacity-30 pointer-events-none' : ''}`}
+        >
+            <div className={`w-3 h-3 rounded border flex items-center justify-center transition-all ${
+                isSelected ? 'bg-brand border-brand text-white' : 'border-[var(--border-base)]'
+            }`}>
+                {isSelected && <Icon name="check" size={8} />}
+            </div>
+            <span className={`text-[11px] truncate ${label ? 'font-bold' : ''}`}>{label || col.name}</span>
+            {!label && <span className="ml-auto text-[8px] text-[var(--text-muted)] opacity-50 font-mono">{col.type}</span>}
+        </div>
+    );
+};
+
 

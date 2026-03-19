@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { arrayMove } from '@dnd-kit/sortable';
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import {
+    DndContext,
+    closestCenter,
+    PointerSensor,
+    KeyboardSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+    DragOverlay,
+    defaultDropAnimationSideEffects
+} from '@dnd-kit/core';
 import { Icon } from '../../../shared/ui/icon';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppTabs } from '../../../shared/ui/app-tabs';
@@ -35,17 +46,17 @@ interface ColumnSelectProps {
     placeholder?: string;
 }
 
-const ColumnSelect: React.FC<ColumnSelectProps> = ({ 
-    tableAlias, 
-    value, 
-    onChange, 
-    getColumns, 
-    queryState, 
-    state, 
-    placeholder = "Select column..." 
+const ColumnSelect: React.FC<ColumnSelectProps> = ({
+    tableAlias,
+    value,
+    onChange,
+    getColumns,
+    queryState,
+    state,
+    placeholder = "Select column..."
 }) => {
     const [columns, setColumns] = useState<any[]>([]);
-    
+
     useEffect(() => {
         if (!state?.tables || !queryState?.ctes) return;
 
@@ -54,13 +65,13 @@ const ColumnSelect: React.FC<ColumnSelectProps> = ({
 
         // Check if the tableName of this instance is a CTE alias
         const targetCte = queryState.ctes.find((c) => c.alias === table.tableName);
-        
+
         if (targetCte) {
             const cteCols = targetCte.state.selectedFields.map((f) => ({
                 name: f.alias || f.columnName || '',
                 type: 'CTE'
             }));
-            
+
             // Add recursive depth column if it exists
             if (targetCte.isRecursive && targetCte.recursiveConfig?.depthColumn) {
                 cteCols.push({
@@ -68,7 +79,7 @@ const ColumnSelect: React.FC<ColumnSelectProps> = ({
                     type: 'CTE-Depth'
                 });
             }
-            
+
             setColumns(cteCols);
         } else {
             getColumns(table.tableName).then(setColumns);
@@ -76,7 +87,7 @@ const ColumnSelect: React.FC<ColumnSelectProps> = ({
     }, [tableAlias, getColumns, queryState, state]);
 
     return (
-        <select 
+        <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
             className="flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
@@ -114,7 +125,7 @@ const JoinsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryStat
         <div className="space-y-6 max-w-5xl">
             <div className="flex items-center justify-between px-2">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Table Joins</h3>
-                <button 
+                <button
                     onClick={addJoin}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-bold hover:opacity-90 transition-all shadow-sm"
                 >
@@ -122,10 +133,10 @@ const JoinsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryStat
                     Add Join
                 </button>
             </div>
-            
+
             <div className="rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] overflow-hidden divide-y divide-[var(--border-base)] shadow-sm">
                 {state.joins.map((join, index) => (
-                    <JoinItem 
+                    <JoinItem
                         key={join.id}
                         join={join}
                         index={index}
@@ -138,8 +149,8 @@ const JoinsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryStat
 
                 {state.joins.length === 0 && (
                     <div className="py-12 flex flex-col items-center justify-center opacity-40">
-                         <Icon name="device_hub" size={32} className="mb-2 text-[var(--text-muted)]" />
-                         <p className="text-xs font-medium">No joins defined yet.</p>
+                        <Icon name="device_hub" size={32} className="mb-2 text-[var(--text-muted)]" />
+                        <p className="text-xs font-medium">No joins defined yet.</p>
                     </div>
                 )}
             </div>
@@ -167,7 +178,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
 
     return (
         <>
-            <div 
+            <div
                 onClick={() => setIsEditOpen(true)}
                 className="group flex items-center justify-between p-3 hover:bg-[var(--bg-alt)] transition-all cursor-pointer select-none"
             >
@@ -187,7 +198,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <button 
+                    <button
                         onClick={handleDelete}
                         className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 opacity-0 group-hover:opacity-100 transition-all"
                     >
@@ -208,7 +219,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                 <div className="space-y-4">
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Join Type</label>
-                        <select 
+                        <select
                             value={join.type}
                             onChange={(e) => {
                                 const newJoins = [...state.joins];
@@ -231,7 +242,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                                 <div className="flex-1 flex flex-col gap-1.5">
                                     <span className="text-[10px] text-[var(--text-muted)] font-medium">Target Table (Joining)</span>
                                     <div className="flex items-center gap-2">
-                                        <select 
+                                        <select
                                             value={join.rightTableAlias}
                                             onChange={(e) => {
                                                 const newJoins = [...state.joins];
@@ -243,7 +254,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                                             {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
                                         </select>
                                         <span className="text-[var(--text-muted)] font-bold">.</span>
-                                        <ColumnSelect 
+                                        <ColumnSelect
                                             tableAlias={join.rightTableAlias}
                                             value={join.rightColumn}
                                             onChange={(val: string) => {
@@ -257,13 +268,13 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                                         />
                                     </div>
                                 </div>
-                                
+
                                 <span className="text-[var(--text-muted)] font-bold px-2 mt-5">=</span>
-                                
+
                                 <div className="flex-1 flex flex-col gap-1.5">
                                     <span className="text-[10px] text-[var(--text-muted)] font-medium">Existing Table</span>
                                     <div className="flex items-center gap-2">
-                                        <select 
+                                        <select
                                             value={join.leftTableAlias}
                                             onChange={(e) => {
                                                 const newJoins = [...state.joins];
@@ -275,7 +286,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                                             {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
                                         </select>
                                         <span className="text-[var(--text-muted)] font-bold">.</span>
-                                        <ColumnSelect 
+                                        <ColumnSelect
                                             tableAlias={join.leftTableAlias}
                                             value={join.leftColumn}
                                             onChange={(val: string) => {
@@ -316,7 +327,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
         <div className="space-y-6 max-w-5xl">
             <div className="flex items-center justify-between px-2">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Filtering Conditions</h3>
-                <button 
+                <button
                     onClick={addCondition}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-bold hover:opacity-90 transition-all shadow-sm"
                 >
@@ -329,7 +340,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                 {state.where.map((cond, index) => (
                     <div key={cond.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] flex items-center gap-3 group">
                         {index > 0 && (
-                             <select 
+                            <select
                                 value={cond.logic}
                                 onChange={(e) => {
                                     const newWheres = [...state.where];
@@ -342,8 +353,8 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                                 <option value="OR">OR</option>
                             </select>
                         )}
-                        
-                        <select 
+
+                        <select
                             value={cond.tableAlias}
                             onChange={(e) => {
                                 const newWheres = [...state.where];
@@ -355,7 +366,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                             {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
                         </select>
 
-                        <ColumnSelect 
+                        <ColumnSelect
                             tableAlias={cond.tableAlias}
                             value={cond.columnName}
                             onChange={(val: string) => {
@@ -368,7 +379,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                             state={state}
                         />
 
-                         <select 
+                        <select
                             value={cond.operator}
                             onChange={(e) => {
                                 const newWheres = [...state.where];
@@ -377,19 +388,19 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                             }}
                             className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-brand w-24"
                         >
-                             <option value="=">=</option>
-                             <option value="!=">!=</option>
-                             <option value=">">&gt;</option>
-                             <option value="<">&lt;</option>
-                             <option value=">=">&gt;=</option>
-                             <option value="<=">&lt;=</option>
-                             <option value="LIKE">LIKE</option>
-                             <option value="IN">IN</option>
-                             <option value="IS NULL">IS NULL</option>
-                             <option value="IS NOT NULL">IS NOT NULL</option>
+                            <option value="=">=</option>
+                            <option value="!=">!=</option>
+                            <option value=">">&gt;</option>
+                            <option value="<">&lt;</option>
+                            <option value=">=">&gt;=</option>
+                            <option value="<=">&lt;=</option>
+                            <option value="LIKE">LIKE</option>
+                            <option value="IN">IN</option>
+                            <option value="IS NULL">IS NULL</option>
+                            <option value="IS NOT NULL">IS NOT NULL</option>
                         </select>
 
-                        <input 
+                        <input
                             placeholder="value"
                             value={cond.value}
                             onChange={(e) => {
@@ -398,12 +409,11 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                                 setState((prev) => ({ ...prev, where: newWheres }));
                             }}
                             disabled={cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL'}
-                            className={`flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand ${
-                                (cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') ? 'opacity-30' : ''
-                            }`}
+                            className={`flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand ${(cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') ? 'opacity-30' : ''
+                                }`}
                         />
 
-                        <button 
+                        <button
                             onClick={() => {
                                 const newWheres = [...state.where];
                                 newWheres.splice(index, 1);
@@ -416,10 +426,10 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                     </div>
                 ))}
 
-                 {state.where.length === 0 && (
+                {state.where.length === 0 && (
                     <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
-                         <Icon name="filter_alt" size={32} className="mb-2 text-[var(--text-muted)]" />
-                         <p className="text-xs font-medium">No conditions defined yet.</p>
+                        <Icon name="filter_alt" size={32} className="mb-2 text-[var(--text-muted)]" />
+                        <p className="text-xs font-medium">No conditions defined yet.</p>
                     </div>
                 )}
             </div>
@@ -483,7 +493,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Block Alias</label>
-                        <input 
+                        <input
                             value={alias}
                             onChange={e => setAlias(e.target.value)}
                             placeholder="e.g. tree"
@@ -492,7 +502,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Base Table</label>
-                        <select 
+                        <select
                             value={anchorTable}
                             onChange={e => setAnchorTable(e.target.value)}
                             className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
@@ -506,7 +516,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Primary Key (ID)</label>
-                        <select 
+                        <select
                             value={primaryKey}
                             onChange={e => setPrimaryKey(e.target.value)}
                             className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
@@ -517,7 +527,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Parent Reference</label>
-                        <select 
+                        <select
                             value={parentKey}
                             onChange={e => setParentKey(e.target.value)}
                             className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
@@ -530,7 +540,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
 
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Depth Column (Optional)</label>
-                    <input 
+                    <input
                         value={depthColumn}
                         onChange={e => setDepthColumn(e.target.value)}
                         placeholder="e.g. level (leave empty to skip)"
@@ -540,7 +550,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
 
                 <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl">
                     <p className="text-[10px] text-blue-500 font-medium leading-relaxed">
-                        This helper will generate a recursive CTE that joins the table with itself to traverse hierarchical data. 
+                        This helper will generate a recursive CTE that joins the table with itself to traverse hierarchical data.
                         The initial level will be where the parent reference is NULL.
                     </p>
                 </div>
@@ -551,7 +561,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
 
 export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, onClose, onDone, initialSql, onError }) => {
     const { tables, getColumns, loading } = useDatabaseMetadata();
-    
+
     const [fullState, setFullState] = useState<MultiQueryState>({
         ctes: [],
         mainQuery: {
@@ -563,13 +573,28 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     });
 
     const [activeBlockId, setActiveBlockId] = useState('main');
-    const [activeTab, setActiveTab] = useState('tables');
+    const [activeTab, setActiveTab] = useState<'tables' | 'joins' | 'conditions'>('tables');
     const [previewSql, setPreviewSql] = useState('');
+    const [activeDragItem, setActiveDragItem] = useState<any>(null);
+    const [grabOffset, setGrabOffset] = useState({ x: 0, y: 0 });
     const [editingField, setEditingField] = useState<SelectedField | null>(null);
     const [editingCTE, setEditingCTE] = useState<any>(null);
     const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
     const [isRecursiveModalOpen, setIsRecursiveModalOpen] = useState(false);
-    
+
+    // DND Sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+
     // Execution state
     const [isExecuting, setIsExecuting] = useState(false);
     const [queryResults, setQueryResults] = useState<any[]>([]);
@@ -601,7 +626,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             const sql = generateSQL(fullState);
             return { sql, canRun: !!sql.trim() };
         }
-        
+
         const targetCte = fullState.ctes.find(c => c.id === activeBlockId);
         if (!targetCte) return { sql: '', canRun: false };
 
@@ -638,17 +663,17 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 onClose(); // Close modal if parsing fails
             }
         } else if (isOpen) {
-             // Reset to blank when opening without initialSql (or empty)
-             setFullState({
+            // Reset to blank when opening without initialSql (or empty)
+            setFullState({
                 ctes: [],
                 mainQuery: { tables: [], selectedFields: [], joins: [], where: [] }
             });
         }
     }, [isOpen, initialSql, onError]);
-    
+
     const handleExecuteQuery = useCallback(async () => {
         if (isExecuting || !effectiveSql.canRun) return;
-        
+
         setIsExecuting(true);
         try {
             const res = await apiClient.post('/database-metadata/execute', { sql: effectiveSql.sql });
@@ -665,7 +690,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!isOpen) return;
-            
+
             if (e.key === 'F5' || e.key === 'F9') {
                 e.preventDefault();
                 e.stopPropagation();
@@ -680,7 +705,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const handleAddTable = (tableName: string, isCte = false) => {
         const existingCount = activeState.tables.filter((t: any) => t.tableName === tableName).length;
         const alias = existingCount === 0 ? tableName : `${tableName}_${existingCount + 1}`;
-        
+
         updateActiveState(prev => ({
             ...prev,
             tables: [...prev.tables, { alias, tableName, isCte }]
@@ -697,12 +722,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }));
     };
 
-    const handleAddField = (field: SelectedField) => {
-        updateActiveState(prev => ({
-            ...prev,
-            selectedFields: [...prev.selectedFields, field]
-        }));
-    };
+
 
     const handleRemoveField = (id: string) => {
         updateActiveState(prev => ({
@@ -715,7 +735,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         updateActiveState(prev => {
             const oldIndex = prev.tables.findIndex(t => t.alias === activeId);
             const newIndex = prev.tables.findIndex(t => t.alias === overId);
-            
+
             if (oldIndex !== -1 && newIndex !== -1) {
                 return {
                     ...prev,
@@ -726,12 +746,144 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         });
     };
 
+    const handleMoveField = (activeId: string, overId: string) => {
+        updateActiveState(prev => {
+            const oldIndex = prev.selectedFields.findIndex(f => f.id === activeId);
+            const newIndex = prev.selectedFields.findIndex(f => f.id === overId);
+
+            if (oldIndex !== -1 && newIndex !== -1) {
+                return {
+                    ...prev,
+                    selectedFields: arrayMove(prev.selectedFields, oldIndex, newIndex)
+                };
+            }
+            return prev;
+        });
+    };
+
+    const handleGlobalDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveDragItem(null);
+
+        const activeId = active.id as string;
+        const overId = over?.id as string;
+
+        // Case 1: Dragging an existing field
+        const isDraggingExistingField = activeState.selectedFields.some(f => f.id === activeId);
+        if (isDraggingExistingField) {
+            // Field removal: if dropped outside the fields area
+            const isOverFieldsArea = overId && (
+                overId === 'selected-fields-drop-zone' ||
+                activeState.selectedFields.some(f => f.id === overId)
+            );
+
+            if (!isOverFieldsArea) {
+                handleRemoveField(activeId);
+                return;
+            }
+
+            // Field reordering
+            if (overId && activeId !== overId && overId !== 'selected-fields-drop-zone') {
+                handleMoveField(activeId, overId);
+            }
+            return;
+        }
+
+        // Case 2: Adding a field from a table
+        if (activeId.startsWith('source-field:')) {
+            if (!overId) return;
+
+            const isOverFieldsArea = overId === 'selected-fields-drop-zone' ||
+                activeState.selectedFields.some(f => f.id === overId);
+
+            if (isOverFieldsArea) {
+                const [, tableAlias, columnName] = activeId.split(':');
+                const newField: SelectedField = {
+                    id: `${tableAlias}_${columnName}_${Date.now()}`,
+                    tableAlias,
+                    columnName
+                };
+
+                updateActiveState(prev => {
+                    const overIndex = prev.selectedFields.findIndex(f => f.id === overId);
+                    const newFields = [...prev.selectedFields];
+                    if (overIndex !== -1) {
+                        newFields.splice(overIndex, 0, newField);
+                    } else {
+                        newFields.push(newField);
+                    }
+                    return { ...prev, selectedFields: newFields };
+                });
+            }
+            return;
+        }
+
+        // Case 3: Reordering Tables OR Adding All Columns
+        if (activeState.tables.some(t => t.alias === activeId)) {
+            const isOverFieldsArea = overId && (
+                overId === 'selected-fields-drop-zone' ||
+                activeState.selectedFields.some(f => f.id === overId)
+            );
+
+            if (isOverFieldsArea) {
+                const table = activeState.tables.find(t => t.alias === activeId);
+                if (table) {
+                    handleAddAllTableColumns(table.alias, table.tableName);
+                }
+                return;
+            }
+
+            if (overId && activeState.tables.some(t => t.alias === overId) && activeId !== overId) {
+                handleMoveTable(activeId, overId);
+            }
+            return;
+        }
+    };
+
+    const handleAddAllTableColumns = async (tableAlias: string, tableName: string) => {
+        const columns = await getColumns(tableName);
+        updateActiveState(prev => {
+            const existingFieldColumns = new Set(
+                prev.selectedFields
+                    .filter(f => f.tableAlias === tableAlias)
+                    .map(f => f.columnName)
+            );
+
+            const newFields: SelectedField[] = columns
+                .filter(col => !existingFieldColumns.has(col.name))
+                .map(col => ({
+                    id: `${tableAlias}_${col.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    tableAlias,
+                    columnName: col.name
+                }));
+
+            return {
+                ...prev,
+                selectedFields: [...prev.selectedFields, ...newFields]
+            };
+        });
+    };
+
+    const handleGlobalDragStart = (event: any) => {
+        const { active, activatorEvent } = event;
+        setActiveDragItem(active);
+
+        // Calculate where on the element we grabbed it
+        const rect = active.rect.current.initial;
+        if (rect && activatorEvent) {
+            setGrabOffset({
+                x: (activatorEvent as MouseEvent).clientX - rect.left,
+                y: (activatorEvent as MouseEvent).clientY - rect.top
+            });
+        }
+    };
+
     const handleAddCTE = (isRecursive = false, config?: any) => {
         const id = editingCTE ? editingCTE.id : `cte_${Date.now()}`;
         const alias = config?.alias || `tab${fullState.ctes.length + 1}`;
-        
+
         let state: QueryState = editingCTE ? editingCTE.state : { tables: [], selectedFields: [], joins: [], where: [] };
-        
+
         if (isRecursive && config && !editingCTE) {
             // Pre-fill state for NEW recursive CTE
             state = {
@@ -757,30 +909,30 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             if (editingCTE) {
                 return {
                     ...prev,
-                    ctes: prev.ctes.map(c => c.id === id ? { 
-                        ...c, 
-                        alias, 
-                        isRecursive, 
-                        recursiveConfig: config 
+                    ctes: prev.ctes.map(c => c.id === id ? {
+                        ...c,
+                        alias,
+                        isRecursive,
+                        recursiveConfig: config
                     } : c)
                 };
             }
             return {
                 ...prev,
-                ctes: [...prev.ctes, { 
-                    id, 
-                    alias, 
+                ctes: [...prev.ctes, {
+                    id,
+                    alias,
                     state,
                     isRecursive,
                     recursiveConfig: isRecursive ? config : undefined
                 }]
             };
         });
-        
+
         if (!editingCTE) {
             setActiveBlockId(id);
         }
-        
+
         setIsAddMenuOpen(false);
         setEditingCTE(null);
     };
@@ -792,7 +944,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             if (activeBlockId === id) {
                 setActiveBlockId('main');
             }
-            
+
             // Also need to remove this CTE as a virtual table from ANY other block
             const cleanupBlock = (s: QueryState): QueryState => ({
                 ...s,
@@ -809,6 +961,20 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         });
     };
 
+    const dragModifiers = useMemo(() => [
+        (args: any) => {
+            const { transform, draggingNodeRect } = args;
+            const width = draggingNodeRect?.width ?? 120;
+            const height = draggingNodeRect?.height ?? 32;
+
+            return {
+                ...transform,
+                x: transform.x + grabOffset.x - width / 2,
+                y: transform.y + grabOffset.y - height / 2,
+            };
+        }
+    ], [grabOffset]);
+
     if (!isOpen) return null;
 
     return (
@@ -817,7 +983,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 <div className="shrink-0 flex flex-col">
                     <AppHeader
                         onBack={onClose}
-                        onToggleSidebar={() => {}}
+                        onToggleSidebar={() => { }}
                         leftContent={
                             <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-main)]">Query Builder</h2>
                         }
@@ -829,18 +995,17 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                         Executing...
                                     </div>
                                 )}
-                                <button 
+                                <button
                                     onClick={handleExecuteQuery}
                                     disabled={isExecuting || !effectiveSql.canRun}
-                                    className={`px-4 py-2 bg-[var(--bg-alt)] border border-[var(--border-base)] text-brand text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 ${
-                                        (!effectiveSql.canRun && !isExecuting) ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-brand/5'
-                                    }`}
+                                    className={`px-4 py-2 bg-[var(--bg-alt)] border border-[var(--border-base)] text-brand text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 ${(!effectiveSql.canRun && !isExecuting) ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-brand/5'
+                                        }`}
                                     title={!effectiveSql.canRun ? effectiveSql.sql : "Shortcut: F5 or F9"}
                                 >
                                     <Icon name="play_arrow" size={14} />
                                     Run (F5)
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => onDone(previewSql)}
                                     className="px-4 py-2 bg-brand text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all shadow-sm"
                                 >
@@ -864,23 +1029,23 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                             <div className="mb-4">
                                 <div className="px-2 py-1 flex items-center justify-between relative">
                                     <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Query Blocks</h3>
-                                    <button 
-                                        onClick={() => setIsAddMenuOpen(!isAddMenuOpen)} 
+                                    <button
+                                        onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
                                         className={`p-1 rounded-md transition-all ${isAddMenuOpen ? 'bg-brand text-white' : 'hover:bg-brand/10 text-brand'}`}
                                     >
                                         <Icon name="add" size={14} />
                                     </button>
-                                    
+
                                     {isAddMenuOpen && (
                                         <div className="absolute top-full right-0 mt-1 z-50 w-48 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-100">
-                                            <button 
+                                            <button
                                                 onClick={() => handleAddCTE(false)}
                                                 className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-[var(--text-main)] hover:bg-brand/5 transition-all outline-none"
                                             >
                                                 <Icon name="select_window" size={14} className="text-brand" />
                                                 Regular Query
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => {
                                                     setIsAddMenuOpen(false);
                                                     setEditingCTE(null);
@@ -894,12 +1059,11 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                         </div>
                                     )}
                                 </div>
-                                <div 
-                                    className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all ${
-                                        activeBlockId === 'main' 
-                                        ? 'bg-brand/10 border-brand/20 text-brand' 
-                                        : 'hover:bg-brand/5 border-transparent text-[var(--text-muted)]'
-                                    }`}
+                                <div
+                                    className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all ${activeBlockId === 'main'
+                                            ? 'bg-brand/10 border-brand/20 text-brand'
+                                            : 'hover:bg-brand/5 border-transparent text-[var(--text-muted)]'
+                                        }`}
                                     onClick={() => setActiveBlockId('main')}
                                 >
                                     <span className="text-xs font-bold">Main Query</span>
@@ -907,17 +1071,16 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                 </div>
                                 {fullState.ctes.map(cte => (
                                     <div key={cte.id} className="group flex items-center gap-2">
-                                        <div 
-                                            className={`flex-1 flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all ${
-                                                activeBlockId === cte.id 
-                                                ? 'bg-brand/10 border-brand/20 text-brand' 
-                                                : 'hover:bg-brand/5 border-transparent text-[var(--text-muted)]'
-                                            }`}
+                                        <div
+                                            className={`flex-1 flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all ${activeBlockId === cte.id
+                                                    ? 'bg-brand/10 border-brand/20 text-brand'
+                                                    : 'hover:bg-brand/5 border-transparent text-[var(--text-muted)]'
+                                                }`}
                                             onClick={() => setActiveBlockId(cte.id)}
                                         >
                                             <span className="text-xs font-medium">{cte.alias}</span>
                                             {cte.isRecursive && (
-                                                <button 
+                                                <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setEditingCTE(cte);
@@ -931,7 +1094,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             <Icon name="chevron_right" size={14} />
                                         </div>
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                            <button 
+                                            <button
                                                 className="p-1.5 rounded-lg bg-brand/10 text-brand hover:bg-brand/20 transition-all"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -941,7 +1104,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             >
                                                 <Icon name="library_add" size={14} />
                                             </button>
-                                            <button 
+                                            <button
                                                 className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 transition-all"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -964,7 +1127,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                     <div className="p-4 text-xs text-[var(--text-muted)] italic">Loading...</div>
                                 ) : (
                                     tables.map(table => (
-                                        <div 
+                                        <div
                                             key={table}
                                             className="group flex items-center justify-between p-2 rounded-lg hover:bg-brand/5 cursor-pointer border border-transparent hover:border-brand/20 transition-all"
                                             onClick={() => handleAddTable(table)}
@@ -977,65 +1140,115 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Center Content */}
+                <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-app)]">
+                    {/* Block Toolbar */}
+                    <div className="px-6 py-4 border-b border-[var(--border-base)] bg-[var(--bg-app)] flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Icon name={activeBlockId === 'main' ? 'terminal' : 'layers'} size={18} className="text-brand" />
+                            <h2 className="text-sm font-bold text-[var(--text-main)]">{activeBlock.alias}</h2>
+                        </div>
+                    </div>
 
                     {/* Main Content Area */}
                     <div className="flex-1 flex flex-col overflow-hidden">
                         <div className="px-6 border-b border-[var(--border-base)]">
-                            <AppTabs 
+                            <AppTabs
                                 tabs={[
                                     { id: 'tables', label: 'Tables & Selection' },
                                     { id: 'joins', label: 'Joins' },
                                     { id: 'conditions', label: 'Conditions' }
                                 ]}
                                 activeTab={activeTab}
-                                onTabChange={setActiveTab}
+                                onTabChange={(tabId: string) => setActiveTab(tabId as any)}
                             />
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 bg-[var(--bg-app)]">
                             {activeTab === 'tables' && (
-                                <div className="h-full flex gap-6 overflow-hidden">
-                                    <div className="flex-1 flex flex-col min-w-0">
-                                        <SelectedTablesTreeView 
-                                            tables={activeState.tables}
-                                            selectedFields={activeState.selectedFields}
-                                            onAddField={handleAddField}
-                                            onRemoveField={handleRemoveField}
-                                            onRemoveTable={handleRemoveTableAlias}
-                                            onMoveTable={handleMoveTable}
-                                            getColumns={getColumns}
-                                            queryState={fullState}
-                                        />
-                                    </div>
-                                    <div className="flex-1 flex flex-col min-w-0">
-                                        <SelectedFieldsTreeView 
-                                            fields={activeState.selectedFields}
-                                            onEditField={setEditingField}
-                                            onRemoveField={handleRemoveField}
-                                        />
-                                    </div>
+                                <DndContext
+                                    sensors={sensors}
+                                    collisionDetection={closestCenter}
+                                    onDragStart={handleGlobalDragStart}
+                                    onDragEnd={handleGlobalDragEnd}
+                                >
+                                    <DragOverlay
+                                        modifiers={dragModifiers}
+                                        dropAnimation={{
+                                            sideEffects: defaultDropAnimationSideEffects({
+                                                styles: {
+                                                    active: {
+                                                        opacity: '0.4',
+                                                    },
+                                                },
+                                            }),
+                                        }}>
+                                        {activeDragItem ? (
+                                            <div className="bg-brand text-white px-2 py-0.5 rounded shadow-lg text-[10px] font-bold flex items-center gap-1.5 border border-brand/20 animate-in fade-in zoom-in-95 duration-100 pointer-events-none w-fit whitespace-nowrap">
+                                                <Icon name={
+                                                    activeDragItem.id.toString().includes('source-field:') ? 'add' :
+                                                        (activeState.tables.some(t => t.alias === activeDragItem.id) ? 'table_chart' : 'view_column')
+                                                } size={12} />
+                                                <span>
+                                                    {(() => {
+                                                        const id = activeDragItem.id.toString();
+                                                        if (id.startsWith('source-field:')) {
+                                                            const parts = id.split(':');
+                                                            return parts[2] === '*' ? 'All Columns' : parts[2];
+                                                        }
+                                                        const field = activeState.selectedFields.find(f => f.id === id);
+                                                        if (field) return field.alias || field.columnName;
+                                                        const table = activeState.tables.find(t => t.alias === id);
+                                                        if (table) return table.alias;
+                                                        return id;
+                                                    })()}
+                                                </span>
+                                            </div>
+                                        ) : null}
+                                    </DragOverlay>
 
-                                    {activeState.tables.length === 0 && (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40 bg-[var(--bg-app)]/50 pointer-events-none z-10">
-                                            <Icon name="table_chart" size={48} className="mb-4 text-[var(--text-muted)]" />
-                                            <p className="text-sm font-medium">Add a database table or a query block from the sidebar.</p>
+                                    <div className="h-full flex gap-6 overflow-hidden relative">
+                                        <div className="flex-1 flex flex-col min-w-0">
+                                            <SelectedTablesTreeView
+                                                tables={activeState.tables}
+                                                selectedFields={activeState.selectedFields}
+                                                onRemoveTable={handleRemoveTableAlias}
+                                                onMoveTable={handleMoveTable}
+                                                getColumns={getColumns}
+                                                queryState={fullState}
+                                            />
                                         </div>
-                                    )}
-                                </div>
+                                        <div className="flex-1 flex flex-col min-w-0">
+                                            <SelectedFieldsTreeView
+                                                fields={activeState.selectedFields}
+                                                onEditField={setEditingField}
+                                            />
+                                        </div>
+
+                                        {activeState.tables.length === 0 && (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40 bg-[var(--bg-app)]/50 pointer-events-none z-10">
+                                                <Icon name="table_chart" size={48} className="mb-4 text-[var(--text-muted)]" />
+                                                <p className="text-sm font-medium">Add a database table or a query block from the sidebar.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </DndContext>
                             )}
                             {activeTab === 'joins' && (
-                                <JoinsView 
-                                    state={activeState} 
-                                    setState={updateActiveState} 
-                                    getColumns={getColumns} 
+                                <JoinsView
+                                    state={activeState}
+                                    setState={updateActiveState}
+                                    getColumns={getColumns}
                                     queryState={fullState}
                                 />
                             )}
                             {activeTab === 'conditions' && (
-                                <ConditionsView 
-                                    state={activeState} 
-                                    setState={updateActiveState} 
-                                    getColumns={getColumns} 
+                                <ConditionsView
+                                    state={activeState}
+                                    setState={updateActiveState}
+                                    getColumns={getColumns}
                                     queryState={fullState}
                                 />
                             )}
@@ -1078,11 +1291,11 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             >
                 <div className="h-[60vh] flex flex-col">
                     {queryResults.length > 0 ? (
-                    <div className="flex-1 h-full min-h-0">
-                        <AppTabulatorTable 
-                            data={queryResults}
-                        />
-                    </div>
+                        <div className="flex-1 h-full min-h-0">
+                            <AppTabulatorTable
+                                data={queryResults}
+                            />
+                        </div>
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center opacity-40">
                             <Icon name="search_off" size={48} className="mb-4 text-[var(--text-muted)]" />
@@ -1092,7 +1305,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 </div>
             </AppCompactModalForm>
 
-            <FieldExpressionModal 
+            <FieldExpressionModal
                 isOpen={!!editingField}
                 onClose={() => setEditingField(null)}
                 field={editingField}
@@ -1104,7 +1317,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 }}
             />
 
-            <RecursiveCteModal 
+            <RecursiveCteModal
                 isOpen={isRecursiveModalOpen}
                 onClose={() => {
                     setIsRecursiveModalOpen(false);
@@ -1115,6 +1328,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 getColumns={getColumns}
                 initialConfig={editingCTE?.recursiveConfig ? { ...editingCTE.recursiveConfig, alias: editingCTE.alias } : undefined}
             />
+        </div>
         </>
     );
 };
