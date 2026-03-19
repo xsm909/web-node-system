@@ -984,18 +984,16 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             const { transform, active } = args;
             if (!active) return transform;
 
-            // Use the initial rect of the source node, as it's the most stable source of dimensions
-            const initialRect = active.rect.current.initial;
-            const w = initialRect?.width ?? 0;
-            const h = initialRect?.height ?? 0;
+            // Use the initial rect of the source node for height only
+            const h = active.rect.current.initial?.height ?? 0;
             
-            // Center the overlay on the cursor
-            const targetHalfW = w / 2;
+            // Center the overlay relative to its new fixed 200px width
+            const targetHalfW = 100; // 200px / 2
             const targetHalfH = h / 2;
 
             return {
                 ...transform,
-                x: transform.x + grabOffset.x - targetHalfW,
+                x: transform.x + grabOffset.x - targetHalfW + 200,
                 y: transform.y + grabOffset.y - targetHalfH,
             };
         }
@@ -1223,7 +1221,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                                 const isOutside = isExistingField && !isOverFieldsArea;
 
                                                 return (
-                                                    <div className={`group flex items-center gap-3 p-2 rounded-xl border-2 shadow-2xl w-[280px] pointer-events-none transition-all duration-200 ${
+                                                    <div className={`group flex items-center gap-3 p-2 rounded-xl border-2 shadow-2xl w-[200px] pointer-events-none transition-all duration-200 ${
                                                         isOutside 
                                                             ? 'border-red-500 bg-red-500/10 text-red-500 scale-95 opacity-90 backdrop-blur-sm' 
                                                             : 'border-brand/40 bg-[var(--bg-app)] text-[var(--text-main)] scale-100'
