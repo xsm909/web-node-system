@@ -182,13 +182,13 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                         from: stringStartPos + quoteLength,
                         to: stringStartPos + stringPart.length - quoteLength
                     });
-                    setInitialSql(content.trim());
+                    
+                    const trimmedContent = content.trim();
+                    setInitialSql(trimmedContent);
                     setIsQueryBuilderOpen(true);
                 } else {
-                    // No string found, just open empty at cursor
-                    setQueryRange({ from: pos, to: pos });
-                    setInitialSql("");
-                    setIsQueryBuilderOpen(true);
+                    // Case 2: Not on a string
+                    handleQueryBuilderError("select query: Please place cursor inside a SQL query string.");
                 }
 
                 return true;
@@ -197,8 +197,10 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     ], []);
 
     const handleQueryBuilderError = (error: string) => {
-        setConsoleOutput(prev => `[SQL PARSE ERROR] ${error}\n${prev}`);
+        const errorMsg = `[SQL PARSE ERROR] ${error}`;
+        setConsoleOutput(errorMsg); // Clear and show only the fresh error
         setActiveOutputTab('console');
+        console.error(errorMsg);
     };
 
     const combinedPythonExtensions = useMemo(() => [
@@ -638,7 +640,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                             log={{
                                                 timestamp: new Date().toISOString(),
                                                 message: line,
-                                                level: line.startsWith('[VALIDATION FAILED]') ? 'error' : 'info'
+                                                level: (line.startsWith('[VALIDATION FAILED]') || line.startsWith('[SQL PARSE ERROR]')) ? 'error' : 'info'
                                             }}
                                         />
                                     ))

@@ -15,17 +15,35 @@ export const parseSQL = (sql: string): MultiQueryState => {
 
     try {
         const normalizedSql = sql.trim().replace(/\s+/g, ' ');
+        const upperSql = normalizedSql.toUpperCase();
+
+        // Reject unsupported commands
+        const unsupportedKeywords = ['EXPLAIN', 'UPDATE', 'DELETE', 'INSERT', 'DROP', 'CREATE', 'ALTER', 'TRUNCATE'];
+        for (const kw of unsupportedKeywords) {
+            if (upperSql.startsWith(kw)) {
+                throw new Error(`syntax error at or near "${kw}"`);
+            }
+        }
         
         // Handle CTEs (WITH clause)
-        if (normalizedSql.toUpperCase().startsWith('WITH ')) {
-            const withMatch = sql.match(/WITH\s+(.+?)\s+SELECT/is);
+        if (upperSql.startsWith('WITH ')) {
+            const withMatch = sql.match(/WITH\s+([\s\S]+?)\s+(SELECT[\s\S]+)/i);
             if (withMatch) {
                 const ctesContent = withMatch[1];
+                const mainQueryContent = withMatch[2];
+                
                 // Simple regex to find CTE definitions: name AS ( content )
-                // Note: This matches nested parentheses by counting or using a simple heuristic
-                const cteRegex = /(\w+)\s+AS\s*\(\s*(.+?)\s*\)(?:,|$)/gis;
+                const cteRegex = /(\w+)\s+AS\s*\(\s*([\s\S]+?)\s*\)/gis;
+                let lastIndex = 0;
                 let cteMatch;
+                
                 while ((cteMatch = cteRegex.exec(ctesContent)) !== null) {
+                    // Check for stray text between last match and this one
+                    const strayText = ctesContent.substring(lastIndex, cteMatch.index).trim();
+                    if (strayText !== "" && strayText !== ",") {
+                         throw new Error(`Syntax error near "${strayText.split(/\s+/)[0]}"`);
+                    }
+                    
                     const alias = cteMatch[1];
                     const content = cteMatch[2];
                     state.ctes.push({
@@ -33,11 +51,19 @@ export const parseSQL = (sql: string): MultiQueryState => {
                         alias,
                         state: parseBlock(content)
                     });
+                    
+                    lastIndex = cteRegex.lastIndex;
                 }
                 
-                // Parse main query
-                const mainQueryContent = sql.slice(sql.toUpperCase().lastIndexOf('SELECT'));
+                // Check for stray text after last CTE match
+                const remainingText = ctesContent.substring(lastIndex).trim();
+                if (remainingText !== "" && remainingText !== ",") {
+                    throw new Error(`Syntax error near "${remainingText.split(/\s+/)[0]}"`);
+                }
+                
                 state.mainQuery = parseBlock(mainQueryContent);
+            } else {
+                throw new Error('syntax error at or near "WITH"');
             }
         } else {
             state.mainQuery = parseBlock(sql);
@@ -45,7 +71,10 @@ export const parseSQL = (sql: string): MultiQueryState => {
 
         return state;
     } catch (err: any) {
-        throw new Error(`Failed to parse SQL: ${err.message}`);
+        if (err.message.includes('syntax error')) {
+            throw err;
+        }
+        throw new Error(`syntax error: ${err.message}`);
     }
 };
 
@@ -59,9 +88,11 @@ const parseBlock = (sql: string): QueryState => {
 
     const upperSql = sql.toUpperCase();
     
-    // 1. FROM clause (to get tables and aliases)
+    const selectIndex = upperSql.indexOf('SELECT');
+    if (selectIndex === -1) throw new Error('syntax error: Missing SELECT');
+    
     const fromIndex = upperSql.indexOf('FROM');
-    if (fromIndex === -1) throw new Error('Missing FROM clause');
+    if (fromIndex === -1) throw new Error('syntax error: Missing FROM clause');
     
     // Find where FROM ends and the next part starts (JOIN, WHERE, GROUP BY, ORDER BY, or end)
     const nextKeywords = ['JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT'];
@@ -84,7 +115,6 @@ const parseBlock = (sql: string): QueryState => {
     }
 
     // 2. SELECT clause (fields)
-    const selectIndex = upperSql.indexOf('SELECT');
     const selectContent = sql.substring(selectIndex + 6, fromIndex).trim();
     
     // Split by comma, but be careful of commas inside function calls
@@ -117,6 +147,7 @@ const parseBlock = (sql: string): QueryState => {
         }
 
         // Match "expression AS alias" or just "expression"
+        // Improved to detect stray text
         const aliasMatch = field.match(/(.+?)\s+AS\s+(\w+)$/i) || field.match(/(.+?)\s+(\w+)$/i);
         let expr = field;
         let alias: string | undefined = undefined;
@@ -124,11 +155,28 @@ const parseBlock = (sql: string): QueryState => {
         if (aliasMatch) {
             const potentialExpr = aliasMatch[1];
             const potentialAlias = aliasMatch[2];
-            const keywords = ['FROM', 'WHERE', 'JOIN', 'ON', 'GROUP', 'ORDER', 'LIMIT', 'SELECT'];
+            const keywords = ['FROM', 'WHERE', 'JOIN', 'ON', 'GROUP', 'ORDER', 'LIMIT', 'SELECT', 'WITH'];
+            
             if (!keywords.includes(potentialAlias.toUpperCase())) {
+                // If the potential expression itself has spaces and no special chars like (
+                // it's likely a syntax error rather than a complex expression
+                // Exception: if it's just "*", it shouldn't have an alias in this way in our builder
+                if (potentialExpr.includes(' ') && !potentialExpr.includes('(')) {
+                     throw new Error(`syntax error at or near "${potentialExpr.split(/\s+/).pop()}"`);
+                }
                 expr = potentialExpr;
                 alias = potentialAlias;
             }
+        }
+
+        // If it's just a single field without AS, and it has spaces but no functions
+        if (!alias && field.includes(' ') && !field.includes('(')) {
+             throw new Error(`syntax error at or near "${field.trim().split(/\s+/)[1]}"`);
+        }
+        
+        // Special case: * followed by anything in the same field is a syntax error
+        if (field.includes('*') && field.trim() !== '*' && !field.includes('(')) {
+            throw new Error(`syntax error at or near "*"`);
         }
 
         // Now parse expr to see if it's a simple column (table.col) or a complex expression

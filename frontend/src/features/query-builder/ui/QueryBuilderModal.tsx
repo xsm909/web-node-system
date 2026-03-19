@@ -61,15 +61,14 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         if (isOpen && initialSql && initialSql.trim() !== "") {
             try {
                 const parsedState = parseSQL(initialSql);
+                if (parsedState.mainQuery.tables.length === 0 && initialSql.trim().length > 0) {
+                    throw new Error("Could not identify tables in the provided SQL. Please ensure it follows a standard SELECT ... FROM ... format.");
+                }
                 setFullState(parsedState);
             } catch (err: any) {
                 console.error("SQL Parse Error:", err);
-                onError?.(err.message);
-                // Optionally start with blank state if parse fails
-                setFullState({
-                    ctes: [],
-                    mainQuery: { tables: [], selectedFields: [], joins: [], where: [] }
-                });
+                onError?.(err.message || 'Unknown parsing error');
+                onClose(); // Close modal if parsing fails
             }
         } else if (isOpen) {
              // Reset to blank when opening without initialSql (or empty)
