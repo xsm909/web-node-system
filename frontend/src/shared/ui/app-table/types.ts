@@ -29,6 +29,9 @@ export interface AppTableConfig<TData> {
     
     rowClassName?: (item: TData) => string;
     indentColumnId?: string;
+
+    // Layout options
+    layout?: 'auto' | 'fixed' | 'compact'; 
 }
 
 export interface AppTableProps<TData> {

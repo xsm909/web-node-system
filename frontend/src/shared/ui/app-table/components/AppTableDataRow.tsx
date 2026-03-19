@@ -32,10 +32,16 @@ export function AppTableDataRow<TData>({ row, onClick, level = 0, config }: AppT
                 return (
                     <td
                         key={cell.id}
-                        className={`py-2 text-sm ${isFirstCell ? 'w-px whitespace-nowrap pl-4 pr-0' : 'px-6'}`}
+                        className={`
+                            text-sm transition-all
+                            ${isFirstCell ? 'w-px whitespace-nowrap pl-4 pr-0' : 'px-6'}
+                            ${config?.layout === 'compact' ? 'whitespace-nowrap overflow-hidden text-ellipsis max-w-[300px] h-10 py-0' : 'py-2'}
+                        `}
                         style={isIndentCell && level > 0 ? { paddingLeft: `${1 + level * 1}rem` } : undefined}
                     >
-                        {cellContent}
+                        <div className={config?.layout === 'compact' ? 'truncate h-full flex items-center' : ''}>
+                            {cellContent}
+                        </div>
                     </td>
                 );
             })}

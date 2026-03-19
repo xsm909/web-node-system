@@ -1082,7 +1082,8 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                 }
                             }))}
                             config={{
-                                emptyMessage: "Query returned no results."
+                                emptyMessage: "Query returned no results.",
+                                layout: 'compact'
                             }}
                         />
                     ) : (

@@ -57,9 +57,9 @@ export function AppTable<TData>({
     }, [table.getRowModel().rows, isSearching, config?.categoryExtractor]);
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 w-full animate-in fade-in duration-300">
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse">
+        <div className="flex flex-col flex-1 min-h-0 w-full animate-in fade-in duration-300 overflow-hidden">
+            <div className="flex-1 overflow-auto custom-scrollbar">
+                <table className={`w-full text-left border-collapse ${config?.layout === 'compact' ? 'min-w-max' : ''}`}>
                     <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-brand/20">
                         {table.getHeaderGroups().map(headerGroup => (
                             <tr key={headerGroup.id} className="bg-brand">
