@@ -61,11 +61,33 @@ The generator uses a two-pass approach:
     - Generates the standard `SELECT ... FROM ... JOIN ... WHERE` SQL for the `mainQuery` block.
     - References CTE aliases just like regular tables.
 
-## 5. UI Components
+## 6. F1 Integration (Python Editor)
 
-- **Sidebar**: Toggle between "Main Query" and "Query Blocks". 
-- **ColumnSelect**: Smart component that checks if a table alias points to a database table or a CTE to provide the correct column list.
-- **TableSelectionView**: Displays "AS alias" when it differs from the table name. Handles field selection from both physical and virtual tables.
+Users can invoke the Query Builder directly from the Python code editor:
+- **Shortcut**: `F1`
+- **Detection**: Automatically identifies SQL strings wrapped in triple quotes (`"""`, `'''`) or single/double quotes, including variable assignments (e.g., `query = """SELECT..."""`).
+- **Insertion**: When "Ready" is clicked, the generated SQL replaces the selected string, maintaining current indentation levels.
+
+## 7. Heuristic SQL Parser
+
+The system includes a custom heuristic parser ([sqlParser.ts](file:///Users/Shared/Work/Web/web-node-system/frontend/src/features/query-builder/lib/sqlParser.ts)) to convert SQL strings back into the builder's state:
+- **CTE Support**: Recursively parses `WITH` clauses and maps them to separate Query Blocks.
+- **Strict Syntax Checking**: Detects stray text between clauses and malformed structures, reporting them as PostgreSQL-style syntax errors.
+- **Unsupported Commands**: Explicitly rejects `EXPLAIN`, `UPDATE`, `DELETE`, etc., to prevent data corruption or visualization issues.
+
+## 8. Selection & Expressions
+
+The field selection UI ([QueryBuilderModal.tsx](file:///Users/Shared/Work/Web/web-node-system/frontend/src/features/query-builder/ui/QueryBuilderModal.tsx)) has been enhanced for productivity:
+- **Compact View**: Columns are displayed in a space-efficient vertical list.
+- **Select All (*)**: Quick toggle for selecting all columns of a table.
+- **Custom Expressions**: Support for wrapping fields in SQL functions (e.g., `UPPER(u.name)`) or defining raw SQL expressions.
+- **Aliasing**: Every selected field can have a custom `AS` alias defined directly in the UI.
+
+## 9. Error Reporting
+
+Errors encountered during parsing are reported through the **Editor Console**:
+- **Format**: `[SQL PARSE ERROR] syntax error at or near "<token>"`
+- **Behavior**: The console is automatically cleared and focused upon error. The Query Builder modal will not open if the initial parsing fails, ensuring the user sees the error context immediately.
 
 ---
-*Last Updated: 2026-03-18*
+*Last Updated: 2026-03-19*
