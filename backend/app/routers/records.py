@@ -41,8 +41,17 @@ def create_record(
         if not is_valid:
             raise HTTPException(status_code=400, detail=f"Validation error: {err_msg}")
 
-    # Automatic order assignment for child records
+    # Automatic order assignment and entity inheritance for child records
+    entity_id = record_in.entity_id
+    entity_type = record_in.entity_type
+    
     if record_in.parent_id:
+        parent = db.query(Record).filter(Record.id == record_in.parent_id).first()
+        if parent:
+            # Always inherit entity context from parent to ensure root ownership
+            entity_id = parent.entity_id
+            entity_type = parent.entity_type
+            
         max_order = db.query(func.max(Record.order)).filter(Record.parent_id == record_in.parent_id).scalar() or 0
         order = max_order + 1
     else:
@@ -51,8 +60,8 @@ def create_record(
     new_record = Record(
         schema_id=record_in.schema_id,
         parent_id=record_in.parent_id,
-        entity_id=record_in.entity_id,
-        entity_type=record_in.entity_type,
+        entity_id=entity_id,
+        entity_type=entity_type,
         data=record_in.data,
         order=order,
         lock=record_in.lock
