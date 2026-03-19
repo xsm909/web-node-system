@@ -93,32 +93,32 @@ const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, query
     };
 
     useEffect(() => {
-        if (isExpanded && columns.length === 0) {
-            setLoading(true);
-            const cte = queryState.ctes.find((c: any) => c.alias === table.tableName);
-            if (cte) {
-                const cteCols = cte.state.selectedFields.map((f: any) => ({
-                    name: f.alias || f.columnName || '',
-                    type: 'CTE'
-                }));
-                
-                if (cte.isRecursive && cte.recursiveConfig?.depthColumn) {
-                    cteCols.push({
-                        name: cte.recursiveConfig.depthColumn,
-                        type: 'CTE-Depth'
-                    });
-                }
-                
-                setColumns(cteCols);
-                setLoading(false);
-            } else {
-                getColumns(table.tableName).then((cols: any) => {
-                    setColumns(cols);
-                    setLoading(false);
+        if (!isExpanded) return;
+
+        setLoading(true);
+        const cte = queryState.ctes.find((c: any) => c.alias === table.tableName);
+        if (cte) {
+            const cteCols = cte.state.selectedFields.map((f: any) => ({
+                name: f.alias || f.columnName || '',
+                type: 'CTE'
+            }));
+            
+            if (cte.isRecursive && cte.recursiveConfig?.depthColumn) {
+                cteCols.push({
+                    name: cte.recursiveConfig.depthColumn,
+                    type: 'CTE-Depth'
                 });
             }
+            
+            setColumns(cteCols);
+            setLoading(false);
+        } else {
+            getColumns(table.tableName).then((cols: any) => {
+                setColumns(cols);
+                setLoading(false);
+            });
         }
-    }, [isExpanded, table.tableName, getColumns, queryState.ctes, columns.length]);
+    }, [isExpanded, table.tableName, getColumns, queryState.ctes]);
 
     const isAllSelected = selectedFields.some((f: any) => f.columnName === '*');
 

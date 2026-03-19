@@ -589,6 +589,42 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
     );
 };
 
+interface RenameModalContentProps {
+    initialValue: string;
+    onSave: (val: string) => void;
+    onCancel: () => void;
+}
+
+const RenameModalContent: React.FC<RenameModalContentProps> = ({ initialValue, onSave, onCancel }) => {
+    const [val, setVal] = useState(initialValue);
+    return (
+        <div className="p-2 space-y-4">
+            <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">New Name</label>
+                <input
+                    autoFocus
+                    value={val}
+                    onChange={e => setVal(e.target.value)}
+                    onKeyDown={e => {
+                        if (e.key === 'Enter') onSave(val);
+                        if (e.key === 'Escape') onCancel();
+                    }}
+                    placeholder="e.g. MyBlock"
+                    className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
+                />
+                <div className="flex justify-end pt-4">
+                    <button 
+                        onClick={() => onSave(val)}
+                        className="px-4 py-2 bg-brand text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all shadow-sm"
+                    >
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, onClose, onDone, initialSql, onError }) => {
     const { tables, getColumns, loading } = useDatabaseMetadata();
 
@@ -618,6 +654,8 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [cteToDelete, setCteToDelete] = useState<{ id: string, alias: string } | null>(null);
     const addButtonRef = useRef<HTMLButtonElement>(null);
     const [addAnchorRect, setAddAnchorRect] = useState<DOMRect | null>(null);
+    const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+    const [cteToRename, setCteToRename] = useState<{ id: string, alias: string } | null>(null);
 
     // DND Sensors
     const sensors = useSensors(
@@ -1080,6 +1118,93 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }
     };
 
+    const handleRenameCTE = (id: string, newAlias: string) => {
+        const trimmedAlias = newAlias.trim();
+        
+        // Validation
+        if (!trimmedAlias) {
+            setIsRenameModalOpen(false);
+            return;
+        }
+
+        const oldCte = fullState.ctes.find(c => c.id === id);
+        if (!oldCte) return;
+
+        if (trimmedAlias === oldCte.alias) {
+            setIsRenameModalOpen(false);
+            return;
+        }
+
+        // Check if alias already exists in other CTEs
+        const exists = fullState.ctes.some(c => c.id !== id && c.alias.toLowerCase() === trimmedAlias.toLowerCase());
+        if (exists) {
+            onError?.(`CTE alias "${trimmedAlias}" already exists.`);
+            setIsRenameModalOpen(false);
+            return;
+        }
+
+        // Valid identifier check
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmedAlias)) {
+            onError?.('Invalid alias name. Use only letters, numbers, and underscores, starting with a letter or underscore.');
+            setIsRenameModalOpen(false);
+            return;
+        }
+
+        setFullState(prev => {
+            const oldAlias = oldCte.alias;
+            
+            // 1. Update the CTE itself
+            const updatedCtes = prev.ctes.map(c => 
+                c.id === id ? { ...c, alias: trimmedAlias } : c
+            );
+
+            // 2. Helper to update references in a QueryState
+            const updateRefs = (state: QueryState): QueryState => ({
+                ...state,
+                tables: state.tables.map(t => {
+                    // Update if tableName matches (it's the source)
+                    const isOldTarget = t.tableName === oldAlias;
+                    if (isOldTarget) {
+                        return { 
+                            ...t, 
+                            tableName: trimmedAlias, 
+                            // Update alias only if it was matching the old tableName
+                            alias: t.alias === oldAlias ? trimmedAlias : t.alias 
+                        };
+                    }
+                    return t;
+                }),
+                selectedFields: state.selectedFields.map(f => 
+                    f.tableAlias === oldAlias ? { ...f, tableAlias: trimmedAlias } : f
+                ),
+                joins: state.joins.map(j => ({
+                    ...j,
+                    leftTableAlias: j.leftTableAlias === oldAlias ? trimmedAlias : j.leftTableAlias,
+                    rightTableAlias: j.rightTableAlias === oldAlias ? trimmedAlias : j.rightTableAlias
+                })),
+                where: state.where.map(w => 
+                    w.tableAlias === oldAlias ? { ...w, tableAlias: trimmedAlias } : w
+                )
+            });
+
+            // 3. Update all blocks (Regular + Recursive configs)
+            return {
+                ctes: updatedCtes.map(c => {
+                    let nextCte = { ...c, state: updateRefs(c.state) };
+                    // If this CTE is recursive and its anchor was the renamed CTE
+                    if (nextCte.isRecursive && nextCte.recursiveConfig?.anchorTable === oldAlias) {
+                        nextCte.recursiveConfig = { ...nextCte.recursiveConfig, anchorTable: trimmedAlias };
+                    }
+                    return nextCte;
+                }),
+                mainQuery: updateRefs(prev.mainQuery)
+            };
+        });
+        
+        setIsRenameModalOpen(false);
+        setCteToRename(null);
+    };
+
     const dragModifiers = useMemo(() => [
         (args: any) => {
             const { transform, active } = args;
@@ -1319,6 +1444,10 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                             <div key={cte.id} className="relative group">
                                 <button
                                     onClick={() => setActiveBlockId(cte.id)}
+                                    onDoubleClick={() => {
+                                        setCteToRename({ id: cte.id, alias: cte.alias });
+                                        setIsRenameModalOpen(true);
+                                    }}
                                     className={`px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all border-t-2 border-x border-b-0 rounded-t-xl -mb-[1px] flex items-center gap-2 whitespace-nowrap pr-8 ${
                                         activeBlockId === cte.id
                                             ? 'bg-[var(--bg-app)] border-[var(--border-base)] text-brand border-t-brand'
@@ -1550,6 +1679,32 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     <p className="text-xs text-[var(--text-main)] mb-1">Are you sure you want to delete query block <span className="font-bold text-brand">{cteToDelete?.alias}</span>?</p>
                     <p className="text-[10px] text-[var(--text-muted)] italic">This action cannot be undone and will remove all tables and joins within this block.</p>
                 </div>
+            </AppCompactModalForm>
+
+            <AppCompactModalForm
+                isOpen={isRenameModalOpen}
+                onClose={() => {
+                    setIsRenameModalOpen(false);
+                    setCteToRename(null);
+                }}
+                onSubmit={() => {
+                    // Handled by the RenameForm's internal submission
+                }}
+                title="Rename Query Block"
+                icon="edit"
+                submitLabel="" // Empty string instead of null to fix lint, we use custom button below
+                cancelLabel="Cancel"
+            >
+                {cteToRename && (
+                    <RenameModalContent 
+                        initialValue={cteToRename.alias}
+                        onSave={(newVal) => handleRenameCTE(cteToRename.id, newVal)}
+                        onCancel={() => {
+                            setIsRenameModalOpen(false);
+                            setCteToRename(null);
+                        }}
+                    />
+                )}
             </AppCompactModalForm>
         </div>
     );
