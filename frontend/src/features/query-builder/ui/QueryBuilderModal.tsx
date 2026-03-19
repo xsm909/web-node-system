@@ -612,14 +612,6 @@ const RenameModalContent: React.FC<RenameModalContentProps> = ({ initialValue, o
                     placeholder="e.g. MyBlock"
                     className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
                 />
-                <div className="flex justify-end pt-4">
-                    <button 
-                        onClick={() => onSave(val)}
-                        className="px-4 py-2 bg-brand text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all shadow-sm"
-                    >
-                        Save Changes
-                    </button>
-                </div>
             </div>
         </div>
     );
@@ -1130,7 +1122,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         const oldCte = fullState.ctes.find(c => c.id === id);
         if (!oldCte) return;
 
-        if (trimmedAlias === oldCte.alias) {
+        const oldAlias = oldCte.alias;
+
+        if (trimmedAlias === oldAlias) {
             setIsRenameModalOpen(false);
             return;
         }
@@ -1151,8 +1145,6 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }
 
         setFullState(prev => {
-            const oldAlias = oldCte.alias;
-            
             // 1. Update the CTE itself
             const updatedCtes = prev.ctes.map(c => 
                 c.id === id ? { ...c, alias: trimmedAlias } : c
@@ -1688,11 +1680,11 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     setCteToRename(null);
                 }}
                 onSubmit={() => {
-                    // Handled by the RenameForm's internal submission
+                    // Logic handled by RenameModalContent internal onSave
                 }}
                 title="Rename Query Block"
                 icon="edit"
-                submitLabel="" // Empty string instead of null to fix lint, we use custom button below
+                submitLabel="OK"
                 cancelLabel="Cancel"
             >
                 {cteToRename && (
