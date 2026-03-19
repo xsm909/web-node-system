@@ -25,14 +25,7 @@ import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/A
 import { apiClient } from '../../../shared/api/client';
 import { AppTabulatorTable } from '../../../shared/ui/app-tabulator-table/AppTabulatorTable';
 
-const copyToClipboard = async (text: string) => {
-    try {
-        await navigator.clipboard.writeText(text);
-        alert('Copied to clipboard!');
-    } catch (err) {
-        console.error('Failed to copy!', err);
-    }
-};
+// Note: copyToClipboard is now handled inside QueryBuilderModal component to manage local state feedback
 
 // --- Internal Helper Components ---
 
@@ -583,6 +576,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [isRecursiveModalOpen, setIsRecursiveModalOpen] = useState(false);
     const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
     const [overId, setOverId] = useState<string | null>(null);
+    const [isCopied, setIsCopied] = useState(false);
 
     // DND Sensors
     const sensors = useSensors(
@@ -703,6 +697,22 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         window.addEventListener('keydown', handleKeyDown, true);
         return () => window.removeEventListener('keydown', handleKeyDown, true);
     }, [isOpen, handleExecuteQuery]);
+
+    const handleCopyResults = async () => {
+        try {
+            const text = JSON.stringify(queryResults, null, 2);
+            await navigator.clipboard.writeText(text);
+            setIsCopied(true);
+            
+            // Auto-close after 0.6s as requested
+            setTimeout(() => {
+                setIsResultsOpen(false);
+                setIsCopied(false);
+            }, 600);
+        } catch (err) {
+            console.error('Failed to copy!', err);
+        }
+    };
 
     const handleAddTable = (tableName: string, isCte = false) => {
         const existingCount = activeState.tables.filter((t: any) => t.tableName === tableName).length;
@@ -1337,11 +1347,11 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             <AppCompactModalForm
                 isOpen={isResultsOpen}
                 onClose={() => setIsResultsOpen(false)}
-                onSubmit={() => copyToClipboard(JSON.stringify(queryResults, null, 2))}
+                onSubmit={handleCopyResults}
                 title="Query Results"
                 icon="table_chart"
                 width="max-w-7xl"
-                submitLabel="Copy Result"
+                submitLabel={isCopied ? 'Copied' : 'Copy Result'}
                 cancelLabel="Close"
             >
                 <div className="h-[60vh] flex flex-col">
@@ -1349,6 +1359,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         <div className="flex-1 h-full min-h-0">
                             <AppTabulatorTable
                                 data={queryResults}
+                                maxWidth={600}
                             />
                         </div>
                     ) : (

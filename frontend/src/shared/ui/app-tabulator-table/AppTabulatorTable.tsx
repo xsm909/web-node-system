@@ -7,12 +7,14 @@ interface AppTabulatorTableProps {
     data: any[];
     columns?: any[];
     height?: string | number;
+    maxWidth?: number;
 }
 
 export const AppTabulatorTable: React.FC<AppTabulatorTableProps> = ({ 
     data, 
     columns: manualColumns, 
-    height = "100%" 
+    height = "100%",
+    maxWidth
 }) => {
     const tableRef = useRef<HTMLDivElement>(null);
     const tabulatorInstance = useRef<Tabulator | null>(null);
@@ -37,7 +39,8 @@ export const AppTabulatorTable: React.FC<AppTabulatorTableProps> = ({
             formatter: formatter,
             headerSort: true,
             resizable: true,
-            minWidth: 100
+            minWidth: 100,
+            maxWidth: maxWidth
         })) : []);
 
         const table = new Tabulator(tableRef.current, {
@@ -64,6 +67,7 @@ export const AppTabulatorTable: React.FC<AppTabulatorTableProps> = ({
                 tooltip: true,
                 headerSort: true,
                 formatter: formatter,
+                maxWidth: maxWidth
             },
             placeholder: "No data available",
         });
