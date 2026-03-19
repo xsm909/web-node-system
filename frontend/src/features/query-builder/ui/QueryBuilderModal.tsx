@@ -9,6 +9,7 @@ import { parseSQL } from '../lib/sqlParser';
 import { SelectedTablesTreeView } from './SelectedTablesTreeView';
 import { SelectedFieldsTreeView } from './SelectedFieldsTreeView';
 import { FieldExpressionModal } from './FieldExpressionModal';
+import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 
 // --- Internal Helper Components ---
 
@@ -74,7 +75,6 @@ interface ViewProps {
 }
 
 const JoinsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryState }) => {
-    // Basic implementation for adding joins
     const addJoin = () => {
         if (state.tables.length < 2) return;
         const newJoin: JoinCondition = {
@@ -101,115 +101,178 @@ const JoinsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryStat
                 </button>
             </div>
             
-            <div className="space-y-4">
+            <div className="rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] overflow-hidden divide-y divide-[var(--border-base)] shadow-sm">
                 {state.joins.map((join, index) => (
-                    <div key={join.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] flex flex-col gap-4 group">
-                        <div className="flex items-center gap-4">
-                            <select 
-                                value={join.type}
-                                onChange={(e) => {
-                                    const newJoins = [...state.joins];
-                                    newJoins[index].type = e.target.value as any;
-                                    setState((prev) => ({ ...prev, joins: newJoins }));
-                                }}
-                                className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:border-brand"
-                            >
-                                <option value="INNER">INNER JOIN</option>
-                                <option value="LEFT">LEFT JOIN</option>
-                                <option value="RIGHT">RIGHT JOIN</option>
-                                <option value="FULL">FULL JOIN</option>
-                            </select>
-
-                            <select 
-                                value={join.rightTableAlias}
-                                onChange={(e) => {
-                                    const newJoins = [...state.joins];
-                                    newJoins[index].rightTableAlias = e.target.value;
-                                    setState((prev) => ({ ...prev, joins: newJoins }));
-                                }}
-                                className="flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
-                            >
-                                {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
-                            </select>
-
-                            <button 
-                                onClick={() => {
-                                    const newJoins = [...state.joins];
-                                    newJoins.splice(index, 1);
-                                    setState((prev) => ({ ...prev, joins: newJoins }));
-                                }}
-                                className="text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all ml-auto"
-                            >
-                                <Icon name="delete" size={16} />
-                            </button>
-                        </div>
-
-                        <div className="flex items-center gap-2 pl-4 border-l-2 border-brand/20">
-                            <span className="text-[var(--text-muted)] font-bold text-[10px] uppercase min-w-[30px]">ON</span>
-                            
-                            <select 
-                                value={join.leftTableAlias}
-                                onChange={(e) => {
-                                    const newJoins = [...state.joins];
-                                    newJoins[index].leftTableAlias = e.target.value;
-                                    setState((prev) => ({ ...prev, joins: newJoins }));
-                                }}
-                                className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-1.5 text-xs outline-none focus:border-brand min-w-[120px]"
-                            >
-                                {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
-                            </select>
-                            <span className="text-[var(--text-muted)] font-bold">.</span>
-                            <ColumnSelect 
-                                tableAlias={join.leftTableAlias}
-                                value={join.leftColumn}
-                                onChange={(val: string) => {
-                                    const newJoins = [...state.joins];
-                                    newJoins[index].leftColumn = val;
-                                    setState((prev) => ({ ...prev, joins: newJoins }));
-                                }}
-                                getColumns={getColumns}
-                                queryState={queryState}
-                                state={state}
-                            />
-                            
-                            <span className="text-[var(--text-muted)] font-bold px-2">=</span>
-                            
-                            <select 
-                                value={join.rightTableAlias}
-                                onChange={(e) => {
-                                    const newJoins = [...state.joins];
-                                    newJoins[index].rightTableAlias = e.target.value;
-                                    setState((prev) => ({ ...prev, joins: newJoins }));
-                                }}
-                                className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-1.5 text-xs outline-none focus:border-brand min-w-[120px]"
-                            >
-                                {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
-                            </select>
-                            <span className="text-[var(--text-muted)] font-bold">.</span>
-                            <ColumnSelect 
-                                tableAlias={join.rightTableAlias}
-                                value={join.rightColumn}
-                                onChange={(val: string) => {
-                                    const newJoins = [...state.joins];
-                                    newJoins[index].rightColumn = val;
-                                    setState((prev) => ({ ...prev, joins: newJoins }));
-                                }}
-                                getColumns={getColumns}
-                                queryState={queryState}
-                                state={state}
-                            />
-                        </div>
-                    </div>
+                    <JoinItem 
+                        key={join.id}
+                        join={join}
+                        index={index}
+                        state={state}
+                        setState={setState}
+                        getColumns={getColumns}
+                        queryState={queryState}
+                    />
                 ))}
 
                 {state.joins.length === 0 && (
-                    <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
+                    <div className="py-12 flex flex-col items-center justify-center opacity-40">
                          <Icon name="device_hub" size={32} className="mb-2 text-[var(--text-muted)]" />
                          <p className="text-xs font-medium">No joins defined yet.</p>
                     </div>
                 )}
             </div>
         </div>
+    );
+};
+
+interface JoinItemProps extends ViewProps {
+    join: JoinCondition;
+    index: number;
+}
+
+const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getColumns, queryState }) => {
+    const [isEditOpen, setIsEditOpen] = useState(false);
+
+    const rightTable = state.tables.find(t => t.alias === join.rightTableAlias);
+    const rightTableName = rightTable?.tableName || join.rightTableAlias;
+
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newJoins = [...state.joins];
+        newJoins.splice(index, 1);
+        setState((prev) => ({ ...prev, joins: newJoins }));
+    };
+
+    return (
+        <>
+            <div 
+                onClick={() => setIsEditOpen(true)}
+                className="group flex items-center justify-between p-3 hover:bg-[var(--bg-alt)] transition-all cursor-pointer select-none"
+            >
+                <div className="flex items-center gap-2 font-mono text-[11px]">
+                    <span className="text-brand/70 font-bold">{join.type} JOIN</span>
+                    <span className="text-[var(--text-main)] font-bold">{rightTableName}</span>
+                    <span className="text-brand/50">AS</span>
+                    <span className="text-brand font-bold">{join.rightTableAlias}</span>
+                    <span className="text-brand/50 font-bold">ON</span>
+                    <span className="text-[var(--text-main)] font-bold">{join.leftTableAlias}</span>
+                    <span className="text-[var(--text-muted)]">.</span>
+                    <span className="text-brand font-bold">{join.leftColumn}</span>
+                    <span className="text-brand/50 font-bold">=</span>
+                    <span className="text-[var(--text-main)] font-bold">{join.rightTableAlias}</span>
+                    <span className="text-[var(--text-muted)]">.</span>
+                    <span className="text-brand font-bold">{join.rightColumn}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handleDelete}
+                        className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                        <Icon name="delete" size={14} />
+                    </button>
+                    <Icon name="edit" size={14} className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-all" />
+                </div>
+            </div>
+
+            <AppCompactModalForm
+                isOpen={isEditOpen}
+                onClose={() => setIsEditOpen(false)}
+                onSubmit={() => setIsEditOpen(false)}
+                title="Edit Join"
+                icon="device_hub"
+                width="max-w-2xl"
+            >
+                <div className="space-y-4">
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Join Type</label>
+                        <select 
+                            value={join.type}
+                            onChange={(e) => {
+                                const newJoins = [...state.joins];
+                                newJoins[index].type = e.target.value as any;
+                                setState((prev) => ({ ...prev, joins: newJoins }));
+                            }}
+                            className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-brand"
+                        >
+                            <option value="INNER">INNER JOIN</option>
+                            <option value="LEFT">LEFT JOIN</option>
+                            <option value="RIGHT">RIGHT JOIN</option>
+                            <option value="FULL">FULL JOIN</option>
+                        </select>
+                    </div>
+
+                    <div className="space-y-1.5 p-4 rounded-xl border border-[var(--border-base)] bg-[var(--bg-alt)]/50">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] block mb-2">Join Condition (ON)</label>
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1 flex flex-col gap-1.5">
+                                    <span className="text-[10px] text-[var(--text-muted)] font-medium">Target Table (Joining)</span>
+                                    <div className="flex items-center gap-2">
+                                        <select 
+                                            value={join.rightTableAlias}
+                                            onChange={(e) => {
+                                                const newJoins = [...state.joins];
+                                                newJoins[index].rightTableAlias = e.target.value;
+                                                setState((prev) => ({ ...prev, joins: newJoins }));
+                                            }}
+                                            className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-1.5 text-xs outline-none focus:border-brand min-w-[120px]"
+                                        >
+                                            {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
+                                        </select>
+                                        <span className="text-[var(--text-muted)] font-bold">.</span>
+                                        <ColumnSelect 
+                                            tableAlias={join.rightTableAlias}
+                                            value={join.rightColumn}
+                                            onChange={(val: string) => {
+                                                const newJoins = [...state.joins];
+                                                newJoins[index].rightColumn = val;
+                                                setState((prev) => ({ ...prev, joins: newJoins }));
+                                            }}
+                                            getColumns={getColumns}
+                                            queryState={queryState}
+                                            state={state}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <span className="text-[var(--text-muted)] font-bold px-2 mt-5">=</span>
+                                
+                                <div className="flex-1 flex flex-col gap-1.5">
+                                    <span className="text-[10px] text-[var(--text-muted)] font-medium">Existing Table</span>
+                                    <div className="flex items-center gap-2">
+                                        <select 
+                                            value={join.leftTableAlias}
+                                            onChange={(e) => {
+                                                const newJoins = [...state.joins];
+                                                newJoins[index].leftTableAlias = e.target.value;
+                                                setState((prev) => ({ ...prev, joins: newJoins }));
+                                            }}
+                                            className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-1.5 text-xs outline-none focus:border-brand min-w-[120px]"
+                                        >
+                                            {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
+                                        </select>
+                                        <span className="text-[var(--text-muted)] font-bold">.</span>
+                                        <ColumnSelect 
+                                            tableAlias={join.leftTableAlias}
+                                            value={join.leftColumn}
+                                            onChange={(val: string) => {
+                                                const newJoins = [...state.joins];
+                                                newJoins[index].leftColumn = val;
+                                                setState((prev) => ({ ...prev, joins: newJoins }));
+                                            }}
+                                            getColumns={getColumns}
+                                            queryState={queryState}
+                                            state={state}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </AppCompactModalForm>
+        </>
     );
 };
 

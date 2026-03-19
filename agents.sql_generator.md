@@ -91,11 +91,24 @@ For advanced column configuration, users can open the **Field Expression Modal**
 - **Keyboard Support**: `Enter` to apply changes, `Esc` to cancel.
 - **Persistence**: Changes are stored in the `SelectedField` object and reflected in the hierarchical tree and SQL preview.
 
+### 8.3 Table Joins UI
+The Table Joins interface identifies and manages relationships between tables within a query block:
+- **Compact List Rendering**: Joins are displayed as single-line, color-coded SQL strings (e.g., `INNER JOIN records AS records_2 ON records.id = records_2.parent_id`).
+- **Visual Highlighting**:
+    - **Join Type**: Highlighted in `brand/70` for quick identification.
+    - **Table Aliases & Columns**: Using `brand` color to distinguish between data sources and identifiers.
+    - **Delimiters & Equality**: Subtle `text-muted` or `brand/50` for `.` and `=` to maintain high contrast.
+- **Improved Editing Logic**:
+    - Clicking any join opens the **AppCompactModalForm**.
+    - **Target vs. Existing**: The modal eliminates redundancy by making the "Target Table (Joining)" selection explicit on the **LEFT** side of the ON clause, while the **RIGHT** side is dedicated to the "Existing Table" from the current query context.
+- **Interactive Actions**: Delete action is accessible via a hover-trigger on individual join items.
+
 ## 9. UI Patterns
 
 The Query Builder implements several advanced UI patterns to optimize the workspace:
-- **AppCompactModalForm**: A non-standard, draggable, and compact modal layout for sub-extensions.
+- **AppCompactModalForm**: A non-standard, draggable, and compact modal layout for sub-extensions, used for both **Field Expressions** and **Table Joins**.
 - **Hierarchical Trees**: Used for both selection and viewing current query components.
+- **Compact SQL Strings**: A high-density, readable list pattern for complex configurations (Joins) that replaces heavy card-based layouts.
 
 ## 10. Error Reporting
 
