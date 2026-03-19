@@ -582,6 +582,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
     const [isRecursiveModalOpen, setIsRecursiveModalOpen] = useState(false);
     const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
+    const [overId, setOverId] = useState<string | null>(null);
 
     // DND Sensors
     const sensors = useSensors(
@@ -763,18 +764,19 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     };
 
     const handleGlobalDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
+        const { active, over, delta } = event;
         setActiveDragItem(null);
         setDragDelta({ x: 0, y: 0 });
 
         const activeId = active.id as string;
         const overId = over?.id as string;
 
+        // DND Debugging
+        console.log('[DND] End:', { activeId, overId, delta, dragDelta });
+
         // Case 1: Dragging an existing field
         const isDraggingExistingField = activeState.selectedFields.some(f => f.id === activeId);
         if (isDraggingExistingField) {
-            const isTrashMode = Math.hypot(dragDelta.x, dragDelta.y) > 150 && Math.abs(dragDelta.x) > Math.abs(dragDelta.y);
-
             // Field removal: if dropped outside the fields area
             const isOverFieldsArea = overId && (
                 overId === 'selected-fields-drop-zone' ||
@@ -782,15 +784,14 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             );
 
             if (!isOverFieldsArea) {
-                // Only remove if trash mode was active
-                if (isTrashMode) {
-                    handleRemoveField(activeId);
-                }
+                console.log('[DND] Removing field (dropped outside):', activeId);
+                handleRemoveField(activeId);
                 return;
             }
 
-            // Field reordering (only if not in trash mode)
-            if (!isTrashMode && overId && activeId !== overId && overId !== 'selected-fields-drop-zone') {
+            // Field reordering
+            if (overId && activeId !== overId && overId !== 'selected-fields-drop-zone') {
+                console.log('[DND] Reordering field:', activeId, 'over', overId);
                 handleMoveField(activeId, overId);
             }
             return;
@@ -875,6 +876,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         const { active, activatorEvent } = event;
         setActiveDragItem(active);
         setDragDelta({ x: 0, y: 0 });
+        setOverId(null);
 
         // Calculate where on the element we grabbed it
         const rect = active.rect.current.initial;
@@ -891,6 +893,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             x: event.delta.x,
             y: event.delta.y
         });
+        setOverId(event.over?.id || null);
     };
 
     const handleAddCTE = (isRecursive = false, config?: any) => {
@@ -978,30 +981,25 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
     const dragModifiers = useMemo(() => [
         (args: any) => {
-            const { transform, draggingNodeRect, active } = args;
+            const { transform, active } = args;
             if (!active) return transform;
 
-            const width = draggingNodeRect?.width ?? 0;
-            const height = draggingNodeRect?.height ?? 0;
+            // Use the initial rect of the source node, as it's the most stable source of dimensions
+            const initialRect = active.rect.current.initial;
+            const w = initialRect?.width ?? 0;
+            const h = initialRect?.height ?? 0;
+            
+            // Center the overlay on the cursor
+            const targetHalfW = w / 2;
+            const targetHalfH = h / 2;
 
-            const id = active.id.toString();
-            // Check if it's an existing field being dragged
-            const isExistingField = activeState.selectedFields.some(f => f.id === id);
-            const isTrashMode = isExistingField && Math.hypot(dragDelta.x, dragDelta.y) > 150 && Math.abs(dragDelta.x) > Math.abs(dragDelta.y);
-
-            if (isTrashMode) {
-                // If it's a trash icon, we want it centered on the cursor
-                return {
-                    ...transform,
-                    x: transform.x + grabOffset.x - width / 2,
-                    y: transform.y + grabOffset.y - height / 2,
-                };
-            }
-
-            // Normal relative drag (no extra centering)
-            return transform;
+            return {
+                ...transform,
+                x: transform.x + grabOffset.x - targetHalfW,
+                y: transform.y + grabOffset.y - targetHalfH,
+            };
         }
-    ], [grabOffset, dragDelta, activeState.selectedFields]);
+    ], [grabOffset, activeState.selectedFields]);
 
     if (!isOpen) return null;
 
@@ -1216,20 +1214,22 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             (() => {
                                                 const id = activeDragItem.id.toString();
                                                 const isExistingField = activeState.selectedFields.some(f => f.id === id);
-                                                const isTrashMode = isExistingField && Math.hypot(dragDelta.x, dragDelta.y) > 150 && Math.abs(dragDelta.x) > Math.abs(dragDelta.y);
-
-                                                if (isTrashMode) {
-                                                    return (
-                                                        <div className="w-10 h-10 bg-red-500 text-white rounded-full shadow-2xl flex items-center justify-center animate-in zoom-in-50 duration-200 border-2 border-white/40 ring-4 ring-red-500/20">
-                                                            <Icon name="delete" size={20} />
-                                                        </div>
-                                                    );
-                                                }
+                                                
+                                                const isOverFieldsArea = overId && (
+                                                    overId === 'selected-fields-drop-zone' ||
+                                                    activeState.selectedFields.some(f => f.id === overId)
+                                                );
+                                                
+                                                const isOutside = isExistingField && !isOverFieldsArea;
 
                                                 return (
-                                                    <div className="group flex items-center gap-3 p-2 rounded-lg border border-brand/20 bg-[var(--bg-app)] shadow-xl w-[280px] pointer-events-none">
-                                                        <div className="p-1 text-brand">
-                                                            <Icon name="drag_indicator" size={14} />
+                                                    <div className={`group flex items-center gap-3 p-2 rounded-xl border-2 shadow-2xl w-[280px] pointer-events-none transition-all duration-200 ${
+                                                        isOutside 
+                                                            ? 'border-red-500 bg-red-500/10 text-red-500 scale-95 opacity-90 backdrop-blur-sm' 
+                                                            : 'border-brand/40 bg-[var(--bg-app)] text-[var(--text-main)] scale-100'
+                                                    }`}>
+                                                        <div className={`p-1 ${isOutside ? 'text-red-500' : 'text-brand'}`}>
+                                                            <Icon name={isOutside ? 'delete' : 'drag_indicator'} size={14} />
                                                         </div>
 
                                                         {(() => {
@@ -1237,20 +1237,24 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                                             const isExpression = !!field?.expression;
                                                             return (
                                                                 <>
-                                                                    <div className={`p-1.5 rounded-md ${isExpression ? 'bg-amber-500/10 text-amber-500' : 'bg-brand/10 text-brand'}`}>
-                                                                        <Icon name={isExpression ? 'functions' : 'view_column'} size={14} />
+                                                                    <div className={`p-1.5 rounded-lg ${
+                                                                        isOutside 
+                                                                            ? 'bg-red-500/20 text-red-500' 
+                                                                            : (isExpression ? 'bg-amber-500/10 text-amber-500' : 'bg-brand/10 text-brand')
+                                                                    }`}>
+                                                                        <Icon name={isOutside ? 'delete_forever' : (isExpression ? 'functions' : 'view_column')} size={14} />
                                                                     </div>
                                                                     <div className="flex-1 flex flex-col min-w-0">
                                                                         <div className="flex items-center gap-2">
-                                                                            <span className="text-xs font-medium text-[var(--text-main)] truncate">
+                                                                            <span className={`text-xs font-bold truncate ${isOutside ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
                                                                                 {field?.expression || `${field?.tableAlias}.${field?.columnName}`}
                                                                             </span>
-                                                                            {field?.alias && (
+                                                                            {field?.alias && !isOutside && (
                                                                                 <span className="text-[10px] text-brand font-bold bg-brand/5 px-1.5 py-0.5 rounded">AS {field.alias}</span>
                                                                             )}
                                                                         </div>
-                                                                        <span className="text-[10px] text-[var(--text-muted)] opacity-60">
-                                                                            {isExpression ? 'Custom Expression' : (field?.columnName === '*' ? 'All Columns' : `${field?.tableAlias} column`)}
+                                                                        <span className={`text-[10px] font-medium opacity-70 ${isOutside ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
+                                                                            {isOutside ? 'Release to remove' : (isExpression ? 'Custom Expression' : (field?.columnName === '*' ? 'All Columns' : `${field?.tableAlias} column`))}
                                                                         </span>
                                                                     </div>
                                                                 </>
