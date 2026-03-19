@@ -27,38 +27,60 @@ export const parseSQL = (sql: string): MultiQueryState => {
         
         // Handle CTEs (WITH clause)
         if (upperSql.startsWith('WITH ')) {
-            const withMatch = sql.match(/WITH\s+([\s\S]+?)\s+(SELECT[\s\S]+)/i);
-            if (withMatch) {
-                const ctesContent = withMatch[1];
-                const mainQueryContent = withMatch[2];
+            const selectPos = findTopLevelSelect(sql);
+            if (selectPos !== -1) {
+                const withClause = sql.substring(0, selectPos);
+                const mainQueryContent = sql.substring(selectPos);
                 
-                // Simple regex to find CTE definitions: name AS ( content )
-                const cteRegex = /(\w+)\s+AS\s*\(\s*([\s\S]+?)\s*\)/gis;
-                let lastIndex = 0;
-                let cteMatch;
+                const ctesContent = withClause.substring(5).trim(); // Remove "WITH "
                 
-                while ((cteMatch = cteRegex.exec(ctesContent)) !== null) {
-                    // Check for stray text between last match and this one
-                    const strayText = ctesContent.substring(lastIndex, cteMatch.index).trim();
-                    if (strayText !== "" && strayText !== ",") {
-                         throw new Error(`Syntax error near "${strayText.split(/\s+/)[0]}"`);
+                // Parse individual CTEs: alias AS ( content )
+                let currentPos = 0;
+                while (currentPos < ctesContent.length) {
+                    // Skip whitespace and commas
+                    const remaining = ctesContent.substring(currentPos).trimStart();
+                    if (!remaining) break;
+                    
+                    const skipLength = ctesContent.substring(currentPos).length - remaining.length;
+                    currentPos += skipLength;
+                    
+                    if (ctesContent[currentPos] === ',') {
+                        currentPos++;
+                        continue;
+                    }
+
+                    // Match alias AS (
+                    const cteStartMatch = ctesContent.substring(currentPos).match(/^(\w+)\s+AS\s*\(/i);
+                    if (!cteStartMatch) {
+                         const stray = ctesContent.substring(currentPos).split(/\s+/)[0];
+                         if (stray) throw new Error(`Syntax error near "${stray}"`);
+                         break;
+                    }
+
+                    const alias = cteStartMatch[1];
+                    const contentStart = currentPos + cteStartMatch[0].length;
+                    
+                    // Find matching closing parenthesis
+                    let parenCount = 1;
+                    let contentEnd = contentStart;
+                    while (contentEnd < ctesContent.length && parenCount > 0) {
+                        if (ctesContent[contentEnd] === '(') parenCount++;
+                        else if (ctesContent[contentEnd] === ')') parenCount--;
+                        contentEnd++;
                     }
                     
-                    const alias = cteMatch[1];
-                    const content = cteMatch[2];
+                    if (parenCount > 0) {
+                        throw new Error(`Syntax error: missing closing parenthesis for CTE "${alias}"`);
+                    }
+
+                    const content = ctesContent.substring(contentStart, contentEnd - 1);
                     state.ctes.push({
                         id: `cte_${Date.now()}_${state.ctes.length}`,
                         alias,
                         state: parseBlock(content)
                     });
                     
-                    lastIndex = cteRegex.lastIndex;
-                }
-                
-                // Check for stray text after last CTE match
-                const remainingText = ctesContent.substring(lastIndex).trim();
-                if (remainingText !== "" && remainingText !== ",") {
-                    throw new Error(`Syntax error near "${remainingText.split(/\s+/)[0]}"`);
+                    currentPos = contentEnd;
                 }
                 
                 state.mainQuery = parseBlock(mainQueryContent);
@@ -76,6 +98,26 @@ export const parseSQL = (sql: string): MultiQueryState => {
         }
         throw new Error(`syntax error: ${err.message}`);
     }
+};
+
+const findTopLevelSelect = (sql: string): number => {
+    let parenCount = 0;
+    const upperSql = sql.toUpperCase();
+    
+    for (let i = 0; i < sql.length; i++) {
+        if (sql[i] === '(') parenCount++;
+        else if (sql[i] === ')') parenCount--;
+        
+        if (parenCount === 0) {
+            const nextPart = upperSql.substring(i);
+            // Search for SELECT keyword following whitespace or start/end of previous group
+            const match = nextPart.match(/^(\s+|(?:\)|,)\s*)SELECT\b/);
+            if (match) {
+                return i + match[0].indexOf('SELECT');
+            }
+        }
+    }
+    return -1;
 };
 
 const parseBlock = (sql: string): QueryState => {

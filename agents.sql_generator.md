@@ -71,7 +71,7 @@ Users can invoke the Query Builder directly from the Python code editor:
 ## 7. Heuristic SQL Parser
 
 The system includes a custom heuristic parser ([sqlParser.ts](file:///Users/Shared/Work/Web/web-node-system/frontend/src/features/query-builder/lib/sqlParser.ts)) to convert SQL strings back into the builder's state:
-- **CTE Support**: Recursively parses `WITH` clauses and maps them to separate Query Blocks.
+- **CTE Support**: Parenthesis-aware parsing derived from scanning the SQL string, supporting nested `SELECT` statements, subqueries, and multiple CTE definitions.
 - **Strict Syntax Checking**: Detects stray text between clauses and malformed structures, reporting them as PostgreSQL-style syntax errors.
 - **Unsupported Commands**: Explicitly rejects `EXPLAIN`, `UPDATE`, `DELETE`, etc., to prevent data corruption or visualization issues.
 
