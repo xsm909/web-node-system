@@ -63,10 +63,19 @@ const TableTreeItem = ({ table, selectedFields, onAddField, onRemoveField, onRem
             setLoading(true);
             const cte = queryState.ctes.find((c: any) => c.alias === table.tableName);
             if (cte) {
-                setColumns(cte.state.selectedFields.map((f: any) => ({
-                    name: f.alias || f.columnName,
+                const cteCols = cte.state.selectedFields.map((f: any) => ({
+                    name: f.alias || f.columnName || '',
                     type: 'CTE'
-                })));
+                }));
+                
+                if (cte.isRecursive && cte.recursiveConfig?.depthColumn) {
+                    cteCols.push({
+                        name: cte.recursiveConfig.depthColumn,
+                        type: 'CTE-Depth'
+                    });
+                }
+                
+                setColumns(cteCols);
                 setLoading(false);
             } else {
                 getColumns(table.tableName).then((cols: any) => {

@@ -44,10 +44,20 @@ const ColumnSelect: React.FC<ColumnSelectProps> = ({
         const targetCte = queryState.ctes.find((c) => c.alias === table.tableName);
         
         if (targetCte) {
-            setColumns(targetCte.state.selectedFields.map((f) => ({
-                name: f.alias || f.columnName,
+            const cteCols = targetCte.state.selectedFields.map((f) => ({
+                name: f.alias || f.columnName || '',
                 type: 'CTE'
-            })));
+            }));
+            
+            // Add recursive depth column if it exists
+            if (targetCte.isRecursive && targetCte.recursiveConfig?.depthColumn) {
+                cteCols.push({
+                    name: targetCte.recursiveConfig.depthColumn,
+                    type: 'CTE-Depth'
+                });
+            }
+            
+            setColumns(cteCols);
         } else {
             getColumns(table.tableName).then(setColumns);
         }
@@ -346,14 +356,14 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                             state={state}
                         />
 
-                        <select 
+                         <select 
                             value={cond.operator}
                             onChange={(e) => {
                                 const newWheres = [...state.where];
                                 newWheres[index].operator = e.target.value as any;
                                 setState((prev) => ({ ...prev, where: newWheres }));
                             }}
-                            className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-brand w-20"
+                            className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-brand w-24"
                         >
                              <option value="=">=</option>
                              <option value="!=">!=</option>
@@ -363,6 +373,8 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                              <option value="<=">&lt;=</option>
                              <option value="LIKE">LIKE</option>
                              <option value="IN">IN</option>
+                             <option value="IS NULL">IS NULL</option>
+                             <option value="IS NOT NULL">IS NOT NULL</option>
                         </select>
 
                         <input 
@@ -373,7 +385,10 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                                 newWheres[index].value = e.target.value;
                                 setState((prev) => ({ ...prev, where: newWheres }));
                             }}
-                            className="flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
+                            disabled={cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL'}
+                            className={`flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand ${
+                                (cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') ? 'opacity-30' : ''
+                            }`}
                         />
 
                         <button 
@@ -408,6 +423,120 @@ interface QueryBuilderModalProps {
     onError?: (error: string) => void;
 }
 
+// --- Recursive CTE Helper Modal ---
+
+interface RecursiveCteModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSubmit: (config: any) => void;
+    tables: string[];
+    getColumns: (tableName: string) => Promise<any[]>;
+    initialConfig?: any;
+}
+
+const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, onSubmit, tables, getColumns, initialConfig }) => {
+    const [alias, setAlias] = useState('');
+    const [anchorTable, setAnchorTable] = useState('');
+    const [primaryKey, setPrimaryKey] = useState('id');
+    const [parentKey, setParentKey] = useState('parent_id');
+    const [depthColumn, setDepthColumn] = useState('level');
+    const [availableColumns, setAvailableColumns] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (isOpen) {
+            setAlias(initialConfig?.alias || `tree${Math.floor(Math.random() * 100)}`);
+            setAnchorTable(initialConfig?.anchorTable || '');
+            setPrimaryKey(initialConfig?.primaryKey || 'id');
+            setParentKey(initialConfig?.parentKey || 'parent_id');
+            setDepthColumn(initialConfig?.depthColumn || 'level');
+        }
+    }, [isOpen, initialConfig]);
+
+    useEffect(() => {
+        if (anchorTable) {
+            getColumns(anchorTable).then(setAvailableColumns);
+        }
+    }, [anchorTable, getColumns]);
+
+    return (
+        <AppCompactModalForm
+            isOpen={isOpen}
+            onClose={onClose}
+            onSubmit={() => onSubmit({ alias, anchorTable, primaryKey, parentKey, depthColumn })}
+            title="Recursive Query Builder"
+            icon="account_tree"
+            width="max-w-xl"
+        >
+            <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Block Alias</label>
+                        <input 
+                            value={alias}
+                            onChange={e => setAlias(e.target.value)}
+                            placeholder="e.g. tree"
+                            className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Base Table</label>
+                        <select 
+                            value={anchorTable}
+                            onChange={e => setAnchorTable(e.target.value)}
+                            className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
+                        >
+                            <option value="">Select table...</option>
+                            {tables.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Primary Key (ID)</label>
+                        <select 
+                            value={primaryKey}
+                            onChange={e => setPrimaryKey(e.target.value)}
+                            className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
+                        >
+                            <option value="">Select PK...</option>
+                            {availableColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Parent Reference</label>
+                        <select 
+                            value={parentKey}
+                            onChange={e => setParentKey(e.target.value)}
+                            className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
+                        >
+                            <option value="">Select Parent Key...</option>
+                            {availableColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Depth Column (Optional)</label>
+                    <input 
+                        value={depthColumn}
+                        onChange={e => setDepthColumn(e.target.value)}
+                        placeholder="e.g. level (leave empty to skip)"
+                        className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
+                    />
+                </div>
+
+                <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+                    <p className="text-[10px] text-blue-500 font-medium leading-relaxed">
+                        This helper will generate a recursive CTE that joins the table with itself to traverse hierarchical data. 
+                        The initial level will be where the parent reference is NULL.
+                    </p>
+                </div>
+            </div>
+        </AppCompactModalForm>
+    );
+};
+
 export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, onClose, onDone, initialSql, onError }) => {
     const { tables, getColumns, loading } = useDatabaseMetadata();
     
@@ -425,6 +554,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [activeTab, setActiveTab] = useState('tables');
     const [previewSql, setPreviewSql] = useState('');
     const [editingField, setEditingField] = useState<SelectedField | null>(null);
+    const [editingCTE, setEditingCTE] = useState<any>(null);
+    const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+    const [isRecursiveModalOpen, setIsRecursiveModalOpen] = useState(false);
 
     const activeBlock = useMemo(() => {
         if (activeBlockId === 'main') {
@@ -507,18 +639,63 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }));
     };
 
-    const handleAddCTE = () => {
-        const id = `cte_${Date.now()}`;
-        const alias = `tab${fullState.ctes.length + 1}`;
-        setFullState(prev => ({
-            ...prev,
-            ctes: [...prev.ctes, { 
-                id, 
-                alias, 
-                state: { tables: [], selectedFields: [], joins: [], where: [] } 
-            }]
-        }));
-        setActiveBlockId(id);
+    const handleAddCTE = (isRecursive = false, config?: any) => {
+        const id = editingCTE ? editingCTE.id : `cte_${Date.now()}`;
+        const alias = config?.alias || `tab${fullState.ctes.length + 1}`;
+        
+        let state: QueryState = editingCTE ? editingCTE.state : { tables: [], selectedFields: [], joins: [], where: [] };
+        
+        if (isRecursive && config && !editingCTE) {
+            // Pre-fill state for NEW recursive CTE
+            state = {
+                tables: [{ alias: config.anchorTable, tableName: config.anchorTable }],
+                selectedFields: [{
+                    id: `all_${Date.now()}`,
+                    tableAlias: config.anchorTable,
+                    columnName: '*'
+                }],
+                joins: [],
+                where: [{
+                    id: `where_${Date.now()}`,
+                    tableAlias: config.anchorTable,
+                    columnName: config.parentKey,
+                    operator: 'IS NULL',
+                    value: 'NULL',
+                    logic: 'AND'
+                }]
+            };
+        }
+
+        setFullState(prev => {
+            if (editingCTE) {
+                return {
+                    ...prev,
+                    ctes: prev.ctes.map(c => c.id === id ? { 
+                        ...c, 
+                        alias, 
+                        isRecursive, 
+                        recursiveConfig: config 
+                    } : c)
+                };
+            }
+            return {
+                ...prev,
+                ctes: [...prev.ctes, { 
+                    id, 
+                    alias, 
+                    state,
+                    isRecursive,
+                    recursiveConfig: isRecursive ? config : undefined
+                }]
+            };
+        });
+        
+        if (!editingCTE) {
+            setActiveBlockId(id);
+        }
+        
+        setIsAddMenuOpen(false);
+        setEditingCTE(null);
     };
 
     const handleRemoveCTE = (id: string, alias: string) => {
@@ -581,11 +758,37 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 space-y-1">
                             <div className="mb-4">
-                                <div className="px-2 py-1 flex items-center justify-between">
+                                <div className="px-2 py-1 flex items-center justify-between relative">
                                     <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Query Blocks</h3>
-                                    <button onClick={handleAddCTE} className="p-1 hover:bg-brand/10 rounded-md text-brand transition-all">
+                                    <button 
+                                        onClick={() => setIsAddMenuOpen(!isAddMenuOpen)} 
+                                        className={`p-1 rounded-md transition-all ${isAddMenuOpen ? 'bg-brand text-white' : 'hover:bg-brand/10 text-brand'}`}
+                                    >
                                         <Icon name="add" size={14} />
                                     </button>
+                                    
+                                    {isAddMenuOpen && (
+                                        <div className="absolute top-full right-0 mt-1 z-50 w-48 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-100">
+                                            <button 
+                                                onClick={() => handleAddCTE(false)}
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-[var(--text-main)] hover:bg-brand/5 transition-all outline-none"
+                                            >
+                                                <Icon name="select_window" size={14} className="text-brand" />
+                                                Regular Query
+                                            </button>
+                                            <button 
+                                                onClick={() => {
+                                                    setIsAddMenuOpen(false);
+                                                    setEditingCTE(null);
+                                                    setIsRecursiveModalOpen(true);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-[var(--text-main)] border-t border-[var(--border-base)] hover:bg-brand/5 transition-all outline-none"
+                                            >
+                                                <Icon name="account_tree" size={14} className="text-brand" />
+                                                Recursive Query
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                 <div 
                                     className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all ${
@@ -609,6 +812,18 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             onClick={() => setActiveBlockId(cte.id)}
                                         >
                                             <span className="text-xs font-medium">{cte.alias}</span>
+                                            {cte.isRecursive && (
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingCTE(cte);
+                                                        setIsRecursiveModalOpen(true);
+                                                    }}
+                                                    className="p-1 rounded hover:bg-brand/10 text-brand"
+                                                >
+                                                    <Icon name="settings" size={12} />
+                                                </button>
+                                            )}
                                             <Icon name="chevron_right" size={14} />
                                         </div>
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
@@ -744,6 +959,18 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         selectedFields: prev.selectedFields.map(f => f.id === id ? { ...f, ...updates } : f)
                     }));
                 }}
+            />
+
+            <RecursiveCteModal 
+                isOpen={isRecursiveModalOpen}
+                onClose={() => {
+                    setIsRecursiveModalOpen(false);
+                    setEditingCTE(null);
+                }}
+                onSubmit={(config) => handleAddCTE(true, config)}
+                tables={tables}
+                getColumns={getColumns}
+                initialConfig={editingCTE?.recursiveConfig ? { ...editingCTE.recursiveConfig, alias: editingCTE.alias } : undefined}
             />
         </>
     );

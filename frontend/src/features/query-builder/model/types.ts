@@ -40,7 +40,7 @@ export interface WhereCondition {
     id: string;
     tableAlias: string;
     columnName: string;
-    operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'LIKE' | 'IN';
+    operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'LIKE' | 'IN' | 'IS NULL' | 'IS NOT NULL';
     value: string;
     logic: 'AND' | 'OR';
 }
@@ -58,10 +58,19 @@ export interface QueryState {
     where: WhereCondition[];
 }
 
+export interface RecursiveCteConfig {
+    anchorTable: string;
+    primaryKey: string;
+    parentKey: string;
+    depthColumn?: string;
+}
+
 export interface QueryCTE {
     id: string;
     alias: string;
     state: QueryState;
+    isRecursive?: boolean;
+    recursiveConfig?: RecursiveCteConfig;
 }
 
 export interface MultiQueryState {
