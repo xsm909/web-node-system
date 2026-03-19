@@ -1,16 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import { Icon } from '../../../shared/ui/icon';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppTabs } from '../../../shared/ui/app-tabs';
 import { useDatabaseMetadata } from '../lib/useDatabaseMetadata';
 import type { MultiQueryState, QueryState, SelectedField, JoinCondition, WhereCondition } from '../model/types';
-import { generateSQL } from '../lib/sqlGenerator';
+import { generateSQL, generateBlockSQL } from '../lib/sqlGenerator';
 import { parseSQL } from '../lib/sqlParser';
 import { SelectedTablesTreeView } from './SelectedTablesTreeView';
 import { SelectedFieldsTreeView } from './SelectedFieldsTreeView';
 import { FieldExpressionModal } from './FieldExpressionModal';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
+import { AppTable } from '../../../shared/ui/app-table/AppTable';
+import { apiClient } from '../../../shared/api/client';
 
 // --- Internal Helper Components ---
 
@@ -558,6 +560,11 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [editingCTE, setEditingCTE] = useState<any>(null);
     const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
     const [isRecursiveModalOpen, setIsRecursiveModalOpen] = useState(false);
+    
+    // Execution state
+    const [isExecuting, setIsExecuting] = useState(false);
+    const [queryResults, setQueryResults] = useState<any[]>([]);
+    const [isResultsOpen, setIsResultsOpen] = useState(false);
 
     const activeBlock = useMemo(() => {
         if (activeBlockId === 'main') {
@@ -580,9 +587,33 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         });
     };
 
+    const effectiveSql = useMemo(() => {
+        if (activeBlockId === 'main') {
+            const sql = generateSQL(fullState);
+            return { sql, canRun: !!sql.trim() };
+        }
+        
+        const targetCte = fullState.ctes.find(c => c.id === activeBlockId);
+        if (!targetCte) return { sql: '', canRun: false };
+
+        if (targetCte.isRecursive) {
+            return { sql: 'Main query only (Recursive CTE)', canRun: false };
+        }
+
+        const cteAliases = fullState.ctes.map(c => c.alias);
+        const dependsOnOtherCte = targetCte.state.tables.some(t => cteAliases.includes(t.tableName));
+
+        if (dependsOnOtherCte) {
+            return { sql: 'Main query only (depends on other blocks)', canRun: false };
+        }
+
+        const sql = generateBlockSQL(targetCte.state);
+        return { sql, canRun: !!sql.trim() };
+    }, [activeBlockId, fullState]);
+
     useEffect(() => {
-        setPreviewSql(generateSQL(fullState));
-    }, [fullState]);
+        setPreviewSql(effectiveSql.sql);
+    }, [effectiveSql]);
 
     useEffect(() => {
         if (isOpen && initialSql && initialSql.trim() !== "") {
@@ -605,6 +636,38 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             });
         }
     }, [isOpen, initialSql, onError]);
+    
+    const handleExecuteQuery = useCallback(async () => {
+        if (isExecuting || !effectiveSql.canRun) return;
+        
+        console.log("Executing SQL:", effectiveSql.sql);
+        setIsExecuting(true);
+        try {
+            const res = await apiClient.post('/database-metadata/execute', { sql: effectiveSql.sql });
+            setQueryResults(res.data);
+            setIsResultsOpen(true);
+        } catch (err: any) {
+            console.error("Execution error:", err);
+            onError?.(err.response?.data?.detail || err.message || 'Execution error');
+        } finally {
+            setIsExecuting(false);
+        }
+    }, [isExecuting, effectiveSql, apiClient, onError]);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!isOpen) return;
+            
+            if (e.key === 'F5' || e.key === 'F9') {
+                e.preventDefault();
+                e.stopPropagation();
+                handleExecuteQuery();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown, true);
+        return () => window.removeEventListener('keydown', handleKeyDown, true);
+    }, [isOpen, handleExecuteQuery]);
 
     const handleAddTable = (tableName: string, isCte = false) => {
         const existingCount = activeState.tables.filter((t: any) => t.tableName === tableName).length;
@@ -752,6 +815,23 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         }
                         rightContent={
                             <div className="flex items-center gap-3">
+                                {isExecuting && (
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand/10 text-brand text-[10px] font-bold animate-pulse">
+                                        <div className="w-3 h-3 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
+                                        Executing...
+                                    </div>
+                                )}
+                                <button 
+                                    onClick={handleExecuteQuery}
+                                    disabled={isExecuting || !effectiveSql.canRun}
+                                    className={`px-4 py-2 bg-[var(--bg-alt)] border border-[var(--border-base)] text-brand text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 ${
+                                        (!effectiveSql.canRun && !isExecuting) ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-brand/5'
+                                    }`}
+                                    title={!effectiveSql.canRun ? effectiveSql.sql : "Shortcut: F5 or F9"}
+                                >
+                                    <Icon name="play_arrow" size={14} />
+                                    Run (F5)
+                                </button>
                                 <button 
                                     onClick={() => onDone(previewSql)}
                                     className="px-4 py-2 bg-brand text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all shadow-sm"
@@ -893,7 +973,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     {/* Main Content Area */}
                     <div className="flex-1 flex flex-col overflow-hidden">
                         <div className="px-6 border-b border-[var(--border-base)]">
-                            <AppTabs
+                            <AppTabs 
                                 tabs={[
                                     { id: 'tables', label: 'Tables & Selection' },
                                     { id: 'joins', label: 'Joins' },
@@ -937,17 +1017,17 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                             )}
                             {activeTab === 'joins' && (
                                 <JoinsView 
-                                    state={activeState}
-                                    setState={updateActiveState}
-                                    getColumns={getColumns}
+                                    state={activeState} 
+                                    setState={updateActiveState} 
+                                    getColumns={getColumns} 
                                     queryState={fullState}
                                 />
                             )}
                             {activeTab === 'conditions' && (
                                 <ConditionsView 
-                                    state={activeState}
-                                    setState={updateActiveState}
-                                    getColumns={getColumns}
+                                    state={activeState} 
+                                    setState={updateActiveState} 
+                                    getColumns={getColumns} 
                                     queryState={fullState}
                                 />
                             )}
@@ -955,16 +1035,64 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
                         {/* SQL Preview Bottom Bar */}
                         <div className="h-32 border-t border-[var(--border-base)] bg-[var(--bg-alt)] flex flex-col">
-                            <div className="px-4 py-2 border-b border-[var(--border-base)] bg-[var(--bg-app)]">
+                            <div className="px-4 py-2 border-b border-[var(--border-base)] bg-[var(--bg-app)] flex items-center justify-between">
                                 <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">SQL Preview</h3>
+                                {!effectiveSql.canRun && activeBlockId !== 'main' && (
+                                    <span className="text-[9px] font-bold text-amber-500 uppercase tracking-tight bg-amber-500/10 px-2 py-0.5 rounded-md">
+                                        Standalone execution restricted
+                                    </span>
+                                )}
                             </div>
                             <div className="flex-1 p-4 font-mono text-xs overflow-y-auto selection:bg-brand/20">
-                                <pre className="text-brand">{previewSql || '-- Generated SQL will appear here'}</pre>
+                                {effectiveSql.canRun ? (
+                                    <pre className="text-brand">{previewSql || '-- Generated SQL will appear here'}</pre>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-[var(--text-muted)] opacity-60 italic">
+                                        <Icon name="info" size={16} className="mb-1" />
+                                        <p>{previewSql}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <AppCompactModalForm
+                isOpen={isResultsOpen}
+                onClose={() => setIsResultsOpen(false)}
+                onSubmit={() => setIsResultsOpen(false)}
+                title="Query Results"
+                icon="table_chart"
+                width="max-w-7xl"
+            >
+                <div className="h-[60vh] flex flex-col">
+                    {queryResults.length > 0 ? (
+                        <AppTable 
+                            data={queryResults}
+                            columns={Object.keys(queryResults[0]).map(key => ({
+                                header: key,
+                                accessorKey: key,
+                                cell: (info: any) => {
+                                    const val = info.getValue();
+                                    if (typeof val === 'object' && val !== null) {
+                                        return JSON.stringify(val);
+                                    }
+                                    return String(val ?? '');
+                                }
+                            }))}
+                            config={{
+                                emptyMessage: "Query returned no results."
+                            }}
+                        />
+                    ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center opacity-40">
+                            <Icon name="search_off" size={48} className="mb-4 text-[var(--text-muted)]" />
+                            <p className="text-sm font-medium">No results found.</p>
+                        </div>
+                    )}
+                </div>
+            </AppCompactModalForm>
 
             <FieldExpressionModal 
                 isOpen={!!editingField}

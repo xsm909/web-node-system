@@ -6,7 +6,7 @@ const q = (id: string) => {
     return `"${id}"`;
 };
 
-const generateBlockSQL = (state: QueryState): string => {
+export const generateBlockSQL = (state: QueryState): string => {
     if (state.tables.length === 0) return '';
     
     let sql = 'SELECT ';

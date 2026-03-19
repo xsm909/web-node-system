@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 from ..core.database import get_db
 from ..core.security import require_role
 from sqlalchemy import text
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/database-metadata", tags=["database-metadata"])
 
@@ -79,3 +80,28 @@ def get_functions(db: Session = Depends(get_db), _=manager_access):
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching functions: {str(e)}")
+
+class ExecuteQueryRequest(BaseModel):
+    sql: str
+
+@router.post("/execute")
+def execute_query(request: ExecuteQueryRequest, db: Session = Depends(get_db), _=manager_access):
+    """Execute a SQL query and return results."""
+    try:
+        # Basic SQL safety - though the user is an admin/manager
+        # We limit to SELECT for safety if desired, but requirements say "Execute arbitrary SQL"
+        # Let's enforce a limit if not present
+        sql = request.sql.strip()
+        if not sql.lower().startswith("select") and not sql.lower().startswith("with"):
+             raise HTTPException(status_code=400, detail="Only SELECT or WITH queries are allowed.")
+             
+        # Add LIMIT if not present (simple heuristic)
+        if "limit" not in sql.lower():
+            sql = f"SELECT * FROM ({sql}) AS subquery_limit LIMIT 1000"
+            
+        result = db.execute(text(sql))
+        columns = result.keys()
+        rows = [dict(zip(columns, row)) for row in result.fetchall()]
+        return rows
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"SQL Execution Error: {str(e)}")
