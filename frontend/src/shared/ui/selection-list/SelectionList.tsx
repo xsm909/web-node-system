@@ -413,8 +413,8 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                         const topOffset = hoveredTops[depth - 1] || 0;
                         const panelStyle = {
                             position: 'absolute' as const,
-                            left: `${depth * 65}px`, // Adjusted offset to 65px as requested
-                            top: `${topOffset + 95}px`,
+                            left: `${depth * 150}px`,
+                            top: `${topOffset + 30}px`,
                             zIndex: depth + 1,
                         };
 

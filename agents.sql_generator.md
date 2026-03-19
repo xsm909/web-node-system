@@ -103,5 +103,19 @@ Errors encountered during parsing are reported through the **Editor Console**:
 - **Format**: `[SQL PARSE ERROR] syntax error at or near "<token>"`
 - **Behavior**: The console is automatically cleared and focused upon error. The Query Builder modal will not open if the initial parsing fails, ensuring the user sees the error context immediately.
 
+## 11. SQL Function Picker
+
+The **Field Expression Modal** includes an integrated SQL Function Picker (`ComboBox`) to streamline complex expression building:
+
+- **Categorized Library**: Functions are strictly grouped into three prioritized categories:
+    - **`JSON`**: All JSON and JSONB processing functions (prioritized first).
+    - **`MATH`**: A curated whitelist of common utilities and aggregations (`sum`, `count`, `upper`, `lower`, `now`, `date_trunc`, `coalesce`).
+    - **`PUBLIC`**: All user-defined or additional functions found in the `public` schema.
+- **Overload Handling**: Uses `DISTINCT ON` in the backend to prevent duplicate function names from cluttering the UI while preserving argument metadata.
+- **Smart Insertion**:
+    - For single-argument functions, it wraps the current expression: `UPPER(users.username)`.
+    - For multi-argument functions, it provides placeholders: `date_bucket_floor(ts, <mode text>)`.
+- **UI Layout**: Optimized sub-panel positioning with a **Cascading Layout** (50px horizontal and 30px vertical offset) to ensure visibility and prevent overlap with the main menu.
+
 ---
 *Last Updated: 2026-03-20*

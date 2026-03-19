@@ -13,6 +13,12 @@ export interface DbForeignKey {
     referred_columns: string[];
 }
 
+export interface DbFunction {
+    category: string;
+    name: string;
+    args: string;
+}
+
 export interface SelectedField {
     id: string;
     tableAlias: string;

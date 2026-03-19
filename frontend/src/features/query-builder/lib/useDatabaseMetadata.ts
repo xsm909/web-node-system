@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../../../shared/api/client';
-import type { DbColumn, DbForeignKey } from '../model/types';
+import type { DbColumn, DbForeignKey, DbFunction } from '../model/types';
 
 export const useDatabaseMetadata = () => {
     const [tables, setTables] = useState<string[]>([]);
@@ -40,6 +40,16 @@ export const useDatabaseMetadata = () => {
         }
     };
 
+    const getFunctions = async (): Promise<DbFunction[]> => {
+        try {
+            const { data } = await apiClient.get<DbFunction[]>('/database-metadata/functions');
+            return data;
+        } catch (err) {
+            console.error('Failed to fetch functions', err);
+            return [];
+        }
+    };
+
     useEffect(() => {
         fetchTables();
     }, []);
@@ -50,6 +60,7 @@ export const useDatabaseMetadata = () => {
         error,
         fetchTables,
         getColumns,
-        getForeignKeys
+        getForeignKeys,
+        getFunctions
     };
 };
