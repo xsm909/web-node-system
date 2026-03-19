@@ -84,16 +84,24 @@ The selection interface has been overhauled for better visibility and organizati
 - **Right Column (Selected Fields)**: Displays a hierarchical view of the fields currently in the `SELECT` clause, grouped by their parent table/CTE alias.
 
 ### 8.2 Field Expression Modal
-For advanced column configuration, users can open the **Field Expression Modal** (via the "Edit" icon):
-- **Expression Editing**: Modify the raw SQL for the column (e.g., `to_char(u.created_at, 'YYYY-MM-DD')`).
-- **Alias Definition**: Define a custom `AS` name for the result.
+For advanced column configuration, users can open the **Field Expression Modal** (via the "Edit" icon). This modal uses the **AppCompactModalForm** pattern:
+- **Draggable UI**: The modal can be moved around the screen by dragging its header.
+- **TanStack Form Integration**: State management is handled via `@tanstack/react-form` for more robust persistence.
+- **Compact Layout**: Expression and Alias are placed in a single row to maximize vertical space.
+- **Keyboard Support**: `Enter` to apply changes, `Esc` to cancel.
 - **Persistence**: Changes are stored in the `SelectedField` object and reflected in the hierarchical tree and SQL preview.
 
-## 9. Error Reporting
+## 9. UI Patterns
+
+The Query Builder implements several advanced UI patterns to optimize the workspace:
+- **AppCompactModalForm**: A non-standard, draggable, and compact modal layout for sub-extensions.
+- **Hierarchical Trees**: Used for both selection and viewing current query components.
+
+## 10. Error Reporting
 
 Errors encountered during parsing are reported through the **Editor Console**:
 - **Format**: `[SQL PARSE ERROR] syntax error at or near "<token>"`
 - **Behavior**: The console is automatically cleared and focused upon error. The Query Builder modal will not open if the initial parsing fails, ensuring the user sees the error context immediately.
 
 ---
-*Last Updated: 2026-03-19*
+*Last Updated: 2026-03-20*
