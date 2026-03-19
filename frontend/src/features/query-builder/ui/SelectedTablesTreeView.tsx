@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useDraggable } from '@dnd-kit/core';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import {
     SortableContext,
     verticalListSortingStrategy,
@@ -25,8 +25,17 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
     getColumns,
     queryState
 }) => {
+    const { setNodeRef, isOver } = useDroppable({
+        id: 'selected-tables-drop-zone',
+    });
+
     return (
-        <div className="flex flex-col h-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-2xl overflow-hidden shadow-sm">
+        <div 
+            ref={setNodeRef}
+            className={`flex flex-col h-full bg-[var(--bg-app)] border-2 rounded-2xl overflow-hidden shadow-sm transition-all duration-200 ${
+                isOver ? 'border-brand ring-4 ring-brand/10 bg-brand/[0.02]' : 'border-[var(--border-base)]'
+            }`}
+        >
             <div className="bg-[var(--bg-alt)] px-4 py-3 border-b border-[var(--border-base)] flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
                     <Icon name="table_rows" size={14} />
