@@ -121,5 +121,19 @@ Query results are rendered in a dedicated modal using the **Tabulator** engine:
 - **Data Formatting**: Automatically detects and stringifies `JSON`/`JSONB` objects for readable display via custom column formatters.
 - **Export**: Includes a **"Copy Result"** action that exports the entire result set to the clipboard as a formatted JSON string.
 
+## 13. CTE Refactoring (Renaming)
+
+The system supports robust renaming of "Query Blocks" (CTEs) with automatic reference propagation:
+- **Cascade Updates**: Renaming a block automatically updates all instances where that block is used as a source table in the Main Query or other CTEs.
+- **Join & Condition Sync**: All join conditions, filter conditions (WHERE), and selected fields referencing the old alias are updated to use the new alias.
+- **Dependency Tracking**: The refactoring logic ensures that recursive CTE configurations (anchor tables) are also updated if they depend on the renamed block.
+
+## 14. UI Interaction Model (Drag-and-Drop)
+
+The Query Builder uses a highly interactive drag-and-drop (DND) model for managing query structure:
+- **Selection**: Tables can be dragged from the sidebar into the "Selected Tables" area or directly into the "Selected Fields" list (to add all columns).
+- **Deletion (Visual Cue)**: To remove a field or table, the user drags it outside its designated drop zone. The item's border and icon turn **red**, providing a clear visual cue that releasing it will trigger a deletion.
+- **Reordering**: Fields within the selection list can be reordered via DND to control the `SELECT` column sequence.
+
 ---
 *Last Updated: 2026-03-19*
