@@ -581,6 +581,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [editingCTE, setEditingCTE] = useState<any>(null);
     const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
     const [isRecursiveModalOpen, setIsRecursiveModalOpen] = useState(false);
+    const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 });
 
     // DND Sensors
     const sensors = useSensors(
@@ -764,6 +765,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const handleGlobalDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         setActiveDragItem(null);
+        setDragDelta({ x: 0, y: 0 });
 
         const activeId = active.id as string;
         const overId = over?.id as string;
@@ -771,6 +773,8 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         // Case 1: Dragging an existing field
         const isDraggingExistingField = activeState.selectedFields.some(f => f.id === activeId);
         if (isDraggingExistingField) {
+            const isTrashMode = Math.hypot(dragDelta.x, dragDelta.y) > 150 && Math.abs(dragDelta.x) > Math.abs(dragDelta.y);
+
             // Field removal: if dropped outside the fields area
             const isOverFieldsArea = overId && (
                 overId === 'selected-fields-drop-zone' ||
@@ -778,12 +782,15 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             );
 
             if (!isOverFieldsArea) {
-                handleRemoveField(activeId);
+                // Only remove if trash mode was active
+                if (isTrashMode) {
+                    handleRemoveField(activeId);
+                }
                 return;
             }
 
-            // Field reordering
-            if (overId && activeId !== overId && overId !== 'selected-fields-drop-zone') {
+            // Field reordering (only if not in trash mode)
+            if (!isTrashMode && overId && activeId !== overId && overId !== 'selected-fields-drop-zone') {
                 handleMoveField(activeId, overId);
             }
             return;
@@ -867,6 +874,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const handleGlobalDragStart = (event: any) => {
         const { active, activatorEvent } = event;
         setActiveDragItem(active);
+        setDragDelta({ x: 0, y: 0 });
 
         // Calculate where on the element we grabbed it
         const rect = active.rect.current.initial;
@@ -876,6 +884,13 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 y: (activatorEvent as MouseEvent).clientY - rect.top
             });
         }
+    };
+
+    const handleGlobalDragMove = (event: any) => {
+        setDragDelta({
+            x: event.delta.x,
+            y: event.delta.y
+        });
     };
 
     const handleAddCTE = (isRecursive = false, config?: any) => {
@@ -963,181 +978,192 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
     const dragModifiers = useMemo(() => [
         (args: any) => {
-            const { transform, draggingNodeRect } = args;
-            const width = draggingNodeRect?.width ?? 120;
-            const height = draggingNodeRect?.height ?? 32;
+            const { transform, draggingNodeRect, active } = args;
+            if (!active) return transform;
 
-            return {
-                ...transform,
-                x: transform.x + grabOffset.x - width / 2,
-                y: transform.y + grabOffset.y - height / 2,
-            };
+            const width = draggingNodeRect?.width ?? 0;
+            const height = draggingNodeRect?.height ?? 0;
+
+            const id = active.id.toString();
+            // Check if it's an existing field being dragged
+            const isExistingField = activeState.selectedFields.some(f => f.id === id);
+            const isTrashMode = isExistingField && Math.hypot(dragDelta.x, dragDelta.y) > 150 && Math.abs(dragDelta.x) > Math.abs(dragDelta.y);
+
+            if (isTrashMode) {
+                // If it's a trash icon, we want it centered on the cursor
+                return {
+                    ...transform,
+                    x: transform.x + grabOffset.x - width / 2,
+                    y: transform.y + grabOffset.y - height / 2,
+                };
+            }
+
+            // Normal relative drag (no extra centering)
+            return transform;
         }
-    ], [grabOffset]);
+    ], [grabOffset, dragDelta, activeState.selectedFields]);
 
     if (!isOpen) return null;
 
     return (
-        <>
-            <div className="fixed inset-0 z-[1000] bg-[var(--bg-app)] flex flex-col animate-in fade-in duration-200">
-                <div className="shrink-0 flex flex-col">
-                    <AppHeader
-                        onBack={onClose}
-                        onToggleSidebar={() => { }}
-                        leftContent={
-                            <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-main)]">Query Builder</h2>
-                        }
-                        rightContent={
-                            <div className="flex items-center gap-3">
-                                {isExecuting && (
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand/10 text-brand text-[10px] font-bold animate-pulse">
-                                        <div className="w-3 h-3 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
-                                        Executing...
+        <div className="fixed inset-0 z-[1000] bg-[var(--bg-app)] flex flex-col animate-in fade-in duration-200">
+            <div className="shrink-0 flex flex-col">
+                <AppHeader
+                    onBack={onClose}
+                    onToggleSidebar={() => { }}
+                    leftContent={
+                        <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-main)]">Query Builder</h2>
+                    }
+                    rightContent={
+                        <div className="flex items-center gap-3">
+                            {isExecuting && (
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand/10 text-brand text-[10px] font-bold animate-pulse">
+                                    <div className="w-3 h-3 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
+                                    Executing...
+                                </div>
+                            )}
+                            <button
+                                onClick={handleExecuteQuery}
+                                disabled={isExecuting || !effectiveSql.canRun}
+                                className={`px-4 py-2 bg-[var(--bg-alt)] border border-[var(--border-base)] text-brand text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 ${(!effectiveSql.canRun && !isExecuting) ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-brand/5'
+                                    }`}
+                                title={!effectiveSql.canRun ? effectiveSql.sql : "Shortcut: F5 or F9"}
+                            >
+                                <Icon name="play_arrow" size={14} />
+                                Run (F5)
+                            </button>
+                            <button
+                                onClick={() => onDone(previewSql)}
+                                className="px-4 py-2 bg-brand text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all shadow-sm"
+                            >
+                                Ready
+                            </button>
+                        </div>
+                    }
+                />
+            </div>
+
+            <div className="flex-1 flex overflow-hidden">
+                {/* Left Sidebar: Tables List */}
+                <div className="w-64 border-r border-[var(--border-base)] flex flex-col bg-[var(--bg-alt)]">
+                    <div className="p-4 border-b border-[var(--border-base)]">
+                        <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
+                            <Icon name="table_chart" size={14} />
+                            Available Tables
+                        </h3>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                        <div className="mb-4">
+                            <div className="px-2 py-1 flex items-center justify-between relative">
+                                <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Query Blocks</h3>
+                                <button
+                                    onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
+                                    className={`p-1 rounded-md transition-all ${isAddMenuOpen ? 'bg-brand text-white' : 'hover:bg-brand/10 text-brand'}`}
+                                >
+                                    <Icon name="add" size={14} />
+                                </button>
+
+                                {isAddMenuOpen && (
+                                    <div className="absolute top-full right-0 mt-1 z-50 w-48 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-100">
+                                        <button
+                                            onClick={() => handleAddCTE(false)}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-[var(--text-main)] hover:bg-brand/5 transition-all outline-none"
+                                        >
+                                            <Icon name="select_window" size={14} className="text-brand" />
+                                            Regular Query
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setIsAddMenuOpen(false);
+                                                setEditingCTE(null);
+                                                setIsRecursiveModalOpen(true);
+                                            }}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-[var(--text-main)] border-t border-[var(--border-base)] hover:bg-brand/5 transition-all outline-none"
+                                        >
+                                            <Icon name="account_tree" size={14} className="text-brand" />
+                                            Recursive Query
+                                        </button>
                                     </div>
                                 )}
-                                <button
-                                    onClick={handleExecuteQuery}
-                                    disabled={isExecuting || !effectiveSql.canRun}
-                                    className={`px-4 py-2 bg-[var(--bg-alt)] border border-[var(--border-base)] text-brand text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 ${(!effectiveSql.canRun && !isExecuting) ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-brand/5'
-                                        }`}
-                                    title={!effectiveSql.canRun ? effectiveSql.sql : "Shortcut: F5 or F9"}
-                                >
-                                    <Icon name="play_arrow" size={14} />
-                                    Run (F5)
-                                </button>
-                                <button
-                                    onClick={() => onDone(previewSql)}
-                                    className="px-4 py-2 bg-brand text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all shadow-sm"
-                                >
-                                    Ready
-                                </button>
                             </div>
-                        }
-                    />
-                </div>
-
-                <div className="flex-1 flex overflow-hidden">
-                    {/* Left Sidebar: Tables List */}
-                    <div className="w-64 border-r border-[var(--border-base)] flex flex-col bg-[var(--bg-alt)]">
-                        <div className="p-4 border-b border-[var(--border-base)]">
-                            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
-                                <Icon name="table_chart" size={14} />
-                                Available Tables
-                            </h3>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                            <div className="mb-4">
-                                <div className="px-2 py-1 flex items-center justify-between relative">
-                                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Query Blocks</h3>
-                                    <button
-                                        onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
-                                        className={`p-1 rounded-md transition-all ${isAddMenuOpen ? 'bg-brand text-white' : 'hover:bg-brand/10 text-brand'}`}
+                            <div
+                                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all ${activeBlockId === 'main'
+                                        ? 'bg-brand/10 border-brand/20 text-brand'
+                                        : 'hover:bg-brand/5 border-transparent text-[var(--text-muted)]'
+                                    }`}
+                                onClick={() => setActiveBlockId('main')}
+                            >
+                                <span className="text-xs font-bold">Main Query</span>
+                                <Icon name="chevron_right" size={14} />
+                            </div>
+                            {fullState.ctes.map(cte => (
+                                <div key={cte.id} className="group flex items-center gap-2">
+                                    <div
+                                        className={`flex-1 flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all ${activeBlockId === cte.id
+                                                ? 'bg-brand/10 border-brand/20 text-brand'
+                                                : 'hover:bg-brand/5 border-transparent text-[var(--text-muted)]'
+                                            }`}
+                                        onClick={() => setActiveBlockId(cte.id)}
                                     >
-                                        <Icon name="add" size={14} />
-                                    </button>
-
-                                    {isAddMenuOpen && (
-                                        <div className="absolute top-full right-0 mt-1 z-50 w-48 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-100">
+                                        <span className="text-xs font-medium">{cte.alias}</span>
+                                        {cte.isRecursive && (
                                             <button
-                                                onClick={() => handleAddCTE(false)}
-                                                className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-[var(--text-main)] hover:bg-brand/5 transition-all outline-none"
-                                            >
-                                                <Icon name="select_window" size={14} className="text-brand" />
-                                                Regular Query
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setIsAddMenuOpen(false);
-                                                    setEditingCTE(null);
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingCTE(cte);
                                                     setIsRecursiveModalOpen(true);
                                                 }}
-                                                className="w-full flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-[var(--text-main)] border-t border-[var(--border-base)] hover:bg-brand/5 transition-all outline-none"
+                                                className="p-1 rounded hover:bg-brand/10 text-brand"
                                             >
-                                                <Icon name="account_tree" size={14} className="text-brand" />
-                                                Recursive Query
+                                                <Icon name="settings" size={12} />
                                             </button>
-                                        </div>
-                                    )}
-                                </div>
-                                <div
-                                    className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all ${activeBlockId === 'main'
-                                            ? 'bg-brand/10 border-brand/20 text-brand'
-                                            : 'hover:bg-brand/5 border-transparent text-[var(--text-muted)]'
-                                        }`}
-                                    onClick={() => setActiveBlockId('main')}
-                                >
-                                    <span className="text-xs font-bold">Main Query</span>
-                                    <Icon name="chevron_right" size={14} />
-                                </div>
-                                {fullState.ctes.map(cte => (
-                                    <div key={cte.id} className="group flex items-center gap-2">
-                                        <div
-                                            className={`flex-1 flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all ${activeBlockId === cte.id
-                                                    ? 'bg-brand/10 border-brand/20 text-brand'
-                                                    : 'hover:bg-brand/5 border-transparent text-[var(--text-muted)]'
-                                                }`}
-                                            onClick={() => setActiveBlockId(cte.id)}
-                                        >
-                                            <span className="text-xs font-medium">{cte.alias}</span>
-                                            {cte.isRecursive && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setEditingCTE(cte);
-                                                        setIsRecursiveModalOpen(true);
-                                                    }}
-                                                    className="p-1 rounded hover:bg-brand/10 text-brand"
-                                                >
-                                                    <Icon name="settings" size={12} />
-                                                </button>
-                                            )}
-                                            <Icon name="chevron_right" size={14} />
-                                        </div>
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                            <button
-                                                className="p-1.5 rounded-lg bg-brand/10 text-brand hover:bg-brand/20 transition-all"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleAddTable(cte.alias, true);
-                                                }}
-                                                title="Use as virtual table"
-                                            >
-                                                <Icon name="library_add" size={14} />
-                                            </button>
-                                            <button
-                                                className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 transition-all"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleRemoveCTE(cte.id, cte.alias);
-                                                }}
-                                                title="Delete block"
-                                            >
-                                                <Icon name="delete" size={14} />
-                                            </button>
-                                        </div>
+                                        )}
+                                        <Icon name="chevron_right" size={14} />
                                     </div>
-                                ))}
-                            </div>
-
-                            <div>
-                                <div className="px-2 py-1 flex items-center justify-between">
-                                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Database</h3>
-                                </div>
-                                {loading ? (
-                                    <div className="p-4 text-xs text-[var(--text-muted)] italic">Loading...</div>
-                                ) : (
-                                    tables.map(table => (
-                                        <div
-                                            key={table}
-                                            className="group flex items-center justify-between p-2 rounded-lg hover:bg-brand/5 cursor-pointer border border-transparent hover:border-brand/20 transition-all"
-                                            onClick={() => handleAddTable(table)}
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                        <button
+                                            className="p-1.5 rounded-lg bg-brand/10 text-brand hover:bg-brand/20 transition-all"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleAddTable(cte.alias, true);
+                                            }}
+                                            title="Use as virtual table"
                                         >
-                                            <span className="text-xs font-medium text-[var(--text-main)]">{table}</span>
-                                            <Icon name="plus" size={14} className="text-brand opacity-0 group-hover:opacity-100 transition-all" />
-                                        </div>
-                                    ))
-                                )}
+                                            <Icon name="library_add" size={14} />
+                                        </button>
+                                        <button
+                                            className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 transition-all"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleRemoveCTE(cte.id, cte.alias);
+                                            }}
+                                            title="Delete block"
+                                        >
+                                            <Icon name="delete" size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div>
+                            <div className="px-2 py-1 flex items-center justify-between">
+                                <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Database</h3>
                             </div>
+                            {loading ? (
+                                <div className="p-4 text-xs text-[var(--text-muted)] italic">Loading...</div>
+                            ) : (
+                                tables.map(table => (
+                                    <div
+                                        key={table}
+                                        className="group flex items-center justify-between p-2 rounded-lg hover:bg-brand/5 cursor-pointer border border-transparent hover:border-brand/20 transition-all"
+                                        onClick={() => handleAddTable(table)}
+                                    >
+                                        <span className="text-xs font-medium text-[var(--text-main)]">{table}</span>
+                                        <Icon name="plus" size={14} className="text-brand opacity-0 group-hover:opacity-100 transition-all" />
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1172,6 +1198,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                     sensors={sensors}
                                     collisionDetection={closestCenter}
                                     onDragStart={handleGlobalDragStart}
+                                    onDragMove={handleGlobalDragMove}
                                     onDragEnd={handleGlobalDragEnd}
                                 >
                                     <DragOverlay
@@ -1186,26 +1213,52 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             }),
                                         }}>
                                         {activeDragItem ? (
-                                            <div className="bg-brand text-white px-2 py-0.5 rounded shadow-lg text-[10px] font-bold flex items-center gap-1.5 border border-brand/20 animate-in fade-in zoom-in-95 duration-100 pointer-events-none w-fit whitespace-nowrap">
-                                                <Icon name={
-                                                    activeDragItem.id.toString().includes('source-field:') ? 'add' :
-                                                        (activeState.tables.some(t => t.alias === activeDragItem.id) ? 'table_chart' : 'view_column')
-                                                } size={12} />
-                                                <span>
-                                                    {(() => {
-                                                        const id = activeDragItem.id.toString();
-                                                        if (id.startsWith('source-field:')) {
-                                                            const parts = id.split(':');
-                                                            return parts[2] === '*' ? 'All Columns' : parts[2];
-                                                        }
-                                                        const field = activeState.selectedFields.find(f => f.id === id);
-                                                        if (field) return field.alias || field.columnName;
-                                                        const table = activeState.tables.find(t => t.alias === id);
-                                                        if (table) return table.alias;
-                                                        return id;
-                                                    })()}
-                                                </span>
-                                            </div>
+                                            (() => {
+                                                const id = activeDragItem.id.toString();
+                                                const isExistingField = activeState.selectedFields.some(f => f.id === id);
+                                                const isTrashMode = isExistingField && Math.hypot(dragDelta.x, dragDelta.y) > 150 && Math.abs(dragDelta.x) > Math.abs(dragDelta.y);
+
+                                                if (isTrashMode) {
+                                                    return (
+                                                        <div className="w-10 h-10 bg-red-500 text-white rounded-full shadow-2xl flex items-center justify-center animate-in zoom-in-50 duration-200 border-2 border-white/40 ring-4 ring-red-500/20">
+                                                            <Icon name="delete" size={20} />
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <div className="group flex items-center gap-3 p-2 rounded-lg border border-brand/20 bg-[var(--bg-app)] shadow-xl w-[280px] pointer-events-none">
+                                                        <div className="p-1 text-brand">
+                                                            <Icon name="drag_indicator" size={14} />
+                                                        </div>
+
+                                                        {(() => {
+                                                            const field = activeState.selectedFields.find(f => f.id === id);
+                                                            const isExpression = !!field?.expression;
+                                                            return (
+                                                                <>
+                                                                    <div className={`p-1.5 rounded-md ${isExpression ? 'bg-amber-500/10 text-amber-500' : 'bg-brand/10 text-brand'}`}>
+                                                                        <Icon name={isExpression ? 'functions' : 'view_column'} size={14} />
+                                                                    </div>
+                                                                    <div className="flex-1 flex flex-col min-w-0">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-xs font-medium text-[var(--text-main)] truncate">
+                                                                                {field?.expression || `${field?.tableAlias}.${field?.columnName}`}
+                                                                            </span>
+                                                                            {field?.alias && (
+                                                                                <span className="text-[10px] text-brand font-bold bg-brand/5 px-1.5 py-0.5 rounded">AS {field.alias}</span>
+                                                                            )}
+                                                                        </div>
+                                                                        <span className="text-[10px] text-[var(--text-muted)] opacity-60">
+                                                                            {isExpression ? 'Custom Expression' : (field?.columnName === '*' ? 'All Columns' : `${field?.tableAlias} column`)}
+                                                                        </span>
+                                                                    </div>
+                                                                </>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                );
+                                            })()
                                         ) : null}
                                     </DragOverlay>
 
@@ -1329,6 +1382,5 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 initialConfig={editingCTE?.recursiveConfig ? { ...editingCTE.recursiveConfig, alias: editingCTE.alias } : undefined}
             />
         </div>
-        </>
     );
 };
