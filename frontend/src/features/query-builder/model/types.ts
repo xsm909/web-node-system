@@ -16,7 +16,8 @@ export interface DbForeignKey {
 export interface SelectedField {
     id: string;
     tableAlias: string;
-    columnName: string;
+    columnName?: string;
+    expression?: string;
     alias?: string;
 }
 

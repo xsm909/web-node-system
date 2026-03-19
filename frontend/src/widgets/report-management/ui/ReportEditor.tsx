@@ -119,6 +119,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     ], [dynamicHints]);
 
     const [isQueryBuilderOpen, setIsQueryBuilderOpen] = useState(false);
+    const [initialSql, setInitialSql] = useState<string | undefined>(undefined);
     const [queryRange, setQueryRange] = useState({ from: 0, to: 0 });
     const [editorRef, setEditorRef] = useState<any>(null);
 
@@ -127,36 +128,78 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             key: "F1",
             run: (view) => {
                 const pos = view.state.selection.main.head;
-                const line = view.state.doc.lineAt(pos);
-                const lineText = line.text;
-                const posInLine = pos - line.from;
-
-                const stringRegex = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/g;
+                const doc = view.state.doc.toString();
+                
+                // Search for triple quotes first, then regular quotes
+                // We look for assignments like var = """..."""
+                const tripleQuoteRegex = /([\w\d_]+\s*=\s*)?("""[\s\S]*?"""|'''[\s\S]*?''')/g;
+                const singleQuoteRegex = /([\w\d_]+\s*=\s*)?("[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*')/g;
+                
                 let match;
-                let rangeFound = false;
-                while ((match = stringRegex.exec(lineText)) !== null) {
+                let foundMatch = null;
+
+                // Check triple quotes
+                while ((match = tripleQuoteRegex.exec(doc)) !== null) {
                     const start = match.index;
                     const end = start + match[0].length;
-                    
-                    if (posInLine >= start && posInLine <= end) {
-                        setQueryRange({
-                            from: line.from + start + 1,
-                            to: line.from + end - 1
-                        });
-                        rangeFound = true;
+                    if (pos >= start && pos <= end) {
+                        foundMatch = match;
                         break;
                     }
                 }
 
-                if (!rangeFound) {
-                    setQueryRange({ from: pos, to: pos });
+                // If not found, check single quotes
+                if (!foundMatch) {
+                    singleQuoteRegex.lastIndex = 0;
+                    while ((match = singleQuoteRegex.exec(doc)) !== null) {
+                        const start = match.index;
+                        const end = start + match[0].length;
+                        if (pos >= start && pos <= end) {
+                            foundMatch = match;
+                            break;
+                        }
+                    }
                 }
 
-                setIsQueryBuilderOpen(true);
+                if (foundMatch) {
+                    const assignmentPart = foundMatch[1] || "";
+                    const stringPart = foundMatch[2];
+                    
+                    // Extract content inside quotes
+                    let content = "";
+                    let quoteLength = 0;
+                    if (stringPart.startsWith('"""') || stringPart.startsWith("'''")) {
+                        content = stringPart.slice(3, -3);
+                        quoteLength = 3;
+                    } else {
+                        content = stringPart.slice(1, -1);
+                        quoteLength = 1;
+                    }
+
+                    const stringStartPos = foundMatch.index + assignmentPart.length;
+                    
+                    setQueryRange({
+                        from: stringStartPos + quoteLength,
+                        to: stringStartPos + stringPart.length - quoteLength
+                    });
+                    setInitialSql(content.trim());
+                    setIsQueryBuilderOpen(true);
+                } else {
+                    // No string found, just open empty at cursor
+                    setQueryRange({ from: pos, to: pos });
+                    setInitialSql("");
+                    setIsQueryBuilderOpen(true);
+                }
+
                 return true;
             }
         }])
     ], []);
+
+    const handleQueryBuilderError = (error: string) => {
+        setConsoleOutput(prev => `[SQL PARSE ERROR] ${error}\n${prev}`);
+        setActiveOutputTab('console');
+    };
 
     const combinedPythonExtensions = useMemo(() => [
         ...pythonExtensions,
@@ -554,16 +597,23 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
 
                     <QueryBuilderModal
                         isOpen={isQueryBuilderOpen}
+                        initialSql={initialSql}
                         onClose={() => setIsQueryBuilderOpen(false)}
+                        onError={handleQueryBuilderError}
                         onDone={(newSql) => {
                             if (editorRef) {
+                                // Indent the new SQL if it's multi-line and we're inside triple quotes
+                                const formattedSql = initialSql?.includes('\n') || newSql.includes('\n') 
+                                    ? `\n      ${newSql.trim().replace(/\n/g, '\n      ')}\n    `
+                                    : newSql;
+
                                 editorRef.dispatch({
                                     changes: {
                                         from: queryRange.from,
                                         to: queryRange.to,
-                                        insert: newSql
+                                        insert: formattedSql
                                     },
-                                    selection: { anchor: queryRange.from + newSql.length }
+                                    selection: { anchor: queryRange.from + formattedSql.length }
                                 });
                             }
                             setIsQueryBuilderOpen(false);

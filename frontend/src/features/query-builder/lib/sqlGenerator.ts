@@ -8,11 +8,12 @@ const generateBlockSQL = (state: QueryState): string => {
     if (state.selectedFields.length === 0) {
         sql += '* ';
     } else {
-        sql += state.selectedFields.map(f => {
-            let field = `${f.tableAlias}.${f.columnName}`;
+        const fieldSqls = state.selectedFields.map(f => {
+            let field = f.expression || (f.columnName === '*' ? '*' : `${f.tableAlias}.${f.columnName}`);
             if (f.alias) field += ` AS ${f.alias}`;
             return field;
-        }).join(', ');
+        });
+        sql += fieldSqls.join(', ');
     }
     
     const primaryTable = state.tables[0];

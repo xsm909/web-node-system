@@ -5,15 +5,18 @@ import { AppTabs } from '../../../shared/ui/app-tabs';
 import { useDatabaseMetadata } from '../lib/useDatabaseMetadata';
 import type { MultiQueryState, QueryState, SelectedField, JoinCondition, WhereCondition } from '../model/types';
 import { generateSQL } from '../lib/sqlGenerator';
+import { parseSQL } from '../lib/sqlParser';
 
 interface QueryBuilderModalProps {
     isOpen: boolean;
     onClose: () => void;
     onDone: (sql: string) => void;
+    initialSql?: string;
+    onError?: (error: string) => void;
 }
 
-export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, onClose, onDone }) => {
-    const { tables, getColumns, getForeignKeys, loading } = useDatabaseMetadata();
+export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, onClose, onDone, initialSql, onError }) => {
+    const { tables, getColumns, loading } = useDatabaseMetadata();
     
     const [fullState, setFullState] = useState<MultiQueryState>({
         ctes: [],
@@ -53,6 +56,29 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     useEffect(() => {
         setPreviewSql(generateSQL(fullState));
     }, [fullState]);
+
+    useEffect(() => {
+        if (isOpen && initialSql && initialSql.trim() !== "") {
+            try {
+                const parsedState = parseSQL(initialSql);
+                setFullState(parsedState);
+            } catch (err: any) {
+                console.error("SQL Parse Error:", err);
+                onError?.(err.message);
+                // Optionally start with blank state if parse fails
+                setFullState({
+                    ctes: [],
+                    mainQuery: { tables: [], selectedFields: [], joins: [], where: [] }
+                });
+            }
+        } else if (isOpen) {
+             // Reset to blank when opening without initialSql (or empty)
+             setFullState({
+                ctes: [],
+                mainQuery: { tables: [], selectedFields: [], joins: [], where: [] }
+            });
+        }
+    }, [isOpen, initialSql, onError]);
 
     const handleAddTable = (tableName: string, isCte = false) => {
         const existingCount = activeState.tables.filter((t: any) => t.tableName === tableName).length;
@@ -255,20 +281,38 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
                     <div className="flex-1 overflow-y-auto p-6 bg-[var(--bg-app)]">
                         {activeTab === 'tables' && (
-                            <div className="space-y-6 max-w-5xl">
-                                {activeState.tables.map(table => (
-                                    <TableSelectionView 
-                                        key={table.alias} 
-                                        tableName={table.tableName} 
-                                        tableAlias={table.alias}
-                                        onRemove={() => handleRemoveTableAlias(table.alias)}
-                                        getColumns={getColumns}
-                                        onAddField={handleAddField}
-                                        onRemoveField={handleRemoveField}
-                                        selectedFields={activeState.selectedFields.filter(f => f.tableAlias === table.alias)}
-                                        queryState={fullState}
-                                    />
-                                ))}
+                            <div className="space-y-8 max-w-5xl">
+                                <div className="space-y-6">
+                                    {activeState.tables.map(table => (
+                                        <TableSelectionView 
+                                            key={table.alias} 
+                                            tableName={table.tableName} 
+                                            tableAlias={table.alias}
+                                            onRemove={() => handleRemoveTableAlias(table.alias)}
+                                            getColumns={getColumns}
+                                            onAddField={handleAddField}
+                                            onRemoveField={handleRemoveField}
+                                            selectedFields={activeState.selectedFields.filter(f => f.tableAlias === table.alias)}
+                                            queryState={fullState}
+                                        />
+                                    ))}
+                                </div>
+
+                                {activeState.tables.length > 0 && (
+                                    <div className="pt-8 border-t border-[var(--border-base)]">
+                                        <SelectedFieldsListView 
+                                            fields={activeState.selectedFields}
+                                            onUpdateField={(id: string, updates: Partial<SelectedField>) => {
+                                                updateActiveState(prev => ({
+                                                    ...prev,
+                                                    selectedFields: prev.selectedFields.map(f => f.id === id ? { ...f, ...updates } : f)
+                                                }));
+                                            }}
+                                            onRemoveField={handleRemoveField}
+                                        />
+                                    </div>
+                                )}
+
                                 {activeState.tables.length === 0 && (
                                     <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
                                         <Icon name="table_chart" size={48} className="mb-4 text-[var(--text-muted)]" />
@@ -354,7 +398,6 @@ const TableSelectionView = ({ tableName, tableAlias, onRemove, getColumns, onAdd
     useEffect(() => {
         const cte = queryState.ctes.find((c: any) => c.alias === tableName);
         if (cte) {
-            // Virtual table from CTE: its columns are its selected fields
             setColumns(cte.state.selectedFields.map((f: any) => ({
                 name: f.alias || f.columnName,
                 type: 'CTE'
@@ -364,10 +407,12 @@ const TableSelectionView = ({ tableName, tableAlias, onRemove, getColumns, onAdd
         }
     }, [tableName, getColumns, queryState.ctes]);
 
+    const isAllSelected = selectedFields.some((f: any) => f.columnName === '*');
+
     return (
         <div className="bg-[var(--bg-app)] border border-[var(--border-base)] rounded-2xl overflow-hidden shadow-sm hover:border-brand/30 transition-all">
-            <div className="bg-[var(--bg-alt)] px-6 py-4 flex items-center justify-between border-b border-[var(--border-base)]">
-                <div className="flex flex-col">
+            <div className="bg-[var(--bg-alt)] px-6 py-3 flex items-center justify-between border-b border-[var(--border-base)]">
+                <div className="flex items-center gap-3">
                     <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
                         {tableName}
                         {tableAlias !== tableName && (
@@ -379,16 +424,39 @@ const TableSelectionView = ({ tableName, tableAlias, onRemove, getColumns, onAdd
                     <Icon name="delete" size={16} />
                 </button>
             </div>
-            <div className="p-4 grid grid-cols-3 gap-4">
+            <div className="p-2 space-y-0.5 max-h-64 overflow-y-auto">
+                <div 
+                    className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all cursor-pointer group ${
+                        isAllSelected ? 'bg-brand/5' : 'hover:bg-brand/5'
+                    }`}
+                    onClick={() => {
+                        if (isAllSelected) {
+                            const field = selectedFields.find((f: any) => f.columnName === '*');
+                            onRemoveField(field.id);
+                        } else {
+                            onAddField({
+                                id: `${tableAlias}_all_${Date.now()}`,
+                                tableAlias,
+                                columnName: '*'
+                            });
+                        }
+                    }}
+                >
+                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
+                        isAllSelected ? 'bg-brand border-brand text-white' : 'border-[var(--border-base)]'
+                    }`}>
+                        {isAllSelected && <Icon name="check" size={8} />}
+                    </div>
+                    <span className="text-xs font-bold text-brand">All Columns (*)</span>
+                </div>
+
                 {columns.map(col => {
                     const isSelected = selectedFields.some((f: any) => f.columnName === col.name);
                     return (
                         <div 
                             key={col.name}
-                            className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group ${
-                                isSelected 
-                                ? 'bg-brand/5 border-brand/20 shadow-sm' 
-                                : 'bg-[var(--bg-app)] border-[var(--border-base)] hover:border-brand/20'
+                            className={`flex items-center gap-3 px-4 py-1.5 rounded-lg transition-all cursor-pointer group ${
+                                isSelected ? 'bg-brand/5' : 'hover:bg-brand/5'
                             }`}
                             onClick={() => {
                                 if (isSelected) {
@@ -403,18 +471,71 @@ const TableSelectionView = ({ tableName, tableAlias, onRemove, getColumns, onAdd
                                 }
                             }}
                         >
-                            <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
-                                isSelected ? 'bg-brand border-brand text-white' : 'border-[var(--border-base)] group-hover:border-brand/50'
+                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
+                                isSelected ? 'bg-brand border-brand text-white' : 'border-[var(--border-base)]'
                             }`}>
-                                {isSelected && <Icon name="check" size={10} />}
+                                {isSelected && <Icon name="check" size={8} />}
                             </div>
-                            <div className="flex flex-col">
-                                <span className="text-xs font-bold text-[var(--text-main)]">{col.name}</span>
-                                <span className="text-[10px] text-[var(--text-muted)] uppercase">{col.type}</span>
-                            </div>
+                            <span className="text-xs text-[var(--text-main)]">{col.name}</span>
+                            <span className="ml-auto text-[9px] text-[var(--text-muted)] uppercase tracking-tight opacity-50">{col.type}</span>
                         </div>
                     );
                 })}
+            </div>
+        </div>
+    );
+};
+
+const SelectedFieldsListView = ({ fields, onUpdateField, onRemoveField }: any) => {
+    return (
+        <div className="space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 px-2">
+                <Icon name="list" size={14} />
+                Selection & Expressions
+            </h3>
+            
+            <div className="space-y-2">
+                {fields.map((field: SelectedField) => (
+                    <div key={field.id} className="flex items-center gap-4 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl p-3 shadow-sm group">
+                        <div className="flex flex-col min-w-[120px]">
+                            <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">{field.tableAlias}</span>
+                            <span className="text-xs font-medium">{field.columnName || 'Expression'}</span>
+                        </div>
+
+                        <div className="flex-1 flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-[var(--text-muted)]">SQL</span>
+                            <input 
+                                className="flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-1.5 text-xs font-mono outline-none focus:border-brand"
+                                value={field.expression || (field.columnName === '*' ? '*' : `${field.tableAlias}.${field.columnName}`)}
+                                onChange={(e) => onUpdateField(field.id, { expression: e.target.value })}
+                                placeholder="Expression..."
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2 w-48">
+                            <span className="text-[10px] font-bold text-[var(--text-muted)]">AS</span>
+                            <input 
+                                className="flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-1.5 text-xs outline-none focus:border-brand"
+                                value={field.alias || ''}
+                                onChange={(e) => onUpdateField(field.id, { alias: e.target.value })}
+                                placeholder="Alias (optional)"
+                            />
+                        </div>
+
+                        <button 
+                            onClick={() => onRemoveField(field.id)}
+                            className="text-[var(--text-muted)] hover:text-red-500 transition-colors p-1"
+                        >
+                            <Icon name="delete" size={16} />
+                        </button>
+                    </div>
+                ))}
+                
+                {fields.length === 0 && (
+                    <div className="py-8 text-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-30 text-xs">
+                        No fields selected yet.
+                    </div>
+                )}
             </div>
         </div>
     );
