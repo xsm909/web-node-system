@@ -182,7 +182,7 @@ const parseBlock = (sql: string): QueryState => {
     if (fromIndex === -1) throw new Error('syntax error: Missing FROM clause');
     
     // Find where FROM ends and the next part starts (JOIN, WHERE, GROUP BY, ORDER BY, or end)
-    const nextKeywords = ['JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT'];
+    const nextKeywords = ['CROSS JOIN', 'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL JOIN', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT'];
     let fromEnd = sql.length;
     for (const kw of nextKeywords) {
         const idx = upperSql.indexOf(kw, fromIndex + 4);
@@ -317,6 +317,16 @@ const parseBlock = (sql: string): QueryState => {
             rightTableAlias: rightTable,
             rightColumn: rightCol
         });
+    }
+
+    const crossJoinRegex = /CROSS\s+JOIN\s+(["\w\.]+)(?:\s+AS)?\s+(["\w\.]+)/gi;
+    let crossJoinMatch;
+    while ((crossJoinMatch = crossJoinRegex.exec(sql)) !== null) {
+        const tableName = stripQ(crossJoinMatch[1]);
+        const alias = stripQ(crossJoinMatch[2]);
+        if (!state.tables.find(t => t.alias === alias)) {
+            state.tables.push({ tableName, alias });
+        }
     }
 
     // 4. WHERE clause

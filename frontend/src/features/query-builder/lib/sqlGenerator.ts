@@ -24,12 +24,57 @@ const generateBlockSQL = (state: QueryState): string => {
     
     const primaryTable = state.tables[0];
     sql += `\nFROM ${q(primaryTable.tableName)} AS ${q(primaryTable.alias)}`;
+
+    const processedAliases = new Set<string>([primaryTable.alias]);
     
-    state.joins.forEach(join => {
-        const joinTable = state.tables.find(t => t.alias === join.rightTableAlias);
-        const joinTableStr = joinTable ? `${q(joinTable.tableName)} AS ${q(joinTable.alias)}` : q(join.rightTableAlias);
-        sql += `\n${join.type} JOIN ${joinTableStr} ON ${q(join.leftTableAlias)}.${q(join.leftColumn)} = ${q(join.rightTableAlias)}.${q(join.rightColumn)}`;
-    });
+    // Follow the order of tables for JOINS
+    for (let i = 1; i < state.tables.length; i++) {
+        const table = state.tables[i];
+        
+        // Find a join connecting this table to any previously processed table
+        let join = state.joins.find(j => 
+            j.rightTableAlias === table.alias && processedAliases.has(j.leftTableAlias)
+        );
+        let directionFlipped = false;
+
+        if (!join) {
+            // Try the other direction
+            join = state.joins.find(j => 
+                j.leftTableAlias === table.alias && processedAliases.has(j.rightTableAlias)
+            );
+            if (join) directionFlipped = true;
+        }
+
+        if (join) {
+            let joinType = join.type;
+            let leftAlias = join.leftTableAlias;
+            let leftCol = join.leftColumn;
+            let rightAlias = join.rightTableAlias;
+            let rightCol = join.rightColumn;
+
+            if (directionFlipped) {
+                // Flip join type if needed
+                if (joinType === 'LEFT') joinType = 'RIGHT';
+                else if (joinType === 'RIGHT') joinType = 'LEFT';
+                
+                // Swap columns and aliases for the ON clause to match the flipped direction
+                // However, in "A JOIN B ON cond", B is the table being joined.
+                // If we have join(A, B) and we are joining A to processed B:
+                // SQL: ... FROM B [FLIPPED JOIN] A ON A.col = B.col
+                leftAlias = join.rightTableAlias;
+                leftCol = join.rightColumn;
+                rightAlias = join.leftTableAlias;
+                rightCol = join.leftColumn;
+            }
+
+            sql += `\n${joinType} JOIN ${q(table.tableName)} AS ${q(table.alias)} ON ${q(leftAlias)}.${q(leftCol)} = ${q(rightAlias)}.${q(rightCol)}`;
+        } else {
+            // If no join defined, fallback to CROSS JOIN to keep the table in the sequence
+            sql += `\nCROSS JOIN ${q(table.tableName)} AS ${q(table.alias)}`;
+        }
+        
+        processedAliases.add(table.alias);
+    }
     
     if (state.where.length > 0) {
         sql += '\nWHERE ';

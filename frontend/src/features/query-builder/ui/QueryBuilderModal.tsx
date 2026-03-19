@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { arrayMove } from '@dnd-kit/sortable';
 import { Icon } from '../../../shared/ui/icon';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppTabs } from '../../../shared/ui/app-tabs';
@@ -639,6 +640,21 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }));
     };
 
+    const handleMoveTable = (activeId: string, overId: string) => {
+        updateActiveState(prev => {
+            const oldIndex = prev.tables.findIndex(t => t.alias === activeId);
+            const newIndex = prev.tables.findIndex(t => t.alias === overId);
+            
+            if (oldIndex !== -1 && newIndex !== -1) {
+                return {
+                    ...prev,
+                    tables: arrayMove(prev.tables, oldIndex, newIndex)
+                };
+            }
+            return prev;
+        });
+    };
+
     const handleAddCTE = (isRecursive = false, config?: any) => {
         const id = editingCTE ? editingCTE.id : `cte_${Date.now()}`;
         const alias = config?.alias || `tab${fullState.ctes.length + 1}`;
@@ -898,6 +914,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             onAddField={handleAddField}
                                             onRemoveField={handleRemoveField}
                                             onRemoveTable={handleRemoveTableAlias}
+                                            onMoveTable={handleMoveTable}
                                             getColumns={getColumns}
                                             queryState={fullState}
                                         />

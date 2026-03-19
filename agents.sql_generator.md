@@ -79,6 +79,14 @@ The generator uses a multi-pass approach:
 3. **Phase 3: Main Query**
     - Generates the standard `SELECT ... FROM ...` referencing CTEs as ordinary tables.
 
+### 4.4 Flexible Join Direction (LEFT/RIGHT)
+
+The generator is order-agnostic for joins. If the user reorders tables in the list:
+1.  **Inverse Detection**: If the current table is the "left" side of a join connecting it to an already processed table, the generator detects this reversal.
+2.  **Type Flipping**: `LEFT` joins are automatically flipped to `RIGHT` (and vice versa) to preserve the logical relationship.
+3.  **ON Clause Adjustment**: Columns and aliases in the `ON` clause are swapped to ensure the join table is on the right side of the `=` operator.
+4.  **No Cross-Joins**: This logic prevents accidental `CROSS JOIN` errors when table order is changed in the UI, as the relationship is searched in both directions.
+
 ## 7. Heuristic SQL Parser
 
 The system includes an enhanced custom parser ([sqlParser.ts](file:///Users/Shared/Work/Web/web-node-system/frontend/src/features/query-builder/lib/sqlParser.ts)):
@@ -93,4 +101,4 @@ The system includes an enhanced custom parser ([sqlParser.ts](file:///Users/Shar
 - **Condition Guards**: New recursive blocks automatically add an `IS NULL` condition to the parent reference to guide the user.
 
 ---
-*Last Updated: 2026-03-21*
+*Last Updated: 2026-03-22*

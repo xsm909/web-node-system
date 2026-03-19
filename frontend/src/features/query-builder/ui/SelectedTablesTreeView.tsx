@@ -1,4 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Icon } from '../../../shared/ui/icon';
 import type { QueryTable, SelectedField, MultiQueryState } from '../model/types';
 
@@ -8,6 +24,7 @@ interface SelectedTablesTreeViewProps {
     onAddField: (field: SelectedField) => void;
     onRemoveField: (id: string) => void;
     onRemoveTable: (alias: string) => void;
+    onMoveTable: (activeId: string, overId: string) => void;
     getColumns: (tableName: string) => Promise<any[]>;
     queryState: MultiQueryState;
 }
@@ -18,9 +35,28 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
     onAddField,
     onRemoveField,
     onRemoveTable,
+    onMoveTable,
     getColumns,
     queryState
 }) => {
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            onMoveTable(active.id as string, over.id as string);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-2xl overflow-hidden shadow-sm">
             <div className="bg-[var(--bg-alt)] px-4 py-3 border-b border-[var(--border-base)] flex items-center justify-between">
@@ -30,18 +66,30 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
                 </h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                {tables.map(table => (
-                    <TableTreeItem 
-                        key={table.alias}
-                        table={table}
-                        selectedFields={selectedFields.filter(f => f.tableAlias === table.alias)}
-                        onAddField={onAddField}
-                        onRemoveField={onRemoveField}
-                        onRemoveTable={onRemoveTable}
-                        getColumns={getColumns}
-                        queryState={queryState}
-                    />
-                ))}
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                >
+                    <SortableContext
+                        items={tables.map(t => t.alias)}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        {tables.map(table => (
+                            <TableTreeItem 
+                                key={table.alias}
+                                table={table}
+                                selectedFields={selectedFields.filter(f => f.tableAlias === table.alias)}
+                                onAddField={onAddField}
+                                onRemoveField={onRemoveField}
+                                onRemoveTable={onRemoveTable}
+                                getColumns={getColumns}
+                                queryState={queryState}
+                            />
+                        ))}
+                    </SortableContext>
+                </DndContext>
+                
                 {tables.length === 0 && (
                     <div className="h-32 flex flex-col items-center justify-center opacity-40 border-2 border-dashed border-[var(--border-base)] rounded-xl m-2">
                         <Icon name="add_to_photos" size={24} className="mb-2" />
@@ -57,6 +105,23 @@ const TableTreeItem = ({ table, selectedFields, onAddField, onRemoveField, onRem
     const [isExpanded, setIsExpanded] = useState(true);
     const [columns, setColumns] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: table.alias });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : undefined,
+        position: 'relative' as const,
+        opacity: isDragging ? 0.3 : 1,
+    };
 
     useEffect(() => {
         if (isExpanded && columns.length === 0) {
@@ -89,8 +154,16 @@ const TableTreeItem = ({ table, selectedFields, onAddField, onRemoveField, onRem
     const isAllSelected = selectedFields.some((f: any) => f.columnName === '*');
 
     return (
-        <div className="flex flex-col">
-            <div className="group flex items-center gap-2 p-1.5 rounded-lg hover:bg-brand/5 transition-all">
+        <div ref={setNodeRef} style={style} className="flex flex-col">
+            <div className="group flex items-center gap-1 p-1 rounded-lg hover:bg-brand/5 transition-all">
+                <div 
+                    {...attributes} 
+                    {...listeners} 
+                    className="p-1 cursor-grab active:cursor-grabbing text-[var(--text-muted)] hover:text-brand opacity-0 group-hover:opacity-100 transition-all"
+                >
+                    <Icon name="drag_indicator" size={14} />
+                </div>
+                
                 <button 
                     onClick={() => setIsExpanded(!isExpanded)}
                     className="p-1 rounded hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand transition-all"
@@ -113,7 +186,7 @@ const TableTreeItem = ({ table, selectedFields, onAddField, onRemoveField, onRem
             </div>
 
             {isExpanded && (
-                <div className="ml-7 mt-0.5 space-y-0.5 border-l-2 border-brand/10 pl-2 mb-2 animate-in slide-in-from-left-2 duration-200">
+                <div className="ml-10 mt-0.5 space-y-0.5 border-l-2 border-brand/10 pl-2 mb-2 animate-in slide-in-from-left-2 duration-200">
                     <div 
                         className={`flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer transition-all ${
                             isAllSelected ? 'bg-brand/5 text-brand' : 'hover:bg-brand/5'
@@ -179,3 +252,4 @@ const TableTreeItem = ({ table, selectedFields, onAddField, onRemoveField, onRem
         </div>
     );
 };
+
