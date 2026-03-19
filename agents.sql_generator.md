@@ -75,13 +75,19 @@ The system includes a custom heuristic parser ([sqlParser.ts](file:///Users/Shar
 - **Strict Syntax Checking**: Detects stray text between clauses and malformed structures, reporting them as PostgreSQL-style syntax errors.
 - **Unsupported Commands**: Explicitly rejects `EXPLAIN`, `UPDATE`, `DELETE`, etc., to prevent data corruption or visualization issues.
 
-## 8. Selection & Expressions
+## 8. Hierarchical UI & Selection
 
-The field selection UI ([QueryBuilderModal.tsx](file:///Users/Shared/Work/Web/web-node-system/frontend/src/features/query-builder/ui/QueryBuilderModal.tsx)) has been enhanced for productivity:
-- **Compact View**: Columns are displayed in a space-efficient vertical list.
-- **Select All (*)**: Quick toggle for selecting all columns of a table.
-- **Custom Expressions**: Support for wrapping fields in SQL functions (e.g., `UPPER(u.name)`) or defining raw SQL expressions.
-- **Aliasing**: Every selected field can have a custom `AS` alias defined directly in the UI.
+The selection interface has been overhauled for better visibility and organization:
+
+### 8.1 Two-Column Layout
+- **Left Column (Selected Tables)**: Lists all tables participating in the query block. Tables are expandable/collapsible. Expanding a table reveals its specific columns for toggle-based selection.
+- **Right Column (Selected Fields)**: Displays a hierarchical view of the fields currently in the `SELECT` clause, grouped by their parent table/CTE alias.
+
+### 8.2 Field Expression Modal
+For advanced column configuration, users can open the **Field Expression Modal** (via the "Edit" icon):
+- **Expression Editing**: Modify the raw SQL for the column (e.g., `to_char(u.created_at, 'YYYY-MM-DD')`).
+- **Alias Definition**: Define a custom `AS` name for the result.
+- **Persistence**: Changes are stored in the `SelectedField` object and reflected in the hierarchical tree and SQL preview.
 
 ## 9. Error Reporting
 
