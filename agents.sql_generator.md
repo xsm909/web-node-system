@@ -100,5 +100,26 @@ The system includes an enhanced custom parser ([sqlParser.ts](file:///Users/Shar
 - **Recursion Settings Icon**: Existing query blocks in the sidebar display a settings icon for easy re-configuration of recursion parameters.
 - **Condition Guards**: New recursive blocks automatically add an `IS NULL` condition to the parent reference to guide the user.
 
+## 5. Execution & Verification
+
+### 5.1 On-the-Fly Execution (F5 / F9)
+- Users can instantly verify their SQL by pressing `F5` or `F9` within the Query Builder.
+- This triggers a `POST` request to the backend `/database-metadata/execute` endpoint.
+- **Safety**: The execution is restricted to `SELECT` and `WITH` queries, and a `LIMIT 1000` is automatically appended.
+
+### 5.2 Context-Aware Execution
+- The system determines the "Effective SQL" based on the currently active query block:
+    - **Main Query**: Executes the full `WITH ... SELECT ...` statement.
+    - **Standalone CTE**: If a CTE has no dependencies on other blocks and is not recursive, it can be executed in isolation as a simple `SELECT ...` statement.
+    - **Dependent CTE**: If a block depends on others, the UI restricts standalone execution and prompts the user to run the main query.
+
+## 6. Results Display (Tabulator)
+
+Query results are rendered in a dedicated modal using the **Tabulator** engine:
+- **Professional Grid**: Supports column resizing, reordering, and cell-level selection.
+- **Excel Navigation**: Full keyboard support (arrow keys) for moving the selection cursor between cells (via `Keybindings` module).
+- **Data Formatting**: Automatically detects and stringifies `JSON`/`JSONB` objects for readable display via custom column formatters.
+- **Export**: Includes a **"Copy Result"** action that exports the entire result set to the clipboard as a formatted JSON string.
+
 ---
-*Last Updated: 2026-03-22*
+*Last Updated: 2026-03-19*

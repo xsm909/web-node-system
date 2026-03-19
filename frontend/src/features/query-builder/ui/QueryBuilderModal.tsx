@@ -11,8 +11,17 @@ import { SelectedTablesTreeView } from './SelectedTablesTreeView';
 import { SelectedFieldsTreeView } from './SelectedFieldsTreeView';
 import { FieldExpressionModal } from './FieldExpressionModal';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
-import { AppTable } from '../../../shared/ui/app-table/AppTable';
 import { apiClient } from '../../../shared/api/client';
+import { AppTabulatorTable } from '../../../shared/ui/app-tabulator-table/AppTabulatorTable';
+
+const copyToClipboard = async (text: string) => {
+    try {
+        await navigator.clipboard.writeText(text);
+        alert('Copied to clipboard!');
+    } catch (err) {
+        console.error('Failed to copy!', err);
+    }
+};
 
 // --- Internal Helper Components ---
 
@@ -640,7 +649,6 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const handleExecuteQuery = useCallback(async () => {
         if (isExecuting || !effectiveSql.canRun) return;
         
-        console.log("Executing SQL:", effectiveSql.sql);
         setIsExecuting(true);
         try {
             const res = await apiClient.post('/database-metadata/execute', { sql: effectiveSql.sql });
@@ -1061,31 +1069,20 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             <AppCompactModalForm
                 isOpen={isResultsOpen}
                 onClose={() => setIsResultsOpen(false)}
-                onSubmit={() => setIsResultsOpen(false)}
+                onSubmit={() => copyToClipboard(JSON.stringify(queryResults, null, 2))}
                 title="Query Results"
                 icon="table_chart"
                 width="max-w-7xl"
+                submitLabel="Copy Result"
+                cancelLabel="Close"
             >
                 <div className="h-[60vh] flex flex-col">
                     {queryResults.length > 0 ? (
-                        <AppTable 
+                    <div className="flex-1 h-full min-h-0">
+                        <AppTabulatorTable 
                             data={queryResults}
-                            columns={Object.keys(queryResults[0]).map(key => ({
-                                header: key,
-                                accessorKey: key,
-                                cell: (info: any) => {
-                                    const val = info.getValue();
-                                    if (typeof val === 'object' && val !== null) {
-                                        return JSON.stringify(val);
-                                    }
-                                    return String(val ?? '');
-                                }
-                            }))}
-                            config={{
-                                emptyMessage: "Query returned no results.",
-                                layout: 'compact'
-                            }}
                         />
+                    </div>
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center opacity-40">
                             <Icon name="search_off" size={48} className="mb-4 text-[var(--text-muted)]" />

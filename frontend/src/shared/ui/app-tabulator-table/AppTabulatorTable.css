@@ -1,0 +1,91 @@
+/* Custom Tabulator Theme for Web Node System (Protocol Emerald) */
+
+.app-tabulator-container {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-app);
+    color: var(--text-main);
+    border: 1px solid var(--border-base);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+}
+
+.tabulator {
+    background-color: transparent !important;
+    border: none !important;
+    font-family: inherit !important;
+    font-size: 12px !important;
+}
+
+.tabulator .tabulator-header {
+    background-color: var(--brand) !important;
+    color: white !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    border-bottom: 2px solid var(--brand-hover) !important;
+}
+
+.tabulator .tabulator-header .tabulator-col {
+    background-color: var(--brand) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.tabulator .tabulator-header .tabulator-col-title {
+    padding: 10px 12px !important;
+}
+
+.tabulator .tabulator-tableholder .tabulator-table {
+    background-color: transparent !important;
+    color: var(--text-main) !important;
+}
+
+.tabulator-row {
+    background-color: transparent !important;
+    border-bottom: 1px solid var(--border-base) !important;
+    min-height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.tabulator-row.tabulator-row-even {
+    background-color: rgba(var(--brand), 0.02) !important;
+}
+
+/* Light Mode zebra stripes */
+:root:not(.dark) .tabulator-row.tabulator-row-even {
+    background-color: #f8fafc !important;
+}
+
+/* Dark Mode zebra stripes */
+.dark .tabulator-row.tabulator-row-even {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+.tabulator-row:hover {
+    background-color: rgba(var(--brand), 0.05) !important;
+}
+
+.tabulator-cell {
+    padding: 6px 12px !important;
+    border-right: 1px solid var(--border-base) !important;
+}
+
+/* Scrollbar styling to match project */
+.tabulator-tableholder::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.tabulator-tableholder::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tabulator-tableholder::-webkit-scrollbar-thumb {
+    background: var(--border-base);
+    border-radius: 3px;
+}
+
+.tabulator-tableholder::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}

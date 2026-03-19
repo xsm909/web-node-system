@@ -8,6 +8,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  optimizeDeps: {
+    include: ['tabulator-tables'],
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
