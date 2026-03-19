@@ -29,38 +29,24 @@ class Record(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     schema_id = Column(UUID(as_uuid=True), ForeignKey('schemas.id', ondelete='CASCADE'), nullable=False, index=True)
     parent_id = Column(UUID(as_uuid=True), ForeignKey('records.id', ondelete='CASCADE'), nullable=True, index=True)
+    entity_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    entity_type = Column(String, nullable=True, index=True)
     data = Column(JSON, nullable=False) # The validated payload
     order = Column("order", Column(Integer).type, default=0, nullable=False) # Use explicit name to avoid reserved word issues in some DBs
     lock = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    __table_args__ = (
+        Index("idx_records_entity", "entity_type", "entity_id"),
+    )
+
     # Relationships
     schema = relationship("Schema", back_populates="records")
     parent = relationship("Record", remote_side=[id], back_populates="children")
     children = relationship("Record", back_populates="parent", cascade="all, delete-orphan", order_by="Record.order")
-    meta_assignments = relationship("MetaAssignment", back_populates="record", cascade="all, delete-orphan")
 
 
-class MetaAssignment(Base):
-    """Polymorphic binding of a Record to any system entity."""
-    __tablename__ = "meta_assignments"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    record_id = Column(UUID(as_uuid=True), ForeignKey('records.id', ondelete='CASCADE'), nullable=False, unique=True)
-    entity_type = Column(String, nullable=False, index=True) # e.g., 'user', 'client'
-    entity_id = Column(UUID(as_uuid=True), nullable=False, index=True) # ID of the target
-    assigned_by = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False) # Admin who made the assignment
-    owner_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=True) # User who has rights to edit this specific data
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    __table_args__ = (
-        Index("idx_meta_entity", "entity_type", "entity_id"),
-    )
-
-    # Relationships
-    record = relationship("Record", back_populates="meta_assignments")
 
 
 class ExternalSchemaCache(Base):

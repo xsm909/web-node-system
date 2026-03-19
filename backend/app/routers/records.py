@@ -7,11 +7,9 @@ from uuid import UUID
 from ..core.database import get_db
 from ..core.security import get_current_user
 from ..models import User, RoleEnum
-from ..models.schema import Record, Schema, MetaAssignment
+from ..models.schema import Record, Schema
 from ..schemas.schema_registry import (
-    RecordCreate, RecordUpdate, RecordResponse, 
-    MetaAssignmentCreate, MetaAssignmentResponse,
-    MetaAssignmentDetailResponse
+    RecordCreate, RecordUpdate, RecordResponse
 )
 from ..services.validator import validate_json_data
 from ..internal_libs.logger_lib import system_log
@@ -24,7 +22,7 @@ def check_admin(user: User):
 
 @router.get("/", response_model=List[RecordResponse])
 def get_records(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Very basic return. Ideally, should be scoped by owner_id in MetaAssignment
+    # Returns all records. In production, this should be scoped by entity access permissions.
     return db.query(Record).all()
 
 @router.post("/", response_model=RecordResponse)
@@ -53,6 +51,8 @@ def create_record(
     new_record = Record(
         schema_id=record_in.schema_id,
         parent_id=record_in.parent_id,
+        entity_id=record_in.entity_id,
+        entity_type=record_in.entity_type,
         data=record_in.data,
         order=order,
         lock=record_in.lock
@@ -120,46 +120,6 @@ def delete_record(
     db.commit()
 
 
-# --- Meta Assignments Endpoints ---
-@router.post("/assign", response_model=MetaAssignmentResponse)
-def assign_metadata(
-    assign_in: MetaAssignmentCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    check_admin(current_user)
-    
-    # Make sure record exists
-    if not db.query(Record).filter(Record.id == assign_in.record_id).first():
-        raise HTTPException(status_code=404, detail="Record not found")
-
-    # If assignment exists for this record, fail or update
-    existing = db.query(MetaAssignment).filter(MetaAssignment.record_id == assign_in.record_id).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Record is already assigned")
-
-    # Automatic order assignment for root records
-    max_order = db.query(func.max(Record.order)).join(MetaAssignment).filter(
-        MetaAssignment.entity_type == assign_in.entity_type,
-        MetaAssignment.entity_id == assign_in.entity_id
-    ).scalar() or 0
-    
-    record = db.query(Record).filter(Record.id == assign_in.record_id).first()
-    if record:
-        record.order = max_order + 1
-
-    new_assign = MetaAssignment(
-        record_id=assign_in.record_id,
-        entity_type=assign_in.entity_type,
-        entity_id=assign_in.entity_id,
-        assigned_by=current_user.id,
-        owner_id=assign_in.owner_id
-    )
-    db.add(new_assign)
-    db.commit()
-    db.refresh(new_assign)
-    return new_assign
-
 def get_recursive_record(db: Session, record_id: UUID, depth=0) -> Record:
     """Helper to load a record with its schema and ALL descendants recursively."""
     record = db.query(Record).options(
@@ -175,7 +135,7 @@ def get_recursive_record(db: Session, record_id: UUID, depth=0) -> Record:
             get_recursive_record(db, child.id, depth + 1)
     return record
 
-@router.get("/entity/{entity_type}/{entity_id}", response_model=List[MetaAssignmentDetailResponse])
+@router.get("/entity/{entity_type}/{entity_id}", response_model=List[RecordResponse])
 def get_entity_metadata(
     entity_type: str,
     entity_id: UUID,
@@ -183,20 +143,21 @@ def get_entity_metadata(
     current_user: User = Depends(get_current_user)
 ):
     # Returns metadata assigned to a specific entity
-    # Fetch root assignments
-    assignments = db.query(MetaAssignment).filter(
-        MetaAssignment.entity_type == entity_type,
-        MetaAssignment.entity_id == entity_id
-    ).all()
+    # Fetch root records (parent_id is null) for this entity
+    records = db.query(Record).filter(
+        Record.entity_type == entity_type,
+        Record.entity_id == entity_id,
+        Record.parent_id == None
+    ).options(
+        joinedload(Record.schema),
+        selectinload(Record.children)
+    ).order_by(Record.order).all()
     
-    # Refresh/load each assigned record tree recursively
-    for assignment in assignments:
-        get_recursive_record(db, assignment.record_id)
+    # Recursively load descendants for each root
+    for record in records:
+        get_recursive_record(db, record.id)
         
-    # Sort assignments by record order
-    assignments.sort(key=lambda x: x.record.order if x.record else 0)
-        
-    return assignments
+    return records
 
 
 from sqlalchemy import text
@@ -216,40 +177,9 @@ def get_references(
     5) Return all records in all those trees that match the target schema.
     """
     query_sql = text("""
-WITH target_schema AS (
-    SELECT id FROM schemas WHERE key = :schema_key
-),
-current_tree AS (
-    -- Get root of the provided record
-    WITH RECURSIVE up AS (
-        SELECT id, parent_id FROM records WHERE id = :record_id
-        UNION ALL
-        SELECT r.id, r.parent_id FROM records r JOIN up ON r.id = up.parent_id
-    )
-    SELECT id FROM up WHERE parent_id IS NULL LIMIT 1
-),
-current_entity AS (
-    -- Find what entity this root is assigned to
-    SELECT entity_type, entity_id FROM meta_assignments 
-    WHERE record_id = (SELECT id FROM current_tree)
-),
-all_entity_roots AS (
-    -- Find all roots assigned to this same entity
-    SELECT record_id FROM meta_assignments
-    WHERE (entity_type, entity_id) = (SELECT entity_type, entity_id FROM current_entity)
-),
-all_records AS (
-    -- Get all records in all trees for this entity
-    WITH RECURSIVE down AS (
-        SELECT r.id, r.parent_id, r.schema_id FROM records r
-        JOIN all_entity_roots aer ON r.id = aer.record_id
-        UNION ALL
-        SELECT r.id, r.parent_id, r.schema_id FROM records r
-        JOIN down ON r.parent_id = down.id
-    )
-    SELECT DISTINCT id, schema_id FROM down
-)
-SELECT id FROM all_records WHERE schema_id = (SELECT id FROM target_schema);
+SELECT id FROM records 
+WHERE (entity_type, entity_id) = (SELECT entity_type, entity_id FROM records WHERE id = :record_id)
+  AND schema_id = (SELECT id FROM schemas WHERE key = :schema_key);
     """)
 
     matching_rows = db.execute(query_sql, {
@@ -264,32 +194,6 @@ SELECT id FROM all_records WHERE schema_id = (SELECT id FROM target_schema);
     return db.query(Record).filter(Record.id.in_(ids)).all()
 
 
-@router.delete("/assign/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def unassign_metadata(
-    assignment_id: UUID,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    check_admin(current_user)
-    
-    assignment = db.query(MetaAssignment).filter(MetaAssignment.id == assignment_id).first()
-    if not assignment:
-        raise HTTPException(status_code=404, detail="Assignment not found")
-    
-    # We delete the record, which cascades to the assignment
-    record = db.query(Record).filter(Record.id == assignment.record_id).first()
-    if record:
-        if record.lock:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail="Record is locked and cannot be removed. Unlock it first."
-            )
-        db.delete(record)
-    else:
-        # Fallback: if record is already gone, just delete the assignment
-        db.delete(assignment)
-        
-    db.commit()
 
 @router.patch("/reorder", status_code=status.HTTP_204_NO_CONTENT)
 def reorder_records(

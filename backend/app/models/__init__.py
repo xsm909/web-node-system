@@ -6,7 +6,7 @@ from .ai_task import AI_Task
 from .data_type import DataType
 from .client_metadata import ClientMetadata
 from .report import Report, ReportParameter, ReportStyle, ReportRun
-from .schema import Schema, Record, MetaAssignment, ExternalSchemaCache
+from .schema import Schema, Record, ExternalSchemaCache
 from .agent_hint import AgentHint
 from .prompt import Prompt
 
@@ -29,7 +29,6 @@ __all__ = [
     "ReportRun",
     "Schema",
     "Record",
-    "MetaAssignment",
     "ExternalSchemaCache",
     "AgentHint",
     "Prompt",

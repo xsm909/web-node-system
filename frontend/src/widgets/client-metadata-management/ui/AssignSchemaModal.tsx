@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSchemas } from '../../../entities/schema/api';
-import { useCreateRecord, useAssignMetadata } from '../../../entities/record/api';
+import { useCreateRecord } from '../../../entities/record/api';
 import { Icon } from '../../../shared/ui/icon';
 
 interface AssignSchemaModalProps {
@@ -16,8 +16,6 @@ export const AssignSchemaModal: React.FC<AssignSchemaModalProps> = ({
 }) => {
     const { data: schemas, isLoading } = useSchemas();
     const createRecordMutation = useCreateRecord();
-    const assignMetadataMutation = useAssignMetadata();
-
     const [selectedSchemaId, setSelectedSchemaId] = useState<string>('');
 
     if (!isOpen) return null;
@@ -26,18 +24,12 @@ export const AssignSchemaModal: React.FC<AssignSchemaModalProps> = ({
         if (!selectedSchemaId) return;
 
         try {
-            // 1. Create empty record belonging to the schema
-            const newRecord = await createRecordMutation.mutateAsync({
+            // Create record directly attached to the client
+            await createRecordMutation.mutateAsync({
                 schema_id: selectedSchemaId,
-                data: {}
-            });
-
-            // 2. Assign the record to the active client
-            await assignMetadataMutation.mutateAsync({
-                record_id: newRecord.id,
-                entity_type: 'client',
+                entity_type: 'users',
                 entity_id: activeClientId,
-                owner_id: activeClientId
+                data: {}
             });
 
             onClose();
@@ -98,10 +90,10 @@ export const AssignSchemaModal: React.FC<AssignSchemaModalProps> = ({
                     </button>
                     <button
                         onClick={handleAssign}
-                        disabled={!selectedSchemaId || createRecordMutation.isPending || assignMetadataMutation.isPending}
+                        disabled={!selectedSchemaId || createRecordMutation.isPending}
                         className="px-5 py-2 rounded-xl text-sm font-bold bg-brand text-white hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center gap-2 shadow-lg shadow-brand/20"
                     >
-                        {(createRecordMutation.isPending || assignMetadataMutation.isPending) ? 'Assigning...' : 'Assign'}
+                        {createRecordMutation.isPending ? 'Assigning...' : 'Assign'}
                     </button>
                 </div>
             </div>

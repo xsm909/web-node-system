@@ -5,7 +5,7 @@ import { RjsfForm } from '../../../features/data-editor/RjsfForm';
 import { Icon } from '../../../shared/ui/icon/Icon';
 
 interface ClientMetadataEditorProps {
-    assignment: any; // MetaAssignment response containing nested record and schema
+    assignment: any; // Record object containing optional nested schema
     assignments: any[]; // Full list of assignments for the client
     activeClientId?: string;
     onSaveSuccess?: () => void;
@@ -27,7 +27,7 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
     const { data: schemas, isLoading: isSchemasLoading } = useSchemas();
     const [formData, setFormData] = useState<any>(undefined);
     const [isValid, setIsValid] = useState(true);
-    const [lock, setLock] = useState(assignment?.record?.lock || false);
+    const [lock, setLock] = useState(assignment?.lock || false);
     const [validationErrors, setValidationErrors] = useState<any[]>([]);
     const [saveError, setSaveError] = useState<string | null>(null);
     const seededRecordId = useRef<string | null>(null);
@@ -50,7 +50,7 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
         return val;
     };
 
-    const schemaRaw = assignment?.record?.schema?.content;
+    const schemaRaw = assignment?.schema?.content;
     const schemaContent = React.useMemo(() => safeParse(schemaRaw) || {}, [schemaRaw]);
     const schemaType = schemaContent.type || 'object';
 
@@ -83,10 +83,10 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
     };
 
     useEffect(() => {
-        const currentRecordId = assignment?.record?.id ?? null;
+        const currentRecordId = assignment?.id ?? null;
         if (currentRecordId !== seededRecordId.current) {
             seededRecordId.current = currentRecordId;
-            const rawData = assignment?.record?.data;
+            const rawData = assignment?.data;
             let data = safeParse(rawData);
 
             const isEmpty = data === null || data === undefined || (typeof data === 'object' && Object.keys(data).length === 0);
@@ -105,26 +105,24 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
             }
 
             setFormData(data);
-            setLock(assignment?.record?.lock || false);
+            setLock(assignment?.lock || false);
             // Default to true and let RjsfForm prove it otherwise if there are errors.
             setIsValid(true); 
             setSaveError(null);
             console.log("[ClientMetadataEditor] SEEDED:", {
                 recordId: currentRecordId,
-                assignmentId: assignment?.id,
-                recordIdFallback: assignment?.record_id
             });
         }
-    }, [assignment?.record?.id, schemaType]);
+    }, [assignment?.id, schemaType]);
 
     const handleFormSubmit = (data: any) => {
-        if (!assignment?.record?.id) {
+        if (!assignment?.id) {
             setSaveError("Record ID is missing. Cannot save.");
             return;
         }
 
         setSaveError(null);
-        updateMutation.mutate({ id: assignment.record.id, data: { data } }, {
+        updateMutation.mutate({ id: assignment.id, data: { data } }, {
             onSuccess: () => onSaveSuccess?.(),
             onError: (err: any) => {
                 const detail = err?.response?.data?.detail
@@ -136,11 +134,11 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
     };
 
     const handleToggleLock = () => {
-        if (!assignment?.record?.id) return;
+        if (!assignment?.id) return;
         const newLockState = !lock;
         setLock(newLockState);
         updateMutation.mutate({ 
-            id: assignment.record.id, 
+            id: assignment.id, 
             data: { lock: newLockState } 
         });
     };
@@ -235,7 +233,7 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
                                  extraSchemas={extraSchemas}
                                  activeClientId={activeClientId}
                                  assignments={assignments}
-                                 recordId={assignment?.record?.id || assignment?.record_id || assignment?.id}
+                                 recordId={assignment?.id}
                                  readOnly={lock}
                              />
                          </div>

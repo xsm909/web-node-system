@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon } from '../../../shared/ui/icon';
 import { useAuthStore } from '../../../features/auth/store';
-import { useEntityMetadata, useUnassignMetadata, useCreateRecord, useAssignMetadata, useDeleteRecord } from '../../../entities/record/api';
+import { useEntityMetadata, useCreateRecord, useDeleteRecord } from '../../../entities/record/api';
 import { useSchemas } from '../../../entities/schema/api';
 import type { Schema } from '../../../entities/schema/api';
 import { ClientMetadataEditor, type ClientMetadataEditorRef } from './ClientMetadataEditor';
@@ -56,7 +56,7 @@ const SortableRow = ({
         transform,
         transition,
         isDragging
-    } = useSortable({ id: item.id || item.record?.id });
+    } = useSortable({ id: item.id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -86,13 +86,13 @@ const SortableRow = ({
                     )}
                     {isAdmin && (
                         <div
-                            className={`transition-opacity duration-200 ${openSubMenuId === item.record?.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                            className={`transition-opacity duration-200 ${openSubMenuId === item.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                             onClick={(e) => e.stopPropagation()}
                         >
                             <ComboBox
                                 data={comboData}
                                 onSelect={onSchemaSelect}
-                                onOpenChange={(open) => onOpenSubMenu(open, item.record?.id)}
+                                onOpenChange={(open) => onOpenSubMenu(open, item.id)}
                                 placeholder=""
                                 icon="add"
                                 triggerClassName="flex items-center justify-center w-7 h-7 rounded-full bg-brand text-white hover:brightness-110 shadow-sm active:scale-95 transition-all"
@@ -108,26 +108,26 @@ const SortableRow = ({
                     {depth > 0 && (
                         <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
                     )}
-                    <span className={`px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 ${item.record?.lock ? 'ring-1 ring-red-500/20 text-red-400/80' : ''}`}>
+                    <span className={`px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 ${item.lock ? 'ring-1 ring-red-500/20 text-red-400/80' : ''}`}>
                         {depth > 0 && <Icon name="arrow_split" size={12} />}
-                        {item.record?.schema?.key || 'Unknown'}
-                        {item.record?.lock && <Icon name="lock" size={10} />}
+                        {item.schema?.key || 'Unknown'}
+                        {item.lock && <Icon name="lock" size={10} />}
                     </span>
                 </div>
             </td>
             <td className="px-6 py-4">
                 <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono">
-                    {JSON.stringify(item.record?.data || {})}
+                    {JSON.stringify(item.data || {})}
                 </div>
             </td>
             <td className="px-6 py-4 text-right">
                 <div className="flex justify-end gap-2 items-center">
-                    {item.record?.lock && (
+                    {item.lock && (
                         <div className="p-1.5 text-red-500/40" title="Locked">
                             <Icon name="lock" size={14} />
                         </div>
                     )}
-                    {isAdmin && !item.record?.lock && (
+                    {isAdmin && !item.lock && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -163,14 +163,12 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
 
     const editorRef = useRef<ClientMetadataEditorRef>(null);
 
-    const unassignMutation = useUnassignMetadata();
     const deleteRecordMutation = useDeleteRecord();
     const createRecordMutation = useCreateRecord();
-    const assignMetadataMutation = useAssignMetadata();
     const reorderMutation = useReorderRecords();
 
     // Fetch assignments for this specific client
-    const { data: assignments = [], isLoading: isAssignmentsLoading, refetch } = useEntityMetadata('client', activeClientId || undefined);
+    const { data: assignments = [], isLoading: isAssignmentsLoading, refetch } = useEntityMetadata('users', activeClientId || '');
 
     const isLoading = isSchemasLoading || isAssignmentsLoading;
 
@@ -192,17 +190,17 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
 
         // Helper to find the specific list containing active and over IDs
         const findAndReorder = (list: any[]): any[] | null => {
-            const activeIndex = list.findIndex((item) => (item.id || item.record?.id) === active.id);
-            const overIndex = list.findIndex((item) => (item.id || item.record?.id) === over.id);
+            const activeIndex = list.findIndex((item) => item.id === active.id);
+            const overIndex = list.findIndex((item) => item.id === over.id);
 
             if (activeIndex !== -1 && overIndex !== -1) {
                 return arrayMove(list, activeIndex, overIndex);
             }
 
             for (const item of list) {
-                if (item.record?.children) {
-                    const result = findAndReorder(item.record.children);
-                    if (result) return result; // We found the list and reordered it (logic-wise, we just need the new items for API)
+                if (item.children) {
+                    const result = findAndReorder(item.children);
+                    if (result) return result; 
                 }
             }
             return null;
@@ -213,7 +211,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
         if (reorderedList) {
             // Prepare reorder data for API
             const reorderData = reorderedList.map((item, index) => ({
-                id: item.record?.id || item.id,
+                id: item.id,
                 order: index + 1
             }));
 
@@ -281,24 +279,13 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
 
     const enrichWithSchemas = (items: any[]): any[] => {
         return items.map(item => {
-            // Determine if this is a MetaAssignment (has record field) or a direct Record
-            const record = item.record || (item.schema_id ? item : null);
+            const schema = schemas.find(s => s.id === item.schema_id);
+            const children = item.children ? enrichWithSchemas(item.children) : [];
 
-            if (!record) return item;
-
-            const schema = schemas.find(s => s.id === record.schema_id);
-            const children = record.children ? enrichWithSchemas(record.children) : [];
-
-            const enrichedRecord = {
-                ...record,
-                schema: schema || record.schema,
-                children
-            };
-
-            // Return consistently wrapped structure: everything must have a .record for the UI
             return {
                 ...item,
-                record: enrichedRecord
+                schema: schema || item.schema,
+                children
             };
         });
     };
@@ -306,7 +293,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     const enrichedAssignments = useMemo(() => enrichWithSchemas(assignments), [assignments, schemas]);
 
     const handleRowClick = (item: any) => {
-        if (!item.record?.schema) {
+        if (!item.schema) {
             console.warn("Cannot edit record without schema", item);
             return;
         }
@@ -327,29 +314,18 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
             const newRecord = await createRecordMutation.mutateAsync({
                 schema_id: schemaItem.id,
                 parent_id: nestingParentId || undefined,
-                data: {}, // Initialize with empty data as requested
+                entity_type: nestingParentId ? undefined : 'users',
+                entity_id: nestingParentId ? undefined : activeClientId,
+                data: {}, 
             });
-
-            // If it's a root record, we need to assign it to the entity
-            if (!nestingParentId) {
-                await assignMetadataMutation.mutateAsync({
-                    record_id: newRecord.id,
-                    entity_type: 'client',
-                    entity_id: activeClientId,
-                    owner_id: activeClientId
-                });
-            }
 
             // Refresh list
             await refetch();
 
             // Open edit modal (now via SlidePanel)
             setSelectedAssignment({
-                id: 'new',
-                record: {
-                    ...newRecord,
-                    schema: schemas.find(s => s.id === newRecord.schema_id)
-                }
+                ...newRecord,
+                schema: schemas.find(s => s.id === newRecord.schema_id)
             });
             setView('edit');
             setNestingParentId(null);
@@ -431,11 +407,11 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                     const renderRows = (data: any[], depth = 0): React.ReactNode => {
                                         return (
                                             <SortableContext
-                                                items={data.map(item => item.id || item.record?.id)}
+                                                items={data.map(item => item.id)}
                                                 strategy={verticalListSortingStrategy}
                                             >
                                                 {data.map((item) => (
-                                                    <React.Fragment key={item.id || item.record?.id}>
+                                                    <React.Fragment key={item.id}>
                                                         <SortableRow
                                                             item={item}
                                                             depth={depth}
@@ -447,12 +423,12 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                                             comboData={comboData}
                                                             onSchemaSelect={handleSchemaSelect}
                                                         />
-                                                        {item.record?.children && item.record.children.length > 0 && (
-                                                            <tr key={`${(item.id || item.record?.id)}-children`}>
+                                                        {item.children && item.children.length > 0 && (
+                                                            <tr key={`${item.id}-children`}>
                                                                 <td colSpan={4} className="p-0">
                                                                     <table className="w-full border-collapse">
                                                                         <tbody className="divide-y divide-[var(--border-base)]">
-                                                                            {renderRows(item.record.children, depth + 1)}
+                                                                            {renderRows(item.children, depth + 1)}
                                                                         </tbody>
                                                                     </table>
                                                                 </td>
@@ -479,34 +455,20 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 <ConfirmModal
                     isOpen={!!assignmentToDelete}
                     title="Remove Schema"
-                    description={`Are you sure you want to remove the '${assignmentToDelete?.record?.schema?.key}' schema from this client?`}
+                    description={`Are you sure you want to remove the '${assignmentToDelete?.schema?.key}' schema from this client?`}
                     confirmLabel="Remove"
-                    isLoading={unassignMutation.isPending}
+                    isLoading={deleteRecordMutation.isPending}
                     onConfirm={() => {
                         if (assignmentToDelete) {
-                            const isRootAssignment = !!assignmentToDelete.entity_id;
-
-                            if (isRootAssignment) {
-                                unassignMutation.mutate(
-                                    { assignmentId: assignmentToDelete.id },
-                                    {
-                                        onSuccess: () => {
-                                            setAssignmentToDelete(null);
-                                            refetch();
-                                        }
+                            deleteRecordMutation.mutate(
+                                assignmentToDelete.id,
+                                {
+                                    onSuccess: () => {
+                                        setAssignmentToDelete(null);
+                                        refetch();
                                     }
-                                );
-                            } else {
-                                deleteRecordMutation.mutate(
-                                    assignmentToDelete.id,
-                                    {
-                                        onSuccess: () => {
-                                            setAssignmentToDelete(null);
-                                            refetch();
-                                        }
-                                    }
-                                );
-                            }
+                                }
+                            );
                         }
                     }}
                     onCancel={() => setAssignmentToDelete(null)}
@@ -516,7 +478,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
             <SlidePanel
                 isOpen={view === 'edit' && !!selectedAssignment}
                 onClose={handleBack}
-                title={selectedAssignment?.record?.schema?.key || 'Metadata'}
+                title={selectedAssignment?.schema?.key || 'Metadata'}
                 subtitle="Configure and save detailed metadata for this record."
                 footer={
                     <div className="flex justify-end">

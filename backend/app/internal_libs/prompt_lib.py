@@ -44,7 +44,7 @@ def add_prompt(
     
     Args:
         entity_id: The ID of the owner entity (client, record, etc.)
-        entity_type: The type of the owner entity (e.g., 'client', 'record')
+        entity_type: The type of the owner entity (e.g., 'users', 'records')
         category: Category for the prompt (e.g., 'Common|Prompt')
         content: The actual prompt content as a dictionary
         datatype: The key of the schema (datatype)

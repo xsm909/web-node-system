@@ -102,7 +102,7 @@ def add_response(
     Args:
         reference_id: Mandatory reference ID (usually client ID).
         entity_id: The ID of the owner entity (UUID or string).
-        entity_type: The type of the owner entity (e.g., 'client').
+        entity_type: The type of the owner entity (e.g., 'users').
         category: Category for the record (e.g., 'Common|Summary').
         context: The actual content as a dictionary.
         context_type: The type of context.

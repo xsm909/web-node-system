@@ -1,9 +1,9 @@
 import json
 import uuid
-from typing import Any, List, Optional, Dict
+from typing import Any, List, Optional, Dict, Union
 from sqlalchemy.orm import joinedload, selectinload
 from ..core.database import SessionLocal
-from ..models.schema import Record, MetaAssignment, Schema
+from ..models.schema import Record, Schema
 from .logger_lib import system_log
 
 def _serialize_record(record: Record) -> Dict[str, Any]:
@@ -39,7 +39,7 @@ def _find_records_by_schema_recursive(record: Record, schema_key: str, results: 
         for child in record.children:
             _find_records_by_schema_recursive(child, schema_key, results)
 
-def get_metadata(entity_type: str, entity_id: str, key: str) -> str:
+def get_metadata(entity_type: str, entity_id: str, key: str) -> Any:
     """
     Retrieves metadata by entity_type and entity_id and specific key.
     If multiple records contain the same key/schema, values are gathered into an array.
@@ -53,23 +53,22 @@ def get_metadata(entity_type: str, entity_id: str, key: str) -> str:
         # Convert string ID to UUID if needed
         entity_uuid = uuid.UUID(entity_id) if isinstance(entity_id, str) else entity_id
         
-        # Query meta_assignments, loading records with schema and children
-        assignments = (
-            db.query(MetaAssignment)
+        # Query records directly, loading schema and children
+        records = (
+            db.query(Record)
             .options(
-                joinedload(MetaAssignment.record).joinedload(Record.schema),
-                joinedload(MetaAssignment.record).selectinload(Record.children)
+                joinedload(Record.schema),
+                selectinload(Record.children)
             )
             .filter(
-                MetaAssignment.entity_type == entity_type,
-                MetaAssignment.entity_id == entity_uuid
+                Record.entity_type == entity_type,
+                Record.entity_id == entity_uuid
             )
             .all()
         )
         
         values = []
-        for assignment in assignments:
-            record = assignment.record
+        for record in records:
             if record:
                 # 1. Check if the key exists in the record's data directly OR schema key matches
                 found = False
@@ -98,7 +97,7 @@ def get_metadata(entity_type: str, entity_id: str, key: str) -> str:
     finally:
         db.close()
 
-def get_metadata_by_id(metadata_id: str) -> str:
+def get_metadata_by_id(metadata_id: str) -> Any:
     """
     Retrieves a specific metadata record by its UUID.
     Includes full hierarchy (children) and schema identification.
@@ -133,7 +132,7 @@ def get_metadata_by_id(metadata_id: str) -> str:
     finally:
         db.close()
 
-def get_all_metadata(entity_type: str, entity_id: str) -> str:
+def get_all_metadata(entity_type: str, entity_id: str) -> Any:
     """
     Retrieves all metadata records assigned to a specific entity.
     Each record includes its full hierarchy (children) and schema identification.
@@ -146,24 +145,23 @@ def get_all_metadata(entity_type: str, entity_id: str) -> str:
         # Convert string ID to UUID if needed
         entity_uuid = uuid.UUID(entity_id) if isinstance(entity_id, str) else entity_id
         
-        # Query all meta_assignments for this entity
-        assignments = (
-            db.query(MetaAssignment)
+        # Query all records for this entity
+        records = (
+            db.query(Record)
             .options(
-                joinedload(MetaAssignment.record).joinedload(Record.schema),
-                joinedload(MetaAssignment.record).selectinload(Record.children)
+                joinedload(Record.schema),
+                selectinload(Record.children)
             )
             .filter(
-                MetaAssignment.entity_type == entity_type,
-                MetaAssignment.entity_id == entity_uuid
+                Record.entity_type == entity_type,
+                Record.entity_id == entity_uuid
             )
             .all()
         )
         
         results = []
-        for assignment in assignments:
-            if assignment.record:
-                results.append(_serialize_record(assignment.record))
+        for record in records:
+            results.append(_serialize_record(record))
         
         system_log(f"[METADATA_LIB] Retrieved {len(results)} base records for entity {entity_id}", level="system")
         return results
@@ -175,14 +173,14 @@ def get_all_metadata(entity_type: str, entity_id: str) -> str:
         db.close()
 
 
-def get_all_client_metadata(client_id: str) -> str:
+def get_all_client_metadata(client_id: str) -> Any:
     """
     Shortcut to retrieve all metadata for a client by their ID.
     Returns a JSON string (list of hierarchical records).
     """
-    return get_all_metadata("client", client_id)
+    return get_all_metadata("users", client_id)
 
-def get_metadata_by_schema(schema_key: str) -> str:
+def get_metadata_by_schema(schema_key: str) -> Any:
     """
     Retrieves all metadata records by schema key globally.
     Returns a JSON string (list of hierarchical records).
@@ -214,7 +212,7 @@ def get_metadata_by_schema(schema_key: str) -> str:
     finally:
         db.close()
 
-def get_client_metadata_by_schema(client_id: str, schema_key: str) -> str:
+def get_client_metadata_by_schema(client_id: str, schema_key: str) -> Any:
     """
     Retrieves metadata records for a specific client filtered by schema key.
     Recursively searches through assigned records and their children.
@@ -227,24 +225,23 @@ def get_client_metadata_by_schema(client_id: str, schema_key: str) -> str:
         # Convert string ID to UUID if needed
         client_uuid = uuid.UUID(client_id) if isinstance(client_id, str) else client_id
         
-        # Query ALL assignments for this client
-        assignments = (
-            db.query(MetaAssignment)
+        # Query ALL records for this client
+        records = (
+            db.query(Record)
             .options(
-                joinedload(MetaAssignment.record).joinedload(Record.schema),
-                joinedload(MetaAssignment.record).selectinload(Record.children)
+                joinedload(Record.schema),
+                selectinload(Record.children)
             )
             .filter(
-                MetaAssignment.entity_type == "client",
-                MetaAssignment.entity_id == client_uuid
+                Record.entity_type == "users",
+                Record.entity_id == client_uuid
             )
             .all()
         )
         
         matches = []
-        for assignment in assignments:
-            if assignment.record:
-                _find_records_by_schema_recursive(assignment.record, schema_key, matches)
+        for record in records:
+            _find_records_by_schema_recursive(record, schema_key, matches)
         
         system_log(f"[METADATA_LIB] Found {len(matches)} matching records in hierarchy for client {client_id} and schema '{schema_key}'", level="system")
         return matches
@@ -255,7 +252,7 @@ def get_client_metadata_by_schema(client_id: str, schema_key: str) -> str:
     finally:
         db.close()
 
-def get_owner_metadata_by_schema(owner_id: str, schema_key: str) -> str:
+def get_owner_metadata_by_schema(owner_id: str, schema_key: str) -> Any:
     """
     Retrieves metadata records for a specific owner filtered by schema key.
     Recursively searches through assigned records and their children.
@@ -268,21 +265,24 @@ def get_owner_metadata_by_schema(owner_id: str, schema_key: str) -> str:
         # Convert string ID to UUID if needed
         owner_uuid = uuid.UUID(owner_id) if isinstance(owner_id, str) else owner_id
         
-        # Query ALL assignments for this owner
-        assignments = (
-            db.query(MetaAssignment)
+        # Query ALL records for this owner
+        # NOTE: Since we removed owner_id from MetaAssignment, 
+        # we now treat entity_id as the primary link.
+        # If owner_id logic is still needed, it should have been migrated to entity_id 
+        # or entity_type should be handled.
+        records = (
+            db.query(Record)
             .options(
-                joinedload(MetaAssignment.record).joinedload(Record.schema),
-                joinedload(MetaAssignment.record).selectinload(Record.children)
+                joinedload(Record.schema),
+                selectinload(Record.children)
             )
-            .filter(MetaAssignment.owner_id == owner_uuid)
+            .filter(Record.entity_id == owner_uuid)
             .all()
         )
         
         matches = []
-        for assignment in assignments:
-            if assignment.record:
-                _find_records_by_schema_recursive(assignment.record, schema_key, matches)
+        for record in records:
+            _find_records_by_schema_recursive(record, schema_key, matches)
         
         system_log(f"[METADATA_LIB] Found {len(matches)} matching records in hierarchy for owner {owner_id} and schema '{schema_key}'", level="system")
         return matches

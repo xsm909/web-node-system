@@ -1,44 +1,37 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
+import type { Schema } from '../schema/api';
 
 export interface Record {
     id: string;
     schema_id: string;
-    parent_id?: string | null;
+    parent_id: string | null;
+    entity_id: string | null;
+    entity_type: string | null;
     data: any;
+    order: number;
     created_at: string;
     updated_at: string;
     lock: boolean;
+    schema?: Schema;
     children?: Record[];
-}
-
-export interface MetaAssignment {
-    id: string;
-    record_id: string;
-    entity_type: string;
-    entity_id: string;
-    assigned_by: string;
-    owner_id?: string;
-    created_at: string;
 }
 
 export interface CreateRecordDto {
     schema_id: string;
     parent_id?: string | null;
+    entity_id?: string | null;
+    entity_type?: string | null;
     data: any;
     lock?: boolean;
+    order?: number;
 }
 
 export interface UpdateRecordDto {
     data?: any;
     lock?: boolean;
-}
-
-export interface AssignMetadataDto {
-    record_id: string;
-    entity_type: string;
-    entity_id: string;
-    owner_id?: string;
+    entity_id?: string | null;
+    entity_type?: string | null;
 }
 
 // Queries
@@ -52,16 +45,16 @@ export const useRecords = () => {
     });
 };
 
-export const useEntityMetadata = (entityType: string, entityId: string | undefined) => {
-    return useQuery({
-        queryKey: ['meta_assignments', entityType, entityId],
-        queryFn: async () => {
-            if (!entityId || !entityType) throw new Error("Entity params required");
-            const response = await apiClient.get<MetaAssignment[]>(`/records/entity/${entityType}/${entityId}`);
-            return response.data;
-        },
-        enabled: !!entityId && !!entityType,
-    });
+// --- Entity Metadata ---
+export const useEntityMetadata = (entityType: string, entityId: string) => {
+  return useQuery({
+    queryKey: ['records', 'entity', entityType, entityId],
+    queryFn: async () => {
+      const response = await apiClient.get<Record[]>(`/records/entity/${entityType}/${entityId}`);
+      return response.data;
+    },
+    enabled: !!entityType && !!entityId,
+  });
 };
 
 // Mutations
@@ -85,9 +78,11 @@ export const useUpdateRecord = () => {
             const response = await apiClient.put<Record>(`/records/${id}`, data);
             return response.data;
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['records'] });
-            queryClient.invalidateQueries({ queryKey: ['meta_assignments'] });
+            if (data.entity_type && data.entity_id) {
+                queryClient.invalidateQueries({ queryKey: ['records', 'entity', data.entity_type, data.entity_id] });
+            }
         },
     });
 };
@@ -104,31 +99,6 @@ export const useDeleteRecord = () => {
     });
 };
 
-export const useAssignMetadata = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async (data: AssignMetadataDto) => {
-            const response = await apiClient.post<MetaAssignment>('/records/assign', data);
-            return response.data;
-        },
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['meta_assignments', variables.entity_type, variables.entity_id] });
-        },
-    });
-};
-export const useUnassignMetadata = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async ({ assignmentId }: { assignmentId: string }) => {
-            await apiClient.delete(`/records/assign/${assignmentId}`);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['meta_assignments'] });
-            queryClient.invalidateQueries({ queryKey: ['records'] });
-        },
-    });
-};
-
 export const useReorderRecords = () => {
     const queryClient = useQueryClient();
     return useMutation({
@@ -136,8 +106,25 @@ export const useReorderRecords = () => {
             await apiClient.patch('/records/reorder', orders);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['meta_assignments'] });
             queryClient.invalidateQueries({ queryKey: ['records'] });
         },
     });
+};
+
+// --- Compatibility Hooks (Deprecated) ---
+// These are kept to allow the build to pass while components are refactored
+export const useAssignMetadata = () => {
+    const create = useCreateRecord();
+    return {
+        ...create,
+        mutateAsync: async (dto: CreateRecordDto) => create.mutateAsync(dto)
+    };
+};
+
+export const useUnassignMetadata = () => {
+    const del = useDeleteRecord();
+    return {
+        ...del,
+        mutateAsync: async (id: string) => del.mutateAsync(id)
+    };
 };

@@ -47,6 +47,8 @@ class SchemaResponse(SchemaBase):
 class RecordBase(BaseModel):
     schema_id: UUID
     parent_id: Optional[UUID] = None
+    entity_id: Optional[UUID] = None
+    entity_type: Optional[str] = None
     data: Any
     order: int = 0
     lock: bool = False
@@ -68,39 +70,12 @@ class RecordResponse(RecordBase):
         from_attributes = True
 
 
-# --- Meta Assignments (Polymorphic Binding) ---
-class MetaAssignmentBase(BaseModel):
-    record_id: UUID
-    entity_type: str
-    entity_id: UUID
-    owner_id: Optional[UUID] = None
-
-class MetaAssignmentCreate(MetaAssignmentBase):
-    pass
-
-class MetaAssignmentResponse(MetaAssignmentBase):
-    id: UUID
-    assigned_by: UUID
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
 class RecordWithSchemaResponse(RecordResponse):
     schema_: SchemaResponse = Field(alias="schema")
 
     class Config:
         from_attributes = True
         populate_by_name = True
-
-class MetaAssignmentDetailResponse(MetaAssignmentBase):
-    id: UUID
-    assigned_by: UUID
-    created_at: datetime
-    record: RecordWithSchemaResponse
-
-    class Config:
-        from_attributes = True
 
 
 # --- External Schema Cache ---

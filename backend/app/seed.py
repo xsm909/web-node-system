@@ -113,7 +113,7 @@ def seed():
                 "name": "Get all client metadata",
                 "version": "1.0",
                 "description": "",
-                "code": "def run(inputs, params):\n    client_id = common.get_active_client()\n    print (client_id['id'])\n    return metadata.get_all_metadata ('client', client_id['id'])",
+                "code": "def run(inputs, params):\n    client_id = common.get_active_client()\n    print (client_id['id'])\n    return metadata.get_all_metadata ('users', client_id['id'])",
                 "input_schema": {},
                 "output_schema": {},
                 "parameters": [],
@@ -126,7 +126,7 @@ def seed():
                 "name": "Get client metadata",
                 "version": "1.0",
                 "description": "",
-                "code": "class NodeParameters:\n    key: str = \"Default value\"  # @table-schemas->key,schemas->key\n    \ndef run(inputs, params):\n    client_id = common.get_active_client()\n    print (client_id['id'])\n    return metadata.get_metadata ('client', client_id['id'], params.key)",
+                "code": "class NodeParameters:\n    key: str = \"Default value\"  # @table-schemas->key,schemas->key\n    \ndef run(inputs, params):\n    client_id = common.get_active_client()\n    print (client_id['id'])\n    return metadata.get_metadata ('users', client_id['id'], params.key)",
                 "input_schema": {},
                 "output_schema": {},
                 "parameters": [
