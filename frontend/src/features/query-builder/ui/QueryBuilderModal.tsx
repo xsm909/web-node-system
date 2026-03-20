@@ -824,11 +824,11 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
             // Intercept and stop propagation for all global application shortcuts
             // only those that QueryBuilderModal itself doesn't use (like F1, F2, F4, Ctrl+S)
-            const isOtherGlobalShortcut = 
-                (e.key >= 'F1' && e.key <= 'F12' && e.key !== 'F5' && e.key !== 'F9') || 
+            const isGlobalShortcut = 
+                (/^F\d+$/.test(e.key) && e.key !== 'F5' && e.key !== 'F9') || 
                 ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
 
-            if (isOtherGlobalShortcut) {
+            if (isGlobalShortcut) {
                 e.preventDefault();
                 e.stopPropagation();
                 return;

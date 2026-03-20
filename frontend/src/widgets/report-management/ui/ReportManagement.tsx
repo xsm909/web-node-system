@@ -75,13 +75,16 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
             // Intercept global application shortcuts
             const isGlobalShortcut = 
                 (e.key === 'Escape') || 
+                /^F\d+$/.test(e.key) || 
                 (e.key >= 'F1' && e.key <= 'F12') || 
                 ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
 
             if (isGlobalShortcut) {
-                // If a modal is open (like QueryBuilder), ignore parent shortcuts
-                const isModalOpen = !!document.querySelector('[role="dialog"]') || !!document.querySelector('.fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[3000\\]');
-                if (isModalOpen) return;
+                // If an actual modal is open (like QueryBuilder), ignore parent shortcuts.
+                // We check for our specific modal classes on FIXED elements to avoid accidental blockage 
+                // by internal editor dialogs or other components.
+                const activeModal = document.querySelector('.fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[3000\\]');
+                if (activeModal) return;
 
                 if (e.key === 'Escape' && view === 'view') {
                     e.preventDefault();
@@ -101,8 +104,8 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
             }
         };
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('keydown', handleKeyDown, true);
+        return () => window.removeEventListener('keydown', handleKeyDown, true);
     }, [view, activeTab, isCompiling, isGenerating]);
 
     useEffect(() => {

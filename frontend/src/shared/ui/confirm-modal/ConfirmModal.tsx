@@ -94,7 +94,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
             // Intercept and stop propagation for all global application shortcuts
             const isGlobalShortcut = 
-                (e.key >= 'F1' && e.key <= 'F12') || 
+                /^F\d+$/.test(e.key) || 
                 ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
 
             if (isGlobalShortcut) {

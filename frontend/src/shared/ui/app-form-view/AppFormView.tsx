@@ -77,15 +77,14 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
         const handleKeyDown = (e: KeyboardEvent) => {
             // Intercept global application shortcuts
             const isGlobalShortcut = 
-                (e.key === 'Escape') || 
+                /^F\d+$/.test(e.key) || 
                 (e.key >= 'F1' && e.key <= 'F12') || 
                 ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
 
             if (isGlobalShortcut) {
-                // If a modal is open, ignore global shortcut at this level
-                const isModalOpen = !!document.querySelector('[role="dialog"]') || 
-                                   !!document.querySelector('.fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[3000\\]');
-                if (isModalOpen) return;
+                // If a modal is open, ignore parent shortcuts
+                const activeModal = document.querySelector('.fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[3000\\]');
+                if (activeModal) return;
                 
                 if (e.key === 'Escape') {
                     e.preventDefault();
@@ -97,8 +96,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
             }
         };
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('keydown', handleKeyDown, true);
+        return () => window.removeEventListener('keydown', handleKeyDown, true);
     }, [handleBack, onSave]);
 
     const handleDiscard = () => {
