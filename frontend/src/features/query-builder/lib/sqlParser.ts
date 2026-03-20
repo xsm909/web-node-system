@@ -293,21 +293,17 @@ const parseBlock = (sql: string): QueryState => {
             const keywords = ['FROM', 'WHERE', 'JOIN', 'ON', 'GROUP', 'ORDER', 'LIMIT', 'SELECT', 'WITH'];
             
             if (!keywords.includes(potentialAlias.toUpperCase())) {
-                // If the potential expression itself has spaces and no special chars like (
-                // it's likely a syntax error rather than a complex expression
-                // Exception: if it's just "*", it shouldn't have an alias in this way in our builder
-                if (potentialExpr.includes(' ') && !potentialExpr.includes('(')) {
-                     throw new Error(`syntax error at or near "${potentialExpr.split(/\s+/).pop()}"`);
-                }
+                // Allow spaces if it looks like an expression (contains operators)
+                // or if it's just a single identifier. 
+                // We'll remove the aggressive throw here as it breaks valid expressions.
                 expr = potentialExpr;
                 alias = potentialAlias;
             }
         }
 
         // If it's just a single field without AS, and it has spaces but no functions
-        if (!alias && field.includes(' ') && !field.includes('(')) {
-             throw new Error(`syntax error at or near "${field.trim().split(/\s+/)[1]}"`);
-        }
+        // we'll allow it as it might be an expression like "a - b"
+        // The generator/UI will handle it as a complex expression.
         
         // Special case: * followed by anything in the same field is a syntax error
         if (field.includes('*') && field.trim() !== '*' && !field.includes('(')) {
