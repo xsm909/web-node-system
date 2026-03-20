@@ -1,6 +1,19 @@
 import type { MultiQueryState, QueryState } from '../model/types';
 const stripQ = (s: string) => s ? s.replace(/"/g, '') : '';
 
+const splitIdentifier = (s: string): { table?: string, column: string } => {
+    // This handles: "table"."column", table.column, "column", column
+    // It also handles complex cases like "users.users.users.id" by taking the last part as column
+    const parts = s.split('.').map(stripQ);
+    if (parts.length > 1) {
+        return { 
+            table: parts[parts.length - 2], 
+            column: parts[parts.length - 1] 
+        };
+    }
+    return { column: parts[0] };
+};
+
 export const parseSQL = (sql: string): MultiQueryState => {
     const state: MultiQueryState = {
         ctes: [],
@@ -267,15 +280,15 @@ const parseBlock = (sql: string): QueryState => {
         }
 
         // Now parse expr to see if it's a simple column (table.col) or a complex expression
-        const simpleColMatch = expr.match(/^(["\w\.]+)\.(["\w\.]+)$/i) || expr.match(/^(["\w\.]+)$/i);
+        // Improved regex to better handle dots inside quotes vs outside
+        const identifierRegex = /^(?:"?([^"\s]+)"?\.)?"?([^"\s]+)"?$/i;
+        const simpleColMatch = expr.match(identifierRegex);
+
         if (simpleColMatch && !expr.includes('(')) {
-            let tableAlias = state.tables[0]?.alias || '';
-            let columnName = stripQ(expr);
-            if (expr.includes('.')) {
-                const parts = expr.split('.');
-                tableAlias = stripQ(parts[0]);
-                columnName = stripQ(parts[1]);
-            }
+            const parsed = splitIdentifier(expr);
+            const tableAlias = parsed.table || state.tables[0]?.alias || '';
+            const columnName = parsed.column;
+
             state.selectedFields.push({
                 id: `${tableAlias}_${columnName}_${state.selectedFields.length}`,
                 tableAlias,
@@ -354,16 +367,9 @@ const parseBlock = (sql: string): QueryState => {
             
             if (condMatch) {
                 const [, fullColOrAlias, colNameIfPresent, operator, value] = condMatch;
-                let tableAlias = '';
-                let columnName = '';
-
-                if (colNameIfPresent) { // e.g., table.column
-                    tableAlias = stripQ(fullColOrAlias);
-                    columnName = stripQ(colNameIfPresent);
-                } else { // e.g., column (assume first table alias)
-                    columnName = stripQ(fullColOrAlias);
-                    tableAlias = state.tables[0]?.alias || ''; // Default to first table alias
-                }
+                const parsed = splitIdentifier(colNameIfPresent ? `${fullColOrAlias}.${colNameIfPresent}` : fullColOrAlias);
+                const tableAlias = parsed.table || state.tables[0]?.alias || '';
+                const columnName = parsed.column;
 
                 let trimmedValue = value.trim();
                 let valueType: 'literal' | 'parameter' = 'literal';
@@ -383,16 +389,9 @@ const parseBlock = (sql: string): QueryState => {
                 });
             } else if (nullMatch) {
                 const [, fullColOrAlias, colNameIfPresent, operator] = nullMatch;
-                let tableAlias = '';
-                let columnName = '';
-
-                if (colNameIfPresent) { // e.g., table.column
-                    tableAlias = stripQ(fullColOrAlias);
-                    columnName = stripQ(colNameIfPresent);
-                } else { // e.g., column (assume first table alias)
-                    columnName = stripQ(fullColOrAlias);
-                    tableAlias = state.tables[0]?.alias || ''; // Default to first table alias
-                }
+                const parsed = splitIdentifier(colNameIfPresent ? `${fullColOrAlias}.${colNameIfPresent}` : fullColOrAlias);
+                const tableAlias = parsed.table || state.tables[0]?.alias || '';
+                const columnName = parsed.column;
                 state.where.push({ 
                     id: `where_${Date.now()}_${state.where.length}`, 
                     tableAlias, 

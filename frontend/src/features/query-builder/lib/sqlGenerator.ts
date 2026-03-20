@@ -1,9 +1,26 @@
 import type { MultiQueryState, QueryState } from '../model/types';
 
-const q = (id: string) => {
+const q = (id: string, tableAlias?: string): string => {
     if (!id || id === '*') return id;
-    if (id.includes('"')) return id; // Already quoted or complex
-    return `"${id}"`;
+    
+    // Strip table prefix if it's redundant (e.g. users.users.id -> id)
+    let cleanId = id;
+    if (tableAlias) {
+        const prefix = tableAlias + '.';
+        while (cleanId.startsWith(prefix)) {
+            cleanId = cleanId.substring(prefix.length);
+        }
+    }
+    
+    if (cleanId.includes('"')) return cleanId; // Already quoted or complex
+    
+    // Handle PostgreSQL type casts (::type)
+    if (cleanId.includes('::')) {
+        const [identifier, ...rest] = cleanId.split('::');
+        return `${q(identifier, tableAlias)}::${rest.join('::')}`;
+    }
+
+    return `"${cleanId}"`;
 };
 
 export const generateBlockSQL = (state: QueryState): string => {
@@ -14,9 +31,29 @@ export const generateBlockSQL = (state: QueryState): string => {
     if (state.selectedFields.length === 0) {
         sql += '* ';
     } else {
+        const usedAliases = new Set<string>();
+        // First pass: register explicit aliases
+        state.selectedFields.forEach(f => {
+            if (f.alias) usedAliases.add(f.alias);
+        });
+
         const fieldSqls = state.selectedFields.map(f => {
-            let field = f.expression || (f.columnName === '*' ? '*' : `${q(f.tableAlias)}.${q(f.columnName || '')}`);
-            if (f.alias) field += ` AS ${q(f.alias)}`;
+            const columnName = f.columnName || '';
+            const tableAlias = f.tableAlias || '';
+            
+            let field = f.expression || (columnName === '*' ? '*' : `${q(tableAlias)}.${q(columnName, tableAlias)}`);
+            let alias = f.alias;
+            
+            // Automatic aliasing to prevent collisions (e.g. two "id" columns)
+            if (!alias && columnName !== '*') {
+                const baseName = columnName.split('::')[0]; // Strip cast for alias base
+                if (usedAliases.has(baseName)) {
+                    alias = `${tableAlias}_${baseName}`;
+                }
+                usedAliases.add(alias || baseName);
+            }
+
+            if (alias) field += ` AS ${q(alias)}`;
             return field;
         });
         sql += fieldSqls.join(', ');
@@ -67,7 +104,7 @@ export const generateBlockSQL = (state: QueryState): string => {
                 rightCol = join.leftColumn;
             }
 
-            sql += `\n${joinType} JOIN ${q(table.tableName)} AS ${q(table.alias)} ON ${q(leftAlias)}.${q(leftCol)} = ${q(rightAlias)}.${q(rightCol)}`;
+            sql += `\n${joinType} JOIN ${q(table.tableName)} AS ${q(table.alias)} ON ${q(leftAlias)}.${q(leftCol, leftAlias)} = ${q(rightAlias)}.${q(rightCol, rightAlias)}`;
         } else {
             // If no join defined, fallback to CROSS JOIN to keep the table in the sequence
             sql += `\nCROSS JOIN ${q(table.tableName)} AS ${q(table.alias)}`;
@@ -80,8 +117,20 @@ export const generateBlockSQL = (state: QueryState): string => {
         sql += '\nWHERE ';
         state.where.forEach((cond, index) => {
             if (index > 0) sql += ` ${cond.logic} `;
-            const value = cond.valueType === 'parameter' ? `:${cond.value}` : cond.value;
-            sql += `${q(cond.tableAlias)}.${q(cond.columnName)} ${cond.operator} ${value}`;
+            let value = cond.value;
+            if (cond.valueType === 'parameter') {
+                value = `:${cond.value}`;
+            } else if (cond.operator !== 'IS NULL' && cond.operator !== 'IS NOT NULL') {
+                // If it's a literal, quote it if it's not a number and not already quoted
+                const isNumeric = !isNaN(Number(cond.value)) && cond.value.trim() !== '';
+                const isQuoted = (cond.value.startsWith("'") && cond.value.endsWith("'")) || 
+                               (cond.value.startsWith('"') && cond.value.endsWith('"'));
+                
+                if (!isNumeric && !isQuoted && cond.value.toLowerCase() !== 'null') {
+                    value = `'${cond.value.replace(/'/g, "''")}'`;
+                }
+            }
+            sql += `${q(cond.tableAlias)}.${q(cond.columnName, cond.tableAlias)} ${cond.operator} ${value}`;
         });
     }
     

@@ -681,6 +681,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     // Execution state
     const [isExecuting, setIsExecuting] = useState(false);
     const [queryResults, setQueryResults] = useState<any[]>([]);
+    const [executionError, setExecutionError] = useState<string | null>(null);
     const [isResultsOpen, setIsResultsOpen] = useState(false);
 
     const activeBlock = useMemo(() => {
@@ -781,6 +782,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         if (isExecuting || !effectiveSql.canRun) return;
 
         setIsExecuting(true);
+        setExecutionError(null);
+        setQueryResults([]);
+        
         try {
             const res = await apiClient.post('/database-metadata/execute', { 
                 sql: effectiveSql.sql,
@@ -790,7 +794,10 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             setIsResultsOpen(true);
         } catch (err: any) {
             console.error("Execution error:", err);
-            onError?.(err.response?.data?.detail || err.message || 'Execution error');
+            const errorMsg = err.response?.data?.detail || err.message || 'Execution error';
+            setExecutionError(errorMsg);
+            setIsResultsOpen(true); // Open modal even on error to show the message
+            onError?.(errorMsg);
         } finally {
             setIsExecuting(false);
         }
@@ -1789,15 +1796,31 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             <AppCompactModalForm
                 isOpen={isResultsOpen}
                 onClose={() => setIsResultsOpen(false)}
-                onSubmit={handleCopyResults}
-                title="Query Results"
-                icon="table_chart"
+                onSubmit={executionError ? () => setIsResultsOpen(false) : handleCopyResults}
+                title={executionError ? "Query Execution Error" : "Query Results"}
+                icon={executionError ? "warning" : "table_chart"}
                 width="max-w-7xl"
-                submitLabel={isCopied ? 'Copied' : 'Copy Result'}
-                cancelLabel="Close"
+                submitLabel={executionError ? "Close" : (isCopied ? 'Copied' : 'Copy Result')}
+                cancelLabel={executionError ? undefined : "Close"}
+                className={executionError ? "border-red-500/50" : ""}
             >
                 <div className="h-[60vh] flex flex-col">
-                    {queryResults.length > 0 ? (
+                    {executionError ? (
+                        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-red-500/5 rounded-2xl border border-red-500/10">
+                            <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-6 animate-pulse">
+                                <Icon name="error_outline" size={40} />
+                            </div>
+                            <h3 className="text-lg font-bold text-red-600 mb-2">Something went wrong</h3>
+                            <div className="max-w-2xl bg-white border border-red-200 rounded-xl p-6 shadow-sm overflow-auto max-h-[40vh]">
+                                <pre className="text-sm text-red-700 font-mono text-left whitespace-pre-wrap leading-relaxed">
+                                    {executionError}
+                                </pre>
+                            </div>
+                            <p className="mt-6 text-xs text-[var(--text-muted)] italic">
+                                Please check your SQL syntax or parameter values.
+                            </p>
+                        </div>
+                    ) : queryResults.length > 0 ? (
                         <div className="flex-1 h-full min-h-0">
                             <AppTabulatorTable
                                 data={queryResults}

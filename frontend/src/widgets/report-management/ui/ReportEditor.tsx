@@ -228,23 +228,29 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     const [schemaJson, setSchemaJson] = useState<Record<string, any>>(report?.schema_json || {});
     const [previewHtml, setPreviewHtml] = useState('');
     const [activeOutputTab, setActiveOutputTab] = useState<'console' | 'schema'>('console');
+    const [testParamValues, setTestParamValues] = useState<Record<string, string>>({});
 
     const initialRef = useRef<any>(null);
 
     useEffect(() => {
         if (report && !initialRef.current) {
-            initialRef.current = {
-                name: report.name || '',
-                type: report.type || 'global',
-                description: report.description || '',
-                code: report.code || '',
-                template: report.template || '',
-                styleId: report.style_id || '',
-                category: report.category || '',
-                parameters: JSON.stringify(report.parameters || []),
-            };
+            // ... (existing initialRef logic)
         }
     }, [report]);
+
+    // Initialize/Sync testParamValues from report parameters
+    useEffect(() => {
+        setTestParamValues(prev => {
+            const next = { ...prev };
+            parameters.forEach(p => {
+                // Only set if not already present to avoid overriding user edits during session
+                if (!(p.parameter_name in next)) {
+                    next[p.parameter_name] = p.default_value || '';
+                }
+            });
+            return next;
+        });
+    }, [parameters]); 
 
     useEffect(() => {
         if (!initialRef.current) return;
@@ -332,6 +338,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             return;
         }
         setIsCompiling(true);
+        setConsoleOutput(''); // Clear console before starting
         try {
             // We might want to save code before compiling if we rely on backend reading from DB
             // Or send code in the body. The updated router expects report_id.
@@ -362,9 +369,17 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             return;
         }
         setIsGenerating(true);
+        setConsoleOutput(''); // Clear console before starting
         try {
             await apiClient.put(`/reports/${report.id}`, { code, template });
-            const res = await apiClient.post(`/reports/${report.id}/generate`, { parameters: {} });
+            
+            // Collect parameters from test values state
+            const paramValues: Record<string, any> = {};
+            parameters.forEach(p => {
+                paramValues[p.parameter_name] = p.default_value || '';
+            });
+
+            const res = await apiClient.post(`/reports/${report.id}/generate`, { parameters: paramValues });
             if (res.data.validation_error) {
                 setPreviewHtml(`<div style="padding: 2rem; background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; border-radius: 1rem; font-family: sans-serif;">
                     <h3 style="margin-top: 0;">Validation Error</h3>
@@ -687,7 +702,19 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             )}
 
             {activeTab === 'preview' && (
-                <div className="flex-1 flex flex-col pt-2 overflow-hidden">
+                <div className="flex-1 flex flex-col pt-2 overflow-hidden gap-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Live Preview</h3>
+                        <button
+                            onClick={handleGenerate}
+                            disabled={isGenerating}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-[10px] font-bold hover:brightness-110 transition-all disabled:opacity-50 shadow-sm"
+                        >
+                            <Icon name={isGenerating ? "refresh" : "play"} size={12} className={isGenerating ? "animate-spin" : ""} />
+                            {isGenerating ? "Generating..." : "Generate Preview"}
+                        </button>
+                    </div>
+
                     <div className="flex-1 rounded-xl border border-[var(--border-base)] bg-white overflow-hidden shadow-inner relative">
                         {previewHtml ? (
                             <iframe
@@ -697,7 +724,12 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                             />
                         ) : (
                             <div className="h-full flex items-center justify-center text-[var(--text-muted)] italic text-sm">
-                                Click Generate in the Code tab to see preview.
+                                {isGenerating ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Icon name="refresh" size={24} className="animate-spin text-brand" />
+                                        <span>Generating preview...</span>
+                                    </div>
+                                ) : "No preview yet. Click Generate to see results."}
                             </div>
                         )}
                     </div>

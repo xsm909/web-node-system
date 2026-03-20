@@ -52,22 +52,42 @@ from ..internal_libs import agent_hints_lib
 from ..internal_libs import prompt_lib
 from ..internal_libs import response_lib
 from ..internal_libs import charts
-from ..internal_libs.context_lib import execution_context
+from ..internal_libs.context_lib import execution_context, report_params_context
 from ..internal_libs.logger_lib import executor_logger
 
 def generate_json_schema(data: Any) -> Dict[str, Any]:
     """
     Generate a basic JSON Schema from data.
+    If data is a list, merges schemas from all elements to handle nullable fields.
     """
     if data is None:
         return {"type": "null"}
+    
     if isinstance(data, list):
         if not data:
             return {"type": "array", "items": {}}
-        return {"type": "array", "items": generate_json_schema(data[0])}
+        
+        # Merge schemas of all items to get a complete picture
+        merged_properties = {}
+        item_schema_type = "object" # Default for list of dicts
+        
+        for item in data:
+            item_schema = generate_json_schema(item)
+            if item_schema["type"] == "object" and "properties" in item_schema:
+                for prop, prop_schema in item_schema["properties"].items():
+                    if prop not in merged_properties or merged_properties[prop]["type"] == "null":
+                        merged_properties[prop] = prop_schema
+            else:
+                item_schema_type = item_schema["type"]
+        
+        if merged_properties:
+            return {"type": "array", "items": {"type": "object", "properties": merged_properties}}
+        return {"type": "array", "items": {"type": item_schema_type}}
+
     if isinstance(data, dict):
         properties = {k: generate_json_schema(v) for k, v in data.items()}
         return {"type": "object", "properties": properties}
+    
     if isinstance(data, bool):
         return {"type": "boolean"}
     if isinstance(data, (int, float)):
@@ -318,9 +338,11 @@ class ReportExecutor:
         user_context: dict with user details (id, name, email, role, etc.)
         """
         token = None
+        params_token = None
         log_token = None
         if execution_id:
             token = execution_context.set(execution_id)
+        params_token = report_params_context.set(parameters)
         log_token = executor_logger.set(self.log)
         
         try:
@@ -442,5 +464,7 @@ class ReportExecutor:
             }
         finally:
             executor_logger.reset(log_token)
+            if params_token:
+                report_params_context.reset(params_token)
             if token:
                 execution_context.reset(token)
