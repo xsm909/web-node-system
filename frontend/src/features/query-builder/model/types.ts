@@ -46,6 +46,19 @@ export interface WhereCondition {
     logic: 'AND' | 'OR';
 }
 
+export interface GroupBy {
+    id: string;
+    tableAlias: string;
+    columnName: string;
+}
+
+export interface OrderBy {
+    id: string;
+    tableAlias: string;
+    columnName: string;
+    direction: 'ASC' | 'DESC';
+}
+
 export interface QueryTable {
     alias: string;
     tableName: string;
@@ -58,6 +71,8 @@ export interface QueryState {
     selectedFields: SelectedField[];
     joins: JoinCondition[];
     where: WhereCondition[];
+    groupBy: GroupBy[];
+    orderBy: OrderBy[];
 }
 
 export interface RecursiveCteConfig {

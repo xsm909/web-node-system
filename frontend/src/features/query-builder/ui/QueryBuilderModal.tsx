@@ -504,6 +504,174 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
     );
 };
 
+const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns, queryState }) => {
+    const addGroupBy = () => {
+        if (state.tables.length === 0) return;
+        const newGroup = {
+            id: `group_${Date.now()}`,
+            tableAlias: state.tables[0].alias,
+            columnName: ''
+        };
+        setState(prev => ({ ...prev, groupBy: [...(prev.groupBy || []), newGroup] }));
+    };
+
+    const addOrderBy = () => {
+        if (state.tables.length === 0) return;
+        const newOrder = {
+            id: `order_${Date.now()}`,
+            tableAlias: state.tables[0].alias,
+            columnName: '',
+            direction: 'ASC' as const
+        };
+        setState(prev => ({ ...prev, orderBy: [...(prev.orderBy || []), newOrder] }));
+    };
+
+    return (
+        <div className="space-y-12 max-w-5xl">
+            {/* Grouping Section */}
+            <div className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand font-bold">
+                            <Icon name="group_work" size={16} />
+                        </div>
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">Grouping (GROUP BY)</h3>
+                    </div>
+                    <button
+                        onClick={addGroupBy}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-bold hover:opacity-90 transition-all shadow-sm"
+                    >
+                        <Icon name="add" size={14} />
+                        Add Group
+                    </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(state.groupBy || []).map((group, index) => (
+                        <div key={group.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] flex items-center gap-3 group">
+                            <select
+                                value={group.tableAlias}
+                                onChange={(e) => {
+                                    const newGroups = [...state.groupBy];
+                                    newGroups[index].tableAlias = e.target.value;
+                                    setState(prev => ({ ...prev, groupBy: newGroups }));
+                                }}
+                                className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-2 text-xs outline-none focus:border-brand min-w-[100px]"
+                            >
+                                {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
+                            </select>
+                            <ColumnSelect
+                                tableAlias={group.tableAlias}
+                                value={group.columnName}
+                                onChange={(val: string) => {
+                                    const newGroups = [...state.groupBy];
+                                    newGroups[index].columnName = val;
+                                    setState(prev => ({ ...prev, groupBy: newGroups }));
+                                }}
+                                getColumns={getColumns}
+                                queryState={queryState}
+                                state={state}
+                            />
+                            <button
+                                onClick={() => {
+                                    const newGroups = [...state.groupBy];
+                                    newGroups.splice(index, 1);
+                                    setState(prev => ({ ...prev, groupBy: newGroups }));
+                                }}
+                                className="text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all ml-auto"
+                            >
+                                <Icon name="delete" size={16} />
+                            </button>
+                        </div>
+                    ))}
+                    {(state.groupBy || []).length === 0 && (
+                        <div className="md:col-span-2 py-8 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
+                            <Icon name="group_work" size={24} className="mb-2 text-[var(--text-muted)]" />
+                            <p className="text-[10px] font-medium uppercase tracking-tighter">No groupings defined</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Sorting Section */}
+            <div className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand font-bold">
+                            <Icon name="sort" size={16} />
+                        </div>
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">Sorting (ORDER BY)</h3>
+                    </div>
+                    <button
+                        onClick={addOrderBy}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-bold hover:opacity-90 transition-all shadow-sm"
+                    >
+                        <Icon name="add" size={14} />
+                        Add Sort
+                    </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(state.orderBy || []).map((order, index) => (
+                        <div key={order.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] flex items-center gap-3 group">
+                            <select
+                                value={order.tableAlias}
+                                onChange={(e) => {
+                                    const newOrders = [...state.orderBy];
+                                    newOrders[index].tableAlias = e.target.value;
+                                    setState(prev => ({ ...prev, orderBy: newOrders }));
+                                }}
+                                className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-2 text-xs outline-none focus:border-brand min-w-[100px]"
+                            >
+                                {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
+                            </select>
+                            <ColumnSelect
+                                tableAlias={order.tableAlias}
+                                value={order.columnName}
+                                onChange={(val: string) => {
+                                    const newOrders = [...state.orderBy];
+                                    newOrders[index].columnName = val;
+                                    setState(prev => ({ ...prev, orderBy: newOrders }));
+                                }}
+                                getColumns={getColumns}
+                                queryState={queryState}
+                                state={state}
+                                placeholder="Sort column..."
+                            />
+                            <select
+                                value={order.direction}
+                                onChange={(e) => {
+                                    const newOrders = [...state.orderBy];
+                                    newOrders[index].direction = e.target.value as 'ASC' | 'DESC';
+                                    setState(prev => ({ ...prev, orderBy: newOrders }));
+                                }}
+                                className="bg-brand/5 text-brand border border-brand/20 rounded-lg px-2 py-2 text-[10px] font-bold outline-none focus:bg-brand focus:text-white transition-all w-20"
+                            >
+                                <option value="ASC">ASC</option>
+                                <option value="DESC">DESC</option>
+                            </select>
+                            <button
+                                onClick={() => {
+                                    const newOrders = [...state.orderBy];
+                                    newOrders.splice(index, 1);
+                                    setState(prev => ({ ...prev, orderBy: newOrders }));
+                                }}
+                                className="text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all ml-auto"
+                            >
+                                <Icon name="delete" size={16} />
+                            </button>
+                        </div>
+                    ))}
+                    {(state.orderBy || []).length === 0 && (
+                        <div className="md:col-span-2 py-8 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
+                            <Icon name="sort" size={24} className="mb-2 text-[var(--text-muted)]" />
+                            <p className="text-[10px] font-medium uppercase tracking-tighter">No sortings defined</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 interface QueryBuilderModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -638,12 +806,14 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             tables: [],
             selectedFields: [],
             joins: [],
-            where: []
+            where: [],
+            groupBy: [],
+            orderBy: []
         }
     });
 
     const [activeBlockId, setActiveBlockId] = useState('main');
-    const [activeTab, setActiveTab] = useState<'tables' | 'joins' | 'conditions'>('tables');
+    const [activeTab, setActiveTab] = useState<'tables' | 'joins' | 'conditions' | 'grouping_sorting'>('tables');
     const [previewSql, setPreviewSql] = useState('');
     const [activeDragItem, setActiveDragItem] = useState<any>(null);
     const [grabOffset, setGrabOffset] = useState({ x: 0, y: 0 });
@@ -757,7 +927,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 // Reset to blank when opening without initialSql (or empty)
                 setFullState({
                     ctes: [],
-                    mainQuery: { tables: [], selectedFields: [], joins: [], where: [] }
+                    mainQuery: { tables: [], selectedFields: [], joins: [], where: [], groupBy: [], orderBy: [] }
                 });
                 lastParsedSqlRef.current = null;
             }
@@ -886,7 +1056,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             tables: prev.tables.filter(t => t.alias !== alias),
             selectedFields: prev.selectedFields.filter(f => f.tableAlias !== alias),
             joins: prev.joins.filter(j => j.leftTableAlias !== alias && j.rightTableAlias !== alias),
-            where: prev.where.filter(w => w.tableAlias !== alias)
+            where: prev.where.filter(w => w.tableAlias !== alias),
+            groupBy: prev.groupBy.filter(g => g.tableAlias !== alias),
+            orderBy: prev.orderBy.filter(o => o.tableAlias !== alias)
         }));
     };
 
@@ -1176,7 +1348,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         const id = editingCTE ? editingCTE.id : `cte_${Date.now()}`;
         const alias = config?.alias || `tab${fullState.ctes.length + 1}`;
 
-        let state: QueryState = editingCTE ? editingCTE.state : { tables: [], selectedFields: [], joins: [], where: [] };
+        let state: QueryState = editingCTE ? editingCTE.state : { tables: [], selectedFields: [], joins: [], where: [], groupBy: [], orderBy: [] };
 
         if (isRecursive && config && !editingCTE) {
             // Pre-fill state for NEW recursive CTE
@@ -1195,7 +1367,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     operator: 'IS NULL',
                     value: 'NULL',
                     logic: 'AND'
-                }]
+                }],
+                groupBy: [],
+                orderBy: []
             };
         }
 
@@ -1682,7 +1856,8 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                 tabs={[
                                     { id: 'tables', label: 'Selected Tables' },
                                     { id: 'joins', label: 'Joins' },
-                                    { id: 'conditions', label: 'Conditions' }
+                                    { id: 'conditions', label: 'Conditions' },
+                                    { id: 'grouping_sorting', label: 'Grouping & Sorting' }
                                 ]}
                                 activeTab={activeTab}
                                 onTabChange={(tabId: string) => setActiveTab(tabId as any)}
@@ -1764,6 +1939,14 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             </div>
                                         )}
                                     </div>
+                                )}
+                                {activeTab === 'grouping_sorting' && (
+                                    <GroupingSortingView
+                                        state={activeState}
+                                        setState={updateActiveState}
+                                        getColumns={getColumns}
+                                        queryState={fullState}
+                                    />
                                 )}
                             </div>
 

@@ -141,6 +141,16 @@ export const generateBlockSQL = (state: QueryState): string => {
             sql += sqlCond;
         });
     }
+
+    if (state.groupBy && state.groupBy.length > 0) {
+        sql += '\nGROUP BY ';
+        sql += state.groupBy.map(g => q(g.columnName, g.tableAlias)).join(', ');
+    }
+
+    if (state.orderBy && state.orderBy.length > 0) {
+        sql += '\nORDER BY ';
+        sql += state.orderBy.map(o => `${q(o.columnName, o.tableAlias)} ${o.direction}`).join(', ');
+    }
     
     return sql;
 };

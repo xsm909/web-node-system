@@ -21,7 +21,9 @@ export const parseSQL = (sql: string): MultiQueryState => {
             tables: [],
             selectedFields: [],
             joins: [],
-            where: []
+            where: [],
+            groupBy: [],
+            orderBy: []
         }
     };
 
@@ -214,7 +216,9 @@ const parseBlock = (sql: string): QueryState => {
         tables: [],
         selectedFields: [],
         joins: [],
-        where: []
+        where: [],
+        groupBy: [],
+        orderBy: []
     };
 
     const upperSql = sql.toUpperCase();
@@ -445,6 +449,48 @@ const parseBlock = (sql: string): QueryState => {
                     logic: logic as 'AND' | 'OR' 
                 });
             }
+        }
+    }
+
+    const normalizedSql = sql.replace(/\s+/g, ' ');
+
+    // 5. GROUP BY clause
+    const groupByMatch = normalizedSql.match(/GROUP BY\s+(.+?)(?:\s+(?:ORDER BY|LIMIT)|$)/i);
+    if (groupByMatch) {
+        const groupByContent = groupByMatch[1].trim();
+        const groups = groupByContent.split(',').map((s: string) => s.trim());
+        for (const group of groups) {
+            const parsed = splitIdentifier(group);
+            const tableAlias = parsed.table || state.tables[0]?.alias || '';
+            const columnName = parsed.column;
+            state.groupBy.push({
+                id: `group_${Date.now()}_${state.groupBy.length}`,
+                tableAlias,
+                columnName
+            });
+        }
+    }
+
+    // 6. ORDER BY clause
+    const orderByMatch = normalizedSql.match(/ORDER BY\s+(.+?)(?:\s+LIMIT|$)/i);
+    if (orderByMatch) {
+        const orderByContent = orderByMatch[1].trim();
+        const orders = orderByContent.split(',').map((s: string) => s.trim());
+        for (const order of orders) {
+            const orderParts = order.split(/\s+/);
+            const identifier = orderParts[0];
+            const direction = (orderParts[1] || 'ASC').toUpperCase() as 'ASC' | 'DESC';
+            
+            const parsed = splitIdentifier(identifier);
+            const tableAlias = parsed.table || state.tables[0]?.alias || '';
+            const columnName = parsed.column;
+            
+            state.orderBy.push({
+                id: `order_${Date.now()}_${state.orderBy.length}`,
+                tableAlias,
+                columnName,
+                direction
+            });
         }
     }
 
