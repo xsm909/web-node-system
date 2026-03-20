@@ -972,7 +972,20 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     };
 
     const handleAddAllTableColumns = async (tableAlias: string, tableName: string) => {
-        const columns = await getColumns(tableName);
+        // For CTE (virtual) tables, derive columns from the CTE's selectedFields
+        // instead of making an API call (the DB has no such table)
+        const cte = fullState.ctes.find((c: any) => c.alias === tableName);
+        let columns: { name: string }[];
+        if (cte) {
+            columns = cte.state.selectedFields.map((f: any) => ({
+                name: f.alias || f.columnName || ''
+            })).filter((c: any) => c.name);
+            if (cte.isRecursive && cte.recursiveConfig?.depthColumn) {
+                columns.push({ name: cte.recursiveConfig.depthColumn });
+            }
+        } else {
+            columns = await getColumns(tableName);
+        }
         updateActiveState(prev => {
             const existingFieldColumns = new Set(
                 prev.selectedFields
@@ -1525,7 +1538,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         <div className="px-6 border-b border-[var(--border-base)]">
                             <AppTabs
                                 tabs={[
-                                    { id: 'tables', label: 'Tables & Selection' },
+                                    { id: 'tables', label: 'Selected Tables' },
                                     { id: 'joins', label: 'Joins' },
                                     { id: 'conditions', label: 'Conditions' }
                                 ]}

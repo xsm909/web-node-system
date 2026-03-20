@@ -92,33 +92,45 @@ const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, query
         opacity: isDragging ? 0.3 : 1,
     };
 
-    useEffect(() => {
-        if (!isExpanded) return;
+    // Determine once whether this table is a CTE reference
+    const isCte = queryState.ctes.some((c: any) => c.alias === table.tableName);
 
-        setLoading(true);
+    // For CTE tables: update columns whenever CTE definitions change (sync, no loading flash)
+    useEffect(() => {
+        if (!isExpanded || !isCte) return;
+
         const cte = queryState.ctes.find((c: any) => c.alias === table.tableName);
-        if (cte) {
-            const cteCols = cte.state.selectedFields.map((f: any) => ({
-                name: f.alias || f.columnName || '',
-                type: 'CTE'
-            }));
-            
-            if (cte.isRecursive && cte.recursiveConfig?.depthColumn) {
-                cteCols.push({
-                    name: cte.recursiveConfig.depthColumn,
-                    type: 'CTE-Depth'
-                });
-            }
-            
-            setColumns(cteCols);
-            setLoading(false);
-        } else {
-            getColumns(table.tableName).then((cols: any) => {
-                setColumns(cols);
-                setLoading(false);
+        if (!cte) return;
+
+        const cteCols = cte.state.selectedFields.map((f: any) => ({
+            name: f.alias || f.columnName || '',
+            type: 'CTE'
+        }));
+
+        if (cte.isRecursive && cte.recursiveConfig?.depthColumn) {
+            cteCols.push({
+                name: cte.recursiveConfig.depthColumn,
+                type: 'CTE-Depth'
             });
         }
-    }, [isExpanded, table.tableName, getColumns, queryState.ctes]);
+
+        setColumns(cteCols);
+    }, [isExpanded, isCte, table.tableName, queryState.ctes]);
+
+    // For real DB tables: fetch columns only when the table name or expanded state changes
+    useEffect(() => {
+        if (!isExpanded || isCte) return;
+
+        let cancelled = false;
+        setLoading(true);
+        getColumns(table.tableName).then((cols: any) => {
+            if (!cancelled) {
+                setColumns(cols);
+                setLoading(false);
+            }
+        });
+        return () => { cancelled = true; };
+    }, [isExpanded, isCte, table.tableName, getColumns]);
 
     const isAllSelected = selectedFields.some((f: any) => f.columnName === '*');
 
