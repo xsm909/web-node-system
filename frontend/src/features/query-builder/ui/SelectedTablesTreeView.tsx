@@ -93,29 +93,27 @@ const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, query
     };
 
     // Determine once whether this table is a CTE reference
-    const isCte = queryState.ctes.some((c: any) => c.alias === table.tableName);
+    const targetCte = queryState.ctes.find((c: any) => c.alias === table.tableName);
+    const isCte = !!targetCte;
 
     // For CTE tables: update columns whenever CTE definitions change (sync, no loading flash)
     useEffect(() => {
-        if (!isExpanded || !isCte) return;
+        if (!isExpanded || !targetCte) return;
 
-        const cte = queryState.ctes.find((c: any) => c.alias === table.tableName);
-        if (!cte) return;
-
-        const cteCols = cte.state.selectedFields.map((f: any) => ({
+        const cteCols = targetCte.state.selectedFields.map((f: any) => ({
             name: f.alias || f.columnName || '',
             type: 'CTE'
         }));
 
-        if (cte.isRecursive && cte.recursiveConfig?.depthColumn) {
+        if (targetCte.isRecursive && targetCte.recursiveConfig?.depthColumn) {
             cteCols.push({
-                name: cte.recursiveConfig.depthColumn,
+                name: targetCte.recursiveConfig.depthColumn,
                 type: 'CTE-Depth'
             });
         }
 
         setColumns(cteCols);
-    }, [isExpanded, isCte, table.tableName, queryState.ctes]);
+    }, [isExpanded, isCte, table.tableName, queryState.ctes, targetCte]);
 
     // For real DB tables: fetch columns only when the table name or expanded state changes
     useEffect(() => {
@@ -160,7 +158,11 @@ const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, query
                     e.stopPropagation();
                     setIsExpanded(!isExpanded);
                 }}>
-                    <Icon name="table_chart" size={14} className="text-brand" />
+                    <Icon 
+                        name={isCte ? (targetCte?.isRecursive ? 'table_recursive' : 'table_virtual') : 'table_chart'} 
+                        size={14} 
+                        className="text-brand" 
+                    />
                     <span className="text-xs font-bold text-[var(--text-main)]">{table.tableName}</span>
                     {table.alias !== table.tableName && (
                         <span className="text-[9px] bg-brand/10 text-brand px-1 py-0.5 rounded uppercase tracking-tighter">AS {table.alias}</span>

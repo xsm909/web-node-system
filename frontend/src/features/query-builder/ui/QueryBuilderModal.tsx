@@ -122,7 +122,7 @@ const DraggableTableSidebarItem: React.FC<DraggableTableSidebarItemProps> = ({ i
             }}
         >
             <div className="flex items-center gap-2">
-                <Icon name={isCte ? (isRecursive ? 'account_tree' : 'layers') : 'table_chart'} size={14} className="text-brand/70" />
+                <Icon name={isCte ? (isRecursive ? 'table_recursive' : 'table_virtual') : 'table_chart'} size={14} className="text-brand/70" />
                 <span className="text-xs font-medium text-[var(--text-main)]">{label}</span>
             </div>
             <Icon name="add" size={14} className="text-brand opacity-0 group-hover:opacity-100 transition-all" />
@@ -516,7 +516,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
             onClose={onClose}
             onSubmit={() => onSubmit({ alias, anchorTable, primaryKey, parentKey, depthColumn })}
             title="Recursive Query Builder"
-            icon="account_tree"
+            icon="table_recursive"
             width="max-w-xl"
         >
             <div className="space-y-4">

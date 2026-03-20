@@ -96,8 +96,12 @@ The system includes an enhanced custom parser ([sqlParser.ts](file:///Users/Shar
 
 ## 12. UI Patterns for Recursion
 
-- **Recursive Query Modal**: A guided form to configure `anchorTable`, `primaryKey`, and `parentKey`.
+- **Recursive Query Modal**: A guided form to configure `anchorTable`, `primaryKey`, and `parentKey`. Uses the `table_recursive` icon.
 - **Recursion Settings Icon**: Existing query blocks in the sidebar display a settings icon for easy re-configuration of recursion parameters.
+- **Table Icons**: 
+    - Regular Table: `table_chart`
+    - Regular Query Block (CTE): `table_virtual`
+    - Recursive Query Block (CTE): `table_recursive`
 - **Condition Guards**: New recursive blocks automatically add an `IS NULL` condition to the parent reference to guide the user.
 
 ## 5. Execution & Verification
