@@ -408,7 +408,13 @@ The platform supports specialized keyboard shortcuts to streamline development a
 -   **F1**: Open **SQL Query Builder** when in a Python code editor.
 -   **Esc**: Navigate **Back** (to the parent list) from any editor or detail view.
 -   **F4**: Switch to the **Python Code** tab (Node Engine/Report Code) from any other tab.
+-   **Ctrl+S / Cmd+S**: Trigger **Save** action for the current form or editor.
 
 ### 14.2 Report Editor Shortcuts
 -   **F5**: Trigger **Compile** action for the current report script.
 -   **F9**: Trigger **Generate** action to preview the report.
+
+### 14.3 Context-Aware Behavior
+-   **Modal Priority**: All keyboard shortcuts are strictly context-aware. When a modal window is open, shortcuts apply only to that modal.
+-   **Automatic Guarding**: Modals proactively intercept and stop propagation for global shortcuts (`F1`-`F12`, `Esc`, `Ctrl+S`). Parent layers automatically ignore these keys when a modal is active to prevent unintended background actions.
+

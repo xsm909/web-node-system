@@ -89,6 +89,16 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                 if (ourZ < highestZ) return;
             }
 
+            // Intercept and stop propagation for all global application shortcuts
+            const isGlobalShortcut = 
+                (e.key >= 'F1' && e.key <= 'F12') || 
+                ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
+
+            if (isGlobalShortcut) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
             if (e.key === 'Enter') {
                 // Check if any element is focused and it's not a button or textarea
                 const active = document.activeElement;
@@ -116,6 +126,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/5 backdrop-blur-none animate-in fade-in duration-200 pointer-events-none">
             <div 
                 ref={modalRef}
+                role="dialog"
                 style={{ 
                     transform: `translate(${position.x}px, ${position.y}px)`,
                     transition: isDragging ? 'none' : 'transform 0.1s ease-out'

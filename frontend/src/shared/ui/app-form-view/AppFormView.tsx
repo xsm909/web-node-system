@@ -75,23 +75,31 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     // Keyboard shortcut handler
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-                e.preventDefault();
-                onSave();
-            } else if (e.key === 'Escape') {
-                // If a modal is open, ignore global shortcut
+            // Intercept global application shortcuts
+            const isGlobalShortcut = 
+                (e.key === 'Escape') || 
+                (e.key >= 'F1' && e.key <= 'F12') || 
+                ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
+
+            if (isGlobalShortcut) {
+                // If a modal is open, ignore global shortcut at this level
                 const isModalOpen = !!document.querySelector('[role="dialog"]') || 
                                    !!document.querySelector('.fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[3000\\]');
                 if (isModalOpen) return;
-
-                e.preventDefault();
-                handleBack();
+                
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleBack();
+                } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+                    e.preventDefault();
+                    onSave();
+                }
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onSave, handleBack]);
+    }, [handleBack, onSave]);
 
     const handleDiscard = () => {
         setShowConfirmBack(false);

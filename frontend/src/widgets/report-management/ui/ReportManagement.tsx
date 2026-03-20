@@ -72,24 +72,31 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         const handleKeyDown = (e: KeyboardEvent) => {
             if (view === 'list') return;
 
-            // If a modal is open (like QueryBuilder), ignore parent shortcuts
-            // This is a defensive check in case stopPropagation fails
-            const isModalOpen = !!document.querySelector('[role="dialog"]') || !!document.querySelector('.fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[3000\\]');
-            if (isModalOpen) return;
+            // Intercept global application shortcuts
+            const isGlobalShortcut = 
+                (e.key === 'Escape') || 
+                (e.key >= 'F1' && e.key <= 'F12') || 
+                ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
 
-            if (e.key === 'Escape' && view === 'view') {
-                e.preventDefault();
-                handleBack();
-            } else if (view === 'edit') {
-                if (e.key === 'F4') {
+            if (isGlobalShortcut) {
+                // If a modal is open (like QueryBuilder), ignore parent shortcuts
+                const isModalOpen = !!document.querySelector('[role="dialog"]') || !!document.querySelector('.fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[3000\\]');
+                if (isModalOpen) return;
+
+                if (e.key === 'Escape' && view === 'view') {
                     e.preventDefault();
-                    setActiveTab('code');
-                } else if (e.key === 'F5') {
-                    e.preventDefault();
-                    handleHeaderCompile();
-                } else if (e.key === 'F9') {
-                    e.preventDefault();
-                    handleHeaderGenerate();
+                    handleBack();
+                } else if (view === 'edit') {
+                    if (e.key === 'F4') {
+                        e.preventDefault();
+                        setActiveTab('code');
+                    } else if (e.key === 'F5') {
+                        e.preventDefault();
+                        handleHeaderCompile();
+                    } else if (e.key === 'F9') {
+                        e.preventDefault();
+                        handleHeaderGenerate();
+                    }
                 }
             }
         };

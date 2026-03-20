@@ -92,6 +92,16 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 if (ourZ < highestZ) return;
             }
 
+            // Intercept and stop propagation for all global application shortcuts
+            const isGlobalShortcut = 
+                (e.key >= 'F1' && e.key <= 'F12') || 
+                ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
+
+            if (isGlobalShortcut) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
             if (e.key === 'Enter') {
                 e.preventDefault();
                 e.stopPropagation();
@@ -119,6 +129,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             />
 
             <div
+                role="dialog"
                 className="relative w-full max-w-sm bg-surface-800 border border-[var(--border-base)] rounded-[2rem] p-10 shadow-2xl shadow-black/40 ring-1 ring-black/5 dark:ring-white/5 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
                 onClick={(e) => e.stopPropagation()}
             >

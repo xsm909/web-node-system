@@ -759,6 +759,18 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 if (ourZ < highestZ) return;
             }
 
+            // Intercept and stop propagation for all global application shortcuts
+            // only those that QueryBuilderModal itself doesn't use (like F1, F2, F4, Ctrl+S)
+            const isOtherGlobalShortcut = 
+                (e.key >= 'F1' && e.key <= 'F12' && e.key !== 'F5' && e.key !== 'F9') || 
+                ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
+
+            if (isOtherGlobalShortcut) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
             // ESC to close Query Builder
             if (e.key === 'Escape') {
                 e.preventDefault();
@@ -767,7 +779,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 return;
             }
 
-            // Prevent both F5/F9 (Compile/Generate) and standard browser Refresh
+            // F5/F9 (Compile/Generate)
             if (e.key === 'F5' || e.key === 'F9' || (e.key === 'r' && (e.metaKey || e.ctrlKey))) {
                 e.preventDefault();
                 e.stopPropagation();
