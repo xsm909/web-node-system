@@ -744,8 +744,13 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!isOpen) return;
 
+            // If any nested internal modal is open, ignore global shortcut
+            if (isResultsOpen || isRecursiveModalOpen || isRenameModalOpen || !!editingField || !!editingCTE || isDeleteConfirmOpen) {
+                return;
+            }
+
             // Z-index check to handle nested modals: only the top-most one should catch the event
-            const modals = Array.from(document.querySelectorAll('.fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[3000\\]')) as HTMLElement[];
+            const modals = Array.from(document.querySelectorAll('.fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[3000\\], [role="dialog"]')) as HTMLElement[];
             if (modals.length > 0) {
                 const highestZ = Math.max(...modals.map(m => parseInt(getComputedStyle(m).zIndex) || 0));
                 // QueryBuilderModal is z-[1000]
@@ -772,7 +777,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
         window.addEventListener('keydown', handleKeyDown, true);
         return () => window.removeEventListener('keydown', handleKeyDown, true);
-    }, [isOpen, handleExecuteQuery, onClose]);
+    }, [isOpen, handleExecuteQuery, onClose, isResultsOpen, isRecursiveModalOpen, isRenameModalOpen, editingField, editingCTE, isDeleteConfirmOpen]);
 
     const handleCopyResults = async () => {
         try {
@@ -1292,7 +1297,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[1000] bg-[var(--bg-app)] flex flex-col animate-in fade-in duration-200">
+        <div role="dialog" className="fixed inset-0 z-[1000] bg-[var(--bg-app)] flex flex-col animate-in fade-in duration-200">
             <div className="shrink-0 flex flex-col">
                 <AppHeader
                     onBack={onClose}

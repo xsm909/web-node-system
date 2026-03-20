@@ -78,7 +78,12 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
             if ((e.metaKey || e.ctrlKey) && e.key === 's') {
                 e.preventDefault();
                 onSave();
-            } else if (e.key === 'F2') {
+            } else if (e.key === 'Escape') {
+                // If a modal is open, ignore global shortcut
+                const isModalOpen = !!document.querySelector('[role="dialog"]') || 
+                                   !!document.querySelector('.fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[3000\\]');
+                if (isModalOpen) return;
+
                 e.preventDefault();
                 handleBack();
             }

@@ -41,7 +41,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                             className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors shrink-0 mr-2 hidden lg:flex"
                             onClick={onBack}
                             aria-label="Go back"
-                            title="Go back"
+                            title="Go back (Esc)"
                         >
                             <Icon name="arrow_back" size={22} />
                         </button>

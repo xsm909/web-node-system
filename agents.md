@@ -406,7 +406,7 @@ The platform supports specialized keyboard shortcuts to streamline development a
 
 ### 14.1 Global Editor Shortcuts
 -   **F1**: Open **SQL Query Builder** when in a Python code editor.
--   **F2**: Navigate **Back** (to the parent list) from any editor or detail view.
+-   **Esc**: Navigate **Back** (to the parent list) from any editor or detail view.
 -   **F4**: Switch to the **Python Code** tab (Node Engine/Report Code) from any other tab.
 
 ### 14.2 Report Editor Shortcuts
