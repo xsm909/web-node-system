@@ -83,6 +83,7 @@ def get_functions(db: Session = Depends(get_db), _=manager_access):
 
 class ExecuteQueryRequest(BaseModel):
     sql: str
+    params: Dict[str, Any] = None
 
 @router.post("/execute")
 def execute_query(request: ExecuteQueryRequest, db: Session = Depends(get_db), _=manager_access):
@@ -99,7 +100,7 @@ def execute_query(request: ExecuteQueryRequest, db: Session = Depends(get_db), _
         if "limit" not in sql.lower():
             sql = f"SELECT * FROM ({sql}) AS subquery_limit LIMIT 1000"
             
-        result = db.execute(text(sql))
+        result = db.execute(text(sql), request.params or {})
         columns = result.keys()
         rows = [dict(zip(columns, row)) for row in result.fetchall()]
         return rows

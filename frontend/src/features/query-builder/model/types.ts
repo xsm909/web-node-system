@@ -42,6 +42,7 @@ export interface WhereCondition {
     columnName: string;
     operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'LIKE' | 'IN' | 'IS NULL' | 'IS NOT NULL';
     value: string;
+    valueType?: 'literal' | 'parameter';
     logic: 'AND' | 'OR';
 }
 

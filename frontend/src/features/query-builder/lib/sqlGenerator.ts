@@ -80,7 +80,8 @@ export const generateBlockSQL = (state: QueryState): string => {
         sql += '\nWHERE ';
         state.where.forEach((cond, index) => {
             if (index > 0) sql += ` ${cond.logic} `;
-            sql += `${q(cond.tableAlias)}.${q(cond.columnName)} ${cond.operator} ${cond.value}`;
+            const value = cond.valueType === 'parameter' ? `:${cond.value}` : cond.value;
+            sql += `${q(cond.tableAlias)}.${q(cond.columnName)} ${cond.operator} ${value}`;
         });
     }
     

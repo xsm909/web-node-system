@@ -603,9 +603,9 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                         onClose={() => setIsQueryBuilderOpen(false)}
                         onError={handleQueryBuilderError}
                         onDone={(newSql) => {
-                            if (editorRef) {
+                            if (editorRef && queryRange) {
                                 // Indent the new SQL if it's multi-line and we're inside triple quotes
-                                const formattedSql = initialSql?.includes('\n') || newSql.includes('\n') 
+                                const formattedSql = (initialSql?.includes('\n') || newSql.includes('\n')) 
                                     ? `\n      ${newSql.trim().replace(/\n/g, '\n      ')}\n    `
                                     : newSql;
 
@@ -620,6 +620,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                             }
                             setIsQueryBuilderOpen(false);
                         }}
+                        parameters={parameters}
                     />
 
                     <AppConsole

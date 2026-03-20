@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import type { ReportParameter } from '../../../entities/report/model/types';
 import {
     DndContext,
     closestCenter,
@@ -135,6 +136,7 @@ interface ViewProps {
     setState: (updater: (prev: QueryState) => QueryState) => void;
     getColumns: (tableName: string) => Promise<any[]>;
     queryState: MultiQueryState;
+    parameters?: ReportParameter[];
 }
 
 const JoinsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryState }) => {
@@ -339,7 +341,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
     );
 };
 
-const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryState }) => {
+const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryState, parameters = [] }) => {
     const addCondition = () => {
         if (state.tables.length === 0) return;
         const newCond: WhereCondition = {
@@ -348,6 +350,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
             columnName: '',
             operator: '=',
             value: "''",
+            valueType: 'literal',
             logic: 'AND'
         };
         setState((prev) => ({ ...prev, where: [...prev.where, newCond] }));
@@ -430,18 +433,52 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                             <option value="IS NOT NULL">IS NOT NULL</option>
                         </select>
 
-                        <input
-                            placeholder="value"
-                            value={cond.value}
-                            onChange={(e) => {
-                                const newWheres = [...state.where];
-                                newWheres[index].value = e.target.value;
-                                setState((prev) => ({ ...prev, where: newWheres }));
-                            }}
-                            disabled={cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL'}
-                            className={`flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand ${(cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') ? 'opacity-30' : ''
-                                }`}
-                        />
+                        <div className="flex-1 flex items-center gap-2">
+                            {parameters.length > 0 && (
+                                <button
+                                    onClick={() => {
+                                        const newWheres = [...state.where];
+                                        newWheres[index].valueType = cond.valueType === 'parameter' ? 'literal' : 'parameter';
+                                        newWheres[index].value = '';
+                                        setState((prev) => ({ ...prev, where: newWheres }));
+                                    }}
+                                    className={`p-2 rounded-lg border transition-all ${cond.valueType === 'parameter' ? 'bg-brand/10 border-brand/30 text-brand' : 'bg-[var(--bg-alt)] border-[var(--border-base)] text-[var(--text-muted)] hover:text-brand'}`}
+                                    title={cond.valueType === 'parameter' ? 'Switch to Literal' : 'Switch to Parameter'}
+                                >
+                                    <Icon name={cond.valueType === 'parameter' ? 'database' : 'settings'} size={14} />
+                                </button>
+                            )}
+
+                            {cond.valueType === 'parameter' ? (
+                                <select
+                                    value={cond.value}
+                                    onChange={(e) => {
+                                        const newWheres = [...state.where];
+                                        newWheres[index].value = e.target.value;
+                                        setState((prev) => ({ ...prev, where: newWheres }));
+                                    }}
+                                    className="flex-1 bg-[var(--bg-alt)] border border-brand/30 rounded-lg px-3 py-2 text-xs font-bold text-brand outline-none"
+                                >
+                                    <option value="">Select parameter...</option>
+                                    {parameters.map(p => (
+                                        <option key={p.parameter_name} value={p.parameter_name}>{p.parameter_name}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input
+                                    placeholder="value"
+                                    value={cond.value}
+                                    onChange={(e) => {
+                                        const newWheres = [...state.where];
+                                        newWheres[index].value = e.target.value;
+                                        setState((prev) => ({ ...prev, where: newWheres }));
+                                    }}
+                                    disabled={cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL'}
+                                    className={`flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand ${(cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') ? 'opacity-30' : ''
+                                        }`}
+                                />
+                            )}
+                        </div>
 
                         <button
                             onClick={() => {
@@ -473,6 +510,7 @@ interface QueryBuilderModalProps {
     onDone: (sql: string) => void;
     initialSql?: string;
     onError?: (error: string) => void;
+    parameters?: ReportParameter[];
 }
 
 // --- Recursive CTE Helper Modal ---
@@ -591,7 +629,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
 
 // Note: Rename logic now handled directly via states to ensure OK button works
 
-export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, onClose, onDone, initialSql, onError }) => {
+export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, onClose, onDone, initialSql, onError, parameters = [] }) => {
     const { tables, getColumns, loading } = useDatabaseMetadata();
 
     const [fullState, setFullState] = useState<MultiQueryState>({
@@ -609,6 +647,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [previewSql, setPreviewSql] = useState('');
     const [activeDragItem, setActiveDragItem] = useState<any>(null);
     const [grabOffset, setGrabOffset] = useState({ x: 0, y: 0 });
+    const [parameterValues, setParameterValues] = useState<Record<string, any>>({});
     const [editingField, setEditingField] = useState<SelectedField | null>(null);
     const [editingCTE, setEditingCTE] = useState<any>(null);
     const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
@@ -724,12 +763,29 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }
     }, [isOpen, initialSql, onError, onClose]);
 
+    useEffect(() => {
+        if (parameters && parameters.length > 0) {
+            setParameterValues(prev => {
+                const next = { ...prev };
+                parameters.forEach(p => {
+                    if (next[p.parameter_name] === undefined) {
+                        next[p.parameter_name] = p.default_value === null ? '' : p.default_value;
+                    }
+                });
+                return next;
+            });
+        }
+    }, [parameters]);
+
     const handleExecuteQuery = useCallback(async () => {
         if (isExecuting || !effectiveSql.canRun) return;
 
         setIsExecuting(true);
         try {
-            const res = await apiClient.post('/database-metadata/execute', { sql: effectiveSql.sql });
+            const res = await apiClient.post('/database-metadata/execute', { 
+                sql: effectiveSql.sql,
+                params: parameterValues 
+            });
             setQueryResults(res.data);
             setIsResultsOpen(true);
         } catch (err: any) {
@@ -738,7 +794,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         } finally {
             setIsExecuting(false);
         }
-    }, [isExecuting, effectiveSql, apiClient, onError]);
+    }, [isExecuting, effectiveSql, apiClient, onError, parameterValues]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -1661,12 +1717,44 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                     />
                                 )}
                                 {activeTab === 'conditions' && (
-                                    <ConditionsView
-                                        state={activeState}
-                                        setState={updateActiveState}
-                                        getColumns={getColumns}
-                                        queryState={fullState}
-                                    />
+                                    <div className="h-full flex flex-col gap-6 overflow-hidden">
+                                        <ConditionsView
+                                            state={activeState}
+                                            setState={updateActiveState}
+                                            getColumns={getColumns}
+                                            queryState={fullState}
+                                            parameters={parameters}
+                                        />
+
+                                        {parameters && parameters.length > 0 && (
+                                            <div className="shrink-0 p-6 border-t border-[var(--border-base)] bg-[var(--bg-alt)]/30 rounded-t-3xl backdrop-blur-sm">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
+                                                        <Icon name="tune" size={16} />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">Execution Parameters</h3>
+                                                        <p className="text-[9px] text-[var(--text-muted)] font-medium">Provide test values for query preview</p>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                                    {parameters.map(p => (
+                                                        <div key={p.parameter_name} className="space-y-1.5">
+                                                            <label className="text-[10px] font-black uppercase tracking-tighter text-[var(--text-muted)] ml-1">
+                                                                {p.parameter_name}
+                                                            </label>
+                                                            <input
+                                                                value={parameterValues[p.parameter_name] || ''}
+                                                                onChange={e => setParameterValues(prev => ({ ...prev, [p.parameter_name]: e.target.value }))}
+                                                                placeholder={p.parameter_type}
+                                                                className="w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-brand focus:ring-4 focus:ring-brand/5 transition-all"
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
 

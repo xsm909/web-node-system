@@ -364,7 +364,23 @@ const parseBlock = (sql: string): QueryState => {
                     columnName = stripQ(fullColOrAlias);
                     tableAlias = state.tables[0]?.alias || ''; // Default to first table alias
                 }
-                state.where.push({ id: `where_${Date.now()}_${state.where.length}`, tableAlias, columnName, operator: operator.toUpperCase() as any, value: value.trim(), logic: logic as 'AND' | 'OR' });
+
+                let trimmedValue = value.trim();
+                let valueType: 'literal' | 'parameter' = 'literal';
+                if (trimmedValue.startsWith(':')) {
+                    valueType = 'parameter';
+                    trimmedValue = trimmedValue.substring(1);
+                }
+
+                state.where.push({ 
+                    id: `where_${Date.now()}_${state.where.length}`, 
+                    tableAlias, 
+                    columnName, 
+                    operator: operator.toUpperCase() as any, 
+                    value: trimmedValue, 
+                    valueType,
+                    logic: logic as 'AND' | 'OR' 
+                });
             } else if (nullMatch) {
                 const [, fullColOrAlias, colNameIfPresent, operator] = nullMatch;
                 let tableAlias = '';
@@ -377,7 +393,14 @@ const parseBlock = (sql: string): QueryState => {
                     columnName = stripQ(fullColOrAlias);
                     tableAlias = state.tables[0]?.alias || ''; // Default to first table alias
                 }
-                state.where.push({ id: `where_${Date.now()}_${state.where.length}`, tableAlias, columnName, operator: operator.toUpperCase() as any, value: 'NULL', logic: logic as 'AND' | 'OR' });
+                state.where.push({ 
+                    id: `where_${Date.now()}_${state.where.length}`, 
+                    tableAlias, 
+                    columnName, 
+                    operator: operator.toUpperCase() as any, 
+                    value: 'NULL', 
+                    logic: logic as 'AND' | 'OR' 
+                });
             }
         }
     }
