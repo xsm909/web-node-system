@@ -98,10 +98,16 @@ The system includes an enhanced custom parser ([sqlParser.ts](file:///Users/Shar
 
 - **Recursive Query Modal**: A guided form to configure `anchorTable`, `primaryKey`, and `parentKey`. Uses the `table_recursive` icon.
 - **Recursion Settings Icon**: Existing query blocks in the sidebar display a settings icon for easy re-configuration of recursion parameters.
-- **Table Icons**: 
-    - Regular Table: `table_chart`
-    - Regular Query Block (CTE): `table_virtual`
-    - Recursive Query Block (CTE): `table_recursive`
+- **Table Icons (Standards)**: 
+    - **Main Query Tab**: `sql`
+    - **Regular Query Block (CTE) Tab**: `table_virtual`
+    - **Recursive Query Block (CTE) Tab**: `table_recursive`
+    - **Context Menu (Add Regular)**: `table_virtual`
+    - **Context Menu (Add Recursive)**: `table_recursive`
+    - **Selection Lists Headers (SELECTED TABLES/FIELDS)**: `table_chart`
+    - **Selected Tables (Items)**: `table_chart`, `table_virtual`, or `table_recursive`
+    - **Selected Fields (Items)**: `table_rows`
+- **UI Interaction**: Standard lists (SELECTED TABLES/FIELDS) do not display separate drag indicators or checkmarks; interaction is handled via direct row manipulation and background highlighting.
 - **Condition Guards**: New recursive blocks automatically add an `IS NULL` condition to the parent reference to guide the user.
 
 ## 5. Execution & Verification
@@ -139,5 +145,31 @@ The Query Builder uses a highly interactive drag-and-drop (DND) model for managi
 - **Deletion (Visual Cue)**: To remove a field or table, the user drags it outside its designated drop zone. The item's border and icon turn **red**, providing a clear visual cue that releasing it will trigger a deletion.
 - **Reordering**: Fields within the selection list can be reordered via DND to control the `SELECT` column sequence.
 
+## 15. Conditions & Filters (WHERE Clause)
+
+The system supports complex filtering logic through the **Filters** section of each query block:
+
+### 15.1 WhereCondition Interface
+```typescript
+interface WhereCondition {
+    id: string;
+    tableAlias: string;   // The specific table instance (alias) the condition applies to
+    columnName: string;   // The name of the column
+    operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'LIKE' | 'IN' | 'IS NULL' | 'IS NOT NULL';
+    value: string;        // The value to compare against (ignored for IS NULL/IS NOT NULL)
+    valueType?: 'literal' | 'parameter'; // Whether the value is a raw string or a $1 parameter
+    logic: 'AND' | 'OR';  // How this condition joins with the previous one
+}
+```
+
+### 15.2 Operator Support
+- **Standard Comparisons**: `=`, `!=`, `>`, `<`, `>=`, `<=`
+- **Pattern Matching**: `LIKE` (supports `%` and `_` wildcards)
+- **Set Membership**: `IN` (expects comma-separated values in parentheses)
+- **Null Safety**: `IS NULL` and `IS NOT NULL` (automatically hides the value input in the UI)
+
+### 15.3 Recursive Anchors
+The `IS NULL` operator is critical for recursive queries, as it is often used in the anchor member to identify root nodes (e.g., `WHERE parent_id IS NULL`). The parser specifically handles these to ensure they are correctly restored when reopening a query.
+
 ---
-*Last Updated: 2026-03-19*
+*Last Updated: 2026-03-20*

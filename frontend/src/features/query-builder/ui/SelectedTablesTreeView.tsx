@@ -38,8 +38,8 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
         >
             <div className="bg-[var(--bg-alt)] px-4 py-3 border-b border-[var(--border-base)] flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
-                    <Icon name="table_rows" size={14} />
-                    Selected Tables
+                    <Icon name="table_chart" size={14} />
+                    SELECTED TABLES
                 </h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -141,9 +141,6 @@ const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, query
             className="group flex flex-col"
         >
             <div className="flex items-center gap-1 p-1 rounded-lg hover:bg-brand/5 border border-transparent hover:border-brand/10 transition-all cursor-grab active:cursor-grabbing">
-                <div className="p-1 text-[var(--text-muted)] group-hover:text-brand transition-all">
-                    <Icon name="drag_indicator" size={14} />
-                </div>
                 
                 <button 
                     onClick={(e) => {
@@ -220,11 +217,7 @@ const DraggableColumn = ({ col, tableAlias, isSelected, label }: any) => {
                 isSelected ? 'bg-brand/5 text-brand font-medium' : 'hover:bg-brand/5 text-[var(--text-main)]'
             } ${isDragging ? 'opacity-30 pointer-events-none' : ''}`}
         >
-            <div className={`w-3 h-3 rounded border flex items-center justify-center transition-all ${
-                isSelected ? 'bg-brand border-brand text-white' : 'border-[var(--border-base)]'
-            }`}>
-                {isSelected && <Icon name="check" size={8} />}
-            </div>
+            <Icon name="table_rows" size={14} className={isSelected ? 'text-brand' : 'text-[var(--text-muted)] opacity-50'} />
             <span className={`text-[11px] truncate ${label ? 'font-bold' : ''}`}>{label || col.name}</span>
             {!label && <span className="ml-auto text-[8px] text-[var(--text-muted)] opacity-50 font-mono">{col.type}</span>}
         </div>

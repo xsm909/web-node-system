@@ -106,7 +106,7 @@ interface DraggableTableSidebarItemProps {
 
 const DraggableTableSidebarItem: React.FC<DraggableTableSidebarItemProps> = ({ id, label, onAdd, isCte, isRecursive }) => {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-        id: `source-table:${id}:${isCte}`,
+        id: `source-table:${id}:${isCte}:${isRecursive || false}`,
     });
 
     return (
@@ -863,13 +863,13 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }
     };
 
-    const handleAddTable = (tableName: string, isCte = false) => {
+    const handleAddTable = (tableName: string, isCte = false, isRecursive = false) => {
         const existingCount = activeState.tables.filter((t: any) => t.tableName === tableName).length;
         const alias = existingCount === 0 ? tableName : `${tableName}_${existingCount + 1}`;
 
         updateActiveState(prev => ({
             ...prev,
-            tables: [...prev.tables, { alias, tableName, isCte }]
+            tables: [...prev.tables, { alias, tableName, isCte, isRecursive }]
         }));
     };
 
@@ -1023,6 +1023,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             const parts = activeId.split(':');
             const tableName = parts[1];
             const isCte = parts[2] === 'true';
+            const isRecursive = parts[3] === 'true';
 
             const isOverTablesArea = overId && (
                 overId === 'selected-tables-drop-zone' ||
@@ -1037,7 +1038,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             if (isOverTablesArea) {
                 const existingCount = activeState.tables.filter((t: any) => t.tableName === tableName).length;
                 const alias = existingCount === 0 ? tableName : `${tableName}_${existingCount + 1}`;
-                const newTable = { alias, tableName, isCte };
+                const newTable = { alias, tableName, isCte, isRecursive };
 
                 updateActiveState(prev => {
                     const overIndex = prev.tables.findIndex(t => t.alias === overId);
@@ -1053,7 +1054,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 // Add table to Selected Tables + expand all columns into Selected Fields individually
                 const existingCount = activeState.tables.filter((t: any) => t.tableName === tableName).length;
                 const alias = existingCount === 0 ? tableName : `${tableName}_${existingCount + 1}`;
-                const newTable = { alias, tableName, isCte };
+                const newTable = { alias, tableName, isCte, isRecursive };
 
                 // Resolve columns (CTE or DB table)
                 const cte = fullState.ctes.find((c: any) => c.alias === tableName);
@@ -1458,6 +1459,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                                 const parts = id.split(':');
                                                 const tableName = isSourceTable ? parts[1] : id;
                                                 const isCte = isSourceTable ? parts[2] === 'true' : activeState.tables.find(t => t.alias === id)?.isCte;
+                                                const isRecursive = isSourceTable ? parts[3] === 'true' : activeState.tables.find(t => t.alias === id)?.isRecursive;
 
                                                 return (
                                                     <>
@@ -1465,7 +1467,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                                                 ? 'bg-red-500/20 text-red-500'
                                                                 : 'bg-brand/10 text-brand'
                                                             }`}>
-                                                            <Icon name={isOutside ? 'delete_forever' : (isCte ? 'layers' : 'table_chart')} size={14} />
+                                                            <Icon name={isOutside ? 'delete_forever' : (isCte ? (isRecursive ? 'table_recursive' : 'table_virtual') : 'table_chart')} size={14} />
                                                         </div>
                                                         <div className="flex-1 flex flex-col min-w-0">
                                                             <span className={`text-xs font-bold truncate ${isOutside ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
@@ -1487,7 +1489,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                                             ? 'bg-red-500/20 text-red-500'
                                                             : (isExpression ? 'bg-amber-500/10 text-amber-500' : 'bg-brand/10 text-brand')
                                                         }`}>
-                                                        <Icon name={isOutside ? 'delete_forever' : (isExpression ? 'functions' : 'view_column')} size={14} />
+                                                        <Icon name={isOutside ? 'delete_forever' : 'table_rows'} size={14} />
                                                     </div>
                                                     <div className="flex-1 flex flex-col min-w-0">
                                                         <div className="flex items-center gap-2">
@@ -1539,7 +1541,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             label={cte.alias}
                                             isCte={true}
                                             isRecursive={cte.isRecursive}
-                                            onAdd={() => handleAddTable(cte.alias, true)}
+                                            onAdd={() => handleAddTable(cte.alias, true, cte.isRecursive)}
                                         />
                                     ))}
 
@@ -1572,7 +1574,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                     : 'bg-[var(--bg-alt)] border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-app)]'
                             }`}
                         >
-                            <Icon name="terminal" size={14} />
+                            <Icon name="sql" size={14} />
                             Main Query
                         </button>
 
@@ -1592,7 +1594,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             : 'bg-[var(--bg-alt)] border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-app)]'
                                     }`}
                                 >
-                                    <Icon name={cte.isRecursive ? 'account_tree' : 'layers'} size={14} />
+                                    <Icon name={cte.isRecursive ? 'table_recursive' : 'table_virtual'} size={14} />
                                     {cte.alias}
                                 </button>
                                 <button
@@ -1638,7 +1640,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-semibold text-[var(--text-main)] hover:bg-brand/10 rounded-xl transition-all outline-none"
                                     >
                                         <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
-                                            <Icon name="select_window" size={16} />
+                                            <Icon name="table_virtual" size={16} />
                                         </div>
                                         <div className="text-left">
                                             <div className="leading-tight">Regular Block</div>
@@ -1654,7 +1656,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-semibold text-[var(--text-main)] hover:bg-brand/10 rounded-xl transition-all outline-none"
                                     >
                                         <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
-                                            <Icon name="account_tree" size={16} />
+                                            <Icon name="table_recursive" size={16} />
                                         </div>
                                         <div className="text-left">
                                             <div className="leading-tight">Recursive Block</div>

@@ -50,6 +50,7 @@ export interface QueryTable {
     alias: string;
     tableName: string;
     isCte?: boolean;
+    isRecursive?: boolean;
 }
 
 export interface QueryState {

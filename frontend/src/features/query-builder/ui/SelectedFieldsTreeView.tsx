@@ -31,8 +31,8 @@ export const SelectedFieldsTreeView: React.FC<SelectedFieldsTreeViewProps> = ({
         >
             <div className="bg-[var(--bg-alt)] px-4 py-3 border-b border-[var(--border-base)] flex items-center justify-between font-bold">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
-                    <Icon name="list" size={14} />
-                    Selected Fields
+                    <Icon name="table_chart" size={14} />
+                    SELECTED FIELDS
                 </h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
@@ -89,12 +89,9 @@ const SortableFieldItem = ({ field, onEditField }: any) => {
             className="group flex items-center gap-3 p-2 rounded-lg hover:bg-brand/5 border border-transparent hover:border-brand/10 transition-all cursor-grab active:cursor-grabbing bg-[var(--bg-app)] shadow-sm"
             onClick={() => onEditField(field)}
         >
-            <div className="p-1 text-[var(--text-muted)] group-hover:text-brand transition-all">
-                <Icon name="drag_indicator" size={14} />
-            </div>
 
             <div className={`p-1.5 rounded-md ${isExpression ? 'bg-amber-500/10 text-amber-500' : 'bg-brand/10 text-brand'}`}>
-                <Icon name={isExpression ? 'functions' : 'view_column'} size={14} />
+                <Icon name="table_rows" size={14} />
             </div>
             <div className="flex-1 flex flex-col min-w-0">
                 <div className="flex items-center gap-2">
@@ -108,9 +105,6 @@ const SortableFieldItem = ({ field, onEditField }: any) => {
                 <span className="text-[10px] text-[var(--text-muted)] opacity-60">
                     {isExpression ? 'Custom Expression' : (field.columnName === '*' ? 'All Columns' : `${field.tableAlias} column`)}
                 </span>
-            </div>
-            <div className="p-1.5 opacity-0 group-hover:opacity-40 text-[var(--text-muted)] group-hover:text-brand transition-all">
-                <Icon name="drag_indicator" size={14} />
             </div>
         </div>
     );
