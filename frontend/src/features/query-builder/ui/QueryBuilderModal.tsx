@@ -1189,11 +1189,12 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 activeState.selectedFields.some(f => f.id === overId);
 
             if (isOverFieldsArea) {
-                const [, tableAlias, columnName] = activeId.split(':');
+                const [, tableAlias, columnName, columnType] = activeId.split(':');
                 const newField: SelectedField = {
                     id: `${tableAlias}_${columnName}_${Date.now()}`,
                     tableAlias,
-                    columnName
+                    columnName,
+                    columnType
                 };
 
                 updateActiveState(prev => {
@@ -1297,7 +1298,8 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                             .map(col => ({
                                 id: `${alias}_${col.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                                 tableAlias: alias,
-                                columnName: col.name
+                                columnName: col.name,
+                                columnType: (col as any).type
                             }));
                         return {
                             ...prev,
@@ -1314,7 +1316,8 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                 .map(col => ({
                                     id: `${alias}_${col.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                                     tableAlias: alias,
-                                    columnName: col.name
+                                    columnName: col.name,
+                                    columnType: col.type
                                 }));
                             return {
                                 ...prev,
@@ -1356,7 +1359,8 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 .map(col => ({
                     id: `${tableAlias}_${col.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                     tableAlias,
-                    columnName: col.name
+                    columnName: col.name,
+                    columnType: (col as any).type
                 }));
 
             return {

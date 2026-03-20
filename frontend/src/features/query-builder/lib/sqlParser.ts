@@ -315,7 +315,7 @@ const parseBlock = (sql: string): QueryState => {
         const identifierRegex = /^(?:"?([^"\s]+)"?\.)?"?([^"\s]+)"?$/i;
         const simpleColMatch = expr.match(identifierRegex);
 
-        if (simpleColMatch && !expr.includes('(')) {
+        if (simpleColMatch && !expr.includes('(') && !expr.includes('->') && !expr.includes('#')) {
             const parsed = splitIdentifier(expr);
             const tableAlias = parsed.table || state.tables[0]?.alias || '';
             const columnName = parsed.column;

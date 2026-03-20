@@ -205,7 +205,7 @@ const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, query
 
 const DraggableColumn = ({ col, tableAlias, isSelected, label }: any) => {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-        id: `source-field:${tableAlias}:${col.name}`,
+        id: `source-field:${tableAlias}:${col.name}:${col.type || ''}`,
     });
 
     return (

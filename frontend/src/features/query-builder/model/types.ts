@@ -23,6 +23,7 @@ export interface SelectedField {
     id: string;
     tableAlias: string;
     columnName?: string;
+    columnType?: string;
     expression?: string;
     alias?: string;
 }
