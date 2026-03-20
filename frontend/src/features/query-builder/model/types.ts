@@ -73,6 +73,8 @@ export interface QueryState {
     where: WhereCondition[];
     groupBy: GroupBy[];
     orderBy: OrderBy[];
+    limit?: number;
+    useLimit?: boolean;
 }
 
 export interface RecursiveCteConfig {

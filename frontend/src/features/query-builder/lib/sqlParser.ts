@@ -494,5 +494,12 @@ const parseBlock = (sql: string): QueryState => {
         }
     }
 
+    // 7. LIMIT clause
+    const limitMatch = normalizedSql.match(/LIMIT\s+(\d+)/i);
+    if (limitMatch) {
+        state.limit = parseInt(limitMatch[1], 10);
+        state.useLimit = true;
+    }
+
     return state;
 };

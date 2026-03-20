@@ -668,6 +668,51 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                     )}
                 </div>
             </div>
+
+            {/* Limit Section */}
+            <div className="space-y-6 pt-6 border-t border-[var(--border-base)]">
+                <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand font-bold">
+                            <Icon name="timer" size={16} />
+                        </div>
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">Result Limit (LIMIT)</h3>
+                    </div>
+                </div>
+                <div className="flex items-center gap-6 p-6 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)]">
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="checkbox"
+                            id="use-limit"
+                            checked={state.useLimit}
+                            onChange={(e) => setState(prev => ({ ...prev, useLimit: e.target.checked }))}
+                            className="w-4 h-4 rounded border-[var(--border-base)] text-brand focus:ring-brand"
+                        />
+                        <label htmlFor="use-limit" className="text-xs font-bold text-[var(--text-main)] cursor-pointer">
+                            Enable Limit
+                        </label>
+                    </div>
+                    
+                    <div className={`flex items-center gap-3 transition-all ${state.useLimit ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Max Rows:</span>
+                        <input
+                            type="number"
+                            value={state.limit || ''}
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                setState(prev => ({ ...prev, limit: isNaN(val) ? 0 : val }));
+                            }}
+                            className="w-32 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-brand"
+                            placeholder="e.g. 100"
+                        />
+                    </div>
+                    
+                    <div className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-muted)] italic">
+                        <Icon name="info" size={12} />
+                        <span>Preview is always limited to 1000 rows.</span>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
@@ -808,7 +853,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             joins: [],
             where: [],
             groupBy: [],
-            orderBy: []
+            orderBy: [],
+            limit: 100,
+            useLimit: false
         }
     });
 
@@ -877,8 +924,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
     const effectiveSql = useMemo(() => {
         if (activeBlockId === 'main') {
-            const sql = generateSQL(fullState);
-            return { sql, canRun: !!sql.trim() };
+            return { sql: generateSQL(fullState), canRun: !!generateSQL(fullState).trim() };
         }
 
         const targetCte = fullState.ctes.find(c => c.id === activeBlockId);
@@ -895,7 +941,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             return { sql: 'Main query only (depends on other blocks)', canRun: false };
         }
 
-        const sql = generateBlockSQL(targetCte.state);
+        const sql = generateBlockSQL(targetCte.state, { isForPreview: true });
         return { sql, canRun: !!sql.trim() };
     }, [activeBlockId, fullState]);
 
@@ -1574,7 +1620,10 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                 Run (F5)
                             </button>
                             <button
-                                onClick={() => onDone(previewSql)}
+                                onClick={() => {
+                                    const finalSql = generateSQL(fullState, { isForPreview: false });
+                                    onDone(finalSql);
+                                }}
                                 className="px-4 py-2 bg-brand text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all shadow-sm"
                             >
                                 Ready

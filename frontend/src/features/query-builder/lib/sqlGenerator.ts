@@ -27,7 +27,7 @@ const q = (id: string, tableAlias?: string): string => {
     return quotedId;
 };
 
-export const generateBlockSQL = (state: QueryState): string => {
+export const generateBlockSQL = (state: QueryState, options?: { isForPreview?: boolean }): string => {
     if (state.tables.length === 0) return '';
     
     let sql = 'SELECT ';
@@ -151,6 +151,20 @@ export const generateBlockSQL = (state: QueryState): string => {
         sql += '\nORDER BY ';
         sql += state.orderBy.map(o => `${q(o.columnName, o.tableAlias)} ${o.direction}`).join(', ');
     }
+
+    // 6. LIMIT clause with preview constraint
+    let effectiveLimit = state.useLimit ? state.limit : undefined;
+    
+    if (options?.isForPreview) {
+        const previewMax = 1000;
+        effectiveLimit = effectiveLimit !== undefined 
+            ? Math.min(effectiveLimit, previewMax) 
+            : previewMax;
+    }
+
+    if (effectiveLimit !== undefined) {
+        sql += `\nLIMIT ${effectiveLimit}`;
+    }
     
     return sql;
 };
@@ -201,14 +215,14 @@ const sortCtesByDependency = (ctes: QueryCTE[]): QueryCTE[] => {
     return sorted;
 };
 
-export const generateSQL = (fullState: MultiQueryState): string => {
+export const generateSQL = (state: MultiQueryState, options?: { isForPreview?: boolean }): string => {
     let sql = '';
     
-    if (fullState.ctes.length > 0) {
-        const sortedCtes = sortCtesByDependency(fullState.ctes);
+    if (state.ctes.length > 0) {
+        const sortedCtes = sortCtesByDependency(state.ctes);
         const hasRecursive = sortedCtes.some(c => c.isRecursive);
         sql += hasRecursive ? 'WITH RECURSIVE ' : 'WITH ';
-        sql += sortedCtes.map(cte => {
+        const cteStrings = sortedCtes.map(cte => {
             if (cte.isRecursive && cte.recursiveConfig) {
                 const { anchorTable, primaryKey, parentKey, depthColumn } = cte.recursiveConfig;
                 
@@ -233,7 +247,7 @@ export const generateSQL = (fullState: MultiQueryState): string => {
                     return `t.${q(f.alias || f.base)}`;
                 }).join(', ') || 'r.*';
 
-                let anchorSql = generateBlockSQL(cte.state);
+                let anchorSql = generateBlockSQL(cte.state, options);
                 if (depthColumn) {
                     // Inject depth column into the anchor member's SELECT
                     anchorSql = anchorSql.replace(/SELECT\s+/i, `SELECT 0 AS ${q(depthColumn)}, `);
@@ -252,12 +266,13 @@ export const generateSQL = (fullState: MultiQueryState): string => {
     JOIN ${q(cte.alias)} AS t ON ${q(parentKey, 'r')} = ${q(primaryKey, 't')}
 )`;
             }
-            return `${q(cte.alias)} AS (\n${generateBlockSQL(cte.state)}\n)`;
-        }).join(',\n');
+            return `${q(cte.alias)} AS (\n${generateBlockSQL(cte.state, options)}\n)`;
+        });
+        
+        sql += cteStrings.join(',\n');
         sql += '\n';
     }
     
-    sql += generateBlockSQL(fullState.mainQuery);
-    
+    sql += generateBlockSQL(state.mainQuery, options);
     return sql;
 };
