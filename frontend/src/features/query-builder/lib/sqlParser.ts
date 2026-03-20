@@ -322,13 +322,26 @@ const parseBlock = (sql: string): QueryState => {
             state.tables.push({ tableName, alias });
         }
         
+        let finalLeftTable = leftTable;
+        let finalLeftCol = leftCol;
+        let finalRightTable = rightTable;
+        let finalRightCol = rightCol;
+        
+        // Ensure rightTableAlias is always the table being joined (after JOIN keyword)
+        if (leftTable === alias && rightTable !== alias) {
+            finalLeftTable = rightTable;
+            finalLeftCol = rightCol;
+            finalRightTable = leftTable;
+            finalRightCol = leftCol;
+        }
+
         state.joins.push({
             id: `join_${Date.now()}_${state.joins.length}`,
             type,
-            leftTableAlias: leftTable,
-            leftColumn: leftCol,
-            rightTableAlias: rightTable,
-            rightColumn: rightCol
+            leftTableAlias: finalLeftTable,
+            leftColumn: finalLeftCol,
+            rightTableAlias: finalRightTable,
+            rightColumn: finalRightCol
         });
     }
 

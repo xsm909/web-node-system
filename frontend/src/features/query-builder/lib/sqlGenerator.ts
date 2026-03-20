@@ -1,4 +1,4 @@
-import type { MultiQueryState, QueryState } from '../model/types';
+import type { MultiQueryState, QueryState, QueryCTE } from '../model/types';
 
 const q = (id: string, tableAlias?: string): string => {
     if (!id || id === '*') return id;
@@ -137,30 +137,77 @@ export const generateBlockSQL = (state: QueryState): string => {
     return sql;
 };
 
+const sortCtesByDependency = (ctes: QueryCTE[]): QueryCTE[] => {
+    const sorted: QueryCTE[] = [];
+    const visited = new Set<string>();
+    const processing = new Set<string>();
+
+    const visit = (cte: QueryCTE) => {
+        if (visited.has(cte.id)) return;
+        if (processing.has(cte.id)) {
+            // Circular dependency detected. SQL doesn't support this without RECURSIVE
+            // and even then it's complex. We'll just stop here to prevent infinite loop.
+            return;
+        }
+
+        processing.add(cte.id);
+
+        // A CTE A depends on B if any table in A's state or its anchorTable (if recursive)
+        // refers to B's alias.
+        const ctasAliases = new Set(ctes.map(c => c.alias));
+        
+        const dependentAliases = new Set<string>();
+        cte.state.tables.forEach((t: any) => {
+            if (ctasAliases.has(t.tableName) && t.tableName !== cte.alias) {
+                dependentAliases.add(t.tableName);
+            }
+        });
+        
+        if (cte.isRecursive && cte.recursiveConfig) {
+            if (ctasAliases.has(cte.recursiveConfig.anchorTable) && cte.recursiveConfig.anchorTable !== cte.alias) {
+                dependentAliases.add(cte.recursiveConfig.anchorTable);
+            }
+        }
+
+        dependentAliases.forEach(alias => {
+            const depCte = ctes.find(c => c.alias === alias);
+            if (depCte) visit(depCte);
+        });
+
+        processing.delete(cte.id);
+        visited.add(cte.id);
+        sorted.push(cte);
+    };
+
+    ctes.forEach(visit);
+    return sorted;
+};
+
 export const generateSQL = (fullState: MultiQueryState): string => {
     let sql = '';
     
     if (fullState.ctes.length > 0) {
-        const hasRecursive = fullState.ctes.some(c => c.isRecursive);
+        const sortedCtes = sortCtesByDependency(fullState.ctes);
+        const hasRecursive = sortedCtes.some(c => c.isRecursive);
         sql += hasRecursive ? 'WITH RECURSIVE ' : 'WITH ';
-        sql += fullState.ctes.map(cte => {
+        sql += sortedCtes.map(cte => {
             if (cte.isRecursive && cte.recursiveConfig) {
                 const { anchorTable, primaryKey, parentKey, depthColumn } = cte.recursiveConfig;
                 
                 // Fields for anchor and recursive parts must match
-                const fieldList = cte.state.selectedFields.map(f => {
+                const fieldList = cte.state.selectedFields.map((f: any) => {
                     const base = f.expression || f.columnName || '';
                     const resAlias = f.alias;
                     return { base, alias: resAlias };
                 });
 
-                let anchorFields = fieldList.map(f => {
+                let anchorFields = fieldList.map((f: any) => {
                     let s = f.base === '*' ? '*' : q(f.base);
                     if (f.alias) s += ` AS ${q(f.alias)}`;
                     return s;
                 }).join(', ') || '*';
 
-                let recursiveFields = fieldList.map(f => {
+                let recursiveFields = fieldList.map((f: any) => {
                     if (f.base === '*') return `r.*`;
                     // Try to prefix with 'r.' if it looks like a simple column (starts with letter/underscore)
                     const isSimpleCol = /^[a-zA-Z_][\w]*$/.test(f.base);
