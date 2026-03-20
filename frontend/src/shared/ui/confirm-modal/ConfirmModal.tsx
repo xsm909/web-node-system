@@ -80,6 +80,33 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     onCancel,
     isLoading = false,
 }) => {
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!isOpen) return;
+
+            // Z-index check to handle nested modals
+            const modals = Array.from(document.querySelectorAll('.fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[3000\\]')) as HTMLElement[];
+            if (modals.length > 0) {
+                const highestZ = Math.max(...modals.map(m => parseInt(getComputedStyle(m).zIndex) || 0));
+                const ourZ = 2000; // ConfirmModal is z-[2000]
+                if (ourZ < highestZ) return;
+            }
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                onConfirm();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                onCancel();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown, true);
+        return () => window.removeEventListener('keydown', handleKeyDown, true);
+    }, [isOpen, onConfirm, onCancel]);
+
     if (!isOpen) return null;
 
     const styles = variantStyles[variant];

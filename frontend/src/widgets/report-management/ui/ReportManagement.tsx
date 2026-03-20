@@ -72,6 +72,12 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         const handleKeyDown = (e: KeyboardEvent) => {
             if (view === 'list') return;
 
+            // If a modal is open (like QueryBuilder), ignore parent shortcuts
+            // This is a defensive check in case stopPropagation fails
+            const isModalOpen = !!document.querySelector('[role="dialog"]') || 
+                               !!document.querySelector('.fixed.inset-0.z-\\[2000\\]');
+            if (isModalOpen) return;
+
             if (e.key === 'F2' && view === 'view') {
                 e.preventDefault();
                 handleBack();

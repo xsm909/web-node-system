@@ -589,33 +589,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
     );
 };
 
-interface RenameModalContentProps {
-    initialValue: string;
-    onSave: (val: string) => void;
-    onCancel: () => void;
-}
-
-const RenameModalContent: React.FC<RenameModalContentProps> = ({ initialValue, onSave, onCancel }) => {
-    const [val, setVal] = useState(initialValue);
-    return (
-        <div className="p-2 space-y-4">
-            <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">New Name</label>
-                <input
-                    autoFocus
-                    value={val}
-                    onChange={e => setVal(e.target.value)}
-                    onKeyDown={e => {
-                        if (e.key === 'Enter') onSave(val);
-                        if (e.key === 'Escape') onCancel();
-                    }}
-                    placeholder="e.g. MyBlock"
-                    className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
-                />
-            </div>
-        </div>
-    );
-};
+// Note: Rename logic now handled directly via states to ensure OK button works
 
 export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, onClose, onDone, initialSql, onError }) => {
     const { tables, getColumns, loading } = useDatabaseMetadata();
@@ -648,6 +622,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [addAnchorRect, setAddAnchorRect] = useState<DOMRect | null>(null);
     const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
     const [cteToRename, setCteToRename] = useState<{ id: string, alias: string } | null>(null);
+    const [renameValue, setRenameValue] = useState('');
+    const lastParsedSqlRef = useRef<string | null>(null);
+    const prevIsOpenRef = useRef(false);
 
     // DND Sensors
     const sensors = useSensors(
@@ -717,26 +694,35 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     }, [effectiveSql]);
 
     useEffect(() => {
-        if (isOpen && initialSql && initialSql.trim() !== "") {
-            try {
-                const parsedState = parseSQL(initialSql);
-                if (parsedState.mainQuery.tables.length === 0 && initialSql.trim().length > 0) {
-                    throw new Error("Could not identify tables in the provided SQL. Please ensure it follows a standard SELECT ... FROM ... format.");
+        const isOpening = isOpen && !prevIsOpenRef.current;
+        prevIsOpenRef.current = isOpen;
+
+        if (isOpening) {
+            if (initialSql && initialSql.trim() !== "") {
+                // Only re-parse if it's a different SQL than what we last parsed
+                // or if we're explicitly opening it for the first time/re-opening.
+                try {
+                    const parsedState = parseSQL(initialSql);
+                    if (parsedState.mainQuery.tables.length === 0 && initialSql.trim().length > 0) {
+                        throw new Error("Could not identify tables in the provided SQL. Please ensure it follows a standard SELECT ... FROM ... format.");
+                    }
+                    setFullState(parsedState);
+                    lastParsedSqlRef.current = initialSql;
+                } catch (err: any) {
+                    console.error("SQL Parse Error:", err);
+                    onError?.(err.message || 'Unknown parsing error');
+                    onClose(); 
                 }
-                setFullState(parsedState);
-            } catch (err: any) {
-                console.error("SQL Parse Error:", err);
-                onError?.(err.message || 'Unknown parsing error');
-                onClose(); // Close modal if parsing fails
+            } else {
+                // Reset to blank when opening without initialSql (or empty)
+                setFullState({
+                    ctes: [],
+                    mainQuery: { tables: [], selectedFields: [], joins: [], where: [] }
+                });
+                lastParsedSqlRef.current = null;
             }
-        } else if (isOpen) {
-            // Reset to blank when opening without initialSql (or empty)
-            setFullState({
-                ctes: [],
-                mainQuery: { tables: [], selectedFields: [], joins: [], where: [] }
-            });
         }
-    }, [isOpen, initialSql, onError]);
+    }, [isOpen, initialSql, onError, onClose]);
 
     const handleExecuteQuery = useCallback(async () => {
         if (isExecuting || !effectiveSql.canRun) return;
@@ -758,7 +744,26 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!isOpen) return;
 
-            if (e.key === 'F5' || e.key === 'F9') {
+            // Z-index check to handle nested modals: only the top-most one should catch the event
+            const modals = Array.from(document.querySelectorAll('.fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[3000\\]')) as HTMLElement[];
+            if (modals.length > 0) {
+                const highestZ = Math.max(...modals.map(m => parseInt(getComputedStyle(m).zIndex) || 0));
+                // QueryBuilderModal is z-[1000]
+                const ourZ = 1000;
+                
+                if (ourZ < highestZ) return;
+            }
+
+            // ESC to close Query Builder
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+                return;
+            }
+
+            // Prevent both F5/F9 (Compile/Generate) and standard browser Refresh
+            if (e.key === 'F5' || e.key === 'F9' || (e.key === 'r' && (e.metaKey || e.ctrlKey))) {
                 e.preventDefault();
                 e.stopPropagation();
                 handleExecuteQuery();
@@ -767,7 +772,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
         window.addEventListener('keydown', handleKeyDown, true);
         return () => window.removeEventListener('keydown', handleKeyDown, true);
-    }, [isOpen, handleExecuteQuery]);
+    }, [isOpen, handleExecuteQuery, onClose]);
 
     const handleCopyResults = async () => {
         try {
@@ -942,16 +947,21 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
         // Case 5: Adding a table from sidebar
         if (activeId.startsWith('source-table:')) {
+            const parts = activeId.split(':');
+            const tableName = parts[1];
+            const isCte = parts[2] === 'true';
+
             const isOverTablesArea = overId && (
                 overId === 'selected-tables-drop-zone' ||
                 activeState.tables.some(t => t.alias === overId)
             );
 
-            if (isOverTablesArea) {
-                const parts = activeId.split(':');
-                const tableName = parts[1];
-                const isCte = parts[2] === 'true';
+            const isOverFieldsArea = overId && (
+                overId === 'selected-fields-drop-zone' ||
+                activeState.selectedFields.some(f => f.id === overId)
+            );
 
+            if (isOverTablesArea) {
                 const existingCount = activeState.tables.filter((t: any) => t.tableName === tableName).length;
                 const alias = existingCount === 0 ? tableName : `${tableName}_${existingCount + 1}`;
                 const newTable = { alias, tableName, isCte };
@@ -966,6 +976,55 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     }
                     return { ...prev, tables: newTables };
                 });
+            } else if (isOverFieldsArea) {
+                // Add table to Selected Tables + expand all columns into Selected Fields individually
+                const existingCount = activeState.tables.filter((t: any) => t.tableName === tableName).length;
+                const alias = existingCount === 0 ? tableName : `${tableName}_${existingCount + 1}`;
+                const newTable = { alias, tableName, isCte };
+
+                // Resolve columns (CTE or DB table)
+                const cte = fullState.ctes.find((c: any) => c.alias === tableName);
+                if (cte) {
+                    const columns: { name: string }[] = cte.state.selectedFields
+                        .map((f: any) => ({ name: f.alias || f.columnName || '' }))
+                        .filter((c: any) => c.name);
+                    if (cte.isRecursive && cte.recursiveConfig?.depthColumn) {
+                        columns.push({ name: cte.recursiveConfig.depthColumn });
+                    }
+                    // Apply immediately (sync)
+                    updateActiveState(prev => {
+                        const newFields: SelectedField[] = columns
+                            .filter(col => !prev.selectedFields.some(f => f.tableAlias === alias && f.columnName === col.name))
+                            .map(col => ({
+                                id: `${alias}_${col.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                tableAlias: alias,
+                                columnName: col.name
+                            }));
+                        return {
+                            ...prev,
+                            tables: [...prev.tables, newTable],
+                            selectedFields: [...prev.selectedFields, ...newFields]
+                        };
+                    });
+                } else {
+                    // Async: fetch DB columns then update state
+                    getColumns(tableName).then(cols => {
+                        updateActiveState(prev => {
+                            const newFields: SelectedField[] = cols
+                                .filter(col => !prev.selectedFields.some(f => f.tableAlias === alias && f.columnName === col.name))
+                                .map(col => ({
+                                    id: `${alias}_${col.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                    tableAlias: alias,
+                                    columnName: col.name
+                                }));
+                            return {
+                                ...prev,
+                                tables: [...prev.tables, newTable],
+                                selectedFields: [...prev.selectedFields, ...newFields]
+                            };
+                        });
+                    });
+                }
             }
             return;
         }
@@ -1451,6 +1510,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                     onClick={() => setActiveBlockId(cte.id)}
                                     onDoubleClick={() => {
                                         setCteToRename({ id: cte.id, alias: cte.alias });
+                                        setRenameValue(cte.alias);
                                         setIsRenameModalOpen(true);
                                     }}
                                     className={`px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all border-t-2 border-x border-b-0 rounded-t-xl -mb-[1px] flex items-center gap-2 whitespace-nowrap pr-8 ${
@@ -1693,7 +1753,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     setCteToRename(null);
                 }}
                 onSubmit={() => {
-                    // Logic handled by RenameModalContent internal onSave
+                    if (cteToRename) handleRenameCTE(cteToRename.id, renameValue);
                 }}
                 title="Rename Query Block"
                 icon="edit"
@@ -1701,14 +1761,29 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 cancelLabel="Cancel"
             >
                 {cteToRename && (
-                    <RenameModalContent 
-                        initialValue={cteToRename.alias}
-                        onSave={(newVal) => handleRenameCTE(cteToRename.id, newVal)}
-                        onCancel={() => {
-                            setIsRenameModalOpen(false);
-                            setCteToRename(null);
-                        }}
-                    />
+                    <div className="p-2 space-y-4">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">New Name</label>
+                            <input
+                                autoFocus
+                                value={renameValue}
+                                onChange={e => setRenameValue(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                        e.stopPropagation();
+                                        handleRenameCTE(cteToRename.id, renameValue);
+                                    }
+                                    if (e.key === 'Escape') {
+                                        e.stopPropagation();
+                                        setIsRenameModalOpen(false);
+                                        setCteToRename(null);
+                                    }
+                                }}
+                                placeholder="e.g. MyBlock"
+                                className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
+                            />
+                        </div>
+                    </div>
                 )}
             </AppCompactModalForm>
         </div>

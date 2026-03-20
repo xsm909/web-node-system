@@ -77,18 +77,37 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!isOpen) return;
+
+            // Z-index check to handle nested modals: only the top-most one should catch the event
+            const modals = Array.from(document.querySelectorAll('.fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[3000\\]')) as HTMLElement[];
+            if (modals.length > 0) {
+                // Find the highest visible z-index
+                const highestZ = Math.max(...modals.map(m => parseInt(getComputedStyle(m).zIndex) || 0));
+                // Extract our z-index from the direct element if possible, or from modalRef
+                const ourZ = modalRef.current ? parseInt(getComputedStyle(modalRef.current.parentElement!).zIndex) || 0 : 0;
+                
+                if (ourZ < highestZ) return;
+            }
+
             if (e.key === 'Enter') {
-                // Check if any element is focused and it's not a button
-                if (document.activeElement?.tagName !== 'BUTTON') {
+                // Check if any element is focused and it's not a button or textarea
+                const active = document.activeElement;
+                if (active?.tagName !== 'BUTTON' && active?.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    e.stopPropagation();
                     onSubmit();
                 }
             } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
                 onClose();
             }
         };
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        // Use capture phase to ensure we intercept before global shortcuts, 
+        // but the z-index check ensures we only handle it if we're top-most.
+        window.addEventListener('keydown', handleKeyDown, true);
+        return () => window.removeEventListener('keydown', handleKeyDown, true);
     }, [isOpen, onSubmit, onClose]);
 
     if (!isOpen) return null;
