@@ -7,7 +7,7 @@ const q = (id: string, tableAlias?: string): string => {
     let cleanId = id;
     if (tableAlias) {
         const prefix = tableAlias + '.';
-        while (cleanId.startsWith(prefix)) {
+        if (cleanId.startsWith(prefix)) {
             cleanId = cleanId.substring(prefix.length);
         }
     }
@@ -20,7 +20,11 @@ const q = (id: string, tableAlias?: string): string => {
         return `${q(identifier, tableAlias)}::${rest.join('::')}`;
     }
 
-    return `"${cleanId}"`;
+    const quotedId = `"${cleanId}"`;
+    if (tableAlias) {
+        return `${q(tableAlias)}.${quotedId}`;
+    }
+    return quotedId;
 };
 
 export const generateBlockSQL = (state: QueryState): string => {
@@ -41,7 +45,7 @@ export const generateBlockSQL = (state: QueryState): string => {
             const columnName = f.columnName || '';
             const tableAlias = f.tableAlias || '';
             
-            let field = f.expression || (columnName === '*' ? '*' : `${q(tableAlias)}.${q(columnName, tableAlias)}`);
+            let field = f.expression || (columnName === '*' ? '*' : q(columnName, tableAlias));
             let alias = f.alias;
             
             // Automatic aliasing to prevent collisions (e.g. two "id" columns)
@@ -104,7 +108,7 @@ export const generateBlockSQL = (state: QueryState): string => {
                 rightCol = join.leftColumn;
             }
 
-            sql += `\n${joinType} JOIN ${q(table.tableName)} AS ${q(table.alias)} ON ${q(leftAlias)}.${q(leftCol, leftAlias)} = ${q(rightAlias)}.${q(rightCol, rightAlias)}`;
+            sql += `\n${joinType} JOIN ${q(table.tableName)} AS ${q(table.alias)} ON ${q(leftCol, leftAlias)} = ${q(rightCol, rightAlias)}`;
         } else {
             // If no join defined, fallback to CROSS JOIN to keep the table in the sequence
             sql += `\nCROSS JOIN ${q(table.tableName)} AS ${q(table.alias)}`;
@@ -130,7 +134,11 @@ export const generateBlockSQL = (state: QueryState): string => {
                     value = `'${cond.value.replace(/'/g, "''")}'`;
                 }
             }
-            sql += `${q(cond.tableAlias)}.${q(cond.columnName, cond.tableAlias)} ${cond.operator} ${value}`;
+            let sqlCond = `${q(cond.columnName, cond.tableAlias)} ${cond.operator}`;
+            if (cond.operator !== 'IS NULL' && cond.operator !== 'IS NOT NULL') {
+                sqlCond += ` ${value}`;
+            }
+            sql += sqlCond;
         });
     }
     
@@ -198,39 +206,40 @@ export const generateSQL = (fullState: MultiQueryState): string => {
                 const fieldList = cte.state.selectedFields.map((f: any) => {
                     const base = f.expression || f.columnName || '';
                     const resAlias = f.alias;
-                    return { base, alias: resAlias };
+                    const tableAlias = f.tableAlias || '';
+                    return { base, alias: resAlias, tableAlias };
                 });
-
-                let anchorFields = fieldList.map((f: any) => {
-                    let s = f.base === '*' ? '*' : q(f.base);
-                    if (f.alias) s += ` AS ${q(f.alias)}`;
-                    return s;
-                }).join(', ') || '*';
 
                 let recursiveFields = fieldList.map((f: any) => {
                     if (f.base === '*') return `r.*`;
-                    // Try to prefix with 'r.' if it looks like a simple column (starts with letter/underscore)
-                    const isSimpleCol = /^[a-zA-Z_][\w]*$/.test(f.base);
-                    return isSimpleCol ? `r.${q(f.base)}` : f.base;
+                    
+                    // If it's from the anchor table, use 'r.' prefix
+                    if (!f.tableAlias || f.tableAlias === anchorTable) {
+                        const isSimpleCol = /^[a-zA-Z_][\w]*$/.test(f.base);
+                        return isSimpleCol ? `r.${q(f.base)}` : f.base;
+                    }
+                    
+                    // If it's from another table (joined in anchor member), it must be carried over from 't'
+                    return `t.${q(f.alias || f.base)}`;
                 }).join(', ') || 'r.*';
-                
+
+                let anchorSql = generateBlockSQL(cte.state);
                 if (depthColumn) {
-                    anchorFields += `, 0 AS ${q(depthColumn)}`;
-                    recursiveFields += `, t.${q(depthColumn)} + 1`;
+                    // Inject depth column into the anchor member's SELECT
+                    anchorSql = anchorSql.replace(/SELECT\s+/i, `SELECT 0 AS ${q(depthColumn)}, `);
+                    recursiveFields = `t.${q(depthColumn)} + 1, ${recursiveFields}`;
                 }
 
                 return `${q(cte.alias)} AS (
     -- Anchor member
-    SELECT ${anchorFields}
-    FROM ${q(anchorTable)}
-    WHERE ${q(parentKey)} IS NULL
+    ${anchorSql}
 
     UNION ALL
 
     -- Recursive member
     SELECT ${recursiveFields}
     FROM ${q(anchorTable)} AS r
-    JOIN ${q(cte.alias)} AS t ON r.${q(parentKey)} = t.${q(primaryKey)}
+    JOIN ${q(cte.alias)} AS t ON ${q(parentKey, 'r')} = ${q(primaryKey, 't')}
 )`;
             }
             return `${q(cte.alias)} AS (\n${generateBlockSQL(cte.state)}\n)`;

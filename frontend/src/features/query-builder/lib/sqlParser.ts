@@ -99,22 +99,53 @@ export const parseSQL = (sql: string): MultiQueryState => {
                             const anchorPart = unionParts[0].trim();
                             const recursivePart = unionParts[1].trim();
                             
-                            // Try to extract: FROM anchorTable WHERE parentKey IS NULL
-                            const fromMatch = anchorPart.match(/FROM\s+(["\w\.]+)(?:\s+AS\s+["\w]+)?\s+WHERE\s+(["\w\.]+)\s+IS\s+NULL/i);
-                            const joinMatch = recursivePart.match(/JOIN\s+(["\w\.]+)\s+AS\s+["\w]+\s+ON\s+["\w\.]+\.(["\w\.]+)\s*=\s*["\w\.]+\.(["\w\.]+)/i);
+                            // 1. Detect recursion by JOIN onto the CTE itself (the alias)
+                            // Pattern: JOIN alias AS t ON ... or JOIN alias t ON ...
+                            const recursiveJoinRegex = new RegExp(`JOIN\\s+(?:"?)${alias}(?:"?)\\s+(?:AS\\s+)?(["\\w]+)\\s+ON\\s+`, 'i');
+                            const recursiveJoinMatch = recursivePart.match(recursiveJoinRegex);
                             
-                            if (fromMatch && joinMatch) {
-                                isCteRecursive = true;
-                                recursiveConfig = {
-                                    anchorTable: stripQ(fromMatch[1]),
-                                    parentKey: stripQ(fromMatch[2]),
-                                    primaryKey: stripQ(joinMatch[3])
-                                };
+                            if (recursiveJoinMatch) {
+                                const cteAliasInRecursive = stripQ(recursiveJoinMatch[1]);
                                 
-                                // Check for depth column (e.g., ", 0 AS level") - more robustly
-                                const depthMatch = anchorPart.match(/0\s+AS\s+(["\w]+)/i);
-                                if (depthMatch) {
-                                    recursiveConfig.depthColumn = stripQ(depthMatch[1]);
+                                // 2. Find the other table in the recursive part (the anchor table)
+                                const anchorTableMatch = recursivePart.match(/FROM\s+(?:"?)([\w\.]+)(?:"?)(?:\s+AS\s+(?:"?)([\w]+)(?:"?))?/i);
+                                
+                                // 3. Find the join condition: r.parent_id = t.id or t.id = r.parent_id
+                                const joinCondMatch = recursivePart.match(/ON\s+(?:"?)([\w\.]+)(?:"?)\.(?:"?)([\w\.]+)(?:"?)\s*=\s*(?:"?)([\w\.]+)(?:"?)\.(?:"?)([\w\.]+)(?:"?)/i);
+                                
+                                if (anchorTableMatch && joinCondMatch) {
+                                    const anchorTable = stripQ(anchorTableMatch[1]);
+                                    
+                                    const leftT = stripQ(joinCondMatch[1]);
+                                    const leftC = stripQ(joinCondMatch[2]);
+                                    const rightT = stripQ(joinCondMatch[3]);
+                                    const rightC = stripQ(joinCondMatch[4]);
+                                    
+                                    let primaryKey = '';
+                                    let parentKey = '';
+                                    
+                                    if (leftT === cteAliasInRecursive) {
+                                        primaryKey = leftC;
+                                        parentKey = rightC;
+                                    } else if (rightT === cteAliasInRecursive) {
+                                        primaryKey = rightC;
+                                        parentKey = leftC;
+                                    }
+                                    
+                                    if (primaryKey && parentKey) {
+                                        isCteRecursive = true;
+                                        recursiveConfig = {
+                                            anchorTable,
+                                            primaryKey,
+                                            parentKey
+                                        };
+                                        
+                                        // 4. Extract depth column if present
+                                        const depthMatch = anchorPart.match(/0\s+AS\s+(["\w]+)/i);
+                                        if (depthMatch) {
+                                            recursiveConfig.depthColumn = stripQ(depthMatch[1]);
+                                        }
+                                    }
                                 }
                             }
                         }
