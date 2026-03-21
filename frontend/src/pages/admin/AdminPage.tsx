@@ -45,6 +45,7 @@ const NodesTabWithNavigator = ({
                         setRefreshCount(r => r + 1);
                     });
                 }}
+                onRefresh={() => setRefreshCount(r => r + 1)}
                 allNodes={allNodes}
             />
         );
@@ -62,6 +63,7 @@ const NodesTabWithNavigator = ({
                         setRefreshCount(r => r + 1);
                     });
                 }}
+                onRefresh={() => setRefreshCount(r => r + 1)}
                 allNodes={allNodes}
             />
         );
@@ -111,6 +113,7 @@ const WorkflowsTabWithNavigator = ({
                         setRefreshCount(r => r + 1);
                     });
                 }}
+                onRefresh={() => setRefreshCount(r => r + 1)}
                 allNodes={allNodes}
                 defaultTab="code"
             />

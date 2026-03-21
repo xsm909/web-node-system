@@ -25,6 +25,7 @@ interface NodeTypeFormViewProps {
     onSave: (data: Partial<NodeType>) => Promise<NodeType | void> | void;
     allNodes?: NodeType[];
     defaultTab?: FormTab;
+    onRefresh?: () => void;
 }
 
 
@@ -40,6 +41,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     onSave,
     allNodes = [],
     defaultTab,
+    onRefresh,
 }) => {
     const { theme } = useThemeStore();
     const [currentNode, setCurrentNode] = useState<Partial<NodeType>>(editingNode || initialData || {});
@@ -205,6 +207,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             isLocked={!!currentNode?.is_locked}
             onLockToggle={(locked) => {
                 setCurrentNode(prev => prev ? { ...prev, is_locked: locked } : prev);
+                if (onRefresh) onRefresh();
             }}
         >
             <form

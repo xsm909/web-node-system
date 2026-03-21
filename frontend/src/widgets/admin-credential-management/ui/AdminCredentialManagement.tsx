@@ -204,6 +204,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                             initialLocked={!!formData.is_locked}
                             onToggle={(locked) => {
                                 setFormData(prev => ({ ...prev, is_locked: locked }));
+                                fetchData();
                             }}
                         />
                     ) : undefined

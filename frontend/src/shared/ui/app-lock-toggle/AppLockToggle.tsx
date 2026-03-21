@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import { Icon } from '../icon/Icon';
 import { apiClient } from '../../api/client';
@@ -23,6 +24,7 @@ export const AppLockToggle: React.FC<AppLockToggleProps> = ({
 }) => {
     const [isLocked, setIsLocked] = useState(initialLocked);
     const [isLoading, setIsLoading] = useState(false);
+    const queryClient = useQueryClient();
 
     React.useEffect(() => {
         setIsLocked(initialLocked);
@@ -40,6 +42,22 @@ export const AppLockToggle: React.FC<AppLockToggleProps> = ({
                 locked: !isLocked
             });
             setIsLocked(data);
+            
+            // Invalidate React Query caches based on entityType
+            const queryKeyMap: Record<string, string> = {
+                'agent_hints': 'agent-hints',
+                'schemas': 'schemas',
+                'records': 'records',
+                'node_types': 'node-types',
+                'reports': 'reports',
+                'credentials': 'credentials'
+            };
+
+            const mappedKey = queryKeyMap[entityType];
+            if (mappedKey) {
+                queryClient.invalidateQueries({ queryKey: [mappedKey] });
+            }
+
             if (onToggle) onToggle(data);
         } catch (error) {
             console.error('Failed to toggle lock:', error);

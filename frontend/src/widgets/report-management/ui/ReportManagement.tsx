@@ -283,6 +283,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                             initialLocked={selectedStyle.is_locked}
                             onToggle={(locked) => {
                                 setSelectedStyle(prev => prev ? { ...prev, is_locked: locked } : null);
+                                setRefreshTrigger(prev => prev + 1);
                             }}
                         />
                     ) : undefined
@@ -337,6 +338,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                                 initialLocked={selectedReport.is_locked}
                                 onToggle={(locked) => {
                                     setSelectedReport(prev => prev ? { ...prev, is_locked: locked } : null);
+                                    setRefreshTrigger(prev => prev + 1);
                                 }}
                             />
                         )}
