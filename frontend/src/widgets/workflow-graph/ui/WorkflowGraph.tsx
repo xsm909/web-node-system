@@ -223,7 +223,8 @@ export function WorkflowGraph({
         const nodesStr = JSON.stringify(nodes.map(n => ({ 
             id: n.id, 
             position: n.position, 
-            nodeTypeId: n.data?.nodeTypeId 
+            nodeTypeId: n.data?.nodeTypeId,
+            selected: n.selected
         })));
         if (nodesStr !== lastNodesRef.current) {
             lastNodesRef.current = nodesStr;

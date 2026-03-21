@@ -78,15 +78,6 @@ const WorkflowEditorView = ({
     const [consoleHeight, setConsoleHeight] = useState(280);
     const nav = useNavigator();
 
-    // Keyboard shortcut for save
-    useHotkeys([
-        { key: 'cmd+s', description: 'Save Workflow', handler: () => saveWorkflow() },
-        { key: 'ctrl+s', description: 'Save Workflow', handler: () => saveWorkflow() }
-    ], { 
-        scopeName: 'Workflow Editor',
-        enabled: canSave && !isCreating
-    });
-
     const handleParamsChange = useCallback((nodeId: string, params: any) => {
         console.log('[WorkflowEditorView] handleParamsChange for nodeId:', nodeId, 'new params:', params);
         // Update nodes in nodesRef.current to preserve added nodes and positions
@@ -166,6 +157,27 @@ const WorkflowEditorView = ({
             );
         }
     }, [nodeTypes, nav]);
+
+    useHotkeys([
+        { key: 'cmd+s', description: 'Save Workflow', handler: () => { if (canSave) saveWorkflow(); } },
+        { key: 'ctrl+s', description: 'Save Workflow', handler: () => { if (canSave) saveWorkflow(); } },
+        { key: 'f5', description: 'Run Workflow', handler: (e) => { e.preventDefault(); if (!isRunning) runWorkflow(() => setIsConsoleVisible(true), activeClientId); } },
+        { 
+            key: 'f2', 
+            description: 'Edit Node', 
+            enabled: nodesRef.current.some(n => n.selected),
+            handler: (e) => {
+                e.preventDefault();
+                const flowSelectedNode = nodesRef.current.find(n => n.selected);
+                if (flowSelectedNode) {
+                    handleNodeDoubleClick(e as unknown as React.MouseEvent, flowSelectedNode);
+                }
+            } 
+        }
+    ], { 
+        scopeName: 'Workflow Editor',
+        enabled: !isCreating
+    });
 
     const isDirty = (notifyChange as any)?.isDirty || false;
 

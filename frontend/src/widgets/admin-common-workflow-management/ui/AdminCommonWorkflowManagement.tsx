@@ -21,6 +21,7 @@ import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { AppParameterListEditor } from '../../../shared/ui/app-parameter-list-editor/AppParameterListEditor';
 import { AppParameterSelectByTamplate } from '../../../shared/ui/app-parameter-select-by-tamplate';
+import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -65,7 +66,7 @@ interface WorkflowEditorContextType {
     edgesRef: React.MutableRefObject<Edge[]>;
     handleNodesChange: (nodes: Node[]) => void;
     handleEdgesChange: (edges: Edge[]) => void;
-    onEditNode?: (event: React.MouseEvent, node: Node) => void;
+    onEditNode?: (event: React.MouseEvent | KeyboardEvent | any, node: Node) => void;
     onToggleSidebar: () => void;
     isSidebarOpen: boolean;
     isParametersModalOpen: boolean;
@@ -141,10 +142,10 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         edgesRef.current = edges;
     }, []);
 
-    const handleEditNodeContext = useCallback(async (event: React.MouseEvent, node: Node) => {
+    const handleEditNodeContext = useCallback(async (event: React.MouseEvent | KeyboardEvent | any, node: Node) => {
         if (!onEditNodeProp) return;
-        event.preventDefault();
-        event.stopPropagation();
+        event?.preventDefault();
+        event?.stopPropagation();
         
         const nodeLabel = node.data?.label || '';
         const nodeTypeId = node.data?.nodeTypeId;
@@ -353,6 +354,31 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
         setSelectedNode(node);
     }, [nodeTypes]);
 
+    useHotkeys([
+        {
+            key: 'f5',
+            description: 'Run Workflow',
+            handler: (e) => {
+                e.preventDefault();
+                if (!isRunning && !isSaving) {
+                    runWorkflow(() => setIsConsoleVisible(true), activeClientId);
+                }
+            }
+        },
+        {
+            key: 'f2',
+            description: 'Edit Node',
+            enabled: nodesRef.current.some(n => n.selected),
+            handler: (e) => {
+                e.preventDefault();
+                const flowSelectedNode = nodesRef.current.find(n => n.selected);
+                if (flowSelectedNode && onEditNode) {
+                    onEditNode(e, flowSelectedNode);
+                }
+            }
+        }
+    ], { scopeName: 'Workflow Editor', enabled: !!activeWorkflow });
+
     return (
         <AppFormView
             title={activeWorkflow?.name || 'Workflow'}
@@ -363,7 +389,7 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
             onCancel={onBack}
             isSaving={isSaving}
             saveLabel="Save Workflow"
-            allowedShortcuts={['cmd+c', 'ctrl+c', 'cmd+v', 'ctrl+v']}
+            allowedShortcuts={['cmd+c', 'ctrl+c', 'cmd+v', 'ctrl+v', 'f5', 'f2']}
             fullHeight
             noPadding
             headerRightContent={
