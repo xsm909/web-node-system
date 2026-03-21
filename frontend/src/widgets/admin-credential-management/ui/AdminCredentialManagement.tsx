@@ -7,7 +7,7 @@ import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
-import { AppInput } from '../../../shared/ui/app-input';
+import { AppInput, AppFormBox } from '../../../shared/ui/app-input';
 import { createColumnHelper } from '@tanstack/react-table';
 import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 
@@ -114,7 +114,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
         if (!q) return credentials;
         return credentials.filter(c => 
             c.key.toLowerCase().includes(q) || 
-            c.type.toLowerCase().includes(q) || 
+            (c.type || '').toLowerCase().includes(q) || 
             (c.description || '').toLowerCase().includes(q)
         );
     }, [credentials, searchQuery]);
@@ -158,7 +158,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                         >
                             <Icon name="edit" size={16} />
                         </button>
-                        {!cred.is_locked && (
+                        {(!cred.is_locked && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); handleDelete(cred); }}
                                 className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
@@ -166,7 +166,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                             >
                                 <Icon name="delete" size={16} />
                             </button>
-                        ) || (
+                        )) || (
                             <div className="p-1.5">
                                 <Icon name="lock" size={16} className="text-amber-500/50" />
                             </div>
@@ -238,22 +238,19 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-1.5">
                                 <label className="text-sm font-bold text-[var(--text-main)]">Type</label>
-                                <div className="relative">
+                                <AppFormBox disabled={!!formData.is_locked}>
                                     <select
                                         value={formData.type}
                                         onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                        className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer"
                                         disabled={!!formData.is_locked}
-                                        className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all outline-none appearance-none cursor-pointer font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <option value="ai">AI / LLM Service</option>
                                         <option value="db">Database Accessory</option>
                                         <option value="telegram">Telegram Bot</option>
                                         <option value="api">Generic API Endpoint</option>
                                     </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                                        <Icon name="chevron_down" size={16} />
-                                    </div>
-                                </div>
+                                </AppFormBox>
                             </div>
                             <AppInput
                                 label="Description"
@@ -315,7 +312,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
             <ConfirmModal
                 isOpen={!!credentialToDelete}
                 title="Delete Credential"
-                description={`Are you sure you want to delete the credential '${credentialToDelete?.key}'? This action cannot be undone.`}
+                description={credentialToDelete ? `Are you sure you want to delete the credential '${credentialToDelete.key}'? This action cannot be undone.` : ''}
                 confirmLabel="Delete"
                 isLoading={loading && !!credentialToDelete}
                 onConfirm={confirmDelete}

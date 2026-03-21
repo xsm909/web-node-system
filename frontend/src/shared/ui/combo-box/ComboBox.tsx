@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Icon } from '../icon';
 import { SelectionList, type SelectionGroup, type SelectionItem, type SelectionAction, type SelectionListConfig } from '../selection-list';
+import { AppFormBox } from '../app-input/AppFormBox';
 
 interface ComboBoxProps {
     value?: string;
@@ -77,24 +78,23 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     const isBrand = variant === 'brand';
     const isIconOnly = !label && !subLabel && (!placeholder || placeholder === '');
 
-    const triggerClasses = `flex items-center gap-2 transition-all ${
-        isIconOnly ? 'p-0 justify-center' : 'px-3 py-1.5 justify-start'
-    } ${isSidebar ? 'w-full' : 'max-w-full'} ${
-        triggerClassName.includes('rounded-full') ? 'rounded-full' : 'rounded-xl'
-    } ${isBrand
-        ? 'bg-brand text-white shadow-md shadow-brand/10 hover:brightness-110 active:scale-95'
-        : isOpen ? 'bg-[var(--border-base)] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:bg-[var(--border-muted)] hover:text-[var(--text-main)]'
-    } ${disabled ? 'opacity-50 pointer-events-none' : ''} ${triggerClassName}`;
-
     return (
         <div className={`relative ${isSidebar ? 'w-full' : ''} ${className}`}>
-            <button
+            <AppFormBox
+                as="button"
                 type="button"
                 ref={triggerRef}
                 onClick={toggleOpen}
-                className={triggerClasses}
                 disabled={disabled}
+                isFocused={isOpen}
                 title={title}
+                className={`
+                    ${isIconOnly ? 'p-0 justify-center' : 'justify-start'}
+                    ${isSidebar ? 'w-full' : 'max-w-full'}
+                    ${triggerClassName.includes('rounded-full') ? 'rounded-full' : ''}
+                    ${isBrand ? 'bg-brand text-white shadow-md shadow-brand/10 border-transparent hover:brightness-110 active:scale-95' : ''}
+                    ${triggerClassName}
+                `}
             >
                 <div className={`flex items-center gap-3 min-w-0 ${isIconOnly ? 'justify-center' : ''}`}>
                     {icon && (
@@ -107,15 +107,15 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
                     {(label || subLabel || (placeholder && !isIconOnly)) && (
                         <div className="flex flex-col items-start min-w-0">
                             {label && (
-                                <span className={`text-sm font-semibold truncate w-full ${labelClassName}`}>
+                                <span className={`text-xs font-normal truncate w-full ${labelClassName}`}>
                                     {label}
                                 </span>
                             )}
                             {!label && placeholder && (
-                                <span className="text-xs opacity-50">{placeholder}</span>
+                                <span className="text-[10px] opacity-50">{placeholder}</span>
                             )}
                             {subLabel && (
-                                <span className="text-[10px] text-[var(--text-muted)] font-medium opacity-60">
+                                <span className="text-[10px] text-[var(--text-muted)] font-normal opacity-60">
                                     {subLabel}
                                 </span>
                             )}
@@ -126,10 +126,10 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
                     <Icon
                         name="chevron_down"
                         size={14}
-                        className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : 'opacity-30 group-hover:opacity-60'}`}
+                        className={`transition-transform duration-200 ml-auto ${isOpen ? 'rotate-180' : 'opacity-30 group-hover:opacity-60'}`}
                     />
                 )}
-            </button>
+            </AppFormBox>
 
             {isOpen && (
                 <SelectionList

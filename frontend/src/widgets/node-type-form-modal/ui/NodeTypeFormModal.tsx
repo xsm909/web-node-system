@@ -231,7 +231,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                             onChange={(val) => field.handleChange(val)}
                                             required
                                             placeholder="Display Name"
-                                            className="text-lg font-bold"
+                                            className="text-lg font-normal"
                                             showCopy={!!editingNode}
                                         />
                                     )}
@@ -261,7 +261,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                             onChange={(val) => field.handleChange(val)}
                                             required
                                             placeholder="1.0"
-                                            className="font-mono font-black text-center text-lg"
+                                            className="font-mono font-normal text-center text-lg"
                                             disabled={currentNode?.is_locked}
                                         />
                                     )}
@@ -286,7 +286,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
 
                         <div className="grid grid-cols-2 gap-8 pt-6 border-t border-[var(--border-base)]">
                             <div className="space-y-3">
-                                <label className="text-xs font-black text-[var(--text-main)] tracking-widest ml-1">Node Icon</label>
+                                <label className="text-xs font-normal text-[var(--text-main)] tracking-widest ml-1">Node Icon</label>
                                 <form.Field
                                     name="icon"
                                     children={(field) => (
@@ -299,7 +299,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                 />
                             </div>
                             <div className="space-y-3">
-                                <label className="text-xs font-black text-[var(--text-main)] tracking-widest ml-1">Execution Mode</label>
+                                <label className="text-xs font-normal text-[var(--text-main)] tracking-widest ml-1">Execution Mode</label>
                                 <form.Field
                                     name="is_async"
                                     children={(field) => (
@@ -309,7 +309,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                         >
                                             <Icon name={field.state.value ? 'sync' : 'bolt'} size={20} className={field.state.value ? 'animate-spin-slow' : ''} />
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-bold">{field.state.value ? 'Async Node' : 'Sync Node'}</span>
+                                                <span className="text-sm font-normal">{field.state.value ? 'Async Node' : 'Sync Node'}</span>
                                                 <span className="text-[9px] uppercase tracking-tighter text-[var(--text-muted)]">{field.state.value ? 'Runs as task' : 'Direct execution'}</span>
                                             </div>
                                         </div>
@@ -355,7 +355,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                 )}
                             />
                         </div>
-                        <div className="mt-4 text-[10px] text-[var(--text-muted)] flex justify-between px-4 font-black uppercase tracking-widest opacity-40">
+                        <div className="mt-4 text-[10px] text-[var(--text-muted)] flex justify-between px-4 font-normal uppercase tracking-widest opacity-40">
                             <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                                 Python Node Runtime

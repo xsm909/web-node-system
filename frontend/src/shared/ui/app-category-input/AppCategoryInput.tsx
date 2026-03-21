@@ -100,7 +100,7 @@ export const AppCategoryInput: React.FC<AppCategoryInputProps> = ({
                 <button
                     type="button"
                     tabIndex={-1}
-                    className="absolute right-4 top-[38px] -translate-y-1/2 opacity-40 hover:opacity-80 transition-opacity text-[var(--text-main)]"
+                    className="absolute right-4 top-[30px] -translate-y-1/2 opacity-40 hover:opacity-80 transition-opacity text-[var(--text-main)]"
                     onClick={() => setOpen(o => !o)}
                 >
                     <Icon name={open ? 'expand_less' : 'expand_more'} size={16} />

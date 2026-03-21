@@ -12,6 +12,7 @@ import type {
 import { getInputProps } from '@rjsf/utils';
 import { Icon } from '../../shared/ui/icon';
 import { ComboBox } from '../../shared/ui/combo-box/ComboBox';
+import { AppFormBox } from '../../shared/ui/app-input/AppFormBox';
 import { apiClient } from '../../shared/api/client';
 
 // ─── Interop Handles ───────────────────────────────────────────────────────────
@@ -34,26 +35,24 @@ function BaseInputTemplate(props: BaseInputTemplateProps) {
         : (value ?? '');
 
     return (
-        <input
-            id={id}
-            name={id}
-            type={inputProps.type ?? 'text'}
-            value={displayValue}
-            placeholder={placeholder}
-            required={required}
-            disabled={disabled || readonly}
-            step={inputProps.step}
-            min={inputProps.min}
-            max={inputProps.max}
-            onChange={(e) => onChange(e.target.value === '' ? options.emptyValue : e.target.value)}
-            onBlur={(e) => onBlur(id, e.target.value)}
-            onFocus={(e) => onFocus(id, e.target.value)}
-            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] outline-none transition-all disabled:opacity-100 disabled:text-[var(--text-muted)] disabled:cursor-not-allowed ${
-                hasError 
-                    ? 'border-red-500 ring-1 ring-red-500/20' 
-                    : 'border-[var(--border-base)] focus:border-brand focus:ring-1 focus:ring-brand/20'
-            }`}
-        />
+        <AppFormBox className={hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}>
+            <input
+                id={id}
+                name={id}
+                type={inputProps.type ?? 'text'}
+                value={displayValue}
+                placeholder={placeholder}
+                required={required}
+                disabled={disabled || readonly}
+                step={inputProps.step}
+                min={inputProps.min}
+                max={inputProps.max}
+                onChange={(e) => onChange(e.target.value === '' ? options.emptyValue : e.target.value)}
+                onBlur={(e) => onBlur(id, e.target.value)}
+                onFocus={(e) => onFocus(id, e.target.value)}
+                className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal"
+            />
+        </AppFormBox>
     );
 }
 
@@ -68,23 +67,21 @@ function TextareaWidget(props: WidgetProps) {
         : (value ?? '');
 
     return (
-        <textarea
-            id={id}
-            name={id}
-            value={displayValue}
-            placeholder={placeholder}
-            required={required}
-            disabled={disabled || readonly}
-            rows={3}
-            onChange={(e) => onChange(e.target.value === '' ? options.emptyValue : e.target.value)}
-            onBlur={(e) => onBlur(id, e.target.value)}
-            onFocus={(e) => onFocus(id, e.target.value)}
-            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] outline-none transition-all resize-none disabled:opacity-100 disabled:text-[var(--text-muted)] ${
-                hasError 
-                    ? 'border-red-500 ring-1 ring-red-500/20' 
-                    : 'border-[var(--border-base)] focus:border-brand focus:ring-1 focus:ring-brand/20'
-            }`}
-        />
+        <AppFormBox className={`h-auto py-2 ${hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}>
+            <textarea
+                id={id}
+                name={id}
+                value={displayValue}
+                placeholder={placeholder}
+                required={required}
+                disabled={disabled || readonly}
+                rows={3}
+                onChange={(e) => onChange(e.target.value === '' ? options.emptyValue : e.target.value)}
+                onBlur={(e) => onBlur(id, e.target.value)}
+                onFocus={(e) => onFocus(id, e.target.value)}
+                className="w-full bg-transparent outline-none text-xs font-normal resize-none disabled:opacity-50"
+            />
+        </AppFormBox>
     );
 }
 
@@ -180,26 +177,24 @@ function SelectWidget(props: WidgetProps) {
     const hasError = rawErrors && rawErrors.length > 0;
 
     return (
-        <select
-            id={id}
-            name={id}
-            value={value ?? ''}
-            required={required}
-            disabled={disabled || readonly}
-            onChange={(e) => onChange(e.target.value)}
-            className={`w-full bg-surface-950 border rounded-lg px-3 py-1.5 text-sm text-[var(--text-main)] outline-none transition-all appearance-none disabled:opacity-100 disabled:text-[var(--text-muted)] ${
-                hasError 
-                    ? 'border-red-500 ring-1 ring-red-500/20' 
-                    : 'border-[var(--border-base)] focus:border-brand focus:ring-1 focus:ring-brand/20'
-            }`}
-        >
-            {!required && <option value="">— Select —</option>}
-            {(enumOptions as { value: unknown; label: string }[] | undefined)?.map((opt) => (
-                <option key={String(opt.value)} value={String(opt.value)}>
-                    {opt.label}
-                </option>
-            ))}
-        </select>
+        <AppFormBox className={hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}>
+            <select
+                id={id}
+                name={id}
+                value={value ?? ''}
+                required={required}
+                disabled={disabled || readonly}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal cursor-pointer"
+            >
+                {!required && <option value="">— Select —</option>}
+                {(enumOptions as { value: unknown; label: string }[] | undefined)?.map((opt) => (
+                    <option key={String(opt.value)} value={String(opt.value)}>
+                        {opt.label}
+                    </option>
+                ))}
+            </select>
+        </AppFormBox>
     );
 }
 
@@ -410,7 +405,7 @@ function ArrayFieldItemTemplate(props: any) {
                                 className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-red-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                             >
                                 <Icon name="delete" size={16} />
-                                <span className="text-[10px] font-bold uppercase tracking-wider">Delete</span>
+                                <span className="text-xs font-normal truncate w-full">Delete</span>
                             </button>
                         )}
                     </div>

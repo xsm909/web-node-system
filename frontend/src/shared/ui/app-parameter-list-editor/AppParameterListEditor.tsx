@@ -2,6 +2,7 @@ import React from 'react';
 import { Icon } from '../icon';
 import type { ObjectParameter } from '../../../entities/report/model/types';
 import { AppParameterSelectByTamplate } from '../app-parameter-select-by-tamplate';
+import { AppFormBox } from '../app-input';
 
 interface AppParameterListEditorProps {
     parameters: ObjectParameter[];
@@ -42,10 +43,10 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Parameters</h3>
+                <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Parameters</h3>
                 <button
                     onClick={handleAdd}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs font-bold hover:bg-[var(--bg-hover)] transition-all"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs font-normal hover:bg-[var(--bg-hover)] transition-all"
                 >
                     <Icon name="add" size={14} />
                     Add Parameter
@@ -63,69 +64,79 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                         </button>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Parameter Name</label>
-                                <input
-                                    type="text"
-                                    value={param.parameter_name}
-                                    onChange={(e) => updateParam(index, { parameter_name: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand outline-none"
-                                    placeholder="e.g. user_id"
-                                />
+                            <div className="space-y-1.5 flex flex-col">
+                                <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Parameter Name</label>
+                                <AppFormBox>
+                                    <input
+                                        type="text"
+                                        value={param.parameter_name}
+                                        onChange={(e) => updateParam(index, { parameter_name: e.target.value })}
+                                        className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                                        placeholder="e.g. user_id"
+                                    />
+                                </AppFormBox>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Type</label>
-                                <select
-                                    value={param.parameter_type}
-                                    onChange={(e) => updateParam(index, { parameter_type: e.target.value as any })}
-                                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand outline-none"
-                                >
-                                    <option value="text">Text</option>
-                                    <option value="number">Number</option>
-                                    <option value="date">Date</option>
-                                    <option value="date_range">Date Range</option>
-                                    <option value="select">Select (Dropdown)</option>
-                                </select>
+                            <div className="space-y-1.5 flex flex-col">
+                                <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Type</label>
+                                <AppFormBox>
+                                    <select
+                                        value={param.parameter_type}
+                                        onChange={(e) => updateParam(index, { parameter_type: e.target.value as any })}
+                                        className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer"
+                                    >
+                                        <option value="text">Text</option>
+                                        <option value="number">Number</option>
+                                        <option value="date">Date</option>
+                                        <option value="date_range">Date Range</option>
+                                        <option value="select">Select (Dropdown)</option>
+                                    </select>
+                                </AppFormBox>
                             </div>
                         </div>
 
                         {param.parameter_type === 'select' && (
                             <div className="grid grid-cols-3 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Source (@table or SQL)</label>
-                                    <input
-                                        type="text"
-                                        value={param.source}
-                                        onChange={(e) => updateParam(index, { source: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand outline-none"
-                                        placeholder="@users->id,name"
-                                    />
+                                <div className="space-y-1.5 flex flex-col">
+                                    <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Source (@table or SQL)</label>
+                                    <AppFormBox>
+                                        <input
+                                            type="text"
+                                            value={param.source}
+                                            onChange={(e) => updateParam(index, { source: e.target.value })}
+                                            className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                                            placeholder="@users->id,name"
+                                        />
+                                    </AppFormBox>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Value Field</label>
-                                    <input
-                                        type="text"
-                                        value={param.value_field}
-                                        onChange={(e) => updateParam(index, { value_field: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand outline-none"
-                                        placeholder="id"
-                                    />
+                                <div className="space-y-1.5 flex flex-col">
+                                    <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Value Field</label>
+                                    <AppFormBox>
+                                        <input
+                                            type="text"
+                                            value={param.value_field}
+                                            onChange={(e) => updateParam(index, { value_field: e.target.value })}
+                                            className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                                            placeholder="id"
+                                        />
+                                    </AppFormBox>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Label Field</label>
-                                    <input
-                                        type="text"
-                                        value={param.label_field}
-                                        onChange={(e) => updateParam(index, { label_field: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand outline-none"
-                                        placeholder="name"
-                                    />
+                                <div className="space-y-1.5 flex flex-col">
+                                    <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Label Field</label>
+                                    <AppFormBox>
+                                        <input
+                                            type="text"
+                                            value={param.label_field}
+                                            onChange={(e) => updateParam(index, { label_field: e.target.value })}
+                                            className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                                            placeholder="name"
+                                        />
+                                    </AppFormBox>
                                 </div>
                             </div>
                         )}
 
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Default Value</label>
+                        <div className="space-y-1.5 flex flex-col">
+                            <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Default Value</label>
                             <AppParameterSelectByTamplate
                                 parameter={param}
                                 value={param.default_value}
@@ -139,10 +150,10 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                 {parameters.length === 0 && (
                     <div className="py-12 border-2 border-dashed border-[var(--border-base)] rounded-2xl flex flex-col items-center justify-center text-[var(--text-muted)]">
                         <Icon name="tune" size={32} className="mb-3 opacity-20" />
-                        <p className="text-sm">No parameters defined for this workflow.</p>
+                        <p className="text-sm font-normal">No parameters defined for this workflow.</p>
                         <button
                             onClick={handleAdd}
-                            className="mt-4 text-xs font-bold text-brand hover:underline"
+                            className="mt-4 text-xs font-normal text-brand hover:underline"
                         >
                             Add your first parameter
                         </button>

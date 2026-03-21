@@ -14,6 +14,7 @@ import {
     useDraggable
 } from '@dnd-kit/core';
 import { Icon } from '../../../shared/ui/icon';
+import { AppFormBox } from '../../../shared/ui/app-input';
 import { AppTabs } from '../../../shared/ui/app-tabs';
 import { useDatabaseMetadata } from '../lib/useDatabaseMetadata';
 import type { MultiQueryState, QueryState, SelectedField, JoinCondition, WhereCondition } from '../model/types';
@@ -83,16 +84,18 @@ const ColumnSelect: React.FC<ColumnSelectProps> = ({
     }, [tableAlias, getColumns, queryState, state]);
 
     return (
-        <select
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
-        >
-            <option value="">{placeholder}</option>
-            {columns.map(col => (
-                <option key={col.name} value={col.name}>{col.name}</option>
-            ))}
-        </select>
+        <AppFormBox className="!px-2 !py-0 h-8 min-w-[100px]">
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer"
+            >
+                <option value="">{placeholder}</option>
+                {columns.map(col => (
+                    <option key={col.name} value={col.name}>{col.name}</option>
+                ))}
+            </select>
+        </AppFormBox>
     );
 };
 
@@ -124,7 +127,7 @@ const DraggableTableSidebarItem: React.FC<DraggableTableSidebarItemProps> = ({ i
         >
             <div className="flex items-center gap-2">
                 <Icon name={isCte ? (isRecursive ? 'table_recursive' : 'table_virtual') : 'table_chart'} size={14} className="text-brand/70" />
-                <span className="text-xs font-medium text-[var(--text-main)]">{label}</span>
+                <span className="text-xs font-normal text-[var(--text-main)]">{label}</span>
             </div>
             <Icon name="add" size={14} className="text-brand opacity-0 group-hover:opacity-100 transition-all" />
         </div>
@@ -156,10 +159,10 @@ const JoinsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryStat
     return (
         <div className="space-y-6 max-w-5xl">
             <div className="flex items-center justify-between px-2">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Table Joins</h3>
+                <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Table Joins</h3>
                 <button
                     onClick={addJoin}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-bold hover:opacity-90 transition-all shadow-sm"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-normal hover:opacity-90 transition-all shadow-sm"
                 >
                     <Icon name="plus" size={14} />
                     Add Join
@@ -182,7 +185,7 @@ const JoinsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryStat
                 {state.joins.length === 0 && (
                     <div className="py-12 flex flex-col items-center justify-center opacity-40">
                         <Icon name="device_hub" size={32} className="mb-2 text-[var(--text-muted)]" />
-                        <p className="text-xs font-medium">No joins defined yet.</p>
+                        <p className="text-xs font-normal">No joins defined yet.</p>
                     </div>
                 )}
             </div>
@@ -214,19 +217,19 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                 onClick={() => setIsEditOpen(true)}
                 className="group flex items-center justify-between p-3 hover:bg-[var(--bg-alt)] transition-all cursor-pointer select-none"
             >
-                <div className="flex items-center gap-2 font-mono text-[11px]">
-                    <span className="text-brand/70 font-bold">{join.type} JOIN</span>
-                    <span className="text-[var(--text-main)] font-bold">{rightTableName}</span>
+                <div className="flex items-center gap-2 font-mono text-[10px]">
+                    <span className="text-brand/70 font-normal">{join.type} JOIN</span>
+                    <span className="text-[var(--text-main)] font-normal">{rightTableName}</span>
                     <span className="text-brand/50">AS</span>
-                    <span className="text-brand font-bold">{join.rightTableAlias}</span>
-                    <span className="text-brand/50 font-bold">ON</span>
-                    <span className="text-[var(--text-main)] font-bold">{join.leftTableAlias}</span>
+                    <span className="text-brand font-normal">{join.rightTableAlias}</span>
+                    <span className="text-brand/50 font-normal">ON</span>
+                    <span className="text-[var(--text-main)] font-normal">{join.leftTableAlias}</span>
                     <span className="text-[var(--text-muted)]">.</span>
-                    <span className="text-brand font-bold">{join.leftColumn}</span>
-                    <span className="text-brand/50 font-bold">=</span>
-                    <span className="text-[var(--text-main)] font-bold">{join.rightTableAlias}</span>
+                    <span className="text-brand font-normal">{join.leftColumn}</span>
+                    <span className="text-brand/50 font-normal">=</span>
+                    <span className="text-[var(--text-main)] font-normal">{join.rightTableAlias}</span>
                     <span className="text-[var(--text-muted)]">.</span>
-                    <span className="text-brand font-bold">{join.rightColumn}</span>
+                    <span className="text-brand font-normal">{join.rightColumn}</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -246,95 +249,87 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                 onSubmit={() => setIsEditOpen(false)}
                 title="Edit Join"
                 icon="device_hub"
-                width="max-w-2xl"
+                width="max-w-4xl"
             >
                 <div className="space-y-4">
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Join Type</label>
-                        <select
-                            value={join.type}
-                            onChange={(e) => {
-                                const newJoins = [...state.joins];
-                                newJoins[index].type = e.target.value as any;
-                                setState((prev) => ({ ...prev, joins: newJoins }));
-                            }}
-                            className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-brand"
-                        >
-                            <option value="INNER">INNER JOIN</option>
-                            <option value="LEFT">LEFT JOIN</option>
-                            <option value="RIGHT">RIGHT JOIN</option>
-                            <option value="FULL">FULL JOIN</option>
-                        </select>
-                    </div>
+                        <div className="grid grid-cols-[85px_1fr_auto_1.2fr_auto_1fr_auto_1.2fr] gap-1 items-center group">
+                            <AppFormBox className="!px-2 !py-0 h-8">
+                                <select
+                                    value={join.type}
+                                    onChange={(e) => {
+                                        const newJoins = [...state.joins];
+                                        newJoins[index].type = e.target.value as any;
+                                        setState((prev) => ({ ...prev, joins: newJoins }));
+                                    }}
+                                    className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer"
+                                >
+                                    <option value="INNER JOIN">INNER</option>
+                                    <option value="LEFT JOIN">LEFT</option>
+                                    <option value="RIGHT JOIN">RIGHT</option>
+                                    <option value="FULL JOIN">FULL</option>
+                                </select>
+                            </AppFormBox>
 
-                    <div className="space-y-1.5 p-4 rounded-xl border border-[var(--border-base)] bg-[var(--bg-alt)]/50">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] block mb-2">Join Condition (ON)</label>
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center gap-2">
-                                <div className="flex-1 flex flex-col gap-1.5">
-                                    <span className="text-[10px] text-[var(--text-muted)] font-medium">Target Table (Joining)</span>
-                                    <div className="flex items-center gap-2">
-                                        <select
-                                            value={join.rightTableAlias}
-                                            onChange={(e) => {
-                                                const newJoins = [...state.joins];
-                                                newJoins[index].rightTableAlias = e.target.value;
-                                                setState((prev) => ({ ...prev, joins: newJoins }));
-                                            }}
-                                            className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-1.5 text-xs outline-none focus:border-brand min-w-[120px]"
-                                        >
-                                            {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
-                                        </select>
-                                        <span className="text-[var(--text-muted)] font-bold">.</span>
-                                        <ColumnSelect
-                                            tableAlias={join.rightTableAlias}
-                                            value={join.rightColumn}
-                                            onChange={(val: string) => {
-                                                const newJoins = [...state.joins];
-                                                newJoins[index].rightColumn = val;
-                                                setState((prev) => ({ ...prev, joins: newJoins }));
-                                            }}
-                                            getColumns={getColumns}
-                                            queryState={queryState}
-                                            state={state}
-                                        />
-                                    </div>
-                                </div>
+                            <AppFormBox className="!px-2 !py-0 h-8 min-w-0">
+                                <select
+                                    value={join.rightTableAlias}
+                                    onChange={(e) => {
+                                        const newJoins = [...state.joins];
+                                        newJoins[index].rightTableAlias = e.target.value;
+                                        setState((prev) => ({ ...prev, joins: newJoins }));
+                                    }}
+                                    className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer"
+                                >
+                                    {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
+                                </select>
+                            </AppFormBox>
 
-                                <span className="text-[var(--text-muted)] font-bold px-2 mt-5">=</span>
+                            <span className="text-[10px] text-[var(--text-muted)] font-normal opacity-40 px-0.5">.</span>
 
-                                <div className="flex-1 flex flex-col gap-1.5">
-                                    <span className="text-[10px] text-[var(--text-muted)] font-medium">Existing Table</span>
-                                    <div className="flex items-center gap-2">
-                                        <select
-                                            value={join.leftTableAlias}
-                                            onChange={(e) => {
-                                                const newJoins = [...state.joins];
-                                                newJoins[index].leftTableAlias = e.target.value;
-                                                setState((prev) => ({ ...prev, joins: newJoins }));
-                                            }}
-                                            className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-1.5 text-xs outline-none focus:border-brand min-w-[120px]"
-                                        >
-                                            {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
-                                        </select>
-                                        <span className="text-[var(--text-muted)] font-bold">.</span>
-                                        <ColumnSelect
-                                            tableAlias={join.leftTableAlias}
-                                            value={join.leftColumn}
-                                            onChange={(val: string) => {
-                                                const newJoins = [...state.joins];
-                                                newJoins[index].leftColumn = val;
-                                                setState((prev) => ({ ...prev, joins: newJoins }));
-                                            }}
-                                            getColumns={getColumns}
-                                            queryState={queryState}
-                                            state={state}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                            <ColumnSelect
+                                tableAlias={join.rightTableAlias}
+                                value={join.rightColumn}
+                                onChange={(val: string) => {
+                                    const newJoins = [...state.joins];
+                                    newJoins[index].rightColumn = val;
+                                    setState((prev) => ({ ...prev, joins: newJoins }));
+                                }}
+                                getColumns={getColumns}
+                                queryState={queryState}
+                                state={state}
+                            />
+
+                            <span className="text-brand font-normal text-sm px-1 opacity-30">=</span>
+
+                            <AppFormBox className="!px-2 !py-0 h-8 min-w-0">
+                                <select
+                                    value={join.leftTableAlias}
+                                    onChange={(e) => {
+                                        const newJoins = [...state.joins];
+                                        newJoins[index].leftTableAlias = e.target.value;
+                                        setState((prev) => ({ ...prev, joins: newJoins }));
+                                    }}
+                                    className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer"
+                                >
+                                    {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
+                                </select>
+                            </AppFormBox>
+
+                            <span className="text-[10px] text-[var(--text-muted)] font-normal opacity-40 px-0.5">.</span>
+
+                            <ColumnSelect
+                                tableAlias={join.leftTableAlias}
+                                value={join.leftColumn}
+                                onChange={(val: string) => {
+                                    const newJoins = [...state.joins];
+                                    newJoins[index].leftColumn = val;
+                                    setState((prev) => ({ ...prev, joins: newJoins }));
+                                }}
+                                getColumns={getColumns}
+                                queryState={queryState}
+                                state={state}
+                            />
                         </div>
-                    </div>
                 </div>
             </AppCompactModalForm>
         </>
@@ -359,10 +354,10 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
     return (
         <div className="space-y-6 max-w-5xl">
             <div className="flex items-center justify-between px-2">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Filtering Conditions</h3>
+                <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Filtering Conditions</h3>
                 <button
                     onClick={addCondition}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-bold hover:opacity-90 transition-all shadow-sm"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-normal hover:opacity-90 transition-all shadow-sm"
                 >
                     <Icon name="plus" size={14} />
                     Add Condition
@@ -371,33 +366,41 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
 
             <div className="space-y-4">
                 {state.where.map((cond, index) => (
-                    <div key={cond.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] flex items-center gap-3 group">
-                        {index > 0 && (
+                    <div key={cond.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] grid grid-cols-[50px_1fr_1.2fr_85px_2fr_auto_auto] gap-2 items-center group">
+                        <div className="flex justify-center min-w-0">
+                            {index > 0 ? (
+                                <AppFormBox className="!px-1 !py-0 h-8 !bg-brand/10 !border-brand/20 w-full min-w-0 overflow-hidden">
+                                    <select
+                                        value={cond.logic}
+                                        onChange={(e) => {
+                                            const newWheres = [...state.where];
+                                            newWheres[index].logic = e.target.value as any;
+                                            setState((prev) => ({ ...prev, where: newWheres }));
+                                        }}
+                                        className="w-full bg-transparent text-brand outline-none h-full text-[10px] font-normal cursor-pointer text-center"
+                                    >
+                                        <option value="AND">AND</option>
+                                        <option value="OR">OR</option>
+                                    </select>
+                                </AppFormBox>
+                            ) : (
+                                <span className="text-[9px] font-normal uppercase text-[var(--text-muted)] opacity-50 select-none">WHERE</span>
+                            )}
+                        </div>
+
+                        <AppFormBox className="!px-2 !py-0 h-8 min-w-0">
                             <select
-                                value={cond.logic}
+                                value={cond.tableAlias}
                                 onChange={(e) => {
                                     const newWheres = [...state.where];
-                                    newWheres[index].logic = e.target.value as any;
+                                    newWheres[index].tableAlias = e.target.value;
                                     setState((prev) => ({ ...prev, where: newWheres }));
                                 }}
-                                className="bg-brand/10 text-brand border border-brand/20 rounded-lg px-2 py-1 text-[10px] font-bold outline-none"
+                                className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer"
                             >
-                                <option value="AND">AND</option>
-                                <option value="OR">OR</option>
+                                {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
                             </select>
-                        )}
-
-                        <select
-                            value={cond.tableAlias}
-                            onChange={(e) => {
-                                const newWheres = [...state.where];
-                                newWheres[index].tableAlias = e.target.value;
-                                setState((prev) => ({ ...prev, where: newWheres }));
-                            }}
-                            className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-2 text-xs outline-none focus:border-brand min-w-[120px]"
-                        >
-                            {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
-                        </select>
+                        </AppFormBox>
 
                         <ColumnSelect
                             tableAlias={cond.tableAlias}
@@ -412,73 +415,78 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                             state={state}
                         />
 
-                        <select
-                            value={cond.operator}
-                            onChange={(e) => {
-                                const newWheres = [...state.where];
-                                newWheres[index].operator = e.target.value as any;
-                                setState((prev) => ({ ...prev, where: newWheres }));
-                            }}
-                            className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-2 text-xs font-bold outline-none focus:border-brand w-24"
-                        >
-                            <option value="=">=</option>
-                            <option value="!=">!=</option>
-                            <option value=">">&gt;</option>
-                            <option value="<">&lt;</option>
-                            <option value=">=">&gt;=</option>
-                            <option value="<=">&lt;=</option>
-                            <option value="LIKE">LIKE</option>
-                            <option value="IN">IN</option>
-                            <option value="IS NULL">IS NULL</option>
-                            <option value="IS NOT NULL">IS NOT NULL</option>
-                        </select>
+                        <AppFormBox className="!px-1 !py-0 h-8 min-w-0 overflow-hidden">
+                            <select
+                                value={cond.operator}
+                                onChange={(e) => {
+                                    const newWheres = [...state.where];
+                                    newWheres[index].operator = e.target.value as any;
+                                    setState((prev) => ({ ...prev, where: newWheres }));
+                                }}
+                                className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer text-center"
+                            >
+                                <option value="=">=</option>
+                                <option value="!=">!=</option>
+                                <option value=">">&gt;</option>
+                                <option value="<">&lt;</option>
+                                <option value=">=">&gt;=</option>
+                                <option value="<=">&lt;=</option>
+                                <option value="LIKE">LIKE</option>
+                                <option value="IN">IN</option>
+                                <option value="IS NULL">NULL</option>
+                                <option value="IS NOT NULL">NOT NULL</option>
+                            </select>
+                        </AppFormBox>
 
-                        <div className="flex-1 flex items-center gap-2">
-                            {parameters.length > 0 && (
-                                <button
-                                    onClick={() => {
-                                        const newWheres = [...state.where];
-                                        newWheres[index].valueType = cond.valueType === 'parameter' ? 'literal' : 'parameter';
-                                        newWheres[index].value = '';
-                                        setState((prev) => ({ ...prev, where: newWheres }));
-                                    }}
-                                    className={`p-2 rounded-lg border transition-all ${cond.valueType === 'parameter' ? 'bg-brand/10 border-brand/30 text-brand' : 'bg-[var(--bg-alt)] border-[var(--border-base)] text-[var(--text-muted)] hover:text-brand'}`}
-                                    title={cond.valueType === 'parameter' ? 'Switch to Literal' : 'Switch to Parameter'}
-                                >
-                                    <Icon name={cond.valueType === 'parameter' ? 'database' : 'settings'} size={14} />
-                                </button>
-                            )}
-
+                        <div className="flex items-center gap-2 min-w-0">
                             {cond.valueType === 'parameter' ? (
-                                <select
-                                    value={cond.value}
-                                    onChange={(e) => {
-                                        const newWheres = [...state.where];
-                                        newWheres[index].value = e.target.value;
-                                        setState((prev) => ({ ...prev, where: newWheres }));
-                                    }}
-                                    className="flex-1 bg-[var(--bg-alt)] border border-brand/30 rounded-lg px-3 py-2 text-xs font-bold text-brand outline-none"
-                                >
-                                    <option value="">Select parameter...</option>
-                                    {parameters.map(p => (
-                                        <option key={p.parameter_name} value={p.parameter_name}>{p.parameter_name}</option>
-                                    ))}
-                                </select>
+                                <AppFormBox className="flex-1 !px-2 !py-0 h-8 !border-brand/30">
+                                    <select
+                                        value={cond.value}
+                                        onChange={(e) => {
+                                            const newWheres = [...state.where];
+                                            newWheres[index].value = e.target.value;
+                                            setState((prev) => ({ ...prev, where: newWheres }));
+                                        }}
+                                        className="w-full bg-transparent outline-none h-full text-xs font-normal text-brand cursor-pointer"
+                                    >
+                                        <option value="">Param...</option>
+                                        {parameters.map(p => (
+                                            <option key={p.parameter_name} value={p.parameter_name}>{p.parameter_name}</option>
+                                        ))}
+                                    </select>
+                                </AppFormBox>
                             ) : (
-                                <input
-                                    placeholder="value"
-                                    value={cond.value}
-                                    onChange={(e) => {
-                                        const newWheres = [...state.where];
-                                        newWheres[index].value = e.target.value;
-                                        setState((prev) => ({ ...prev, where: newWheres }));
-                                    }}
-                                    disabled={cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL'}
-                                    className={`flex-1 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand ${(cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') ? 'opacity-30' : ''
-                                        }`}
-                                />
+                                <AppFormBox className={`flex-1 !px-2 !py-0 h-8 ${(cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') ? 'opacity-30' : ''}`}>
+                                    <input
+                                        placeholder="value"
+                                        value={cond.value}
+                                        onChange={(e) => {
+                                            const newWheres = [...state.where];
+                                            newWheres[index].value = e.target.value;
+                                            setState((prev) => ({ ...prev, where: newWheres }));
+                                        }}
+                                        disabled={cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL'}
+                                        className="w-full bg-transparent outline-none h-full text-xs"
+                                    />
+                                </AppFormBox>
                             )}
                         </div>
+
+                        {parameters.length > 0 && (
+                            <button
+                                onClick={() => {
+                                    const newWheres = [...state.where];
+                                    newWheres[index].valueType = cond.valueType === 'parameter' ? 'literal' : 'parameter';
+                                    newWheres[index].value = '';
+                                    setState((prev) => ({ ...prev, where: newWheres }));
+                                }}
+                                className={`p-1.5 rounded-lg border transition-all ${cond.valueType === 'parameter' ? 'bg-brand/10 border-brand/30 text-brand' : 'bg-[var(--bg-alt)] border-[var(--border-base)] text-[var(--text-muted)] hover:text-brand'}`}
+                                title={cond.valueType === 'parameter' ? 'Switch to Literal' : 'Switch to Parameter'}
+                            >
+                                <Icon name={cond.valueType === 'parameter' ? 'database' : 'settings'} size={12} />
+                            </button>
+                        )}
 
                         <button
                             onClick={() => {
@@ -486,9 +494,9 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                                 newWheres.splice(index, 1);
                                 setState((prev) => ({ ...prev, where: newWheres }));
                             }}
-                            className="text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-500 opacity-20 group-hover:opacity-100 transition-all flex items-center justify-center"
                         >
-                            <Icon name="delete" size={16} />
+                            <Icon name="delete" size={14} />
                         </button>
                     </div>
                 ))}
@@ -496,7 +504,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                 {state.where.length === 0 && (
                     <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
                         <Icon name="filter_alt" size={32} className="mb-2 text-[var(--text-muted)]" />
-                        <p className="text-xs font-medium">No conditions defined yet.</p>
+                        <p className="text-xs font-normal">No conditions defined yet.</p>
                     </div>
                 )}
             </div>
@@ -532,14 +540,14 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
             <div className="space-y-6">
                 <div className="flex items-center justify-between px-2">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand font-bold">
+                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand font-normal">
                             <Icon name="group_work" size={16} />
                         </div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">Grouping (GROUP BY)</h3>
+                        <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-main)]">Grouping (GROUP BY)</h3>
                     </div>
                     <button
                         onClick={addGroupBy}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-bold hover:opacity-90 transition-all shadow-sm"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-normal hover:opacity-90 transition-all shadow-sm"
                     >
                         <Icon name="add" size={14} />
                         Add Group
@@ -548,17 +556,19 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(state.groupBy || []).map((group, index) => (
                         <div key={group.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] flex items-center gap-3 group">
-                            <select
-                                value={group.tableAlias}
-                                onChange={(e) => {
-                                    const newGroups = [...state.groupBy];
-                                    newGroups[index].tableAlias = e.target.value;
-                                    setState(prev => ({ ...prev, groupBy: newGroups }));
-                                }}
-                                className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-2 text-xs outline-none focus:border-brand min-w-[100px]"
-                            >
-                                {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
-                            </select>
+                            <AppFormBox className="!px-2 !py-0 h-8 min-w-[100px]">
+                                <select
+                                    value={group.tableAlias}
+                                    onChange={(e) => {
+                                        const newGroups = [...state.groupBy];
+                                        newGroups[index].tableAlias = e.target.value;
+                                        setState(prev => ({ ...prev, groupBy: newGroups }));
+                                    }}
+                                    className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer"
+                                >
+                                    {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
+                                </select>
+                            </AppFormBox>
                             <ColumnSelect
                                 tableAlias={group.tableAlias}
                                 value={group.columnName}
@@ -586,7 +596,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                     {(state.groupBy || []).length === 0 && (
                         <div className="md:col-span-2 py-8 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
                             <Icon name="group_work" size={24} className="mb-2 text-[var(--text-muted)]" />
-                            <p className="text-[10px] font-medium uppercase tracking-tighter">No groupings defined</p>
+                            <p className="text-[10px] font-normal uppercase tracking-tighter">No groupings defined</p>
                         </div>
                     )}
                 </div>
@@ -596,14 +606,14 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
             <div className="space-y-6">
                 <div className="flex items-center justify-between px-2">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand font-bold">
+                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand font-normal">
                             <Icon name="sort" size={16} />
                         </div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">Sorting (ORDER BY)</h3>
+                        <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-main)]">Sorting (ORDER BY)</h3>
                     </div>
                     <button
                         onClick={addOrderBy}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-bold hover:opacity-90 transition-all shadow-sm"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-normal hover:opacity-90 transition-all shadow-sm"
                     >
                         <Icon name="add" size={14} />
                         Add Sort
@@ -612,17 +622,19 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(state.orderBy || []).map((order, index) => (
                         <div key={order.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] flex items-center gap-3 group">
-                            <select
-                                value={order.tableAlias}
-                                onChange={(e) => {
-                                    const newOrders = [...state.orderBy];
-                                    newOrders[index].tableAlias = e.target.value;
-                                    setState(prev => ({ ...prev, orderBy: newOrders }));
-                                }}
-                                className="bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-2 py-2 text-xs outline-none focus:border-brand min-w-[100px]"
-                            >
-                                {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
-                            </select>
+                            <AppFormBox className="!px-2 !py-0 h-8 min-w-[100px]">
+                                <select
+                                    value={order.tableAlias}
+                                    onChange={(e) => {
+                                        const newOrders = [...state.orderBy];
+                                        newOrders[index].tableAlias = e.target.value;
+                                        setState(prev => ({ ...prev, orderBy: newOrders }));
+                                    }}
+                                    className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer"
+                                >
+                                    {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
+                                </select>
+                            </AppFormBox>
                             <ColumnSelect
                                 tableAlias={order.tableAlias}
                                 value={order.columnName}
@@ -636,18 +648,20 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                                 state={state}
                                 placeholder="Sort column..."
                             />
-                            <select
-                                value={order.direction}
-                                onChange={(e) => {
-                                    const newOrders = [...state.orderBy];
-                                    newOrders[index].direction = e.target.value as 'ASC' | 'DESC';
-                                    setState(prev => ({ ...prev, orderBy: newOrders }));
-                                }}
-                                className="bg-brand/5 text-brand border border-brand/20 rounded-lg px-2 py-2 text-[10px] font-bold outline-none focus:bg-brand focus:text-white transition-all w-20"
-                            >
-                                <option value="ASC">ASC</option>
-                                <option value="DESC">DESC</option>
-                            </select>
+                            <AppFormBox className="!px-2 !py-0 h-8 w-20 !bg-brand/5 !border-brand/20">
+                                <select
+                                    value={order.direction}
+                                    onChange={(e) => {
+                                        const newOrders = [...state.orderBy];
+                                        newOrders[index].direction = e.target.value as 'ASC' | 'DESC';
+                                        setState(prev => ({ ...prev, orderBy: newOrders }));
+                                    }}
+                                    className="w-full bg-transparent text-brand outline-none h-full text-[10px] font-normal cursor-pointer"
+                                >
+                                    <option value="ASC">ASC</option>
+                                    <option value="DESC">DESC</option>
+                                </select>
+                            </AppFormBox>
                             <button
                                 onClick={() => {
                                     const newOrders = [...state.orderBy];
@@ -663,7 +677,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                     {(state.orderBy || []).length === 0 && (
                         <div className="md:col-span-2 py-8 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
                             <Icon name="sort" size={24} className="mb-2 text-[var(--text-muted)]" />
-                            <p className="text-[10px] font-medium uppercase tracking-tighter">No sortings defined</p>
+                            <p className="text-[10px] font-normal uppercase tracking-tighter">No sortings defined</p>
                         </div>
                     )}
                 </div>
@@ -673,10 +687,10 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
             <div className="space-y-6 pt-6 border-t border-[var(--border-base)]">
                 <div className="flex items-center justify-between px-2">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand font-bold">
+                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand font-normal">
                             <Icon name="timer" size={16} />
                         </div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">Result Limit (LIMIT)</h3>
+                        <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-main)]">Result Limit (LIMIT)</h3>
                     </div>
                 </div>
                 <div className="flex items-center gap-6 p-6 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)]">
@@ -688,23 +702,25 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                             onChange={(e) => setState(prev => ({ ...prev, useLimit: e.target.checked }))}
                             className="w-4 h-4 rounded border-[var(--border-base)] text-brand focus:ring-brand"
                         />
-                        <label htmlFor="use-limit" className="text-xs font-bold text-[var(--text-main)] cursor-pointer">
+                        <label htmlFor="use-limit" className="text-xs font-normal text-[var(--text-main)] cursor-pointer">
                             Enable Limit
                         </label>
                     </div>
                     
                     <div className={`flex items-center gap-3 transition-all ${state.useLimit ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Max Rows:</span>
-                        <input
-                            type="number"
-                            value={state.limit || ''}
-                            onChange={(e) => {
-                                const val = parseInt(e.target.value, 10);
-                                setState(prev => ({ ...prev, limit: isNaN(val) ? 0 : val }));
-                            }}
-                            className="w-32 bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-brand"
-                            placeholder="e.g. 100"
-                        />
+                        <AppFormBox className={`w-32 !px-3 !py-0 h-8 ${!state.useLimit ? 'opacity-40' : ''}`}>
+                            <input
+                                type="number"
+                                value={state.limit || ''}
+                                onChange={(e) => {
+                                    const val = parseInt(e.target.value, 10);
+                                    setState(prev => ({ ...prev, limit: isNaN(val) ? 0 : val }));
+                                }}
+                                className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                                placeholder="e.g. 100"
+                                disabled={!state.useLimit}
+                            />
+                        </AppFormBox>
                     </div>
                     
                     <div className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-muted)] italic">
@@ -773,64 +789,74 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
             <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Block Alias</label>
-                        <input
-                            value={alias}
-                            onChange={e => setAlias(e.target.value)}
-                            placeholder="e.g. tree"
-                            className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
-                        />
+                        <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Block Alias</label>
+                        <AppFormBox>
+                            <input
+                                value={alias}
+                                onChange={e => setAlias(e.target.value)}
+                                placeholder="e.g. tree"
+                                className="w-full bg-transparent outline-none h-full text-xs"
+                            />
+                        </AppFormBox>
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Base Table</label>
-                        <select
-                            value={anchorTable}
-                            onChange={e => setAnchorTable(e.target.value)}
-                            className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
-                        >
-                            <option value="">Select table...</option>
-                            {tables.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
+                        <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Base Table</label>
+                        <AppFormBox>
+                            <select
+                                value={anchorTable}
+                                onChange={e => setAnchorTable(e.target.value)}
+                                className="w-full bg-transparent outline-none h-full text-xs cursor-pointer"
+                            >
+                                <option value="">Select table...</option>
+                                {tables.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                        </AppFormBox>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Primary Key (ID)</label>
-                        <select
-                            value={primaryKey}
-                            onChange={e => setPrimaryKey(e.target.value)}
-                            className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
-                        >
-                            <option value="">Select PK...</option>
-                            {availableColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                        </select>
+                        <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Primary Key (ID)</label>
+                        <AppFormBox>
+                            <select
+                                value={primaryKey}
+                                onChange={e => setPrimaryKey(e.target.value)}
+                                className="w-full bg-transparent outline-none h-full text-xs cursor-pointer"
+                            >
+                                <option value="">Select PK...</option>
+                                {availableColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                            </select>
+                        </AppFormBox>
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Parent Reference</label>
-                        <select
-                            value={parentKey}
-                            onChange={e => setParentKey(e.target.value)}
-                            className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
-                        >
-                            <option value="">Select Parent Key...</option>
-                            {availableColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                        </select>
+                        <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Parent Reference</label>
+                        <AppFormBox>
+                            <select
+                                value={parentKey}
+                                onChange={e => setParentKey(e.target.value)}
+                                className="w-full bg-transparent outline-none h-full text-xs cursor-pointer"
+                            >
+                                <option value="">Select Parent Key...</option>
+                                {availableColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                            </select>
+                        </AppFormBox>
                     </div>
                 </div>
 
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Depth Column (Optional)</label>
-                    <input
-                        value={depthColumn}
-                        onChange={e => setDepthColumn(e.target.value)}
-                        placeholder="e.g. level (leave empty to skip)"
-                        className="w-full bg-[var(--bg-alt)] border border-[var(--border-base)] rounded-lg px-3 py-2 text-xs outline-none focus:border-brand"
-                    />
+                    <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Depth Column (Optional)</label>
+                    <AppFormBox>
+                        <input
+                            value={depthColumn}
+                            onChange={e => setDepthColumn(e.target.value)}
+                            placeholder="e.g. level (leave empty to skip)"
+                            className="w-full bg-transparent outline-none h-full text-xs"
+                        />
+                    </AppFormBox>
                 </div>
 
                 <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl">
-                    <p className="text-[10px] text-blue-500 font-medium leading-relaxed">
+                    <p className="text-[10px] text-blue-500 font-normal leading-relaxed">
                         This helper will generate a recursive CTE that joins the table with itself to traverse hierarchical data.
                         The initial level will be where the parent reference is NULL.
                     </p>
@@ -1577,7 +1603,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             headerRightContent={
                 <>
                     {isExecuting && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand/10 text-brand text-[10px] font-bold animate-pulse">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand/10 text-brand text-[10px] font-normal animate-pulse">
                             <div className="w-3 h-3 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
                             Executing...
                         </div>
@@ -1586,7 +1612,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         type="button"
                         onClick={handleExecuteQuery}
                         disabled={isExecuting || !effectiveSql.canRun}
-                        className={`px-4 py-1.5 bg-[var(--bg-alt)] border border-[var(--border-base)] text-brand text-[10px] font-bold rounded-lg transition-all shadow-sm flex items-center gap-2 ${(!effectiveSql.canRun && !isExecuting) ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-brand/5'
+                        className={`px-4 py-1.5 bg-[var(--bg-alt)] border border-[var(--border-base)] text-brand text-[10px] font-normal rounded-lg transition-all shadow-sm flex items-center gap-2 ${(!effectiveSql.canRun && !isExecuting) ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-brand/5'
                             }`}
                         title={!effectiveSql.canRun ? effectiveSql.sql : "Shortcut: F5, Cmd+R or Ctrl+R"}
                     >
@@ -1663,10 +1689,10 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                                             <Icon name={isOutside ? 'delete_forever' : (isCte ? (isRecursive ? 'table_recursive' : 'table_virtual') : 'table_chart')} size={14} />
                                                         </div>
                                                         <div className="flex-1 flex flex-col min-w-0">
-                                                            <span className={`text-xs font-bold truncate ${isOutside ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
+                                                            <span className={`text-xs font-normal truncate ${isOutside ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
                                                                 {tableName}
                                                             </span>
-                                                            <span className={`text-[10px] font-medium opacity-70 ${isOutside ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
+                                                            <span className={`text-[10px] font-normal opacity-70 ${isOutside ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
                                                                 {isOutside ? 'Release to remove' : (isCte ? 'Query Block' : 'Database Table')}
                                                             </span>
                                                         </div>
@@ -1686,14 +1712,14 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                                     </div>
                                                     <div className="flex-1 flex flex-col min-w-0">
                                                         <div className="flex items-center gap-2">
-                                                            <span className={`text-xs font-bold truncate ${isOutside ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
+                                                            <span className={`text-xs font-normal truncate ${isOutside ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
                                                                 {field?.expression || `${field?.tableAlias}.${field?.columnName}`}
                                                             </span>
                                                             {field?.alias && !isOutside && (
-                                                                <span className="text-[10px] text-brand font-bold bg-brand/5 px-1.5 py-0.5 rounded">AS {field.alias}</span>
+                                                                <span className="text-[10px] text-brand font-normal bg-brand/5 px-1.5 py-0.5 rounded">AS {field.alias}</span>
                                                             )}
                                                         </div>
-                                                        <span className={`text-[10px] font-medium opacity-70 ${isOutside ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
+                                                        <span className={`text-[10px] font-normal opacity-70 ${isOutside ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
                                                             {isOutside ? 'Release to remove' : (isExpression ? 'Custom Expression' : (field?.columnName === '*' ? 'All Columns' : `${field?.tableAlias} column`))}
                                                         </span>
                                                     </div>
@@ -1709,7 +1735,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     {/* Left Sidebar: Tables List */}
                 <div className="w-64 border-r border-[var(--border-base)] flex flex-col bg-[var(--bg-alt)]">
                     <div className="p-4 border-b border-[var(--border-base)]">
-                        <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
+                        <h3 className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
                             <Icon name="table_chart" size={14} />
                             Available Tables
                         </h3>
@@ -1717,7 +1743,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     <div className="flex-1 overflow-y-auto p-2 space-y-1">
                         <div>
                             <div className="px-2 py-1 flex items-center justify-between">
-                                <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
+                                <h3 className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
                                     <Icon name="database" size={14} />
                                     Available Tables
                                 </h3>
@@ -1761,7 +1787,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         {/* Main Query Tab */}
                         <button
                             onClick={() => setActiveBlockId('main')}
-                            className={`px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all border-t-2 border-x border-b-0 rounded-t-xl -mb-[1px] flex items-center gap-2 whitespace-nowrap ${
+                            className={`px-4 py-2 text-[11px] font-normal uppercase tracking-wider transition-all border-t-2 border-x border-b-0 rounded-t-xl -mb-[1px] flex items-center gap-2 whitespace-nowrap ${
                                 activeBlockId === 'main'
                                     ? 'bg-[var(--bg-app)] border-[var(--border-base)] text-brand border-t-brand'
                                     : 'bg-[var(--bg-alt)] border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-app)]'
@@ -1781,7 +1807,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                         setRenameValue(cte.alias);
                                         setIsRenameModalOpen(true);
                                     }}
-                                    className={`px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all border-t-2 border-x border-b-0 rounded-t-xl -mb-[1px] flex items-center gap-2 whitespace-nowrap pr-8 ${
+                                    className={`px-4 py-2 text-[11px] font-normal uppercase tracking-wider transition-all border-t-2 border-x border-b-0 rounded-t-xl -mb-[1px] flex items-center gap-2 whitespace-nowrap pr-8 ${
                                         activeBlockId === cte.id
                                             ? 'bg-[var(--bg-app)] border-[var(--border-base)] text-brand border-t-brand'
                                             : 'bg-[var(--bg-alt)] border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-app)]'
@@ -1830,7 +1856,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             setIsAddMenuOpen(false);
                                             handleAddCTE(false);
                                         }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-semibold text-[var(--text-main)] hover:bg-brand/10 rounded-xl transition-all outline-none"
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-normal text-[var(--text-main)] hover:bg-brand/10 rounded-xl transition-all outline-none"
                                     >
                                         <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
                                             <Icon name="table_virtual" size={16} />
@@ -1846,7 +1872,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             setEditingCTE(null);
                                             setIsRecursiveModalOpen(true);
                                         }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-semibold text-[var(--text-main)] hover:bg-brand/10 rounded-xl transition-all outline-none"
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-normal text-[var(--text-main)] hover:bg-brand/10 rounded-xl transition-all outline-none"
                                     >
                                         <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
                                             <Icon name="table_recursive" size={16} />
@@ -1899,7 +1925,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                         {activeState.tables.length === 0 && (
                                             <div className="absolute inset-0 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40 bg-[var(--bg-app)]/50 pointer-events-none z-10">
                                                 <Icon name="table_chart" size={48} className="mb-4 text-[var(--text-muted)]" />
-                                                <p className="text-sm font-medium">Add a database table or a query block from the sidebar.</p>
+                                                <p className="text-sm font-normal">Add a database table or a query block from the sidebar.</p>
                                             </div>
                                         )}
                                     </div>
@@ -1929,21 +1955,21 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                                         <Icon name="tune" size={16} />
                                                     </div>
                                                     <div>
-                                                        <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-main)]">Execution Parameters</h3>
-                                                        <p className="text-[9px] text-[var(--text-muted)] font-medium">Provide test values for query preview</p>
+                                                        <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-main)]">Execution Parameters</h3>
+                                                        <p className="text-[9px] text-[var(--text-muted)] font-normal">Provide test values for query preview</p>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                                     {parameters.map(p => (
                                                         <div key={p.parameter_name} className="space-y-1.5">
-                                                            <label className="text-[10px] font-black uppercase tracking-tighter text-[var(--text-muted)] ml-1">
+                                                            <label className="text-[10px] font-normal uppercase tracking-tighter text-[var(--text-muted)] ml-1">
                                                                 {p.parameter_name}
                                                             </label>
                                                             <input
                                                                 value={parameterValues[p.parameter_name] || ''}
                                                                 onChange={e => setParameterValues(prev => ({ ...prev, [p.parameter_name]: e.target.value }))}
                                                                 placeholder={p.parameter_type}
-                                                                className="w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-brand focus:ring-4 focus:ring-brand/5 transition-all"
+                                                                className="w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl px-3 py-2 text-xs font-normal outline-none focus:border-brand focus:ring-4 focus:ring-brand/5 transition-all"
                                                             />
                                                         </div>
                                                     ))}
@@ -1965,9 +1991,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                             {/* SQL Preview Bottom Bar */}
                             <div className="h-32 border-t border-[var(--border-base)] bg-[var(--bg-alt)] flex flex-col">
                                 <div className="px-4 py-2 border-b border-[var(--border-base)] bg-[var(--bg-app)] flex items-center justify-between">
-                                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">SQL Preview</h3>
+                                    <h3 className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">SQL Preview</h3>
                                     {!effectiveSql.canRun && activeBlockId !== 'main' && (
-                                        <span className="text-[9px] font-bold text-amber-500 uppercase tracking-tight bg-amber-500/10 px-2 py-0.5 rounded-md">
+                                        <span className="text-[9px] font-normal text-amber-500 uppercase tracking-tight bg-amber-500/10 px-2 py-0.5 rounded-md">
                                             Standalone execution restricted
                                         </span>
                                     )}
@@ -2005,7 +2031,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                             <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-6 animate-pulse">
                                 <Icon name="error_outline" size={40} />
                             </div>
-                            <h3 className="text-lg font-bold text-red-600 mb-2">Something went wrong</h3>
+                            <h3 className="text-lg font-normal text-red-600 mb-2">Something went wrong</h3>
                             <div className="max-w-2xl bg-white border border-red-200 rounded-xl p-6 shadow-sm overflow-auto max-h-[40vh]">
                                 <pre className="text-sm text-red-700 font-mono text-left whitespace-pre-wrap leading-relaxed">
                                     {executionError}
@@ -2025,7 +2051,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center opacity-40">
                             <Icon name="search_off" size={48} className="mb-4 text-[var(--text-muted)]" />
-                            <p className="text-sm font-medium">No results found.</p>
+                            <p className="text-sm font-normal">No results found.</p>
                         </div>
                     )}
                 </div>
@@ -2066,7 +2092,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 className="!text-red-500"
             >
                 <div className="p-2">
-                    <p className="text-xs text-[var(--text-main)] mb-1">Are you sure you want to delete query block <span className="font-bold text-brand">{cteToDelete?.alias}</span>?</p>
+                    <p className="text-xs text-[var(--text-main)] mb-1">Are you sure you want to delete query block <span className="font-normal text-brand">{cteToDelete?.alias}</span>?</p>
                     <p className="text-[10px] text-[var(--text-muted)] italic">This action cannot be undone and will remove all tables and joins within this block.</p>
                 </div>
             </AppCompactModalForm>
@@ -2088,7 +2114,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 {cteToRename && (
                     <div className="p-2 space-y-4">
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">New Name</label>
+                            <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">New Name</label>
                             <input
                                 autoFocus
                                 value={renameValue}

@@ -30,7 +30,7 @@ export const SelectedFieldsTreeView: React.FC<SelectedFieldsTreeViewProps> = ({
             }`}
         >
             <div className="bg-[var(--bg-alt)] px-4 py-3 border-b border-[var(--border-base)] flex items-center justify-between font-bold">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
+                <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
                     <Icon name="table_chart" size={14} />
                     SELECTED FIELDS
                 </h3>
@@ -52,7 +52,7 @@ export const SelectedFieldsTreeView: React.FC<SelectedFieldsTreeViewProps> = ({
                 {fields.length === 0 && (
                     <div className="h-32 flex flex-col items-center justify-center opacity-40 border-2 border-dashed border-[var(--border-base)] rounded-xl m-2 bg-[var(--bg-alt)]/20">
                         <Icon name="checklist" size={24} className="mb-2" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-center">Drag fields here or click in tables</p>
+                        <p className="text-[10px] font-normal uppercase tracking-widest text-center">Drag fields here or click in tables</p>
                     </div>
                 )}
             </div>
@@ -95,11 +95,11 @@ const SortableFieldItem = ({ field, onEditField }: any) => {
             </div>
             <div className="flex-1 flex flex-col min-w-0">
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-[var(--text-main)] truncate">
+                    <span className="text-xs font-normal text-[var(--text-main)] truncate">
                         {field.expression || `${field.tableAlias}.${field.columnName}`}
                     </span>
                     {field.alias && (
-                        <span className="text-[10px] text-brand font-bold bg-brand/5 px-1.5 py-0.5 rounded">AS {field.alias}</span>
+                        <span className="text-[10px] text-brand font-normal bg-brand/5 px-1.5 py-0.5 rounded">AS {field.alias}</span>
                     )}
                 </div>
                 <span className="text-[10px] text-[var(--text-muted)] opacity-60">

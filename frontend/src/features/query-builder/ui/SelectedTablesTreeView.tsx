@@ -37,7 +37,7 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
             }`}
         >
             <div className="bg-[var(--bg-alt)] px-4 py-3 border-b border-[var(--border-base)] flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
+                <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
                     <Icon name="table_chart" size={14} />
                     SELECTED TABLES
                 </h3>
@@ -62,7 +62,7 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
                 {tables.length === 0 && (
                     <div className="h-32 flex flex-col items-center justify-center opacity-40 border-2 border-dashed border-[var(--border-base)] rounded-xl m-2">
                         <Icon name="add_to_photos" size={24} className="mb-2" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-center">Add tables from the sidebar</p>
+                        <p className="text-[10px] font-normal uppercase tracking-widest text-center">Add tables from the sidebar</p>
                     </div>
                 )}
             </div>
@@ -160,7 +160,7 @@ const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, query
                         size={14} 
                         className="text-brand" 
                     />
-                    <span className="text-xs font-bold text-[var(--text-main)]">{table.tableName}</span>
+                    <span className="text-xs font-normal text-[var(--text-main)]">{table.tableName}</span>
                     {table.alias !== table.tableName && (
                         <span className="text-[9px] bg-brand/10 text-brand px-1 py-0.5 rounded uppercase tracking-tighter">AS {table.alias}</span>
                     )}
@@ -214,11 +214,11 @@ const DraggableColumn = ({ col, tableAlias, isSelected, label }: any) => {
             {...attributes}
             {...listeners}
             className={`flex items-center gap-2 px-2 py-1 rounded-md cursor-grab active:cursor-grabbing transition-all ${
-                isSelected ? 'bg-brand/5 text-brand font-medium' : 'hover:bg-brand/5 text-[var(--text-main)]'
+                isSelected ? 'bg-brand/5 text-brand font-normal' : 'hover:bg-brand/5 text-[var(--text-main)]'
             } ${isDragging ? 'opacity-30 pointer-events-none' : ''}`}
         >
             <Icon name="table_rows" size={14} className={isSelected ? 'text-brand' : 'text-[var(--text-muted)] opacity-50'} />
-            <span className={`text-[11px] truncate ${label ? 'font-bold' : ''}`}>{label || col.name}</span>
+            <span className={`text-[11px] truncate ${label ? 'font-normal' : ''}`}>{label || col.name}</span>
             {!label && <span className="ml-auto text-[8px] text-[var(--text-muted)] opacity-50 font-mono">{col.type}</span>}
         </div>
     );

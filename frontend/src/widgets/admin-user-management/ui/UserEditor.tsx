@@ -2,11 +2,11 @@ import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'r
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../shared/api/client';
 import type { User } from '../../../entities/user/model/types';
-import { ComboBox } from '../../../shared/ui/combo-box';
+import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import type { SelectionGroup } from '../../../shared/ui/selection-list';
 import { ClientMetadataManagement } from '../../client-metadata-management/ui/ClientMetadataManagement';
 import { PromptViewer } from '../../prompt-viewer/ui/PromptViewer';
-import { AppInput } from '../../../shared/ui/app-input';
+import { AppInput, AppFormBox } from "../../../shared/ui/app-input";
 import { FormField } from '../../../shared/ui/form-field';
 
 
@@ -106,7 +106,7 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
             {activeTab === 'common' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div className="space-y-6">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Account Profile</h3>
+                        <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)] px-1">Account Profile</h3>
                         <div className="grid grid-cols-1 gap-6">
                             <AppInput
                                 label="Username"
@@ -114,12 +114,12 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                                 onChange={() => {}}
                                 disabled
                                 showCopy
-                                className="font-bold"
+                                className="font-normal"
                             />
                             <div className="space-y-1.5">
-                                <label className="text-sm font-bold text-[var(--text-main)]">Role</label>
-                                <div className="px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)]">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 ring-inset ${user.role === 'admin'
+                                <label className="text-sm font-normal text-[var(--text-main)]">Role</label>
+                                <AppFormBox disabled={true}>
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-normal uppercase tracking-widest ring-1 ring-inset ${user.role === 'admin'
                                         ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-indigo-500/20'
                                         : user.role === 'manager'
                                             ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-blue-500/20'
@@ -127,7 +127,7 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                                         }`}>
                                         {user.role}
                                     </span>
-                                </div>
+                                </AppFormBox>
                             </div>
                         </div>
 
@@ -135,7 +135,7 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
 
                     {user.role === 'client' && (
                         <div className="space-y-6">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] px-1">Management</h3>
+                            <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)] px-1">Management</h3>
                             <div className="space-y-3">
                                 <FormField label="Responsible Manager">
                                     <ComboBox
@@ -153,7 +153,7 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                                 {selectedManagerId && !isLocked && (
                                     <button
                                         onClick={() => setSelectedManagerId('')}
-                                        className="text-[10px] font-bold text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-colors ml-1"
+                                        className="text-[10px] font-normal text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-colors ml-1"
                                     >
                                         Clear Assignment
                                     </button>

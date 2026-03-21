@@ -1,5 +1,6 @@
 import React from 'react';
 import { ComboBox } from '../combo-box/ComboBox';
+import { AppFormBox } from "../app-input";
 import { Icon } from '../icon';
 import type { ObjectParameter as ReportParameter } from '../../../entities/report/model/types';
 
@@ -33,15 +34,14 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
     variant = 'primary',
     disabled = false,
 }) => {
-    console.log(`AppParameterSelectByTamplate [${parameter.parameter_name}] options:`, options);
     if (parameter.parameter_type === 'select') {
         const errorOption = options.find(o => String(o.value) === 'error');
         if (errorOption) {
             return (
-                <div className={`w-full px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2 ${className}`}>
+                <AppFormBox hasError={true} className={`!bg-red-50 !border-red-200 !text-red-600 ${className}`}>
                     <Icon name="error" className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate">{errorOption.label || 'Error source'}</span>
-                </div>
+                </AppFormBox>
             );
         }
 
@@ -59,7 +59,7 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
                 }))}
                 onSelect={(item) => onChange(item.id)}
                 variant={variant}
-                className={`w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl ${className}`}
+                className={className}
                 disabled={disabled}
             />
         );
@@ -83,32 +83,38 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
 
         return (
             <div className={`grid grid-cols-2 gap-2 ${className}`}>
-                <input
-                    type="date"
-                    value={sValue}
-                    onChange={(e) => handleStart(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand disabled:opacity-50"
-                    disabled={disabled}
-                />
-                <input
-                    type="date"
-                    value={eValue}
-                    onChange={(e) => handleEnd(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand disabled:opacity-50"
-                    disabled={disabled}
-                />
+                <AppFormBox className="cursor-pointer">
+                    <input
+                        type="date"
+                        value={sValue}
+                        onChange={(e) => handleStart(e.target.value)}
+                        className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                        disabled={disabled}
+                    />
+                </AppFormBox>
+                <AppFormBox className="cursor-pointer">
+                    <input
+                        type="date"
+                        value={eValue}
+                        onChange={(e) => handleEnd(e.target.value)}
+                        className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                        disabled={disabled}
+                    />
+                </AppFormBox>
             </div>
         );
     }
 
     return (
-        <input
-            type={parameter.parameter_type === 'number' ? 'number' : parameter.parameter_type === 'date' ? 'date' : 'text'}
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            className={`w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand disabled:opacity-50 ${className}`}
-            placeholder={placeholder || `Enter ${parameter.parameter_name}...`}
-            disabled={disabled}
-        />
+        <AppFormBox className={className} disabled={disabled}>
+            <input
+                type={parameter.parameter_type === 'number' ? 'number' : parameter.parameter_type === 'date' ? 'date' : 'text'}
+                value={value || ''}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                placeholder={placeholder || `Enter ${parameter.parameter_name}...`}
+                disabled={disabled}
+            />
+        </AppFormBox>
     );
 };

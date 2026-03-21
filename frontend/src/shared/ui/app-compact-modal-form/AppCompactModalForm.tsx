@@ -137,7 +137,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                     <div className="flex items-center gap-4 flex-1">
                         <div className="flex items-center gap-2">
                             {icon && <Icon name={icon} size={14} className="text-brand" />}
-                            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-main)] whitespace-nowrap">
+                            <h3 className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-main)] whitespace-nowrap">
                                 {title}
                             </h3>
                         </div>
@@ -172,14 +172,14 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-3 py-1 rounded-lg text-[10px] font-bold border border-[var(--border-base)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/5 transition-all"
+                        className="px-3 py-1 rounded-lg text-[10px] font-normal border border-[var(--border-base)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/5 transition-all"
                     >
                         {cancelLabel}
                     </button>
                     <button
                         type="button"
                         onClick={() => onSubmit()}
-                        className="px-4 py-1 rounded-lg bg-brand text-white text-[10px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm"
+                        className="px-4 py-1 rounded-lg bg-brand text-white text-[10px] font-normal hover:opacity-90 active:scale-95 transition-all shadow-sm"
                     >
                         {submitLabel}
                     </button>

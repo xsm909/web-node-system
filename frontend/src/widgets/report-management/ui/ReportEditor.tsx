@@ -11,7 +11,7 @@ import { EditorState } from "@codemirror/state";
 import { useThemeStore } from "../../../shared/lib/theme/store";
 import { autocompletion, snippetCompletion } from "@codemirror/autocomplete";
 import { getPythonHints, type PythonHint } from "../../../shared/api/python-hints";
-import { AppInput } from "../../../shared/ui/app-input";
+import { AppInput, AppFormBox } from "../../../shared/ui/app-input";
 import { AppCategoryInput } from "../../../shared/ui/app-category-input/AppCategoryInput";
 import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
 import { AppConsole, AppConsoleLogLine } from "../../../shared/ui/app-console";
@@ -481,23 +481,25 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                     />
                     
                     <div className="space-y-1.5">
-                        <label className="text-sm font-bold text-[var(--text-main)]">Report Type</label>
-                        <select
-                            value={type}
-                            onChange={(e) => setType(e.target.value as ReportType)}
-                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all outline-none disabled:opacity-50"
-                            disabled={isLocked}
-                        >
-                            <option value="global">Global</option>
-                            <option value="client">Client-Specific</option>
-                        </select>
+                        <label className="text-sm font-normal text-[var(--text-main)]">Report Type</label>
+                        <AppFormBox disabled={isLocked}>
+                            <select
+                                value={type}
+                                onChange={(e) => setType(e.target.value as ReportType)}
+                                className="w-full bg-transparent outline-none disabled:opacity-50 h-full font-normal cursor-pointer"
+                                disabled={isLocked}
+                            >
+                                <option value="global">Global</option>
+                                <option value="client">Client-Specific</option>
+                            </select>
+                        </AppFormBox>
                     </div>
 
 
                     {/* Parameter Management */}
                     <div className="pt-6 border-t border-[var(--border-base)]">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Parameters</h3>
+                            <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Parameters</h3>
                             {!isLocked && (
                                 <button
                                     onClick={() => {
@@ -512,7 +514,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                         };
                                         setParameters([...parameters, newParam]);
                                     }}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs font-bold hover:bg-[var(--bg-hover)] transition-all"
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs font-normal hover:bg-[var(--bg-hover)] transition-all"
                                 >
                                     <Icon name="plus" size={14} />
                                     Add Parameter
@@ -538,93 +540,103 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Parameter Name</label>
-                                            <input
-                                                type="text"
-                                                value={param.parameter_name}
-                                                onChange={(e) => {
-                                                    const newParams = [...parameters];
-                                                    newParams[index].parameter_name = e.target.value;
-                                                    setParameters(newParams);
-                                                }}
-                                                className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand disabled:opacity-50"
-                                                placeholder="e.g. user_id"
-                                                disabled={isLocked}
-                                            />
+                                            <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Parameter Name</label>
+                                            <AppFormBox disabled={isLocked} className="px-3">
+                                                <input
+                                                    type="text"
+                                                    value={param.parameter_name}
+                                                    onChange={(e) => {
+                                                        const newParams = [...parameters];
+                                                        newParams[index].parameter_name = e.target.value;
+                                                        setParameters(newParams);
+                                                    }}
+                                                    className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal"
+                                                    placeholder="e.g. user_id"
+                                                    disabled={isLocked}
+                                                />
+                                            </AppFormBox>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Type</label>
-                                            <select
-                                                value={param.parameter_type}
-                                                onChange={(e) => {
-                                                    const newParams = [...parameters];
-                                                    newParams[index].parameter_type = e.target.value as any;
-                                                    setParameters(newParams);
-                                                }}
-                                                className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand disabled:opacity-50"
-                                                disabled={isLocked}
-                                            >
-                                                <option value="text">Text</option>
-                                                <option value="number">Number</option>
-                                                <option value="date">Date</option>
-                                                <option value="date_range">Date Range</option>
-                                                <option value="select">Select (Dropdown)</option>
-                                            </select>
+                                            <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Type</label>
+                                            <AppFormBox disabled={isLocked} className="px-3">
+                                                <select
+                                                    value={param.parameter_type}
+                                                    onChange={(e) => {
+                                                        const newParams = [...parameters];
+                                                        newParams[index].parameter_type = e.target.value as any;
+                                                        setParameters(newParams);
+                                                    }}
+                                                    className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal cursor-pointer"
+                                                    disabled={isLocked}
+                                                >
+                                                    <option value="text">Text</option>
+                                                    <option value="number">Number</option>
+                                                    <option value="date">Date</option>
+                                                    <option value="date_range">Date Range</option>
+                                                    <option value="select">Select (Dropdown)</option>
+                                                </select>
+                                            </AppFormBox>
                                         </div>
                                     </div>
 
                                     {param.parameter_type === 'select' && (
                                         <div className="grid grid-cols-3 gap-4">
                                             <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Source (@table or SQL)</label>
-                                                <input
-                                                    type="text"
-                                                    value={param.source}
-                                                    onChange={(e) => {
-                                                        const newParams = [...parameters];
-                                                        newParams[index].source = e.target.value;
-                                                        setParameters(newParams);
-                                                    }}
-                                                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand"
-                                                    placeholder="@users->id,name"
-                                                    disabled={isLocked}
-                                                />
+                                                <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Source (@table or SQL)</label>
+                                                <AppFormBox disabled={isLocked} className="px-3">
+                                                    <input
+                                                        type="text"
+                                                        value={param.source}
+                                                        onChange={(e) => {
+                                                            const newParams = [...parameters];
+                                                            newParams[index].source = e.target.value;
+                                                            setParameters(newParams);
+                                                        }}
+                                                        className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal"
+                                                        placeholder="@users->id,name"
+                                                        disabled={isLocked}
+                                                    />
+                                                </AppFormBox>
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Value Field</label>
-                                                <input
-                                                    type="text"
-                                                    value={param.value_field}
-                                                    onChange={(e) => {
-                                                        const newParams = [...parameters];
-                                                        newParams[index].value_field = e.target.value;
-                                                        setParameters(newParams);
-                                                    }}
-                                                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand disabled:opacity-50"
-                                                    placeholder="id"
-                                                    disabled={isLocked}
-                                                />
+                                                <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Value Field</label>
+                                                <AppFormBox disabled={isLocked} className="px-3">
+                                                    <input
+                                                        type="text"
+                                                        value={param.value_field}
+                                                        onChange={(e) => {
+                                                            const newParams = [...parameters];
+                                                            newParams[index].value_field = e.target.value;
+                                                            setParameters(newParams);
+                                                        }}
+                                                        className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal"
+                                                        placeholder="id"
+                                                        disabled={isLocked}
+                                                    />
+                                                </AppFormBox>
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Label Field</label>
-                                                <input
-                                                    type="text"
-                                                    value={param.label_field}
-                                                    onChange={(e) => {
-                                                        const newParams = [...parameters];
-                                                        newParams[index].label_field = e.target.value;
-                                                        setParameters(newParams);
-                                                    }}
-                                                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand disabled:opacity-50"
-                                                    placeholder="name"
-                                                    disabled={isLocked}
-                                                />
+                                                <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Label Field</label>
+                                                <AppFormBox disabled={isLocked} className="px-3">
+                                                    <input
+                                                        type="text"
+                                                        value={param.label_field}
+                                                        onChange={(e) => {
+                                                            const newParams = [...parameters];
+                                                            newParams[index].label_field = e.target.value;
+                                                            setParameters(newParams);
+                                                        }}
+                                                        className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal"
+                                                        placeholder="name"
+                                                        disabled={isLocked}
+                                                    />
+                                                </AppFormBox>
                                             </div>
                                         </div>
                                     )}
 
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Default Value</label>
+                                        <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Default Value</label>
                                         <AppParameterSelectByTamplate
                                             parameter={param}
                                             value={param.default_value}
@@ -654,7 +666,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             {activeTab === 'code' && (
                 <div className="flex-1 flex flex-col gap-4 overflow-hidden pt-2">
                     <div className="flex justify-between items-center px-1">
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Python Engine</h3>
+                        <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Python Engine</h3>
                     </div>
                     
                     <div className="flex-1 min-h-0 rounded-xl border border-[var(--border-base)] overflow-hidden shadow-sm focus-within:border-brand transition-all">
@@ -734,18 +746,20 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             {activeTab === 'template' && (
                 <div className="flex-1 flex flex-col gap-4 overflow-hidden pt-2">
                     <div className="flex justify-between items-center px-1">
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Jinja2 HTML Template</h3>
+                        <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Jinja2 HTML Template</h3>
                         <div className="w-64">
-                            <select
-                                value={styleId}
-                                onChange={(e) => setStyleId(e.target.value)}
-                                className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand transition-all"
-                            >
-                                <option value="">Default Style</option>
-                                {styles.map(s => (
-                                    <option key={s.id} value={s.id}>{s.name} {s.is_default ? '(Default)' : ''}</option>
-                                ))}
-                            </select>
+                            <AppFormBox>
+                                <select
+                                    value={styleId}
+                                    onChange={(e) => setStyleId(e.target.value)}
+                                    className="w-full bg-transparent outline-none disabled:opacity-50 h-full font-normal cursor-pointer"
+                                >
+                                    <option value="">Default Style</option>
+                                    {styles.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name} {s.is_default ? '(Default)' : ''}</option>
+                                    ))}
+                                </select>
+                            </AppFormBox>
                         </div>
                     </div>
                     <div className="flex-1 min-h-0 rounded-xl border border-[var(--border-base)] overflow-hidden shadow-sm focus-within:border-brand transition-all">
