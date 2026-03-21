@@ -8,7 +8,6 @@ import { AppConsole, AppConsoleLogLine } from '../../shared/ui/app-console';
 import type { ConsoleLog } from '../../shared/ui/app-console';
 import { ConfirmModal } from '../../shared/ui/confirm-modal';
 import { WorkflowGraph } from '../../widgets/workflow-graph';
-import { WorkflowDataEditorTabs } from '../../widgets/workflow-data-editor';
 import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskManagement';
 import { ClientMetadataManagement } from '../../widgets/client-metadata-management/ui/ClientMetadataManagement';
 import { ReportManagement } from '../../widgets/report-management';
@@ -29,8 +28,6 @@ import { NodeTypeFormView } from '../../widgets/node-type-form-modal';
 
 import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
 
-const EMPTY_OBJ = {};
-
 const WorkflowEditorView = ({
     activeWorkflow,
     nodeTypes,
@@ -42,8 +39,6 @@ const WorkflowEditorView = ({
     activeNodeIds,
     activeClientId,
     canSave,
-    isEditModalOpen,
-    setIsEditModalOpen,
     isConsoleVisible,
     setIsConsoleVisible,
     executionLogs,
@@ -65,8 +60,6 @@ const WorkflowEditorView = ({
     activeNodeIds: any;
     activeClientId: any;
     canSave: boolean;
-    isEditModalOpen: boolean;
-    setIsEditModalOpen: any;
     isConsoleVisible: boolean;
     setIsConsoleVisible: any;
     executionLogs: any[];
@@ -198,13 +191,6 @@ const WorkflowEditorView = ({
                 rightContent={
                     <div className="flex items-center gap-2">
                         <button
-                            className="p-2.5 rounded-xl hover:bg-surface-700 text-gray-400 hover:text-white transition-colors border border-transparent hover:border-[var(--border-base)] group"
-                            onClick={() => setIsEditModalOpen(true)}
-                            title="Edit Workflow Data"
-                        >
-                            <Icon name="data_object" size={20} className="group-hover:scale-110 transition-transform" />
-                        </button>
-                        <button
                             onClick={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
                             disabled={isRunning}
                             className={`
@@ -300,29 +286,6 @@ const WorkflowEditorView = ({
                                 onNodeSelectCallback={handleNodeSelect}
                                 activeNodeIds={activeNodeIds}
                             />
-                        )}
-
-                        {isEditModalOpen && activeWorkflow && (
-                            <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                                <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
-                                    <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
-                                        <h2 className="text-sm font-bold truncate">Edit Workflow Data</h2>
-                                        <button
-                                            className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
-                                            onClick={() => setIsEditModalOpen(false)}
-                                        >
-                                            <Icon name="close" size={20} />
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 overflow-hidden">
-                                        <WorkflowDataEditorTabs
-                                            key={activeWorkflow.id}
-                                            data={activeWorkflow.workflow_data ?? EMPTY_OBJ}
-                                            onChange={(d: any) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
                         )}
                     </div>
 
@@ -423,8 +386,6 @@ const WorkflowsTabWithNavigator = ({
     toggleSidebar,
     activeClientId,
     canSave,
-    isEditModalOpen,
-    setIsEditModalOpen,
     isConsoleVisible,
     setIsConsoleVisible,
     executionLogs,
@@ -459,8 +420,6 @@ const WorkflowsTabWithNavigator = ({
                     activeNodeIds={activeNodeIds}
                     activeClientId={activeClientId}
                     canSave={canSave}
-                    isEditModalOpen={isEditModalOpen}
-                    setIsEditModalOpen={setIsEditModalOpen}
                     isConsoleVisible={isConsoleVisible}
                     setIsConsoleVisible={setIsConsoleVisible}
                     executionLogs={executionLogs}
@@ -500,8 +459,6 @@ const WorkflowsTabWithNavigator = ({
                     activeNodeIds={activeNodeIds}
                     activeClientId={activeClientId}
                     canSave={canSave}
-                    isEditModalOpen={isEditModalOpen}
-                    setIsEditModalOpen={setIsEditModalOpen}
                     isConsoleVisible={isConsoleVisible}
                     setIsConsoleVisible={setIsConsoleVisible}
                     executionLogs={executionLogs}
@@ -518,7 +475,7 @@ const WorkflowsTabWithNavigator = ({
                 />
             );
         }
-    }, [nodeTypes, isCreating, setActiveWorkflow, saveWorkflow, runWorkflow, isRunning, activeNodeIds, activeClientId, canSave, isEditModalOpen, setIsEditModalOpen, setIsConsoleVisible, handleNodesChange, handleEdgesChange, nodesRef, edgesRef, loadWorkflow, nav, notifyChange]);
+    }, [nodeTypes, isCreating, setActiveWorkflow, saveWorkflow, runWorkflow, isRunning, activeNodeIds, activeClientId, canSave, setIsConsoleVisible, handleNodesChange, handleEdgesChange, nodesRef, edgesRef, loadWorkflow, nav, notifyChange]);
 
     const handleSelectWorkflow = useCallback((wf: any) => {
         handleIntercept(() => handleSelectWorkflowActual(wf));
@@ -551,8 +508,6 @@ const WorkflowsTabWithNavigator = ({
                     activeNodeIds={activeNodeIds}
                     activeClientId={activeClientId}
                     canSave={canSave}
-                    isEditModalOpen={isEditModalOpen}
-                    setIsEditModalOpen={setIsEditModalOpen}
                     isConsoleVisible={isConsoleVisible}
                     setIsConsoleVisible={setIsConsoleVisible}
                     executionLogs={executionLogs}
@@ -569,7 +524,7 @@ const WorkflowsTabWithNavigator = ({
                 />
             );
         }
-    }, [activeWorkflow?.id, activeWorkflow, isRunning, isCreating, isEditModalOpen, nodeTypes, activeNodeIds, activeClientId, canSave, nav, notifyChange]);
+    }, [activeWorkflow?.id, activeWorkflow, isRunning, isCreating, nodeTypes, activeNodeIds, activeClientId, canSave, nav, notifyChange]);
 
 
     return (
@@ -602,7 +557,6 @@ export default function ManagerPage() {
     const [activeTab, setActiveTabState] = useState<'workflows' | 'reports' | 'ai-tasks' | 'client-metadata' | 'prompts'>('workflows');
     const [resetNonce, setResetNonce] = useState(0);
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [renameInputValue, setRenameInputValue] = useState('');
     const [renameCategoryValue, setRenameCategoryValue] = useState<string>('personal');
 
@@ -783,8 +737,6 @@ export default function ManagerPage() {
                                     toggleSidebar={toggleSidebar}
                                     activeClientId={activeClientId}
                                     canSave={canSave}
-                                    isEditModalOpen={isEditModalOpen}
-                                    setIsEditModalOpen={setIsEditModalOpen}
                                     isConsoleVisible={isConsoleVisible}
                                     setIsConsoleVisible={setIsConsoleVisible}
                                     executionLogs={executionLogs}

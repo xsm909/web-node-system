@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect, createContext, useContext, us
 import { type Node, type Edge, ReactFlowProvider } from 'reactflow';
 import { AppConsole, AppConsoleLogLine } from '../../../shared/ui/app-console';
 import type { ConsoleLog } from '../../../shared/ui/app-console';
-import { WorkflowDataEditorTabs } from '../../workflow-data-editor';
 import { WorkflowList } from '../../workflow-list';
 import { Navigator, useNavigator } from '../../../shared/ui/navigator';
 import { useWorkflowOperations } from '../../../features/workflow-operations';
@@ -50,8 +49,6 @@ interface WorkflowEditorContextType {
     notifyChange: () => void;
     
     // UI State
-    isEditModalOpen: boolean;
-    setIsEditModalOpen: (v: boolean) => void;
     isConsoleVisible: boolean;
     setIsConsoleVisible: (v: boolean) => void;
     workflowToDelete: any | null;
@@ -86,7 +83,6 @@ export const useWorkflowEditor = () => {
 export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, refreshTrigger, onToggleSidebar, isSidebarOpen }: any) => {
     const { activeClientId } = useClientStore();
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isParametersModalOpen, setIsParametersModalOpen] = useState(false);
     const [renameInputValue, setRenameInputValue] = useState('');
     const [renameCategoryValue, setRenameCategoryValue] = useState<string>('personal');
@@ -146,11 +142,7 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
     }, []);
 
     const handleEditNodeContext = useCallback(async (event: React.MouseEvent, node: Node) => {
-        console.log('[WorkflowEditorProvider] handleEditNodeContext ENTER', node.id, node.data);
-        if (!onEditNodeProp) {
-            console.warn('[WorkflowEditorProvider] No onEditNodeProp provided to provider');
-            return;
-        }
+        if (!onEditNodeProp) return;
         event.preventDefault();
         event.stopPropagation();
         
@@ -162,16 +154,12 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
             (nodeTypeId && t.id === nodeTypeId) ||
             (t.name.toLowerCase() === (nodeTypeRef || nodeLabel).toLowerCase())
         );
-        
-        console.log('[WorkflowEditorProvider] Double-click lookup result:', ntDef?.name || 'NOT FOUND', 'for label:', nodeLabel);
 
         if (ntDef) {
-            console.log('[WorkflowEditorProvider] Double-click detected. Opening specialized editor for:', ntDef.name);
             try {
                 const { data } = await apiClient.get(`/admin/node-types/${ntDef.id}`);
                 onEditNodeProp(data);
             } catch (error) {
-                console.log('[WorkflowEditorProvider] Admin node-type fetch failed (likely non-admin or network), using basic definition');
                 onEditNodeProp(ntDef);
             }
         }
@@ -197,8 +185,6 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         saveWorkflow,
         runWorkflow,
         notifyChange,
-        isEditModalOpen,
-        setIsEditModalOpen,
         isConsoleVisible,
         setIsConsoleVisible,
         isParametersModalOpen,
@@ -223,7 +209,7 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         executionLogs, liveRuntimeData, activeNodeIds, activeClientId,
         loadWorkflow, setActiveWorkflow, handleCreateWorkflow, confirmDeleteWorkflow,
         handleDuplicateWorkflow, handleRenameWorkflow, saveWorkflow, runWorkflow,
-        notifyChange, isEditModalOpen, setIsEditModalOpen, isConsoleVisible, 
+        notifyChange, isConsoleVisible, 
         setIsConsoleVisible, workflowToDelete, setWorkflowToDelete, 
         workflowToRename, setWorkflowToRename, renameInputValue, 
         setRenameInputValue, renameCategoryValue, setRenameCategoryValue,
@@ -242,7 +228,6 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
 
 // --- Sub-Components ---
 
-const EMPTY_OBJ = {};
 let globalIsParamsExpanded = false;
 
 const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
@@ -256,8 +241,6 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
         isSaving,
         activeNodeIds,
         activeClientId,
-        isEditModalOpen,
-        setIsEditModalOpen,
         isParametersModalOpen,
         setIsParametersModalOpen,
         isConsoleVisible,
@@ -282,7 +265,6 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
     const [consoleHeight, setConsoleHeight] = useState(280);
     const [modalParams, setModalParams] = useState<any[]>([]);
     const [paramOptions, setParamOptions] = useState<Record<string, { value: string, label: string }[]>>({});
-    const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
     const handleToggleParams = useCallback(() => {
         setIsParamsExpanded(prev => {
@@ -299,14 +281,12 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
 
     const fetchParamOptions = useCallback(async () => {
         if (!activeWorkflow?.id) return;
-        setIsLoadingOptions(true);
         try {
             const response = await apiClient.get(`/workflows/workflows/${activeWorkflow.id}/options`);
             setParamOptions(response.data || {});
         } catch (err) {
             console.error('[AdminWorkflowEditorView] Failed to fetch parameter options:', err);
         } finally {
-            setIsLoadingOptions(false);
         }
     }, [activeWorkflow?.id]);
 
@@ -387,23 +367,12 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
             noPadding
             headerRightContent={
                 <WorkflowHeader
-                    title={activeWorkflow?.name || ''}
-                    activeWorkflowId={activeWorkflow?.id}
-                    users={[]}
-                    workflowsByOwner={{}}
                     isRunning={isRunning}
                     isSidebarOpen={isSidebarOpen}
-                    onSelect={() => {}}
-                    onDelete={() => {}}
-                    onRename={() => {}}
-                    onCreate={async () => {}}
-                    onSave={saveWorkflow}
                     onRun={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
                     onToggleSidebar={onToggleSidebar}
                     canAction={!isSaving}
-                    onOpenEditModal={() => setIsEditModalOpen(true)}
                     onOpenParameters={onOpenParameters}
-                    canSave={isDirty}
                 />
             }
         >
@@ -427,28 +396,6 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
                                 />
                             )}
 
-                            {isEditModalOpen && activeWorkflow && (
-                                <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                                    <div className="relative w-full max-w-6xl h-[85vh] bg-[var(--bg-app)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--border-base)]">
-                                        <div className="flex justify-between items-center p-4 border-b border-[var(--border-base)]">
-                                            <h2 className="text-sm font-bold truncate">Edit Workflow Data</h2>
-                                            <button
-                                                className="p-2 hover:bg-[var(--border-base)] rounded-xl transition-colors shrink-0"
-                                                onClick={() => setIsEditModalOpen(false)}
-                                            >
-                                                <Icon name="close" size={20} />
-                                            </button>
-                                        </div>
-                                        <div className="flex-1 overflow-hidden">
-                                            <WorkflowDataEditorTabs
-                                                key={activeWorkflow.id}
-                                                data={activeWorkflow.workflow_data ?? EMPTY_OBJ}
-                                                onChange={(d: any) => setActiveWorkflow({ ...activeWorkflow, workflow_data: d })}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
                         <AppParametersView
@@ -613,8 +560,6 @@ const AdminWorkflowsTab = () => {
         );
     }, [loadWorkflow, nav, setActiveWorkflow]);
 
-    // Graph loading synchronization
-    // Graph loading synchronization - only triggers on initial load or manual refresh
     useEffect(() => {
         if (activeWorkflow && !nav.canGoBack) {
             handleSelectWorkflow(activeWorkflow);
