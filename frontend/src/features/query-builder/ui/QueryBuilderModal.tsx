@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { ObjectParameter as ReportParameter } from '../../../entities/report/model/types';
 import {
@@ -889,7 +890,6 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [activeTab, setActiveTab] = useState<'tables' | 'joins' | 'conditions' | 'grouping_sorting'>('tables');
     const [previewSql, setPreviewSql] = useState('');
     const [activeDragItem, setActiveDragItem] = useState<any>(null);
-    const [grabOffset, setGrabOffset] = useState({ x: 0, y: 0 });
     const [parameterValues, setParameterValues] = useState<Record<string, any>>({});
     const [editingField, setEditingField] = useState<SelectedField | null>(null);
     const [editingCTE, setEditingCTE] = useState<any>(null);
@@ -1358,19 +1358,10 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     };
 
     const handleGlobalDragStart = (event: any) => {
-        const { active, activatorEvent } = event;
+        const { active } = event;
         setActiveDragItem(active);
         setDragDelta({ x: 0, y: 0 });
         setOverId(null);
-
-        // Calculate where on the element we grabbed it
-        const rect = active.rect.current.initial;
-        if (rect && activatorEvent) {
-            setGrabOffset({
-                x: (activatorEvent as MouseEvent).clientX - rect.left,
-                y: (activatorEvent as MouseEvent).clientY - rect.top
-            });
-        }
     };
 
     const handleGlobalDragMove = (event: any) => {
@@ -1565,21 +1556,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         (args: any) => {
             const { transform, active } = args;
             if (!active) return transform;
-
-            // Use the initial rect of the source node for height only
-            const h = active.rect.current.initial?.height ?? 0;
-            
-            // Center the overlay relative to its new fixed 200px width
-            const targetHalfW = 100; // 200px / 2
-            const targetHalfH = h / 2;
-
-            return {
-                ...transform,
-                x: transform.x + grabOffset.x - targetHalfW + 200,
-                y: transform.y + grabOffset.y - targetHalfH,
-            };
+            return transform;
         }
-    ], [grabOffset, activeState.selectedFields]);
+    ], []);
 
     if (!isOpen) return null;
 
@@ -1630,107 +1609,111 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     onDragMove={handleGlobalDragMove}
                     onDragEnd={handleGlobalDragEnd}
                 >
-                    <DragOverlay
-                        modifiers={dragModifiers}
-                        dropAnimation={{
-                            sideEffects: defaultDropAnimationSideEffects({
-                                styles: {
-                                    active: {
-                                        opacity: '0.4',
+                    {createPortal(
+                        <DragOverlay
+                            modifiers={dragModifiers}
+                            style={{ zIndex: 9999 }}
+                            dropAnimation={{
+                                sideEffects: defaultDropAnimationSideEffects({
+                                    styles: {
+                                        active: {
+                                            opacity: '0.4',
+                                        },
                                     },
-                                },
-                            }),
-                        }}>
-                        {activeDragItem ? (
-                            (() => {
-                                const id = activeDragItem.id.toString();
-                                const isExistingField = activeState.selectedFields.some(f => f.id === id);
-                                const isExistingTable = activeState.tables.some(t => t.alias === id);
+                                }),
+                            }}>
+                            {activeDragItem ? (
+                                (() => {
+                                    const id = activeDragItem.id.toString();
+                                    const isExistingField = activeState.selectedFields.some(f => f.id === id);
+                                    const isExistingTable = activeState.tables.some(t => t.alias === id);
 
-                                const isOverFieldsArea = overId && (
-                                    overId === 'selected-fields-drop-zone' ||
-                                    activeState.selectedFields.some(f => f.id === overId)
-                                );
+                                    const isOverFieldsArea = overId && (
+                                        overId === 'selected-fields-drop-zone' ||
+                                        activeState.selectedFields.some(f => f.id === overId)
+                                    );
 
-                                const isOverTablesArea = overId && (
-                                    overId === 'selected-tables-drop-zone' ||
-                                    activeState.tables.some(t => t.alias === overId)
-                                );
+                                    const isOverTablesArea = overId && (
+                                        overId === 'selected-tables-drop-zone' ||
+                                        activeState.tables.some(t => t.alias === overId)
+                                    );
 
-                                const isFieldOutside = isExistingField && !isOverFieldsArea;
-                                const isTableOutside = isExistingTable && !isOverTablesArea && !isOverFieldsArea;
+                                    const isFieldOutside = isExistingField && !isOverFieldsArea;
+                                    const isTableOutside = isExistingTable && !isOverTablesArea && !isOverFieldsArea;
 
-                                const isOutside = isFieldOutside || isTableOutside;
-                                const isSourceTable = id.startsWith('source-table:');
-                                const isTableType = isExistingTable || isSourceTable;
+                                    const isOutside = isFieldOutside || isTableOutside;
+                                    const isSourceTable = id.startsWith('source-table:');
+                                    const isTableType = isExistingTable || isSourceTable;
 
-                                return (
-                                    <div className={`group flex items-center gap-3 p-2 rounded-xl border-2 shadow-2xl w-[200px] pointer-events-none transition-all duration-200 ${isOutside
-                                            ? 'border-red-500 bg-red-500/10 text-red-500 scale-95 opacity-90 backdrop-blur-sm'
-                                            : 'border-brand/40 bg-[var(--bg-app)] text-[var(--text-main)] scale-100'
-                                        }`}>
-                                        <div className={`p-1 ${isOutside ? 'text-red-500' : 'text-brand'}`}>
-                                            <Icon name={isOutside ? 'delete' : 'drag_indicator'} size={14} />
-                                        </div>
+                                    return (
+                                        <div className={`group flex items-center gap-3 p-2 rounded-xl border-2 shadow-2xl w-[200px] pointer-events-none transition-all duration-200 ${isOutside
+                                                ? 'border-red-500 bg-red-500/10 text-red-500 scale-95 opacity-90 backdrop-blur-sm'
+                                                : 'border-brand/40 bg-[var(--bg-app)] text-[var(--text-main)] scale-100'
+                                            }`}>
+                                            <div className={`p-1 ${isOutside ? 'text-red-500' : 'text-brand'}`}>
+                                                <Icon name={isOutside ? 'delete' : 'drag_indicator'} size={14} />
+                                            </div>
 
-                                        {(() => {
-                                            if (isTableType) {
-                                                const parts = id.split(':');
-                                                const tableName = isSourceTable ? parts[1] : id;
-                                                const isCte = isSourceTable ? parts[2] === 'true' : activeState.tables.find(t => t.alias === id)?.isCte;
-                                                const isRecursive = isSourceTable ? parts[3] === 'true' : activeState.tables.find(t => t.alias === id)?.isRecursive;
+                                            {(() => {
+                                                if (isTableType) {
+                                                    const parts = id.split(':');
+                                                    const tableName = isSourceTable ? parts[1] : id;
+                                                    const isCte = isSourceTable ? parts[2] === 'true' : activeState.tables.find(t => t.alias === id)?.isCte;
+                                                    const isRecursive = isSourceTable ? parts[3] === 'true' : activeState.tables.find(t => t.alias === id)?.isRecursive;
 
+                                                    return (
+                                                        <>
+                                                            <div className={`p-1.5 rounded-lg ${isOutside
+                                                                    ? 'bg-red-500/20 text-red-500'
+                                                                    : 'bg-brand/10 text-brand'
+                                                                }`}>
+                                                                <Icon name={isOutside ? 'delete_forever' : (isCte ? (isRecursive ? 'table_recursive' : 'table_virtual') : 'table_chart')} size={14} />
+                                                            </div>
+                                                            <div className="flex-1 flex flex-col min-w-0">
+                                                                <span className={`text-xs font-normal truncate ${isOutside ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
+                                                                    {tableName}
+                                                                </span>
+                                                                <span className={`text-[10px] font-normal opacity-70 ${isOutside ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
+                                                                    {isOutside ? 'Release to remove' : (isCte ? 'Query Block' : 'Database Table')}
+                                                                </span>
+                                                            </div>
+                                                        </>
+                                                    );
+                                                }
+
+                                                const field = activeState.selectedFields.find(f => f.id === id);
+                                                const isExpression = !!field?.expression;
                                                 return (
                                                     <>
                                                         <div className={`p-1.5 rounded-lg ${isOutside
                                                                 ? 'bg-red-500/20 text-red-500'
-                                                                : 'bg-brand/10 text-brand'
+                                                                : (isExpression ? 'bg-amber-500/10 text-amber-500' : 'bg-brand/10 text-brand')
                                                             }`}>
-                                                            <Icon name={isOutside ? 'delete_forever' : (isCte ? (isRecursive ? 'table_recursive' : 'table_virtual') : 'table_chart')} size={14} />
+                                                            <Icon name={isOutside ? 'delete_forever' : 'table_rows'} size={14} />
                                                         </div>
                                                         <div className="flex-1 flex flex-col min-w-0">
-                                                            <span className={`text-xs font-normal truncate ${isOutside ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
-                                                                {tableName}
-                                                            </span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`text-xs font-normal truncate ${isOutside ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
+                                                                    {field?.expression || `${field?.tableAlias}.${field?.columnName}`}
+                                                                </span>
+                                                                {field?.alias && !isOutside && (
+                                                                    <span className="text-[10px] text-brand font-normal bg-brand/5 px-1.5 py-0.5 rounded">AS {field.alias}</span>
+                                                                )}
+                                                            </div>
                                                             <span className={`text-[10px] font-normal opacity-70 ${isOutside ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
-                                                                {isOutside ? 'Release to remove' : (isCte ? 'Query Block' : 'Database Table')}
+                                                                {isOutside ? 'Release to remove' : (isExpression ? 'Custom Expression' : (field?.columnName === '*' ? 'All Columns' : `${field?.tableAlias} column`))}
                                                             </span>
                                                         </div>
                                                     </>
                                                 );
-                                            }
-
-                                            const field = activeState.selectedFields.find(f => f.id === id);
-                                            const isExpression = !!field?.expression;
-                                            return (
-                                                <>
-                                                    <div className={`p-1.5 rounded-lg ${isOutside
-                                                            ? 'bg-red-500/20 text-red-500'
-                                                            : (isExpression ? 'bg-amber-500/10 text-amber-500' : 'bg-brand/10 text-brand')
-                                                        }`}>
-                                                        <Icon name={isOutside ? 'delete_forever' : 'table_rows'} size={14} />
-                                                    </div>
-                                                    <div className="flex-1 flex flex-col min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`text-xs font-normal truncate ${isOutside ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
-                                                                {field?.expression || `${field?.tableAlias}.${field?.columnName}`}
-                                                            </span>
-                                                            {field?.alias && !isOutside && (
-                                                                <span className="text-[10px] text-brand font-normal bg-brand/5 px-1.5 py-0.5 rounded">AS {field.alias}</span>
-                                                            )}
-                                                        </div>
-                                                        <span className={`text-[10px] font-normal opacity-70 ${isOutside ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
-                                                            {isOutside ? 'Release to remove' : (isExpression ? 'Custom Expression' : (field?.columnName === '*' ? 'All Columns' : `${field?.tableAlias} column`))}
-                                                        </span>
-                                                    </div>
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
-                                );
-                            })()
-                        ) : null}
-                    </DragOverlay>
+                                            })()}
+                                        </div>
+                                    );
+                                })()
+                            ) : null}
+                        </DragOverlay>,
+                        document.body
+                    )}
 
                     {/* Left Sidebar: Tables List */}
                 <div className="w-64 border-r border-[var(--border-base)] flex flex-col bg-[var(--bg-alt)]">
