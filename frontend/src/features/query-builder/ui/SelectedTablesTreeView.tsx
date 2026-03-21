@@ -36,9 +36,9 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
                 isOver ? 'border-brand ring-4 ring-brand/10 bg-brand/[0.02]' : 'border-[var(--border-base)]'
             }`}
         >
-            <div className="bg-[var(--bg-alt)] px-4 h-[40px] border-b border-[var(--border-base)] flex items-center justify-between">
-                <h3 className="text-[10px] font-normal uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
-                    <Icon name="table_chart" size={14} />
+            <div className="px-4 py-3 flex items-center justify-between sticky top-0 z-10 bg-[var(--bg-alt)]/80 backdrop-blur-md border-b border-[var(--border-base)]/30 shadow-sm shadow-black/5">
+                <h3 className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-main)] flex items-center gap-2">
+                    <Icon name="table_chart" size={14} className="text-brand" />
                     SELECTED TABLES
                 </h3>
             </div>
