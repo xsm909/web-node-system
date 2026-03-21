@@ -40,7 +40,8 @@ class Workflow(Base):
         "ObjectParameter", 
         primaryjoin="and_(ObjectParameter.object_id == Workflow.id, ObjectParameter.object_name == 'workflows')",
         foreign_keys=[ObjectParameter.object_id],
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        overlaps="parameters"
     )
 
 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, field_validator
 from datetime import datetime
 import uuid
@@ -429,6 +429,7 @@ def test_parameter_source(data: SourceTestRequest, db: Session = Depends(get_db)
 
 class RunWorkflowRequest(BaseModel):
     target_client_id: Optional[uuid.UUID] = None
+    parameters: Optional[Dict[str, Any]] = None
 
 
 @router.post("/workflows/{workflow_id}/run")
@@ -442,8 +443,8 @@ def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = No
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
 
-    # Store target client in runtime data for the refined get_active_client logic
-    runtime_data = {}
+    # Store target client and passed parameters in runtime data
+    runtime_data = data.parameters or {} if data else {}
     if data and data.target_client_id:
         runtime_data["_active_client_id"] = str(data.target_client_id)
 

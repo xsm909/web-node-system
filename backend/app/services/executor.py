@@ -341,12 +341,23 @@ class WorkflowExecutor:
             self.execution.status = WorkflowStatus.running
             self.db.commit()
 
-            # runtime_data should stay empty at the start of a new execution.
-            # It is no longer initialized from workflow_data.
-            if self.execution.runtime_data:
-                self.log(f"Resuming execution with existing runtime data: {self.execution.runtime_data}", level="system")
+            # Load workflow parameters and merge into runtime_data
+            workflow_params = {p.parameter_name: p.default_value for p in workflow.parameters}
+            
+            # current_runtime_data has priority (passed from API)
+            passed_runtime_data = self.execution.runtime_data or {}
+            
+            # Merge: defaults first, then passed data
+            merged_runtime = {**workflow_params, **passed_runtime_data}
+            
+            self.execution.runtime_data = merged_runtime
+            self.db.commit()
+
+            if passed_runtime_data:
+                self.log(f"Starting execution. Merged {len(workflow_params)} defaults with {len(passed_runtime_data)} passed parameters.", level="system")
+                self.log(f"Final runtime data: {merged_runtime}", level="system")
             else:
-                self.log("Starting execution with empty runtime data", level="system")
+                self.log(f"Starting execution with {len(workflow_params)} default parameters.", level="system")
 
             graph = workflow.graph or {"nodes": [], "edges": []}
             nodes = graph.get("nodes", [])
