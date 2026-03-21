@@ -319,10 +319,10 @@ export function WorkflowGraph({
     }, [clipboard, setNodes, setEdges]);
 
     useHotkeys([
-        { key: 'cmd+c', description: 'Copy Nodes', handler: () => handleCopy() },
-        { key: 'ctrl+c', description: 'Copy Nodes', handler: () => handleCopy() },
-        { key: 'cmd+v', description: 'Paste Nodes', handler: () => handlePaste() },
-        { key: 'ctrl+v', description: 'Paste Nodes', handler: () => handlePaste() }
+        { key: 'cmd+c', description: 'Copy Nodes', enabled: nodes.some(n => n.selected), handler: () => handleCopy() },
+        { key: 'ctrl+c', description: 'Copy Nodes', enabled: nodes.some(n => n.selected), handler: () => handleCopy() },
+        { key: 'cmd+v', description: 'Paste Nodes', enabled: !!clipboard, handler: () => handlePaste() },
+        { key: 'ctrl+v', description: 'Paste Nodes', enabled: !!clipboard, handler: () => handlePaste() }
     ], { scopeName: 'Workflow Graph' });
 
     const onMouseMove = useCallback((event: React.MouseEvent) => {

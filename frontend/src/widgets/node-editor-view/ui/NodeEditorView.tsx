@@ -271,7 +271,7 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
         }
     ], {
         scopeName: `NodeEditor-${node?.id}`,
-        enabled: true,
+        enabled: !inline,
         exclusive: true,
         exclusiveExceptions: ['F1', 'F5'] // maybe allow standard ones? Actually user said: "Also with workflow, if I go into node editing mode. What was available for workflow is no longer available until I return."
     });
