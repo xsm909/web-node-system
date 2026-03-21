@@ -32,8 +32,8 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
     return (
         <div 
             ref={setNodeRef}
-            className={`flex flex-col h-full bg-[var(--bg-app)] border-2 rounded-2xl overflow-hidden shadow-sm transition-all duration-200 ${
-                isOver ? 'border-brand ring-4 ring-brand/10 bg-brand/[0.02]' : 'border-[var(--border-base)]'
+            className={`flex flex-col h-full bg-[var(--bg-app)] border rounded-2xl overflow-hidden transition-all duration-200 ${
+                isOver ? 'border-brand ring-2 ring-brand/20 bg-brand/5' : 'border-[var(--border-base)]'
             }`}
         >
             <div className="px-4 py-3 flex items-center justify-between sticky top-0 z-10 bg-[var(--bg-alt)]/80 backdrop-blur-md border-b border-[var(--border-base)]/30 shadow-sm shadow-black/5">

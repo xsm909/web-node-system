@@ -25,7 +25,7 @@ export const SelectedFieldsTreeView: React.FC<SelectedFieldsTreeViewProps> = ({
     return (
         <div 
             ref={setNodeRef}
-            className={`flex flex-col h-full bg-[var(--bg-app)] border rounded-2xl overflow-hidden shadow-sm transition-all ${
+            className={`flex flex-col h-full bg-[var(--bg-app)] border rounded-2xl overflow-hidden transition-all ${
                 isOver ? 'border-brand ring-2 ring-brand/20 bg-brand/5' : 'border-[var(--border-base)]'
             }`}
         >
