@@ -106,8 +106,8 @@ export function WorkflowGraph({
         const graphEdges = wf.graph.edges || [];
 
         // Sanitize nodes: ensure EVERY node has a valid numeric x/y position
-        const sanitizedNodes = graphNodes.filter((n: any) => 
-            n.position && 
+        const sanitizedNodes = graphNodes.filter((n: any) =>
+            n.position &&
             typeof n.position.x === 'number' && !isNaN(n.position.x) &&
             typeof n.position.y === 'number' && !isNaN(n.position.y)
         );
@@ -162,10 +162,10 @@ export function WorkflowGraph({
         if (globalLastCenteredWorkflowId !== wf.id) {
             console.log('[WorkflowGraph] Workflow ID changed from', globalLastCenteredWorkflowId, 'to', wf.id);
             const cachedViewport = globalViewportCache[wf.id];
-            
+
             // Mark as centered/loaded IMMEDIATELY
             globalLastCenteredWorkflowId = wf.id;
-            
+
             if (!cachedViewport) {
                 console.log('[WorkflowGraph] No cached viewport, fitting view...');
                 const timer = setTimeout(() => {
@@ -186,7 +186,7 @@ export function WorkflowGraph({
     useEffect(() => {
         if (!workflow?.graph?.nodes) return;
         const externalNodes = workflow.graph.nodes;
-        
+
         setNodes(nds => {
             let hasChanges = false;
             const nextNodes = nds.map(localNode => {
@@ -220,9 +220,9 @@ export function WorkflowGraph({
     // Propagate changes up — use a ref to prevent infinite loops if callbacks trigger parent re-renders
     const lastNodesRef = React.useRef<string>('');
     useEffect(() => {
-        const nodesStr = JSON.stringify(nodes.map(n => ({ 
-            id: n.id, 
-            position: n.position, 
+        const nodesStr = JSON.stringify(nodes.map(n => ({
+            id: n.id,
+            position: n.position,
             nodeTypeId: n.data?.nodeTypeId,
             selected: n.selected
         })));
@@ -234,9 +234,9 @@ export function WorkflowGraph({
 
     const lastEdgesRef = React.useRef<string>('');
     useEffect(() => {
-        const edgesStr = JSON.stringify(edges.map(e => ({ 
-            id: e.id, 
-            source: e.source, 
+        const edgesStr = JSON.stringify(edges.map(e => ({
+            id: e.id,
+            source: e.source,
             target: e.target,
             sourceHandle: e.sourceHandle,
             targetHandle: e.targetHandle
@@ -570,7 +570,7 @@ export function WorkflowGraph({
     }), [nodes, nodeTypes, activeNodeIds, rightConnectedSources]);
 
     const isLoading = !workflow || !(workflow as any).graph;
-    
+
     return (
         <div className="flex-1 flex flex-col overflow-hidden relative w-full h-full min-h-0">
             <section className="flex-1 bg-[var(--bg-app)] relative w-full h-full min-h-0">
@@ -649,12 +649,12 @@ export function WorkflowGraph({
                         variant={BackgroundVariant.Dots}
                         color="currentColor"
                         gap={20}
-                        size={1.5}
-                        className="text-[var(--text-muted)] opacity-20 dark:opacity-30"
+                        size={2.1}
+                        className="text-[var(--text-muted)] opacity-25 dark:opacity-35"
                     />
-                    <Controls 
+                    <Controls
                         showInteractive={false}
-                        className="!bg-surface-800 !border-[var(--border-base)] !rounded-2xl !shadow-2xl !overflow-hidden [&_button]:!border-[var(--border-base)] [&_button]:!bg-transparent [&_button:hover]:!bg-brand/10 [&_svg]:!fill-[var(--text-main)] [&_svg]:!opacity-60" 
+                        className="!bg-surface-800 !border-[var(--border-base)] !rounded-2xl !shadow-2xl !overflow-hidden [&_button]:!border-[var(--border-base)] [&_button]:!bg-transparent [&_button:hover]:!bg-brand/10 [&_svg]:!fill-[var(--text-main)] [&_svg]:!opacity-60"
                     />
                 </ReactFlow>
 
