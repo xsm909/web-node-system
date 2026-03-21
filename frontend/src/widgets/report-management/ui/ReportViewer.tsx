@@ -1,10 +1,10 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import type { Report } from '../../../entities/report/model/types';
 import { Icon } from '../../../shared/ui/icon';
-import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
 import { apiClient } from '../../../shared/api/client';
 import { AppParametersView } from '../../../shared/ui/app-parameters-view/AppParametersView';
+import { AppParameterSelectByTamplate } from '../../../shared/ui/app-parameter-select-by-tamplate';
 
 interface ReportViewerProps {
     report: Report;
@@ -20,8 +20,6 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
     const [htmlData, setHtmlData] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [paramValues, setParamValues] = useState<Record<string, any>>({});
-    // Store selected item locally for ComboBox to render label correctly
-    const [selectedItems, setSelectedItems] = useState<Record<string, { value: string, label: string }>>({});
     const [options, setOptions] = useState<Record<string, { value: string, label: string }[]>>({});
     const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
     const [isParamsExpanded, setIsParamsExpanded] = useState(true);
@@ -53,8 +51,9 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
             const initialParams: Record<string, any> = {};
             report.parameters.forEach(p => {
                 if (p.parameter_type === 'date_range') {
-                    initialParams[`${p.parameter_name}_start`] = p.default_value || '';
-                    initialParams[`${p.parameter_name}_end`] = p.default_value || '';
+                    const [s, e] = (p.default_value || '').split(',');
+                    initialParams[`${p.parameter_name}_start`] = s || '';
+                    initialParams[`${p.parameter_name}_end`] = e || s || '';
                 } else {
                     initialParams[p.parameter_name] = p.default_value || '';
                 }
@@ -113,46 +112,16 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                                 {param.parameter_name.replace(/_/g, ' ')}
                             </label>
 
-                            {param.parameter_type === 'select' && options[param.parameter_name] && options[param.parameter_name].length > 0 ? (
-                                <ComboBox
-                                    value={paramValues[param.parameter_name]}
-                                    label={selectedItems[param.parameter_name]?.label || (paramValues[param.parameter_name] ? options[param.parameter_name].find(o => String(o.value) === String(paramValues[param.parameter_name]))?.label : null) || 'Select...'}
-                                    placeholder={param.parameter_name}
-                                    items={options[param.parameter_name].map(opt => ({
-                                        id: String(opt.value),
-                                        name: opt.label
-                                    }))}
-                                    onSelect={(item) => {
-                                        handleParamChange(param.parameter_name, item.id);
-                                        setSelectedItems(prev => ({ ...prev, [param.parameter_name]: { value: item.id, label: item.name } }));
-                                    }}
-                                    variant="primary"
-                                    className="w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl"
-                                />
-                            ) : param.parameter_type === 'date_range' ? (
-                                <div className="grid grid-cols-2 gap-2">
-                                    <input
-                                        type="date"
-                                        value={paramValues[`${param.parameter_name}_start`] || ''}
-                                        onChange={(e) => handleParamChange(`${param.parameter_name}_start`, e.target.value)}
-                                        className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
-                                    />
-                                    <input
-                                        type="date"
-                                        value={paramValues[`${param.parameter_name}_end`] || ''}
-                                        onChange={(e) => handleParamChange(`${param.parameter_name}_end`, e.target.value)}
-                                        className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
-                                    />
-                                </div>
-                            ) : (
-                                <input
-                                    type={param.parameter_type === 'number' ? 'number' : param.parameter_type === 'date' ? 'date' : 'text'}
-                                    value={paramValues[param.parameter_name] || ''}
-                                    onChange={(e) => handleParamChange(param.parameter_name, e.target.value)}
-                                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
-                                    placeholder={`Enter ${param.parameter_name}...`}
-                                />
-                            )}
+                            <AppParameterSelectByTamplate
+                                parameter={param}
+                                value={paramValues[param.parameter_name]}
+                                onChange={(val) => handleParamChange(param.parameter_name, val)}
+                                startValue={paramValues[`${param.parameter_name}_start`]}
+                                endValue={paramValues[`${param.parameter_name}_end`]}
+                                onStartChange={(val) => handleParamChange(`${param.parameter_name}_start`, val)}
+                                onEndChange={(val) => handleParamChange(`${param.parameter_name}_end`, val)}
+                                options={options[param.parameter_name]}
+                            />
                         </div>
                     ))}
                 </AppParametersView>

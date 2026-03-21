@@ -128,6 +128,15 @@ class ReportSQLGenerateRequest(BaseModel):
 class ReportSQLGenerateResponse(BaseModel):
     query: str
 
+class SourceTestRequest(BaseModel):
+    source: str
+    value_field: Optional[str] = None
+    label_field: Optional[str] = None
+
+class SourceTestResponse(BaseModel):
+    options: List[Dict[str, Any]]
+    error: Optional[str] = None
+
 # --- Routes for Report Styles ---
 
 @router.get("/styles", response_model=List[ReportStyleOut])
@@ -667,4 +676,49 @@ def get_report_parameter_options(report_id: uuid.UUID, db: Session = Depends(get
             options[param.parameter_name] = []
             
     return options
+
+@router.post("/test-source", response_model=SourceTestResponse)
+def test_parameter_source(data: SourceTestRequest, db: Session = Depends(get_db), _=manager_access):
+    source = data.source.strip()
+    if not source:
+        return {"options": [], "error": None}
+    
+    try:
+        if source.startswith("@"):
+            parts = source[1:].split("->")
+            table_name = parts[0]
+            fields_str = parts[1] if len(parts) > 1 else "id,name"
+            fields = fields_str.split(",")
+            val_field = fields[0]
+            lbl_field = fields[1] if len(fields) > 1 else val_field
+            
+            if not re.match(r'^\w+$', table_name) or not re.match(r'^\w+$', val_field) or not re.match(r'^\w+$', lbl_field):
+                return {"options": [], "error": "Invalid table or field names"}
+
+            result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 100"))
+            options = [
+                {"value": str(row[0]), "label": str(row[1])} for row in [tuple(r) for r in result.fetchall()]
+            ]
+            return {"options": options, "error": None}
+            
+        elif source.lower().startswith("select"):
+            result = db.execute(text(source))
+            val_field = data.value_field or "value"
+            lbl_field = data.label_field or "label"
+            columns = result.keys()
+            rows = [tuple(r) for r in result.fetchall()]
+            
+            param_options = []
+            for row in rows:
+                row_dict = dict(zip(columns, row))
+                param_options.append({
+                    "value": str(row_dict.get(val_field, row[0])), 
+                    "label": str(row_dict.get(lbl_field, row[1] if len(row) > 1 else row[0]))
+                })
+            return {"options": param_options, "error": None}
+        else:
+            return {"options": [], "error": "Unknown source format"}
+    except Exception as e:
+        print(f"Failed to test source {source}: {e}")
+        return {"options": [], "error": "Error source"}
 

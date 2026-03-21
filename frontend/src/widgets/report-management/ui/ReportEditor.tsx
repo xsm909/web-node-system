@@ -17,6 +17,7 @@ import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
 import { AppConsole, AppConsoleLogLine } from "../../../shared/ui/app-console";
 import { QueryBuilderModal } from "../../../features/query-builder/ui/QueryBuilderModal";
 import { keymap } from "@codemirror/view";
+import { AppParameterSelectByTamplate } from "../../../shared/ui/app-parameter-select-by-tamplate";
 
 
 interface ReportEditorProps {
@@ -228,7 +229,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     const [schemaJson, setSchemaJson] = useState<Record<string, any>>(report?.schema_json || {});
     const [previewHtml, setPreviewHtml] = useState('');
     const [activeOutputTab, setActiveOutputTab] = useState<'console' | 'schema'>('console');
-    const [testParamValues, setTestParamValues] = useState<Record<string, string>>({});
+    const [paramOptions, setParamOptions] = useState<Record<string, { value: string, label: string }[]>>({});
 
     const initialRef = useRef<any>(null);
 
@@ -238,19 +239,70 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
         }
     }, [report]);
 
-    // Initialize/Sync testParamValues from report parameters
+    const fetchParamOptions = async () => {
+        if (report?.id) {
+            try {
+                const res = await apiClient.get(`/reports/${report.id}/options`);
+                setParamOptions(res.data);
+            } catch (err) {
+                console.error("Failed to load parameter options", err);
+            }
+        }
+    };
+
+    // Fetch options on mount/report change
     useEffect(() => {
-        setTestParamValues(prev => {
-            const next = { ...prev };
-            parameters.forEach(p => {
-                // Only set if not already present to avoid overriding user edits during session
-                if (!(p.parameter_name in next)) {
-                    next[p.parameter_name] = p.default_value || '';
+        fetchParamOptions();
+    }, [report?.id]);
+
+    const lastFetchedSourcesRef = useRef<Record<string, string>>({});
+
+    // Dynamically fetch options for parameters that have a source but no options yet (e.g. newly added/modified)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const fetchNewOptions = async () => {
+                for (const param of parameters) {
+                    if (param.parameter_type === 'select' && param.source) {
+                        const lastSource = lastFetchedSourcesRef.current[param.parameter_name];
+                        if (param.source !== lastSource) {
+                            try {
+                                console.log(`Testing source for [${param.parameter_name}]: ${param.source}`);
+                                const res = await apiClient.post('/reports/test-source', {
+                                    source: param.source,
+                                    value_field: param.value_field,
+                                    label_field: param.label_field
+                                });
+                                
+                                console.log(`Result for [${param.parameter_name}]:`, res.data);
+                                lastFetchedSourcesRef.current[param.parameter_name] = param.source;
+
+                                if (res.data.error) {
+                                    setParamOptions(prev => ({ 
+                                        ...prev, 
+                                        [param.parameter_name]: [{ value: 'error', label: res.data.error }] 
+                                    }));
+                                } else {
+                                    setParamOptions(prev => ({ 
+                                        ...prev, 
+                                        [param.parameter_name]: res.data.options || [] 
+                                    }));
+                                }
+                            } catch (err) {
+                                console.error(`Failed to test source for [${param.parameter_name}]:`, err);
+                                setParamOptions(prev => ({ 
+                                    ...prev, 
+                                    [param.parameter_name]: [{ value: 'error', label: 'Error source' }] 
+                                }));
+                            }
+                        }
+                    }
                 }
-            });
-            return next;
-        });
-    }, [parameters]); 
+            };
+            fetchNewOptions();
+        }, 600); // 600ms debounce
+
+        return () => clearTimeout(timer);
+    }, [parameters]);
 
     useEffect(() => {
         if (!initialRef.current) return;
@@ -321,6 +373,9 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             };
             onDirtyChange?.(false);
             
+            // Re-fetch options to populate dropdowns for new parameters or updated sources
+            fetchParamOptions();
+
             // Return saved report so parent can update its state
             return savedReport;
         } catch (error) {
@@ -566,16 +621,15 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
 
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Default Value</label>
-                                        <input
-                                            type="text"
+                                        <AppParameterSelectByTamplate
+                                            parameter={param}
                                             value={param.default_value}
-                                            onChange={(e) => {
+                                            onChange={(val) => {
                                                 const newParams = [...parameters];
-                                                newParams[index].default_value = e.target.value;
+                                                newParams[index].default_value = val;
                                                 setParameters(newParams);
                                             }}
-                                            className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand"
-                                            placeholder="Optional default value..."
+                                            options={paramOptions[param.parameter_name]}
                                         />
                                     </div>
                                 </div>
