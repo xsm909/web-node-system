@@ -102,12 +102,15 @@ def extract_node_parameters(code: str) -> list:
                             if table_name == "AI_Tasks":
                                 options_source["filters"] = {"owner_id": "AI_Task"}
 
+                        sql_constructor_match = re.search(r"@sql_query_constructor", line_content)
+
                         params.append({
                             "name": name,
                             "type": ptype,
                             "label": name.replace("_", " ").title(),
                             "default": default,
-                            "options_source": options_source
+                            "options_source": options_source,
+                            "is_sql_query_constructor": bool(sql_constructor_match)
                         })
                 return params
         return []

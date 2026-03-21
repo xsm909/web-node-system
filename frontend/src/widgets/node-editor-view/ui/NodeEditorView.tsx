@@ -9,7 +9,8 @@ import { AppHeader } from '../../app-header';
 import { useForm } from '@tanstack/react-form';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppInput } from '../../../shared/ui/app-input';
-
+import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
+import { Icon } from '../../../shared/ui/icon';
 
 interface NodeEditorViewProps {
     node: Node | null;
@@ -18,6 +19,7 @@ interface NodeEditorViewProps {
     onBack: () => void;
     isReadOnly?: boolean;
     inline?: boolean;
+    workflowParameters?: any[];
 }
 
 const ParameterRow: React.FC<{
@@ -26,7 +28,8 @@ const ParameterRow: React.FC<{
     displayValue?: any;
     onChange: (updates: Record<string, any>) => void;
     isReadOnly: boolean;
-}> = ({ param, value, displayValue, onChange, isReadOnly }) => {
+    onOpenSqlEditor?: () => void;
+}> = ({ param, value, displayValue, onChange, isReadOnly, onOpenSqlEditor }) => {
     const [options, setOptions] = useState<SelectionItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -133,6 +136,34 @@ const ParameterRow: React.FC<{
                         }}
                         className="w-full"
                     />
+                ) : param.is_sql_query_constructor ? (
+                    <div className="flex gap-2 items-start w-full">
+                        <div className="flex-1">
+                            <AppInput
+                                label={param.label}
+                                type="text"
+                                multiline
+                                rows={3}
+                                value={value ?? ''}
+                                onChange={(val) => onChange({ [param.name]: val })}
+                                placeholder={`Enter SQL query...`}
+                                disabled={isReadOnly}
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            disabled={isReadOnly}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (onOpenSqlEditor) onOpenSqlEditor();
+                            }}
+                            className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-brand text-white hover:brightness-110 transition-all disabled:opacity-50"
+                            title="Open Query Constructor"
+                        >
+                            <Icon name="database" size={20} />
+                        </button>
+                    </div>
                 ) : (
                     <AppInput
                         label={param.label}
@@ -159,8 +190,10 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
     onBack,
     isReadOnly = false,
     inline = false,
+    workflowParameters = [],
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
+    const [sqlEditorParam, setSqlEditorParam] = useState<string | null>(null);
     // Capture initial parameters when node is first opened to detect changes
     const [initialParams] = useState(() => JSON.stringify(node?.data.params || {}));
 
@@ -268,6 +301,7 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                                                 }
                                             }}
                                             isReadOnly={isReadOnly}
+                                            onOpenSqlEditor={() => setSqlEditorParam(param.name)}
                                         />
                                     )}
                                 />
@@ -289,6 +323,25 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                     onBack();
                 }}
                 onCancel={() => setShowConfirmBack(false)}
+            />
+
+            <QueryBuilderModal
+                isOpen={sqlEditorParam !== null}
+                initialSql={sqlEditorParam ? form.state.values[sqlEditorParam] : ''}
+                onClose={() => setSqlEditorParam(null)}
+                onError={(err) => console.error("SQL Builder Error:", err)}
+                onDone={(newSql) => {
+                    if (sqlEditorParam) {
+                        const trimmedSql = newSql.trim();
+                        form.setFieldValue(sqlEditorParam as any, trimmedSql);
+                        if (node) {
+                            const updatedFormData = { ...(node.data.params || {}), [sqlEditorParam]: trimmedSql };
+                            onChange(node.id, updatedFormData);
+                        }
+                    }
+                    setSqlEditorParam(null);
+                }}
+                parameters={workflowParameters}
             />
         </div>
     );

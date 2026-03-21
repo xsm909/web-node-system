@@ -411,6 +411,7 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
                                     node={selectedNode}
                                     nodeTypes={nodeTypes}
                                     onChange={handleParamsChange}
+                                    workflowParameters={activeWorkflow?.parameters || []}
                                     onBack={() => {
                                         setSelectedNode(null);
                                         setIsParamsExpanded(false);

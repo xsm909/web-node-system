@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '../icon';
 
 interface AppCompactModalFormProps {
@@ -12,6 +13,10 @@ interface AppCompactModalFormProps {
     cancelLabel?: string;
     className?: string;
     width?: string;
+    fullHeight?: boolean;
+    noPadding?: boolean;
+    headerLeftContent?: React.ReactNode;
+    headerRightContent?: React.ReactNode;
 }
 
 export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
@@ -25,6 +30,10 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     cancelLabel = 'Cancel',
     className = '',
     width = 'max-w-lg',
+    fullHeight = false,
+    noPadding = false,
+    headerLeftContent,
+    headerRightContent,
 }) => {
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -125,7 +134,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
 
     if (!isOpen) return null;
 
-    return (
+    const modalContent = (
         <div 
             className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/20 backdrop-blur-none animate-in fade-in duration-200"
             onMouseDown={(e) => {
@@ -137,7 +146,8 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                 role="dialog"
                 style={{ 
                     transform: `translate(${position.x}px, ${position.y}px)`,
-                    transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                    transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                    ...(fullHeight ? { height: '90vh' } : {})
                 }}
                 className={`w-full ${width} bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 pointer-events-auto ${className}`}
             >
@@ -145,22 +155,37 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                     onMouseDown={handleMouseDown}
                     className={`px-4 py-2 bg-[var(--bg-alt)] border-b border-[var(--border-base)] flex items-center justify-between select-none cursor-move ${isDragging ? 'cursor-grabbing' : ''}`}
                 >
-                    <div className="flex items-center gap-2">
-                        {icon && <Icon name={icon} size={14} className="text-brand" />}
-                        <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-main)]">
-                            {title}
-                        </h3>
+                    <div className="flex items-center gap-4 flex-1">
+                        <div className="flex items-center gap-2">
+                            {icon && <Icon name={icon} size={14} className="text-brand" />}
+                            <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-main)] whitespace-nowrap">
+                                {title}
+                            </h3>
+                        </div>
+                        {headerLeftContent && (
+                            <div className="flex items-center gap-2">
+                                {headerLeftContent}
+                            </div>
+                        )}
                     </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/5 transition-all"
-                    >
-                        <Icon name="close" size={14} />
-                    </button>
+                    
+                    <div className="flex items-center gap-3">
+                        {headerRightContent && (
+                            <div className="flex items-center gap-2 border-r border-[var(--border-base)] pr-3 mr-1">
+                                {headerRightContent}
+                            </div>
+                        )}
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/5 transition-all flex-shrink-0"
+                        >
+                            <Icon name="close" size={14} />
+                        </button>
+                    </div>
                 </header>
 
-                <div className="p-4 overflow-y-auto max-h-[70vh]">
+                <div className={`flex-1 overflow-y-auto min-h-0 ${fullHeight ? 'max-h-none' : 'max-h-[70vh]'} ${noPadding ? '' : 'p-4'}`}>
                     {children}
                 </div>
 
@@ -183,4 +208,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
             </div>
         </div>
     );
+
+    if (typeof document === 'undefined') return null;
+    return createPortal(modalContent, document.body);
 };

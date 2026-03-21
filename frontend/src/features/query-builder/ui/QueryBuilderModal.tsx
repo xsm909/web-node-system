@@ -14,7 +14,6 @@ import {
     useDraggable
 } from '@dnd-kit/core';
 import { Icon } from '../../../shared/ui/icon';
-import { AppHeader } from '../../../widgets/app-header';
 import { AppTabs } from '../../../shared/ui/app-tabs';
 import { useDatabaseMetadata } from '../lib/useDatabaseMetadata';
 import type { MultiQueryState, QueryState, SelectedField, JoinCondition, WhereCondition } from '../model/types';
@@ -1597,47 +1596,44 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     if (!isOpen) return null;
 
     return (
-        <div role="dialog" className="fixed inset-0 z-[1000] bg-[var(--bg-app)] flex flex-col animate-in fade-in duration-200">
-            <div className="shrink-0 flex flex-col">
-                <AppHeader
-                    onBack={onClose}
-                    onToggleSidebar={() => { }}
-                    leftContent={
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-main)]">Query Builder</h2>
-                    }
-                    rightContent={
-                        <div className="flex items-center gap-3">
-                            {isExecuting && (
-                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand/10 text-brand text-[10px] font-bold animate-pulse">
-                                    <div className="w-3 h-3 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
-                                    Executing...
-                                </div>
-                            )}
-                            <button
-                                onClick={handleExecuteQuery}
-                                disabled={isExecuting || !effectiveSql.canRun}
-                                className={`px-4 py-2 bg-[var(--bg-alt)] border border-[var(--border-base)] text-brand text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 ${(!effectiveSql.canRun && !isExecuting) ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-brand/5'
-                                    }`}
-                                title={!effectiveSql.canRun ? effectiveSql.sql : "Shortcut: F5 or F9"}
-                            >
-                                <Icon name="play_arrow" size={14} />
-                                Run (F5)
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const finalSql = generateSQL(fullState, { isForPreview: false });
-                                    onDone(finalSql);
-                                }}
-                                className="px-4 py-2 bg-brand text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all shadow-sm"
-                            >
-                                Ready
-                            </button>
+        <AppCompactModalForm
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Query Builder"
+            icon="database"
+            fullHeight
+            noPadding
+            width="w-[95vw] max-w-[1400px]"
+            submitLabel="Ready"
+            cancelLabel="Cancel"
+            onSubmit={() => {
+                const finalSql = generateSQL(fullState, { isForPreview: false });
+                onDone(finalSql);
+            }}
+            className="flex flex-col"
+            headerRightContent={
+                <>
+                    {isExecuting && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand/10 text-brand text-[10px] font-bold animate-pulse">
+                            <div className="w-3 h-3 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
+                            Executing...
                         </div>
-                    }
-                />
-            </div>
-
-            <div className="flex-1 flex overflow-hidden">
+                    )}
+                    <button
+                        type="button"
+                        onClick={handleExecuteQuery}
+                        disabled={isExecuting || !effectiveSql.canRun}
+                        className={`px-4 py-1.5 bg-[var(--bg-alt)] border border-[var(--border-base)] text-brand text-[10px] font-bold rounded-lg transition-all shadow-sm flex items-center gap-2 ${(!effectiveSql.canRun && !isExecuting) ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-brand/5'
+                            }`}
+                        title={!effectiveSql.canRun ? effectiveSql.sql : "Shortcut: F5 or F9"}
+                    >
+                        <Icon name="play_arrow" size={14} />
+                        Run (F5)
+                    </button>
+                </>
+            }
+        >
+            <div className="flex-1 flex overflow-hidden min-h-0">
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
@@ -2152,6 +2148,6 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     </div>
                 )}
             </AppCompactModalForm>
-        </div>
+        </AppCompactModalForm>
     );
 };
