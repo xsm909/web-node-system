@@ -19,10 +19,12 @@ export const AppParametersView: React.FC<AppParametersViewProps> = ({
     className = '',
 }) => {
     return (
-        <div className={`absolute top-0 right-0 w-full z-30 flex flex-col items-end transition-all duration-300 pr-[20px] pointer-events-none ${className}`}>
+        <div className={`absolute top-0 right-0 w-full z-30 flex flex-col items-end pr-[20px] pointer-events-none ${className}`}>
             <div
-                className={`w-[350px] overflow-visible transition-all duration-500 flex flex-col ${isExpanded ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
-                style={{ maxHeight: isExpanded ? '85vh' : '0px' }}
+                className={`w-[350px] transition-transform duration-150 ease-in-out flex flex-col pointer-events-auto`}
+                style={{ 
+                    transform: isExpanded ? 'translateY(0)' : 'translateY(calc(-100% + 26px))' 
+                }}
             >
                 {/* Main Glass Panel */}
                 <div className="relative bg-surface-700/05 backdrop-blur-2xl border-x border-b border-[var(--border-base)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] rounded-bl-2xl rounded-br-none overflow-hidden flex flex-col">
@@ -44,26 +46,19 @@ export const AppParametersView: React.FC<AppParametersViewProps> = ({
                     </div>
                 </div>
 
-                {/* Hide Notch (visible when expanded) */}
+                {/* Unified Notch Button */}
                 <div className="flex justify-end pr-0">
                     <button
                         onClick={onToggle}
-                        className={`bg-surface-700/05 backdrop-blur-2xl border border-t-0 border-[var(--border-base)] shadow-[0_8px_16px_-6px_rgba(0,0,0,0.1)] rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-brand transition-all hover:bg-brand/10 cursor-pointer pointer-events-auto ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                        className="bg-surface-700/05 backdrop-blur-2xl border border-t-0 border-[var(--border-base)] shadow-[0_8px_16px_-6px_rgba(0,0,0,0.1)] rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-brand transition-all hover:bg-brand/10 cursor-pointer pointer-events-auto group"
                     >
-                        <span className="text-[10px] font-bold mr-1.5 uppercase tracking-wider">Hide</span>
-                        <Icon name="up" size={14} />
+                        <span className="text-[10px] font-bold mr-1.5 uppercase tracking-wider transition-colors">
+                            {isExpanded ? 'Hide' : title}
+                        </span>
+                        <Icon name={isExpanded ? "up" : "down"} size={14} className="transition-transform duration-300" />
                     </button>
                 </div>
             </div>
-
-            {/* Notch (visible when collapsed) */}
-            <button
-                onClick={onToggle}
-                className={`bg-surface-700/05 backdrop-blur-2xl border border-t-0 border-[var(--border-base)] shadow-md rounded-b-xl px-6 py-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors hover:bg-brand/10 cursor-pointer mt-[-1px] mr-[-1px] pointer-events-auto ${isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-            >
-                <span className="text-[10px] font-bold mr-1.5 uppercase tracking-wider">{title}</span>
-                <Icon name="down" size={14} />
-            </button>
         </div>
     );
 };
