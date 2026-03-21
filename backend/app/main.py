@@ -5,7 +5,7 @@ from .routers import auth, admin, workflow, client, ai_task, data_type, client_m
 from .models.intermediate_result import IntermediateResult  # noqa: F401 — registers table with Base
 from .models.ai_task import AI_Task  # noqa: F401 — registers table with Base
 from .models.client_metadata import ClientMetadata  # noqa: F401
-from .models.report import Report, ReportParameter, ReportStyle, ReportRun # noqa: F401
+from .models.report import Report, ObjectParameter, ReportStyle, ReportRun # noqa: F401
 from .models.agent_hint import AgentHint # noqa: F401
 from .models.prompt import Prompt # noqa: F401
 
@@ -27,12 +27,11 @@ async def lifespan(app: FastAPI):
         # Emergency migration for category column
         db.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS category VARCHAR(255);"))
         
-        # Migrations for report_parameters
-        db.execute(text("ALTER TABLE report_parameters ADD COLUMN IF NOT EXISTS parameter_type VARCHAR(50) DEFAULT 'text';"))
-        db.execute(text("ALTER TABLE report_parameters ADD COLUMN IF NOT EXISTS default_value TEXT;"))
-        db.execute(text("ALTER TABLE report_parameters ALTER COLUMN source DROP NOT NULL;"))
-        db.execute(text("ALTER TABLE report_parameters ALTER COLUMN value_field DROP NOT NULL;"))
-        db.execute(text("ALTER TABLE report_parameters ALTER COLUMN label_field DROP NOT NULL;"))
+        # Migrations for object_parameters
+        db.execute(text("ALTER TABLE object_parameters ADD COLUMN IF NOT EXISTS parameter_type VARCHAR(50) DEFAULT 'text';"))
+        db.execute(text("ALTER TABLE object_parameters ADD COLUMN IF NOT EXISTS default_value TEXT;"))
+        # SQLite doesn't support ALTER COLUMN DROP NOT NULL easily, but our migration script handled it.
+        # These PG-style migrations might fail on SQLite but they are wrapped in try-except.
 
         # Migrations for node_types
         db.execute(text("ALTER TABLE node_types ADD COLUMN IF NOT EXISTS is_async BOOLEAN DEFAULT FALSE;"))

@@ -1,5 +1,5 @@
 import { useState, forwardRef, useImperativeHandle, useMemo, useRef, useEffect } from "react";
-import type { Report, ReportParameter, ReportStyle, ReportType } from "../../../entities/report/model/types";
+import type { Report, ObjectParameter as ReportParameter, ReportStyle, ReportType } from "../../../entities/report/model/types";
 import { Icon } from "../../../shared/ui/icon";
 import { apiClient } from "../../../shared/api/client";
 import { python } from "@codemirror/lang-python";

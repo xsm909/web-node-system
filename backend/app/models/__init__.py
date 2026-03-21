@@ -5,7 +5,7 @@ from .credential import Credential
 from .ai_task import AI_Task
 from .data_type import DataType
 from .client_metadata import ClientMetadata
-from .report import Report, ReportParameter, ReportStyle, ReportRun
+from .report import Report, ObjectParameter, ReportStyle, ReportRun
 from .schema import Schema, Record, ExternalSchemaCache
 from .agent_hint import AgentHint
 from .prompt import Prompt
@@ -24,7 +24,7 @@ __all__ = [
     "DataType",
     "ClientMetadata",
     "Report",
-    "ReportParameter",
+    "ObjectParameter",
     "ReportStyle",
     "ReportRun",
     "Schema",

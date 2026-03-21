@@ -1,7 +1,7 @@
 import React from 'react';
 import { ComboBox } from '../combo-box/ComboBox';
 import { Icon } from '../icon';
-import type { ReportParameter } from '../../../entities/report/model/types';
+import type { ObjectParameter as ReportParameter } from '../../../entities/report/model/types';
 
 interface AppParameterSelectByTamplateProps {
     parameter: ReportParameter;

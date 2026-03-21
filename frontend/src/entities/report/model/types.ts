@@ -1,6 +1,6 @@
 export type ReportType = 'global' | 'client';
 
-export interface ReportParameter {
+export interface ObjectParameter {
     id: string;
     parameter_name: string;
     parameter_type: 'text' | 'number' | 'date' | 'date_range' | 'select';
@@ -9,6 +9,8 @@ export interface ReportParameter {
     value_field?: string;
     label_field?: string;
 }
+
+export type ReportParameter = ObjectParameter;
 
 export interface ReportStyle {
     id: string;
@@ -29,6 +31,6 @@ export interface Report {
     style_id?: string;
     category?: string;
     created_by: string;
-    parameters: ReportParameter[];
+    parameters: ObjectParameter[];
     meta?: Record<string, any>;
 }

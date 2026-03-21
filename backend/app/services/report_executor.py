@@ -52,7 +52,7 @@ from ..internal_libs import agent_hints_lib
 from ..internal_libs import prompt_lib
 from ..internal_libs import response_lib
 from ..internal_libs import charts
-from ..internal_libs.context_lib import execution_context, report_params_context
+from ..internal_libs.context_lib import execution_context, object_params_context
 from ..internal_libs.logger_lib import executor_logger
 
 def generate_json_schema(data: Any) -> Dict[str, Any]:
@@ -342,7 +342,7 @@ class ReportExecutor:
         log_token = None
         if execution_id:
             token = execution_context.set(execution_id)
-        params_token = report_params_context.set(parameters)
+        params_token = object_params_context.set(parameters)
         log_token = executor_logger.set(self.log)
         
         try:
@@ -366,6 +366,8 @@ class ReportExecutor:
                 "ReportExecutor": SubscriptableNamespace(id=execution_id) if execution_id else None,
                 "report_parameters": params_namespace,
                 "ReportParameters": params_namespace,
+                "object_parameters": params_namespace,
+                "ObjectParameters": params_namespace,
                 "parameters": params_namespace, # Alias for backward compatibility
                 "__builtins__": {
                     **SAFE_GLOBALS["__builtins__"],
@@ -465,6 +467,6 @@ class ReportExecutor:
         finally:
             executor_logger.reset(log_token)
             if params_token:
-                report_params_context.reset(params_token)
+                object_params_context.reset(params_token)
             if token:
                 execution_context.reset(token)

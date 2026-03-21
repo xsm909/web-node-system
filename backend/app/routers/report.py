@@ -9,7 +9,7 @@ from datetime import datetime
 from ..core.database import get_db
 from ..core.security import require_role, get_current_user
 from ..models.user import User
-from ..models.report import Report, ReportTypeEnum, ReportParameter, ReportStyle, ReportRun
+from ..models.report import Report, ReportTypeEnum, ObjectParameter, ReportStyle, ReportRun
 from ..services.report_executor import ReportExecutor, generate_json_schema
 from pydantic import BaseModel
 from jinja2 import Environment, meta, Template
@@ -26,7 +26,7 @@ admin_access = Depends(require_role("admin"))
 manager_access = Depends(require_role("manager", "admin"))
 
 # --- Schemas ---
-class ReportParameterBase(BaseModel):
+class ObjectParameterBase(BaseModel):
     parameter_name: str
     parameter_type: str = "text"
     default_value: Optional[str] = None
@@ -34,10 +34,10 @@ class ReportParameterBase(BaseModel):
     value_field: Optional[str] = None
     label_field: Optional[str] = None
 
-class ReportParameterCreate(ReportParameterBase):
+class ObjectParameterCreate(ObjectParameterBase):
     pass
 
-class ReportParameterOut(ReportParameterBase):
+class ObjectParameterOut(ObjectParameterBase):
     id: uuid.UUID
 
     class Config:
@@ -76,7 +76,7 @@ class ReportBase(BaseModel):
     meta: Optional[Dict[str, Any]] = {}
 
 class ReportCreate(ReportBase):
-    parameters: Optional[List[ReportParameterCreate]] = []
+    parameters: Optional[List[ObjectParameterCreate]] = []
 
 class ReportUpdate(BaseModel):
     name: Optional[str] = None
@@ -88,12 +88,12 @@ class ReportUpdate(BaseModel):
     style_id: Optional[uuid.UUID] = None
     category: Optional[str] = None
     meta: Optional[Dict[str, Any]] = None
-    parameters: Optional[List[ReportParameterCreate]] = None
+    parameters: Optional[List[ObjectParameterCreate]] = None
 
 class ReportOut(ReportBase):
     id: uuid.UUID
     created_by: uuid.UUID
-    parameters: List[ReportParameterOut] = []
+    parameters: List[ObjectParameterOut] = []
 
     class Config:
         from_attributes = True
@@ -220,7 +220,7 @@ def create_report(data: ReportCreate, db: Session = Depends(get_db), current_use
     
     if data.parameters:
         for p in data.parameters:
-            param = ReportParameter(**p.model_dump(), report_id=report.id)
+            param = ObjectParameter(**p.model_dump(), object_id=report.id, object_name="reports")
             db.add(param)
         db.commit()
         db.refresh(report)
@@ -240,11 +240,14 @@ def update_report(report_id: uuid.UUID, data: ReportUpdate, db: Session = Depend
         
     if data.parameters is not None:
         # delete existing parameters
-        db.query(ReportParameter).filter(ReportParameter.report_id == report.id).delete()
+        db.query(ObjectParameter).filter(
+            ObjectParameter.object_id == report.id,
+            ObjectParameter.object_name == "reports"
+        ).delete()
         # add new
         for p in data.parameters:
             param_data = p.model_dump()
-            param = ReportParameter(**param_data, report_id=report.id)
+            param = ObjectParameter(**param_data, object_id=report.id, object_name="reports")
             db.add(param)
             
     db.commit()

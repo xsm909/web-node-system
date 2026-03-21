@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Text, JSON, DateTime, Boolean, UUID
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Text, JSON, DateTime, Boolean, UUID, and_
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..core.database import Base
@@ -38,15 +38,22 @@ class Report(Base):
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     style = relationship("ReportStyle", back_populates="reports")
-    parameters = relationship("ReportParameter", back_populates="report", cascade="all, delete-orphan")
+    parameters = relationship(
+        "ObjectParameter", 
+        primaryjoin="and_(ObjectParameter.object_id == Report.id, ObjectParameter.object_name == 'reports')",
+        foreign_keys="ObjectParameter.object_id",
+        back_populates="report", 
+        cascade="all, delete-orphan"
+    )
     runs = relationship("ReportRun", back_populates="report", cascade="all, delete-orphan")
     creator = relationship("User", foreign_keys=[created_by])
 
-class ReportParameter(Base):
-    __tablename__ = "report_parameters"
+class ObjectParameter(Base):
+    __tablename__ = "object_parameters"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    report_id = Column(UUID(as_uuid=True), ForeignKey("reports.id"), nullable=False)
+    object_id = Column(UUID(as_uuid=True), nullable=False)
+    object_name = Column(String(255), nullable=False, default="reports")
     parameter_name = Column(String(255), nullable=False)
     parameter_type = Column(String(50), nullable=False, default="text")
     default_value = Column(String(1000), nullable=True)
@@ -54,7 +61,14 @@ class ReportParameter(Base):
     value_field = Column(String(255), nullable=True)
     label_field = Column(String(255), nullable=True)
 
-    report = relationship("Report", back_populates="parameters")
+    report = relationship(
+        "Report", 
+        primaryjoin="and_(Report.id == ObjectParameter.object_id, ObjectParameter.object_name == 'reports')",
+        foreign_keys=[object_id], 
+        back_populates="parameters",
+        overlaps="parameters",
+        viewonly=True
+    )
 
 class ReportRun(Base):
     __tablename__ = "report_runs"

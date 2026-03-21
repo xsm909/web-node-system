@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import type { ReportParameter } from '../../../entities/report/model/types';
+import type { ObjectParameter as ReportParameter } from '../../../entities/report/model/types';
 import {
     DndContext,
     closestCenter,

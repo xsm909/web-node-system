@@ -6,7 +6,7 @@ from ..models.workflow import WorkflowExecution
 from ..models.report import Report
 from ..models.user import RoleEnum, User
 from .logger_lib import system_log
-from .context_lib import execution_context, report_params_context
+from .context_lib import execution_context, object_params_context
 
 def unsafe_request(sql_query: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """
@@ -94,8 +94,8 @@ def unsafe_request(sql_query: str, params: Optional[Dict[str, Any]] = None) -> L
         # Resolve parameters
         final_params = (params or {}).copy()
         
-        # 1. Try to fill missing params from report_params_context
-        ctx_params = report_params_context.get()
+        # 1. Try to fill missing params from object_params_context
+        ctx_params = object_params_context.get()
         if ctx_params:
             for k, v in ctx_params.items():
                 if k not in final_params or final_params[k] is None or (isinstance(final_params[k], str) and not final_params[k].strip()):
