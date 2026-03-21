@@ -1023,9 +1023,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
     useHotkeys([
         { key: 'Escape', description: 'Close', handler: () => onClose() },
-        { key: 'F5', description: 'Execute Query', handler: () => handleExecuteQuery() },
-        { key: 'cmd+r', description: 'Execute Query', handler: () => handleExecuteQuery() },
-        { key: 'ctrl+r', description: 'Execute Query', handler: () => handleExecuteQuery() }
+        { key: 'F5', description: 'Execute Query', preventDefault: true, handler: () => handleExecuteQuery() },
+        { key: 'cmd+r', description: 'Execute Query', preventDefault: true, handler: () => handleExecuteQuery() },
+        { key: 'ctrl+r', description: 'Execute Query', preventDefault: true, handler: () => handleExecuteQuery() }
     ], { 
         scopeName: 'Query Builder', 
         enabled: isOpen && !isModalLayerActive
@@ -1588,10 +1588,10 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         disabled={isExecuting || !effectiveSql.canRun}
                         className={`px-4 py-1.5 bg-[var(--bg-alt)] border border-[var(--border-base)] text-brand text-[10px] font-bold rounded-lg transition-all shadow-sm flex items-center gap-2 ${(!effectiveSql.canRun && !isExecuting) ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-brand/5'
                             }`}
-                        title={!effectiveSql.canRun ? effectiveSql.sql : "Shortcut: F5 or F9"}
+                        title={!effectiveSql.canRun ? effectiveSql.sql : "Shortcut: F5, Cmd+R or Ctrl+R"}
                     >
                         <Icon name="play_arrow" size={14} />
-                        Run (F5)
+                        Run (F5 / Cmd+R)
                     </button>
                 </>
             }
