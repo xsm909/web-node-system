@@ -1,3 +1,5 @@
+import type { ObjectParameter } from "../../report/model/types";
+
 export interface Workflow {
     id: string;
     name: string;
@@ -7,4 +9,5 @@ export interface Workflow {
     runtime_data?: any;
     graph?: any;
     category?: string;
+    parameters: ObjectParameter[];
 }

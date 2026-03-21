@@ -26,22 +26,7 @@ admin_access = Depends(require_role("admin"))
 manager_access = Depends(require_role("manager", "admin"))
 
 # --- Schemas ---
-class ObjectParameterBase(BaseModel):
-    parameter_name: str
-    parameter_type: str = "text"
-    default_value: Optional[str] = None
-    source: Optional[str] = None
-    value_field: Optional[str] = None
-    label_field: Optional[str] = None
-
-class ObjectParameterCreate(ObjectParameterBase):
-    pass
-
-class ObjectParameterOut(ObjectParameterBase):
-    id: uuid.UUID
-
-    class Config:
-        from_attributes = True
+from ..schemas.object_parameter import ObjectParameterBase, ObjectParameterCreate, ObjectParameterOut
 
 class ReportStyleBase(BaseModel):
     name: str

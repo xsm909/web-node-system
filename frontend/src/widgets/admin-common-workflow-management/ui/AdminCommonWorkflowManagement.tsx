@@ -11,6 +11,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { apiClient } from '../../../shared/api/client';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { WorkflowGraph } from '../../workflow-graph';
+import { WorkflowHeader } from '../../workflow-header';
 import { NodeEditorView } from '../../node-editor-view';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { useClientStore } from '../../../features/workflow-management/model/clientStore';
@@ -18,6 +19,9 @@ import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppParametersView } from '../../../shared/ui/app-parameters-view/AppParametersView';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
+import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
+import { AppParameterListEditor } from '../../../shared/ui/app-parameter-list-editor/AppParameterListEditor';
+import { AppParameterSelectByTamplate } from '../../../shared/ui/app-parameter-select-by-tamplate';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -67,6 +71,8 @@ interface WorkflowEditorContextType {
     onEditNode?: (event: React.MouseEvent, node: Node) => void;
     onToggleSidebar: () => void;
     isSidebarOpen: boolean;
+    isParametersModalOpen: boolean;
+    setIsParametersModalOpen: (v: boolean) => void;
 }
 
 const WorkflowEditorContext = createContext<WorkflowEditorContextType | null>(null);
@@ -81,6 +87,7 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
     const { activeClientId } = useClientStore();
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isParametersModalOpen, setIsParametersModalOpen] = useState(false);
     const [renameInputValue, setRenameInputValue] = useState('');
     const [renameCategoryValue, setRenameCategoryValue] = useState<string>('personal');
 
@@ -194,6 +201,8 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         setIsEditModalOpen,
         isConsoleVisible,
         setIsConsoleVisible,
+        isParametersModalOpen,
+        setIsParametersModalOpen,
         workflowToDelete,
         setWorkflowToDelete,
         workflowToRename,
@@ -218,7 +227,8 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         setIsConsoleVisible, workflowToDelete, setWorkflowToDelete, 
         workflowToRename, setWorkflowToRename, renameInputValue, 
         setRenameInputValue, renameCategoryValue, setRenameCategoryValue,
-        handleNodesChange, handleEdgesChange, handleEditNodeContext, onToggleSidebar, isSidebarOpen
+        handleNodesChange, handleEdgesChange, handleEditNodeContext, onToggleSidebar, isSidebarOpen,
+        isParametersModalOpen, setIsParametersModalOpen
     ]);
 
     return (
@@ -248,8 +258,12 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
         activeClientId,
         isEditModalOpen,
         setIsEditModalOpen,
+        isParametersModalOpen,
+        setIsParametersModalOpen,
         isConsoleVisible,
         setIsConsoleVisible,
+        onToggleSidebar,
+        isSidebarOpen,
         executionLogs,
         liveRuntimeData,
         handleNodesChange,
@@ -266,6 +280,9 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
     const [showSystemLogs, setShowSystemLogs] = useState(false);
     const [activeConsoleTab, setActiveConsoleTab] = useState<'logs' | 'runtime'>('logs');
     const [consoleHeight, setConsoleHeight] = useState(280);
+    const [modalParams, setModalParams] = useState<any[]>([]);
+    const [paramOptions, setParamOptions] = useState<Record<string, { value: string, label: string }[]>>({});
+    const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
     const handleToggleParams = useCallback(() => {
         setIsParamsExpanded(prev => {
@@ -274,6 +291,30 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
             return newValue;
         });
     }, []);
+    
+    const onOpenParameters = useCallback(() => {
+        setModalParams(activeWorkflow?.parameters || []);
+        setIsParametersModalOpen(true);
+    }, [activeWorkflow?.parameters, setIsParametersModalOpen]);
+
+    const fetchParamOptions = useCallback(async () => {
+        if (!activeWorkflow?.id) return;
+        setIsLoadingOptions(true);
+        try {
+            const response = await apiClient.get(`/workflows/workflows/${activeWorkflow.id}/options`);
+            setParamOptions(response.data || {});
+        } catch (err) {
+            console.error('[AdminWorkflowEditorView] Failed to fetch parameter options:', err);
+        } finally {
+            setIsLoadingOptions(false);
+        }
+    }, [activeWorkflow?.id]);
+
+    useEffect(() => {
+        if (activeWorkflow?.id) {
+            fetchParamOptions();
+        }
+    }, [activeWorkflow?.id, fetchParamOptions, activeWorkflow?.parameters]);
 
     const onNodesChange = useCallback((nodes: Node[]) => {
         handleNodesChange(nodes);
@@ -345,29 +386,25 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
             fullHeight
             noPadding
             headerRightContent={
-                <div className="flex items-center gap-2">
-                    <button
-                        className="p-2.5 rounded-xl hover:bg-surface-700 text-gray-400 hover:text-white transition-colors border border-transparent hover:border-[var(--border-base)] group"
-                        onClick={() => setIsEditModalOpen(true)}
-                        title="Edit Workflow Data"
-                    >
-                        <Icon name="data_object" size={20} className="group-hover:scale-110 transition-transform" />
-                    </button>
-                    <button
-                        onClick={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
-                        disabled={isRunning}
-                        className={`
-                            flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg active:scale-95 border
-                            ${isRunning
-                                ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
-                                : 'bg-emerald-500 text-white border-transparent hover:brightness-110 hover:shadow-emerald-500/20'
-                            }
-                        `}
-                    >
-                        <Icon name={isRunning ? "stop" : "play_arrow"} size={20} className={isRunning ? "animate-pulse" : ""} />
-                        <span>{isRunning ? 'Running...' : 'Play'}</span>
-                    </button>
-                </div>
+                <WorkflowHeader
+                    title={activeWorkflow?.name || ''}
+                    activeWorkflowId={activeWorkflow?.id}
+                    users={[]}
+                    workflowsByOwner={{}}
+                    isRunning={isRunning}
+                    isSidebarOpen={isSidebarOpen}
+                    onSelect={() => {}}
+                    onDelete={() => {}}
+                    onRename={() => {}}
+                    onCreate={async () => {}}
+                    onSave={saveWorkflow}
+                    onRun={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
+                    onToggleSidebar={onToggleSidebar}
+                    canAction={!isSaving}
+                    onOpenEditModal={() => setIsEditModalOpen(true)}
+                    onOpenParameters={onOpenParameters}
+                    canSave={isDirty}
+                />
             }
         >
             <div className="flex-1 flex flex-col min-h-0 relative">
@@ -415,12 +452,12 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
                         </div>
 
                         <AppParametersView
-                            title="Node Properties"
+                            title={selectedNode ? "Node Properties" : "Workflow Parameters"}
                             isExpanded={isParamsExpanded}
                             onToggle={handleToggleParams}
-                            placeholder="No node selected"
+                            placeholder="No parameters"
                         >
-                            {selectedNode && (
+                            {selectedNode ? (
                                 <NodeEditorView
                                     key={selectedNode.id}
                                     inline
@@ -432,9 +469,54 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
                                         setIsParamsExpanded(false);
                                     }}
                                 />
+                            ) : (
+                                <div className="space-y-4">
+                                    {activeWorkflow?.parameters?.map((param: any, pIdx: number) => (
+                                        <div key={param.id} className="space-y-1.5">
+                                            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{param.parameter_name}</label>
+                                            <AppParameterSelectByTamplate
+                                                parameter={param}
+                                                value={param.default_value || ''}
+                                                onChange={(val) => {
+                                                    const newParams = [...activeWorkflow.parameters];
+                                                    newParams[pIdx] = { ...newParams[pIdx], default_value: val };
+                                                    setActiveWorkflow({ ...activeWorkflow, parameters: newParams });
+                                                    notifyChange();
+                                                }}
+                                                options={paramOptions[param.parameter_name] || []}
+                                            />
+                                        </div>
+                                    ))}
+                                    {(!activeWorkflow?.parameters || activeWorkflow.parameters.length === 0) && (
+                                        <div className="flex flex-col items-center justify-center py-8 opacity-30">
+                                            <Icon name="tune" size={32} className="mb-2" />
+                                            <p className="text-[10px] font-medium">No parameters defined</p>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </AppParametersView>
                     </div>
+
+                    {isParametersModalOpen && activeWorkflow && (
+                        <AppCompactModalForm
+                            isOpen={isParametersModalOpen}
+                            title="Workflow Parameters"
+                            onClose={() => setIsParametersModalOpen(false)}
+                            onSubmit={() => {
+                                setActiveWorkflow({ ...activeWorkflow, parameters: modalParams });
+                                notifyChange();
+                                setIsParametersModalOpen(false);
+                            }}
+                            width="max-w-4xl"
+                        >
+                            <AppParameterListEditor
+                                parameters={modalParams}
+                                onChange={setModalParams}
+                                options={paramOptions}
+                            />
+                        </AppCompactModalForm>
+                    )}
 
                     <AppConsole
                         tabs={[

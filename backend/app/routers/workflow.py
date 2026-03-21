@@ -11,21 +11,33 @@ from ..models.user import User
 from ..models.workflow import Workflow, WorkflowExecution, WorkflowStatus
 from ..models.node import NodeType
 from ..services.executor import execute_workflow
+from ..models.report import ObjectParameter
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 workflow_access = Depends(require_role("manager", "admin", "client"))
+manager_access = Depends(require_role("manager", "admin"))
+admin_access = Depends(require_role("admin"))
+
+
+from ..schemas.object_parameter import ObjectParameterCreate, ObjectParameterOut
+from sqlalchemy import text
+import re
 
 
 class WorkflowCreate(BaseModel):
     name: str
-    owner_id: str # Changed from UUID to str
+    owner_id: str
     category: str = "personal"
+    graph: Optional[dict] = None
+    workflow_data: Optional[dict] = None
+    parameters: Optional[List[ObjectParameterCreate]] = []
 
 
 class WorkflowUpdate(BaseModel):
-    graph: dict
+    graph: Optional[dict] = None
     workflow_data: Optional[dict] = None
     runtime_data: Optional[dict] = None
+    parameters: Optional[List[ObjectParameterCreate]] = None
 
 
 class WorkflowRename(BaseModel):
@@ -37,8 +49,9 @@ class WorkflowOut(BaseModel):
     id: uuid.UUID
     name: str
     status: Optional[str] = "draft"
-    owner_id: str # Changed from UUID to str
+    owner_id: str
     category: Optional[str] = "general"
+    parameters: List[ObjectParameterOut] = []
 
     class Config:
         from_attributes = True
@@ -109,13 +122,13 @@ class ExecutionOut(BaseModel):
     def parse_json_str(cls, v):
         """Safely parse JSON string fields into dicts/lists."""
         if v is None:
-            return {} if 'runtime' in str(v) else [] # Best effort without knowing field name. Actually, just returning v and falling back is better.
+            return {} if 'runtime' in str(v) else []
         if isinstance(v, str):
             try:
                 import json
                 return json.loads(v)
             except Exception:
-                return {} # Return empty dict as fallback
+                return {}
         return v
 
 
@@ -161,6 +174,18 @@ def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_curre
     db.add(wf)
     db.commit()
     db.refresh(wf)
+    
+    if data.parameters is not None:
+        for p in data.parameters:
+            param_data = p.model_dump()
+            param_data.pop('id', None)
+            param_data.pop('object_id', None)
+            param_data.pop('object_name', None)
+            param = ObjectParameter(**param_data, object_id=wf.id, object_name="workflows")
+            db.add(param)
+        db.commit()
+        db.refresh(wf)
+        
     return wf
 
 
@@ -189,7 +214,8 @@ def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: 
     if current_user.role != "admin" and wf.owner_id != str(current_user.id):
         raise HTTPException(status_code=403, detail="Access denied")
     
-    wf.graph = data.graph
+    if data.graph is not None:
+        wf.graph = data.graph
     
     if data.workflow_data is not None:
         wf.workflow_data = data.workflow_data
@@ -197,6 +223,21 @@ def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: 
     if data.runtime_data is not None:
         wf.runtime_data = data.runtime_data
         
+    if data.parameters is not None:
+        # delete existing parameters
+        db.query(ObjectParameter).filter(
+            ObjectParameter.object_id == wf.id,
+            ObjectParameter.object_name == "workflows"
+        ).delete()
+        # add new
+        for p in data.parameters:
+            param_data = p.model_dump()
+            param_data.pop('id', None)
+            param_data.pop('object_id', None)
+            param_data.pop('object_name', None)
+            param = ObjectParameter(**param_data, object_id=wf.id, object_name="workflows")
+            db.add(param)
+
     db.commit()
     db.refresh(wf)
     return wf
@@ -247,6 +288,23 @@ def duplicate_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_
     db.add(new_wf)
     db.commit()
     db.refresh(new_wf)
+
+    # Copy parameters
+    from ..models.report import ObjectParameter
+    for p in wf.parameters:
+        new_p = ObjectParameter(
+            object_id=new_wf.id,
+            object_name="workflows",
+            parameter_name=p.parameter_name,
+            parameter_type=p.parameter_type,
+            default_value=p.default_value,
+            source=p.source,
+            value_field=p.value_field,
+            label_field=p.label_field
+        )
+        db.add(new_p)
+    db.commit()
+
     return new_wf
 
 
@@ -264,6 +322,109 @@ def delete_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_cur
     db.delete(wf)
     db.commit()
     return {"status": "success"}
+
+
+@router.get("/workflows/{workflow_id}/options")
+def get_workflow_parameter_options(workflow_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=workflow_access):
+    wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
+    if not wf:
+         raise HTTPException(status_code=404, detail="Workflow not found")
+         
+    options = {}
+    for param in wf.parameters:
+        source = param.source.strip() if param.source else ""
+        if not source:
+             options[param.parameter_name] = []
+             continue
+
+        try:
+            if source.startswith("@"):
+                # Support for @table-name->value,label
+                parts = source[1:].split("->")
+                table_name = parts[0]
+                fields_str = parts[1] if len(parts) > 1 else "id,name"
+                fields = fields_str.split(",")
+                val_field = fields[0]
+                lbl_field = fields[1] if len(fields) > 1 else val_field
+                
+                if not re.match(r'^\w+$', table_name) or not re.match(r'^\w+$', val_field) or not re.match(r'^\w+$', lbl_field):
+                    options[param.parameter_name] = []
+                    continue
+
+                result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 1000"))
+                options[param.parameter_name] = [
+                    {"value": str(row[0]), "label": str(row[1])} for row in [tuple(r) for r in result.fetchall()]
+                ]
+            elif source.lower().startswith("select"):
+                result = db.execute(text(source))
+                val_field = param.value_field or "value"
+                lbl_field = param.label_field or "label"
+                columns = result.keys()
+                rows = [tuple(r) for r in result.fetchall()]
+                
+                param_options = []
+                for row in rows:
+                    row_dict = dict(zip(columns, row))
+                    param_options.append({
+                        "value": str(row_dict.get(val_field, row[0])), 
+                        "label": str(row_dict.get(lbl_field, row[1] if len(row) > 1 else row[0]))
+                    })
+                options[param.parameter_name] = param_options
+            else:
+                options[param.parameter_name] = []
+        except Exception as e:
+            print(f"Failed to fetch options for {param.parameter_name}: {e}")
+            options[param.parameter_name] = []
+            
+    return options
+
+
+from ..schemas.object_parameter import SourceTestRequest, SourceTestResponse
+
+@router.post("/test-source", response_model=SourceTestResponse)
+def test_parameter_source(data: SourceTestRequest, db: Session = Depends(get_db), _=manager_access):
+    source = data.source.strip()
+    if not source:
+        return {"options": [], "error": None}
+    
+    try:
+        if source.startswith("@"):
+            parts = source[1:].split("->")
+            table_name = parts[0]
+            fields_str = parts[1] if len(parts) > 1 else "id,name"
+            fields = fields_str.split(",")
+            val_field = fields[0]
+            lbl_field = fields[1] if len(fields) > 1 else val_field
+            
+            if not re.match(r'^\w+$', table_name) or not re.match(r'^\w+$', val_field) or not re.match(r'^\w+$', lbl_field):
+                return {"options": [], "error": "Invalid table or field names"}
+
+            result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 100"))
+            options = [
+                {"value": str(row[0]), "label": str(row[1])} for row in [tuple(r) for r in result.fetchall()]
+            ]
+            return {"options": options, "error": None}
+            
+        elif source.lower().startswith("select"):
+            result = db.execute(text(source))
+            val_field = data.value_field or "value"
+            lbl_field = data.label_field or "label"
+            columns = result.keys()
+            rows = [tuple(r) for r in result.fetchall()]
+            
+            param_options = []
+            for row in rows:
+                row_dict = dict(zip(columns, row))
+                param_options.append({
+                    "value": str(row_dict.get(val_field, row[0])), 
+                    "label": str(row_dict.get(lbl_field, row[1] if len(row) > 1 else row[0]))
+                })
+            return {"options": param_options, "error": None}
+        else:
+            return {"options": [], "error": "Unknown source format"}
+    except Exception as e:
+        print(f"Failed to test source {source}: {e}")
+        return {"options": [], "error": "Error source"}
 
 
 class RunWorkflowRequest(BaseModel):

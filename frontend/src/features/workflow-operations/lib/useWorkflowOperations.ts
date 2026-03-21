@@ -45,7 +45,8 @@ export function useWorkflowOperations({
             initialWorkflowRef.current = JSON.stringify({
                 nodes: activeWorkflow.graph?.nodes || [],
                 edges: activeWorkflow.graph?.edges || [],
-                workflow_data: activeWorkflow.workflow_data
+                workflow_data: activeWorkflow.workflow_data,
+                parameters: (activeWorkflow.parameters || []).map(({ id, ...rest }: any) => rest)
             });
             console.log('[useWorkflowOperations] Baseline captured for workflow:', activeWorkflow.id);
         } else {
@@ -64,7 +65,8 @@ export function useWorkflowOperations({
         const currentStr = JSON.stringify({
             nodes: currentNodes,
             edges: currentEdges,
-            workflow_data: currentData
+            workflow_data: currentData,
+            parameters: (activeWorkflow.parameters || []).map(({ id, ...rest }: any) => rest)
         });
 
         const dirty = currentStr !== initialWorkflowRef.current;
@@ -74,7 +76,7 @@ export function useWorkflowOperations({
             console.log('[useWorkflowOperations] isDirty: false');
         }
         return dirty;
-    }, [activeWorkflow?.id, activeWorkflow?.workflow_data, changeNonce, nodesRef, edgesRef]);
+    }, [activeWorkflow?.id, activeWorkflow?.workflow_data, activeWorkflow?.parameters, changeNonce, nodesRef, edgesRef]);
 
     const onExecutionCompleteRef = useRef(onExecutionComplete);
     useEffect(() => {
@@ -90,13 +92,15 @@ export function useWorkflowOperations({
                 graph,
                 workflow_data: activeWorkflow.workflow_data,
                 runtime_data: activeWorkflow.runtime_data,
+                parameters: (activeWorkflow.parameters || []).map(({ id, ...rest }: any) => rest)
             });
             
             // Update baseline after successful save
             initialWorkflowRef.current = JSON.stringify({
                 nodes: graph.nodes,
                 edges: graph.edges,
-                workflow_data: activeWorkflow.workflow_data
+                workflow_data: activeWorkflow.workflow_data,
+                parameters: (activeWorkflow.parameters || []).map(({ id, ...rest }: any) => rest)
             });
             console.log('[useWorkflowOperations] Save success. Baseline updated.');
 

@@ -1,9 +1,10 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON, Enum, UUID, cast
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON, Enum, UUID, cast, and_
 from sqlalchemy.orm import relationship, remote, foreign
 from sqlalchemy.sql import func
 from ..core.database import Base
 import enum
 import uuid
+from .report import ObjectParameter
 
 
 class WorkflowStatus(str, enum.Enum):
@@ -35,6 +36,12 @@ class Workflow(Base):
         viewonly=True
     )
     executions = relationship("WorkflowExecution", back_populates="workflow", cascade="all, delete-orphan")
+    parameters = relationship(
+        "ObjectParameter", 
+        primaryjoin="and_(ObjectParameter.object_id == Workflow.id, ObjectParameter.object_name == 'workflows')",
+        foreign_keys=[ObjectParameter.object_id],
+        cascade="all, delete-orphan"
+    )
 
 
 class WorkflowExecution(Base):

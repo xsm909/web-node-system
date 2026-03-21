@@ -27,6 +27,7 @@ interface WorkflowHeaderProps {
     onOpenEditModal: () => void;
     showClientSelector?: boolean;
     canSave?: boolean;
+    onOpenParameters?: () => void;
 }
 
 export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
@@ -46,6 +47,7 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
     canAction,
     onOpenEditModal,
     showClientSelector,
+    onOpenParameters,
     canSave = false,
 }) => {
     const { activeClientId, assignedUsers, setActiveClientId } = useClientStore();
@@ -216,6 +218,15 @@ export const WorkflowHeader: React.FC<WorkflowHeaderProps> = ({
                             </button>
                         </>
                     )}
+                    <button
+                        className="h-10 px-4 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-alt)] transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed group"
+                        onClick={onOpenParameters}
+                        disabled={!canAction}
+                        title="Workflow Parameters"
+                    >
+                        <Icon name="tune" size={18} className="group-active:scale-95 transition-transform" />
+                    </button>
+
                     <button
                         className={`h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
                             ${isRunning
