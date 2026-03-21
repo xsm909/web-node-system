@@ -77,6 +77,7 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
         const handleKeyDown = (e: KeyboardEvent) => {
             // Intercept global application shortcuts
             const isGlobalShortcut = 
+                e.key === 'Escape' ||
                 /^F\d+$/.test(e.key) || 
                 (e.key >= 'F1' && e.key <= 'F12') || 
                 ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
