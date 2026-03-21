@@ -98,7 +98,8 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         try {
             const { data } = await apiClient.post('/workflows/workflows', {
                 name,
-                category
+                category,
+                owner_id: activeClientId || currentUser.id
             });
 
             setWorkflows((prev) => [...prev, data]);
@@ -175,6 +176,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         confirmDeleteWorkflow,
         handleDuplicateWorkflow,
         handleRenameWorkflow,
-        setActiveWorkflow
+        setActiveWorkflow,
+        setWorkflows
     };
 }

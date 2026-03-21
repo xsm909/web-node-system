@@ -29,7 +29,7 @@ import re
 
 class WorkflowCreate(BaseModel):
     name: str
-    owner_id: str
+    owner_id: Optional[str] = None
     category: str = "personal"
     graph: Optional[dict] = None
     workflow_data: Optional[dict] = None
@@ -167,9 +167,22 @@ def get_user_workflows(user_id: str, current_user: User = Depends(get_current_us
 
 @router.post("/workflows", response_model=WorkflowOut)
 def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
+    owner_id = data.owner_id or str(current_user.id)
+    
+    # Permission check for owner_id
+    if owner_id != str(current_user.id) and current_user.role != "admin":
+        if owner_id == "common":
+             # Only admin can create common workflows
+             raise HTTPException(status_code=403, detail="Only admin can create common workflows")
+        
+        # Manager can create for assigned clients
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
+        if owner_id not in client_ids:
+             raise HTTPException(status_code=403, detail="Access denied")
+
     wf = Workflow(
         name=data.name,
-        owner_id=str(current_user.id),
+        owner_id=owner_id,
         created_by=current_user.id,
         category=data.category or "general",
         graph=data.graph or {
@@ -217,19 +230,12 @@ def get_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_curren
         LockData.entity_id == workflow_id,
         LockData.entity_type == "workflows"
     ))).scalar()
-    
-    wf_dict = WorkflowDetail.model_validate(wf).model_dump()
-    wf_dict["is_locked"] = is_locked
-    return wf_dict
 
-    # Enforce strict ownership: only creator or admin
+    # Enforce strict ownership: only creator/owner or admin
     if current_user.role != "admin" and wf.owner_id != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Access denied")
-    
-    is_locked = db.query(exists().where(and_(
-        LockData.entity_id == workflow_id,
-        LockData.entity_type == "workflows"
-    ))).scalar()
+        client_ids = [str(u.id) for u in current_user.assigned_clients]
+        if wf.owner_id not in client_ids:
+             raise HTTPException(status_code=403, detail="Access denied")
     
     wf_dict = WorkflowDetail.model_validate(wf).model_dump()
     wf_dict["is_locked"] = is_locked

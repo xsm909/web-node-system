@@ -18,6 +18,7 @@ import { useAuthStore } from '../../features/auth/store';
 import { Icon } from '../../shared/ui/icon';
 import { AppSidebar } from '../../widgets/app-sidebar';
 import { AppHeader } from '../../widgets/app-header';
+import { AppLockToggle } from '../../shared/ui/app-lock-toggle';
 import { ClientSelector } from '../../features/client-selection/ui/ClientSelector';
 import { useClientStore } from '../../features/workflow-management/model/clientStore';
 import { WorkflowList } from '../../widgets/workflow-list';
@@ -49,7 +50,9 @@ const WorkflowEditorView = ({
     nodesRef,
     edgesRef,
     onBack,
-    notifyChange
+    notifyChange,
+    isAdmin,
+    setWorkflows
 }: {
     activeWorkflow: any;
     nodeTypes: any;
@@ -71,6 +74,8 @@ const WorkflowEditorView = ({
     edgesRef: React.MutableRefObject<Edge[]>;
     onBack: any;
     notifyChange?: () => void;
+    isAdmin?: boolean;
+    setWorkflows: any;
 }) => {
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [showSystemLogs, setShowSystemLogs] = useState(false);
@@ -200,6 +205,18 @@ const WorkflowEditorView = ({
                 }
                 rightContent={
                     <div className="flex items-center gap-2">
+                        {isAdmin && activeWorkflow && (
+                            <AppLockToggle 
+                                entityId={activeWorkflow.id}
+                                entityType="workflows"
+                                initialLocked={activeWorkflow.is_locked}
+                                onToggle={(locked) => {
+                                    setActiveWorkflow({ ...activeWorkflow, is_locked: locked });
+                                    setWorkflows((prev: any[]) => prev.map(wf => wf.id === activeWorkflow.id ? { ...wf, is_locked: locked } : wf));
+                                }}
+                                className="mr-1"
+                            />
+                        )}
                         <button
                             onClick={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
                             disabled={isRunning}
@@ -407,7 +424,9 @@ const WorkflowsTabWithNavigator = ({
     nodesRef,
     edgesRef,
     handleIntercept,
-    notifyChange
+    notifyChange,
+    isAdmin,
+    setWorkflows
 }: any) => {
     const nav = useNavigator();
 
@@ -439,6 +458,8 @@ const WorkflowsTabWithNavigator = ({
                     nodesRef={nodesRef}
                     edgesRef={edgesRef}
                     notifyChange={notifyChange}
+                    isAdmin={isAdmin}
+                    setWorkflows={setWorkflows}
                     onBack={() => {
                         setActiveWorkflow(null);
                         nav.pop();
@@ -478,6 +499,8 @@ const WorkflowsTabWithNavigator = ({
                     nodesRef={nodesRef}
                     edgesRef={edgesRef}
                     notifyChange={notifyChange}
+                    isAdmin={isAdmin}
+                    setWorkflows={setWorkflows}
                     onBack={() => {
                         setActiveWorkflow(null);
                         nav.pop();
@@ -485,7 +508,7 @@ const WorkflowsTabWithNavigator = ({
                 />
             );
         }
-    }, [nodeTypes, isCreating, setActiveWorkflow, saveWorkflow, runWorkflow, isRunning, activeNodeIds, activeClientId, canSave, setIsConsoleVisible, handleNodesChange, handleEdgesChange, nodesRef, edgesRef, loadWorkflow, nav, notifyChange]);
+    }, [nodeTypes, isCreating, setActiveWorkflow, saveWorkflow, runWorkflow, isRunning, activeNodeIds, activeClientId, canSave, setIsConsoleVisible, handleNodesChange, handleEdgesChange, nodesRef, edgesRef, loadWorkflow, nav, notifyChange, isAdmin, setWorkflows]);
 
     const handleSelectWorkflow = useCallback((wf: any) => {
         handleIntercept(() => handleSelectWorkflowActual(wf));
@@ -527,6 +550,8 @@ const WorkflowsTabWithNavigator = ({
                     nodesRef={nodesRef}
                     edgesRef={edgesRef}
                     notifyChange={notifyChange}
+                    isAdmin={isAdmin}
+                    setWorkflows={setWorkflows}
                     onBack={() => {
                         setActiveWorkflow(null);
                         nav.pop();
@@ -534,7 +559,7 @@ const WorkflowsTabWithNavigator = ({
                 />
             );
         }
-    }, [activeWorkflow?.id, activeWorkflow, isRunning, isCreating, nodeTypes, activeNodeIds, activeClientId, canSave, nav, notifyChange]);
+    }, [activeWorkflow?.id, activeWorkflow, isRunning, isCreating, nodeTypes, activeNodeIds, activeClientId, canSave, nav, notifyChange, isAdmin, setWorkflows]);
 
 
     return (
@@ -584,7 +609,8 @@ export default function ManagerPage() {
         confirmDeleteWorkflow,
         handleDuplicateWorkflow,
         handleRenameWorkflow,
-        setActiveWorkflow
+        setActiveWorkflow,
+        setWorkflows
     } = useWorkflowManagement();
 
     const nodesRef = useRef<Node[]>([]);
@@ -759,6 +785,8 @@ export default function ManagerPage() {
                                     edgesRef={edgesRef}
                                     handleIntercept={handleIntercept}
                                     notifyChange={notifyChange}
+                                    isAdmin={isAdmin}
+                                    setWorkflows={setWorkflows}
                                 />
                             }
                         />

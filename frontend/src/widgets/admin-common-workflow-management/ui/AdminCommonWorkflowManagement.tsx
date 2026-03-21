@@ -41,6 +41,7 @@ interface WorkflowEditorContextType {
     // Operations
     loadWorkflow: (wf: any) => void;
     setActiveWorkflow: (wf: any) => void;
+    setWorkflows: (updater: any) => void;
     handleCreateWorkflow: (name: string, category: string) => Promise<any>;
     confirmDeleteWorkflow: () => void;
     handleDuplicateWorkflow: (id: string) => void;
@@ -105,7 +106,8 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         confirmDeleteWorkflow,
         handleDuplicateWorkflow,
         handleRenameWorkflow,
-        setActiveWorkflow
+        setActiveWorkflow,
+        setWorkflows
     } = useWorkflowManagement(refreshTrigger);
 
     const {
@@ -185,6 +187,7 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         activeClientId,
         loadWorkflow,
         setActiveWorkflow,
+        setWorkflows,
         handleCreateWorkflow,
         confirmDeleteWorkflow,
         handleDuplicateWorkflow,
@@ -221,7 +224,7 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         workflowToRename, setWorkflowToRename, renameInputValue, 
         setRenameInputValue, renameCategoryValue, setRenameCategoryValue,
         handleNodesChange, handleEdgesChange, handleEditNodeContext, onToggleSidebar, isSidebarOpen,
-        isParametersModalOpen, setIsParametersModalOpen
+        isParametersModalOpen, setIsParametersModalOpen, setWorkflows
     ]);
 
     return (
@@ -263,7 +266,8 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
         edgesRef,
         onEditNode,
         notifyChange,
-        isDirty
+        isDirty,
+        setWorkflows
     } = useWorkflowEditor();
 
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -398,6 +402,7 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
             isLocked={activeWorkflow?.is_locked}
             onLockToggle={(locked) => {
                 setActiveWorkflow({ ...activeWorkflow, is_locked: locked });
+                setWorkflows((prev: any[]) => prev.map(wf => wf.id === activeWorkflow.id ? { ...wf, is_locked: locked } : wf));
             }}
             headerRightContent={
                 <div className="flex items-center gap-2">

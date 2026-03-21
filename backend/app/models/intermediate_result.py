@@ -24,8 +24,8 @@ class IntermediateResult(Base):
         Index("idx_intermediate_results_session_id", "session_id"),
         Index("idx_intermediate_results_reference_id", "reference_id"),
         Index("idx_intermediate_results_client_id", "client_id"),
-        CheckConstraint("char_length(category) > 0", name="ck_intermediate_results_category_nonempty"),
-        CheckConstraint("char_length(sub_category) > 0", name="ck_intermediate_results_sub_category_nonempty"),
+        CheckConstraint("length(category) > 0", name="ck_intermediate_results_category_nonempty"),
+        CheckConstraint("length(sub_category) > 0", name="ck_intermediate_results_sub_category_nonempty"),
     )
 
 

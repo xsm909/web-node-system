@@ -1,5 +1,4 @@
-from sqlalchemy import Column, String, DateTime, UUID
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, String, DateTime, UUID, JSON
 from sqlalchemy.sql import func
 import uuid
 from ..core.database import Base
@@ -11,12 +10,12 @@ class Prompt(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     entity_id = Column(UUID(as_uuid=True), nullable=False, index=True) # ID of the client or record
     entity_type = Column(String, nullable=False, index=True) # 'client' or 'record'
-    content = Column(JSONB, nullable=False) # The actual prompt data
+    content = Column(JSON, nullable=False) # The actual prompt data
     raw = Column(String, nullable=True) # Raw text version of the prompt
     category = Column(String, nullable=True, index=True) # Category like 'Common|Prompt'
     datatype = Column(String, nullable=False, index=True) # Key of schema (datatype)
     reference_id = Column(UUID(as_uuid=True), nullable=True, index=True) # Optional reference ID
-    meta = Column(JSONB, nullable=True) # Additional technical metadata
+    meta = Column(JSON, nullable=True) # Additional technical metadata
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
