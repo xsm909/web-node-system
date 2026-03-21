@@ -49,12 +49,7 @@ export const SelectedFieldsTreeView: React.FC<SelectedFieldsTreeViewProps> = ({
                     ))}
                 </SortableContext>
 
-                {fields.length === 0 && (
-                    <div className="h-32 flex flex-col items-center justify-center opacity-40 border-2 border-dashed border-[var(--border-base)] rounded-xl m-2 bg-[var(--bg-alt)]/20">
-                        <Icon name="checklist" size={24} className="mb-2" />
-                        <p className="text-[10px] font-normal uppercase tracking-widest text-center">Drag fields here or click in tables</p>
-                    </div>
-                )}
+                {/* Empty state removed as per user request */}
             </div>
         </div>
     );

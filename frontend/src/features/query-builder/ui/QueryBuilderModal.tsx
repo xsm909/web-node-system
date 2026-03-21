@@ -4,7 +4,7 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { ObjectParameter as ReportParameter } from '../../../entities/report/model/types';
 import {
     DndContext,
-    closestCenter,
+    rectIntersection,
     PointerSensor,
     KeyboardSensor,
     useSensor,
@@ -905,6 +905,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
     const [cteToRename, setCteToRename] = useState<{ id: string, alias: string } | null>(null);
     const [renameValue, setRenameValue] = useState('');
+    const [isDraggingInProgress, setIsDraggingInProgress] = useState(false);
     const lastParsedSqlRef = useRef<string | null>(null);
     const prevIsOpenRef = useRef(false);
 
@@ -1137,6 +1138,10 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const handleGlobalDragEnd = (event: DragEndEvent) => {
         const { active, over, delta } = event;
         setActiveDragItem(null);
+        // Set flag to true to prevent click event from triggering onAdd
+        setIsDraggingInProgress(true);
+        setTimeout(() => setIsDraggingInProgress(false), 50);
+
         setDragDelta({ x: 0, y: 0 });
 
         const activeId = active.id as string;
@@ -1604,7 +1609,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             <div className="flex-1 flex overflow-hidden min-h-0">
                 <DndContext
                     sensors={sensors}
-                    collisionDetection={closestCenter}
+                    collisionDetection={rectIntersection}
                     onDragStart={handleGlobalDragStart}
                     onDragMove={handleGlobalDragMove}
                     onDragEnd={handleGlobalDragEnd}
@@ -1739,7 +1744,11 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             label={cte.alias}
                                             isCte={true}
                                             isRecursive={cte.isRecursive}
-                                            onAdd={() => handleAddTable(cte.alias, true, cte.isRecursive)}
+                                            onAdd={() => {
+                                                if (!isDraggingInProgress) {
+                                                    handleAddTable(cte.alias, true, cte.isRecursive);
+                                                }
+                                            }}
                                         />
                                     ))}
 
@@ -1754,7 +1763,11 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             key={table}
                                             id={table}
                                             label={table}
-                                            onAdd={() => handleAddTable(table)}
+                                            onAdd={() => {
+                                                if (!isDraggingInProgress) {
+                                                    handleAddTable(table);
+                                                }
+                                            }}
                                         />
                                     ))}
                                 </>
@@ -1915,12 +1928,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             />
                                         </div>
 
-                                        {activeState.tables.length === 0 && (
-                                            <div className="absolute inset-4 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40 bg-[var(--bg-app)]/50 pointer-events-none z-10">
-                                                <Icon name="table_chart" size={48} className="mb-4 text-[var(--text-muted)]" />
-                                                <p className="text-sm font-normal">Add a database table or a query block from the sidebar.</p>
-                                            </div>
-                                        )}
+                                        {/* Main empty state removed as per user request */}
                                     </div>
                                 )}
                                 {activeTab === 'joins' && (

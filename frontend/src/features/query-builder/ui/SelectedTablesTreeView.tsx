@@ -59,12 +59,7 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
                     ))}
                 </SortableContext>
                 
-                {tables.length === 0 && (
-                    <div className="h-32 flex flex-col items-center justify-center opacity-40 border-2 border-dashed border-[var(--border-base)] rounded-xl m-2">
-                        <Icon name="add_to_photos" size={24} className="mb-2" />
-                        <p className="text-[10px] font-normal uppercase tracking-widest text-center">Add tables from the sidebar</p>
-                    </div>
-                )}
+                {/* Empty state removed as per user request */}
             </div>
         </div>
     );
