@@ -62,6 +62,9 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                     <span className="font-semibold text-[var(--text-main)] group-hover:text-brand transition-colors">
                         {info.getValue()}
                     </span>
+                    {info.row.original.is_locked && (
+                        <Icon name="lock" size={12} className="text-amber-500/60" />
+                    )}
                 </div>
             )
         }),
@@ -80,27 +83,31 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
 
                 return (
                     <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onRenameWorkflow(wf); }}
-                            className="p-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors text-gray-400 hover:text-brand"
-                            title="Rename"
-                        >
-                            <Icon name="drive_file_rename_outline" size={16} />
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onDuplicateWorkflow(wf); }}
-                            className="p-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors text-gray-400 hover:text-brand"
-                            title="Duplicate"
-                        >
-                            <Icon name="content_copy" size={16} />
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onDeleteWorkflow(wf); }}
-                            className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400"
-                            title="Delete"
-                        >
-                            <Icon name="delete" size={16} />
-                        </button>
+                        {!wf.is_locked && (
+                            <>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onRenameWorkflow(wf); }}
+                                    className="p-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors text-gray-400 hover:text-brand"
+                                    title="Rename"
+                                >
+                                    <Icon name="drive_file_rename_outline" size={16} />
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onDuplicateWorkflow(wf); }}
+                                    className="p-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors text-gray-400 hover:text-brand"
+                                    title="Duplicate"
+                                >
+                                    <Icon name="content_copy" size={16} />
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onDeleteWorkflow(wf); }}
+                                    className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400"
+                                    title="Delete"
+                                >
+                                    <Icon name="delete" size={16} />
+                                </button>
+                            </>
+                        )}
                     </div>
                 );
             }

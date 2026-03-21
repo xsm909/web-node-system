@@ -9,6 +9,8 @@ import ast
 from ..models.user import User, RoleEnum
 from ..models.node import NodeType
 from ..models.credential import Credential
+from ..models import LockData
+from sqlalchemy import exists, and_
 from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -19,6 +21,7 @@ class UserSummary(BaseModel):
     id: uuid.UUID
     username: str
     role: str
+    is_locked: bool = False # Added is_locked here
 
     class Config:
         from_attributes = True
@@ -33,7 +36,19 @@ class UserOut(UserSummary):
 
 @router.get("/users", response_model=List[UserOut])
 def list_users(db: Session = Depends(get_db), _=admin_only):
-    return db.query(User).options(selectinload(User.assigned_managers)).all()
+    is_locked_subquery = db.query(exists().where(and_(
+        LockData.entity_id == User.id,
+        LockData.entity_type == "users"
+    ))).scalar_subquery()
+    
+    results = db.query(User, is_locked_subquery.label("is_locked")).options(selectinload(User.assigned_managers)).all()
+    
+    response = []
+    for user, is_locked in results:
+        user_dict = UserOut.model_validate(user).model_dump()
+        user_dict["is_locked"] = is_locked
+        response.append(user_dict)
+    return response
 
 
 def extract_node_parameters(code: str) -> list:
@@ -183,10 +198,18 @@ class UserCreate(BaseModel):
     role: RoleEnum
 
 
-class UserOut(BaseModel):
+class UserSummary(BaseModel):
     id: uuid.UUID
     username: str
     role: str
+    is_locked: bool = False
+
+    class Config:
+        from_attributes = True
+
+
+class UserOut(UserSummary):
+    assigned_managers: List[UserSummary] = []
 
     class Config:
         from_attributes = True
@@ -217,6 +240,7 @@ class NodeTypeOut(BaseModel):
     category: Optional[str] = None
     icon: Optional[str] = "task"
     is_async: bool
+    is_locked: bool = False
 
     class Config:
         from_attributes = True
@@ -242,12 +266,36 @@ class CredentialOut(BaseModel):
 
 @router.get("/users", response_model=List[UserOut])
 def list_users(db: Session = Depends(get_db), _=admin_only):
-    return db.query(User).all()
+    is_locked_subquery = db.query(exists().where(and_(
+        LockData.entity_id == User.id,
+        LockData.entity_type == "users"
+    ))).scalar_subquery()
+    
+    results = db.query(User, is_locked_subquery.label("is_locked")).options(selectinload(User.assigned_managers)).all()
+    
+    response = []
+    for user, is_locked in results:
+        user_dict = UserOut.model_validate(user).model_dump()
+        user_dict["is_locked"] = is_locked
+        response.append(user_dict)
+    return response
 
 
 @router.get("/managers", response_model=List[UserOut])
 def list_managers(db: Session = Depends(get_db), _=admin_only):
-    return db.query(User).filter(User.role == RoleEnum.manager).all()
+    is_locked_subquery = db.query(exists().where(and_(
+        LockData.entity_id == User.id,
+        LockData.entity_type == "users"
+    ))).scalar_subquery()
+    
+    results = db.query(User, is_locked_subquery.label("is_locked")).filter(User.role == RoleEnum.manager).all()
+    
+    response = []
+    for user, is_locked in results:
+        user_dict = UserOut.model_validate(user).model_dump()
+        user_dict["is_locked"] = is_locked
+        response.append(user_dict)
+    return response
 
 
 @router.post("/users", response_model=UserOut)
@@ -287,7 +335,19 @@ def unassign_client(manager_id: uuid.UUID, client_id: uuid.UUID, db: Session = D
 
 @router.get("/node-types", response_model=List[NodeTypeOut])
 def list_node_types(db: Session = Depends(get_db), _=admin_only):
-    return db.query(NodeType).all()
+    is_locked_subquery = db.query(exists().where(and_(
+        LockData.entity_id == NodeType.id,
+        LockData.entity_type == "node_types"
+    ))).scalar_subquery()
+    
+    results = db.query(NodeType, is_locked_subquery.label("is_locked")).all()
+    
+    response = []
+    for node, is_locked in results:
+        node_dict = NodeTypeOut.model_validate(node).model_dump()
+        node_dict["is_locked"] = is_locked
+        response.append(node_dict)
+    return response
 
 
 @router.get("/node-types/{node_id}", response_model=NodeTypeOut)

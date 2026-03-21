@@ -12,6 +12,7 @@ interface ManagementModalProps {
     saveButtonText?: string;
     isSaving?: boolean;
     saveDisabled?: boolean;
+    headerRightContent?: React.ReactNode;
 }
 
 export const ManagementModal: React.FC<ManagementModalProps> = ({
@@ -25,6 +26,7 @@ export const ManagementModal: React.FC<ManagementModalProps> = ({
     saveButtonText = 'Save',
     isSaving = false,
     saveDisabled = false,
+    headerRightContent,
 }) => {
     if (!isOpen) return null;
 
@@ -45,12 +47,15 @@ export const ManagementModal: React.FC<ManagementModalProps> = ({
                             </p>
                         </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-all"
-                    >
-                        <Icon name="close" size={20} />
-                    </button>
+                    <div className="flex items-center gap-4">
+                        {headerRightContent}
+                        <button
+                            onClick={onClose}
+                            className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-all"
+                        >
+                            <Icon name="close" size={20} />
+                        </button>
+                    </div>
                 </header>
 
                 <div className="p-10 space-y-8 overflow-y-auto flex-1">

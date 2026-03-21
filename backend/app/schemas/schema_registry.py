@@ -11,7 +11,6 @@ class SchemaBase(BaseModel):
     category: Optional[str] = None
     meta: Optional[Dict[str, Any]] = None
     is_system: bool = False
-    lock: bool = False
 
     @field_validator('content', mode='before')
     @classmethod
@@ -32,12 +31,12 @@ class SchemaUpdate(BaseModel):
     category: Optional[str] = None
     meta: Optional[Dict[str, Any]] = None
     is_system: Optional[bool] = None
-    lock: Optional[bool] = None
 
 class SchemaResponse(SchemaBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
+    is_locked: bool = False
 
     class Config:
         from_attributes = True
@@ -51,19 +50,18 @@ class RecordBase(BaseModel):
     entity_type: Optional[str] = None
     data: Any
     order: int = 0
-    lock: bool = False
 
 class RecordCreate(RecordBase):
     pass
 
 class RecordUpdate(BaseModel):
     data: Optional[Any] = None
-    lock: Optional[bool] = None
 
 class RecordResponse(RecordBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
+    is_locked: bool = False
     children: Optional[List['RecordResponse']] = []
 
     class Config:

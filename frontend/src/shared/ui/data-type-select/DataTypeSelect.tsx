@@ -19,6 +19,7 @@ interface DataTypeSelectProps {
     placeholder?: string;
     className?: string;
     dataTypes?: DataType[]; // optional, if provided it won't fetch
+    disabled?: boolean;
 }
 
 export const DataTypeSelect: React.FC<DataTypeSelectProps> = ({
@@ -28,7 +29,8 @@ export const DataTypeSelect: React.FC<DataTypeSelectProps> = ({
     valueProp = 'type',
     placeholder = 'Select data type...',
     className = '',
-    dataTypes: externalDataTypes
+    dataTypes: externalDataTypes,
+    disabled = false,
 }) => {
     const { data: fetchedDataTypes = [], isLoading } = useQuery({
         queryKey: ['data-types', 'all'],
@@ -92,6 +94,7 @@ export const DataTypeSelect: React.FC<DataTypeSelectProps> = ({
             data={categoryData}
             onSelect={(item) => handleSelect(item.id)}
             className={className}
+            disabled={disabled}
         />
     );
 };

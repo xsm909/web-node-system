@@ -24,16 +24,13 @@ export function StyleList({ styles, isAdmin, onEdit, onDelete, searchQuery }: St
             cell: info => {
                 const style = info.row.original;
                 return (
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                            <Icon name="palette" size={16} />
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                            <span className="text-[var(--text-main)] truncate">{style.name}</span>
-                            {style.is_default && (
-                                <span className="text-[10px] text-brand font-bold uppercase tracking-tighter">Default Style</span>
-                            )}
-                        </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[var(--text-main)] font-medium group-hover:text-brand transition-colors">
+                            {info.getValue()}
+                        </span>
+                        {style.is_locked && (
+                            <Icon name="lock" size={12} className="text-amber-500/60" />
+                        )}
                     </div>
                 );
             },
@@ -51,7 +48,6 @@ export function StyleList({ styles, isAdmin, onEdit, onDelete, searchQuery }: St
                     <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                         {isAdmin && (
                             <>
-
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onDelete(style); }}
                                     className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"

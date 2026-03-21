@@ -9,6 +9,7 @@ from .report import Report, ObjectParameter, ReportStyle, ReportRun
 from .schema import Schema, Record, ExternalSchemaCache
 from .agent_hint import AgentHint
 from .prompt import Prompt
+from .lock import LockData
 
 __all__ = [
     "User",
@@ -32,4 +33,5 @@ __all__ = [
     "ExternalSchemaCache",
     "AgentHint",
     "Prompt",
+    "LockData",
 ]

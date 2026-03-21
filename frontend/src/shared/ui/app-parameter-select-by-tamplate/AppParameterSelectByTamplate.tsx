@@ -16,6 +16,7 @@ interface AppParameterSelectByTamplateProps {
     placeholder?: string;
     className?: string;
     variant?: 'primary' | 'ghost';
+    disabled?: boolean;
 }
 
 export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplateProps> = ({
@@ -30,6 +31,7 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
     placeholder,
     className = '',
     variant = 'primary',
+    disabled = false,
 }) => {
     console.log(`AppParameterSelectByTamplate [${parameter.parameter_name}] options:`, options);
     if (parameter.parameter_type === 'select') {
@@ -58,6 +60,7 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
                 onSelect={(item) => onChange(item.id)}
                 variant={variant}
                 className={`w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl ${className}`}
+                disabled={disabled}
             />
         );
     }
@@ -84,13 +87,15 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
                     type="date"
                     value={sValue}
                     onChange={(e) => handleStart(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand disabled:opacity-50"
+                    disabled={disabled}
                 />
                 <input
                     type="date"
                     value={eValue}
                     onChange={(e) => handleEnd(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand disabled:opacity-50"
+                    disabled={disabled}
                 />
             </div>
         );
@@ -101,8 +106,9 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
             type={parameter.parameter_type === 'number' ? 'number' : parameter.parameter_type === 'date' ? 'date' : 'text'}
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
-            className={`w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand ${className}`}
+            className={`w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:outline-none focus:border-brand disabled:opacity-50 ${className}`}
             placeholder={placeholder || `Enter ${parameter.parameter_name}...`}
+            disabled={disabled}
         />
     );
 };

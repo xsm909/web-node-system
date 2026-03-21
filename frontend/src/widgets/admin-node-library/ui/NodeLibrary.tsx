@@ -71,7 +71,7 @@ export const AdminNodeLibrary = ({
 
     const columns = useMemo(() => [
         columnHelper.accessor('name', {
-            header: 'Name',
+            header: 'Node Type',
             cell: info => {
                 const node = info.row.original;
                 return (
@@ -80,9 +80,14 @@ export const AdminNodeLibrary = ({
                             <Icon name={node.icon || 'extension'} size={18} />
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <span className="text-sm text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
-                                {node.name}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
+                                    {node.name}
+                                </span>
+                                {node.is_locked && (
+                                    <Icon name="lock" size={12} className="text-amber-500/60" />
+                                )}
+                            </div>
                         </div>
                     </div>
                 );
@@ -104,11 +109,11 @@ export const AdminNodeLibrary = ({
         }),
         columnHelper.display({
             id: 'actions',
-            header: () => <div className="text-right">Actions</div>,
+            header: () => <div className="text-right px-4">Actions</div>,
             cell: info => {
                 const node = info.row.original;
                 return (
-                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 justify-end px-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();

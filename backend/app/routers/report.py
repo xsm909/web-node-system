@@ -10,6 +10,8 @@ from ..core.database import get_db
 from ..core.security import require_role, get_current_user
 from ..models.user import User
 from ..models.report import Report, ReportTypeEnum, ObjectParameter, ReportStyle, ReportRun
+from ..models import LockData
+from sqlalchemy import exists, and_
 from ..services.report_executor import ReportExecutor, generate_json_schema
 from pydantic import BaseModel
 from jinja2 import Environment, meta, Template
@@ -45,6 +47,7 @@ class ReportStyleUpdate(BaseModel):
 
 class ReportStyleOut(ReportStyleBase):
     id: uuid.UUID
+    is_locked: bool = False
 
     class Config:
         from_attributes = True
@@ -79,6 +82,7 @@ class ReportOut(ReportBase):
     id: uuid.UUID
     created_by: uuid.UUID
     parameters: List[ObjectParameterOut] = []
+    is_locked: bool = False
 
     class Config:
         from_attributes = True
@@ -126,7 +130,19 @@ class SourceTestResponse(BaseModel):
 
 @router.get("/styles", response_model=List[ReportStyleOut])
 def list_report_styles(db: Session = Depends(get_db), _=admin_access):
-    return db.query(ReportStyle).all()
+    is_locked_subquery = db.query(exists().where(and_(
+        LockData.entity_id == ReportStyle.id,
+        LockData.entity_type == "report_styles"
+    ))).scalar_subquery()
+    
+    results = db.query(ReportStyle, is_locked_subquery.label("is_locked")).all()
+    
+    response = []
+    for style, is_locked in results:
+        style_dict = ReportStyleOut.model_validate(style).model_dump()
+        style_dict["is_locked"] = is_locked
+        response.append(style_dict)
+    return response
 
 @router.post("/styles", response_model=ReportStyleOut)
 def create_report_style(data: ReportStyleCreate, db: Session = Depends(get_db), _=admin_access):
@@ -137,7 +153,10 @@ def create_report_style(data: ReportStyleCreate, db: Session = Depends(get_db), 
     db.add(style)
     db.commit()
     db.refresh(style)
-    return style
+    
+    style_dict = ReportStyleOut.model_validate(style).model_dump()
+    style_dict["is_locked"] = False
+    return style_dict
 
 @router.put("/styles/{style_id}", response_model=ReportStyleOut)
 def update_report_style(style_id: uuid.UUID, data: ReportStyleUpdate, db: Session = Depends(get_db), _=admin_access):
@@ -170,12 +189,22 @@ def delete_report_style(style_id: uuid.UUID, db: Session = Depends(get_db), _=ad
 
 @router.get("/", response_model=List[ReportOut])
 def list_reports(db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    is_locked_subquery = db.query(exists().where(and_(
+        LockData.entity_id == Report.id,
+        LockData.entity_type == "reports"
+    ))).scalar_subquery()
+    
     if current_user.role == "admin":
-        return db.query(Report).all()
-    # Managers can only see global reports for now (or client reports depending on logic)
-    # The requirement says manager can only list and generate. So list all global or reports.
-    # Assuming global is always visible.
-    return db.query(Report).filter(Report.type == ReportTypeEnum.global_type).all()
+        results = db.query(Report, is_locked_subquery.label("is_locked")).all()
+    else:
+        results = db.query(Report, is_locked_subquery.label("is_locked")).filter(Report.type == ReportTypeEnum.global_type).all()
+    
+    response = []
+    for report, is_locked in results:
+        report_dict = ReportOut.model_validate(report).model_dump()
+        report_dict["is_locked"] = is_locked
+        response.append(report_dict)
+    return response
 
 @router.get("/{report_id}", response_model=ReportOut)
 def get_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
@@ -237,7 +266,15 @@ def update_report(report_id: uuid.UUID, data: ReportUpdate, db: Session = Depend
             
     db.commit()
     db.refresh(report)
-    return report
+    
+    is_locked = db.query(exists().where(and_(
+        LockData.entity_id == report_id,
+        LockData.entity_type == "reports"
+    ))).scalar()
+    
+    report_dict = ReportOut.model_validate(report).model_dump()
+    report_dict["is_locked"] = is_locked
+    return report_dict
 
 @router.delete("/{report_id}")
 def delete_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_access):

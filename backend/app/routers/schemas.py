@@ -5,9 +5,9 @@ from uuid import UUID
 
 from ..core.database import get_db
 from ..core.security import get_current_user
-from ..models import User, RoleEnum
-from ..models.schema import Schema, ExternalSchemaCache
+from ..models import User, RoleEnum, LockData, Schema, ExternalSchemaCache
 from ..schemas.schema_registry import SchemaCreate, SchemaUpdate, SchemaResponse, ExternalSchemaCacheResponse
+from sqlalchemy import exists, and_
 from ..services.cache_manager import fetch_and_cache_external_schema
 
 router = APIRouter(prefix="/schemas", tags=["schemas"])
@@ -18,7 +18,19 @@ def check_admin(user: User):
 
 @router.get("/", response_model=List[SchemaResponse])
 def get_schemas(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(Schema).all()
+    is_locked_subquery = db.query(exists().where(and_(
+        LockData.entity_id == Schema.id,
+        LockData.entity_type == "schemas"
+    ))).scalar_subquery()
+    
+    results = db.query(Schema, is_locked_subquery.label("is_locked")).all()
+    
+    response = []
+    for schema, is_locked in results:
+        schema_dict = {c.name: getattr(schema, c.name) for c in schema.__table__.columns}
+        schema_dict["is_locked"] = is_locked
+        response.append(schema_dict)
+    return response
 
 @router.post("/", response_model=SchemaResponse)
 def create_schema(
@@ -35,20 +47,27 @@ def create_schema(
         content=schema_in.content,
         category=schema_in.category,
         meta=schema_in.meta,
-        is_system=schema_in.is_system,
-        lock=schema_in.lock
+        is_system=schema_in.is_system
     )
     db.add(new_schema)
     db.commit()
     db.refresh(new_schema)
-    return new_schema
+    return {**{c.name: getattr(new_schema, c.name) for c in new_schema.__table__.columns}, "is_locked": False}
 
 @router.get("/{schema_id}", response_model=SchemaResponse)
 def get_schema(schema_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    is_locked = db.query(exists().where(and_(
+        LockData.entity_id == schema_id,
+        LockData.entity_type == "schemas"
+    ))).scalar()
+    
     schema = db.query(Schema).filter(Schema.id == schema_id).first()
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
-    return schema
+    
+    schema_dict = {c.name: getattr(schema, c.name) for c in schema.__table__.columns}
+    schema_dict["is_locked"] = is_locked
+    return schema_dict
 
 @router.put("/{schema_id}", response_model=SchemaResponse)
 def update_schema(
@@ -63,16 +82,6 @@ def update_schema(
         raise HTTPException(status_code=404, detail="Schema not found")
 
     update_data = schema_in.model_dump(exclude_unset=True)
-    
-    # If schema is locked, only allow updating the 'lock' field itself
-    if schema.lock:
-        allowed_keys = {"lock"}
-        updating_keys = set(update_data.keys())
-        if not updating_keys.issubset(allowed_keys):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail="Schema is locked and cannot be edited. Unlock it first."
-            )
 
     if "key" in update_data and update_data["key"] != schema.key:
         if db.query(Schema).filter(Schema.key == update_data["key"]).first():
@@ -97,13 +106,16 @@ def update_schema(
         
     if "is_system" in update_data:
         schema.is_system = update_data["is_system"]
-        
-    if "lock" in update_data:
-        schema.lock = update_data["lock"]
 
     db.commit()
     db.refresh(schema)
-    return schema
+    
+    is_locked = db.query(exists().where(and_(
+        LockData.entity_id == schema_id,
+        LockData.entity_type == "schemas"
+    ))).scalar()
+    
+    return {**{c.name: getattr(schema, c.name) for c in schema.__table__.columns}, "is_locked": is_locked}
 
 @router.delete("/{schema_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_schema(
@@ -115,12 +127,6 @@ def delete_schema(
     schema = db.query(Schema).filter(Schema.id == schema_id).first()
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
-    
-    if schema.lock:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Schema is locked and cannot be deleted. Unlock it first."
-        )
 
     if schema.is_system:
         raise HTTPException(status_code=400, detail="Cannot delete a system schema")

@@ -9,6 +9,6 @@ export interface NodeType {
     parameters?: any[];
     category?: string;
     icon?: string;
+    is_locked: boolean;
     is_async: boolean;
-    isRightInputProvider?: boolean;
 }

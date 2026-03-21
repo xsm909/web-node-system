@@ -9,4 +9,5 @@ export interface AITask {
     updated_by?: string;
     created_at?: string;
     updated_at?: string;
+    is_locked?: boolean;
 }

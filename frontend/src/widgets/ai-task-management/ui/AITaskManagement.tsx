@@ -78,8 +78,11 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
                     const dt = dataTypes.find((d: any) => d.id === dtId);
                     const label = dt ? (dt.config?.Caption || dt.config?.caption || dt.type) : dtId;
                     return (
-                        <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                        <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-1.5">
                             {label}
+                            {info.row.original.is_locked && (
+                                <Icon name="lock" size={10} className="text-amber-500/60" />
+                            )}
                         </span>
                     );
                 },
@@ -148,16 +151,18 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
                 header: '',
                 cell: info => (
                     <div className="flex justify-end gap-2 pr-4">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setTaskToDelete(info.row.original);
-                            }}
-                            disabled={deleteMutation.isPending}
-                            className="p-2 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
-                        >
-                            <Icon name="delete" size={18} />
-                        </button>
+                        {!info.row.original.is_locked && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTaskToDelete(info.row.original);
+                                }}
+                                disabled={deleteMutation.isPending}
+                                className="p-2 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                            >
+                                <Icon name="delete" size={18} />
+                            </button>
+                        )}
                     </div>
                 ),
             })
@@ -207,6 +212,7 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
                 defaultOwnerId={activeClientId ?? (isAdmin ? 'AI_Task' : undefined)}
                 categoryFilter={categoryFilter}
                 dataTypes={dataTypes}
+                isLocked={selectedTask?.is_locked}
             />
 
             <ConfirmModal

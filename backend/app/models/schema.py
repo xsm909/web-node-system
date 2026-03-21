@@ -14,7 +14,6 @@ class Schema(Base):
     category = Column(String, nullable=True, index=True) # Groups like 'Common|Info'
     meta = Column(JSON, nullable=True) # Additional metadata like {"tags": ["common", "info"]}
     is_system = Column(Boolean, default=False) # Only Admins can edit if true
-    lock = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -33,7 +32,6 @@ class Record(Base):
     entity_type = Column(String, nullable=True, index=True)
     data = Column(JSON, nullable=False) # The validated payload
     order = Column("order", Column(Integer).type, default=0, nullable=False) # Use explicit name to avoid reserved word issues in some DBs
-    lock = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

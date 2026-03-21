@@ -8,6 +8,7 @@ import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
 import { createColumnHelper } from '@tanstack/react-table';
+import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 
 
 const columnHelper = createColumnHelper<Credential>();
@@ -122,8 +123,11 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
         columnHelper.accessor('key', {
             header: 'Identification Key',
             cell: info => (
-                <div className="text-sm font-mono text-brand group-hover:brightness-110 transition-all uppercase tracking-tight">
+                <div className="flex items-center gap-2 text-sm font-mono text-brand group-hover:brightness-110 transition-all uppercase tracking-tight">
                     {info.getValue()}
+                    {info.row.original.is_locked && (
+                        <Icon name="lock" size={12} className="text-amber-500/60" />
+                    )}
                 </div>
             )
         }),
@@ -151,16 +155,18 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                 return (
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
 
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(c);
-                            }}
-                            className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
-                            title="Delete Credential"
-                        >
-                            <Icon name="delete" size={14} />
-                        </button>
+                        {!c.is_locked && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(c);
+                                }}
+                                className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
+                                title="Delete Credential"
+                            >
+                                <Icon name="delete" size={14} />
+                            </button>
+                        )}
                     </div>
                 );
             }
@@ -186,6 +192,18 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                 onSave={handleSave}
                 onCancel={() => setIsEditing(false)}
                 saveLabel={editingId ? "Save Credential" : "Add Credential"}
+                headerRightContent={
+                    editingId ? (
+                        <AppLockToggle 
+                            entityId={editingId} 
+                            entityType="credentials" 
+                            initialLocked={!!formData.is_locked}
+                            onToggle={(locked) => {
+                                setFormData(prev => ({ ...prev, is_locked: locked }));
+                            }}
+                        />
+                    ) : undefined
+                }
             >
                 <div className="max-w-5xl mx-auto w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                     <header className="mb-8">

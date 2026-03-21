@@ -10,6 +10,7 @@ export interface AgentHint {
     created_by: string;
     created_at: string;
     updated_at: string;
+    is_locked: boolean;
 }
 
 export interface CreateAgentHintDto {

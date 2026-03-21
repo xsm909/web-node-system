@@ -10,6 +10,7 @@ import { ManagementModal } from '../../../shared/ui/management-modal';
 import { AIAssistantButton } from '../../../features/ai-assistant/ui/AIAssistantButton';
 import { AppInput } from '../../../shared/ui/app-input';
 import { FormField } from '../../../shared/ui/form-field';
+import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 
 import type { SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
 
@@ -21,11 +22,13 @@ interface AITaskEditModalProps {
     defaultOwnerId?: string;
     categoryFilter: string | string[];
     dataTypes: any[];
+    isLocked?: boolean;
 }
 
 export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
-    isOpen, onClose, task, onSave, defaultOwnerId, categoryFilter, dataTypes
+    isOpen, onClose, task, onSave, defaultOwnerId, categoryFilter, dataTypes, isLocked: initialLocked
 }) => {
+    const [isLocked, setIsLocked] = useState(initialLocked || false);
     const queryClient = useQueryClient();
     const { user } = useAuthStore();
     const isAdmin = user?.role === 'admin';
@@ -46,6 +49,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                 setDataTypeId(String(task.data_type_id) || '');
                 setModel(task.ai_model || 'any');
                 setDescription(task.description || '');
+                setIsLocked(task.is_locked || false);
 
                 const taskData = task.task || {};
 
@@ -64,9 +68,10 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                 setDescription('');
                 setSingleValue('');
                 setMultiValues(['']);
+                setIsLocked(false);
             }
         }
-    }, [isOpen, task, defaultOwnerId]);
+    }, [isOpen, task, defaultOwnerId, initialLocked]);
 
     // Determine current selected data type
     const selectedDataType = useMemo(() => {
@@ -217,7 +222,20 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
             onSave={() => mutation.mutate()}
             saveButtonText={isEdit ? 'Save Changes' : 'Create Task'}
             isSaving={mutation.isPending}
-            saveDisabled={mutation.isPending || !dataTypeId}
+            saveDisabled={mutation.isPending || !dataTypeId || isLocked}
+            headerRightContent={
+                isEdit && isAdmin && (
+                    <AppLockToggle
+                        entityId={task.id}
+                        entityType="ai_tasks"
+                        initialLocked={isLocked}
+                        onToggle={(locked) => {
+                            setIsLocked(locked);
+                            onSave();
+                        }}
+                    />
+                )
+            }
         >
 
             <div className={isAdmin ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "space-y-6"}>
@@ -229,6 +247,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                         categoryFilter={categoryFilter}
                         valueProp="id"
                         className="w-full"
+                        disabled={isLocked}
                     />
                 </FormField>
                 {isAdmin && (
@@ -241,6 +260,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                             data={modelData}
                             onSelect={(item) => setModel(item.id)}
                             className="w-full"
+                            disabled={isLocked}
                         />
                     </FormField>
                 )}
@@ -252,6 +272,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                     value={description}
                     onChange={setDescription}
                     placeholder="Short description of this task..."
+                    disabled={isLocked}
                 />
             )}
 
@@ -265,6 +286,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                             onResult={handleAiResult}
                             label="Task Assistant"
                             isEmpty={!singleValue && (multiValues.length === 1 && !multiValues[0])}
+                            disabled={isLocked}
                             context={!singleValue && (multiValues.length === 1 && !multiValues[0]) ? null : {
                                 existing_task: isMultiline ? { values: multiValues } : { value: singleValue }
                             }}
@@ -283,26 +305,31 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                                         value={val}
                                         onChange={(e) => updateRow(idx, e.target.value)}
                                         placeholder={`Step ${idx + 1}`}
-                                        className="flex-1 bg-transparent text-sm focus:outline-none placeholder:opacity-30"
+                                        className="flex-1 bg-transparent text-sm focus:outline-none placeholder:opacity-30 disabled:opacity-50"
+                                        disabled={isLocked}
                                     />
                                 </div>
-                                <button
-                                    onClick={() => removeRow(idx)}
-                                    className="p-2.5 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all flex-shrink-0"
-                                    title="Remove Row"
-                                >
-                                    <Icon name="delete" size={18} />
-                                </button>
+                                {!isLocked && (
+                                    <button
+                                        onClick={() => removeRow(idx)}
+                                        className="p-2.5 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all flex-shrink-0"
+                                        title="Remove Row"
+                                    >
+                                        <Icon name="delete" size={18} />
+                                    </button>
+                                )}
                             </div>
                         ))}
 
-                        <button
-                            onClick={addRow}
-                            className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest text-brand hover:bg-brand/10 transition-colors"
-                        >
-                            <Icon name="add" size={16} />
-                            Add Row
-                        </button>
+                        {!isLocked && (
+                            <button
+                                onClick={addRow}
+                                className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest text-brand hover:bg-brand/10 transition-colors"
+                            >
+                                <Icon name="add" size={16} />
+                                Add Row
+                            </button>
+                        )}
                         <p className="text-[10px] text-[var(--text-muted)] italic opacity-60 mt-4">
                             Saved as {"{ \"values\": [\"...\"] }"}
                         </p>
@@ -316,6 +343,7 @@ export const AITaskEditModal: React.FC<AITaskEditModalProps> = ({
                             value={singleValue}
                             onChange={setSingleValue}
                             placeholder="Describe the task instructions here..."
+                            disabled={isLocked}
                         />
                         <p className="text-[10px] text-[var(--text-muted)] italic opacity-60 ml-1 mt-2">
                             Saved as {"{ \"value\": \"...\" }"}

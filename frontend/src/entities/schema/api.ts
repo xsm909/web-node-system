@@ -8,7 +8,7 @@ export interface Schema {
     category?: string | null;
     meta?: any;
     is_system: boolean;
-    lock: boolean;
+    is_locked: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -19,7 +19,6 @@ export interface CreateSchemaDto {
     category?: string | null;
     meta?: any;
     is_system: boolean;
-    lock?: boolean;
 }
 
 export interface UpdateSchemaDto {
@@ -28,7 +27,6 @@ export interface UpdateSchemaDto {
     category?: string | null;
     meta?: any;
     is_system?: boolean;
-    lock?: boolean;
 }
 
 // Queries

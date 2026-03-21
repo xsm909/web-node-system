@@ -12,6 +12,8 @@ from ..models.workflow import Workflow, WorkflowExecution, WorkflowStatus
 from ..models.node import NodeType
 from ..services.executor import execute_workflow
 from ..models.report import ObjectParameter
+from ..models import LockData
+from sqlalchemy import exists, and_
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 workflow_access = Depends(require_role("manager", "admin", "client"))
@@ -52,6 +54,7 @@ class WorkflowOut(BaseModel):
     owner_id: str
     category: Optional[str] = "general"
     parameters: List[ObjectParameterOut] = []
+    is_locked: bool = False
 
     class Config:
         from_attributes = True
@@ -146,7 +149,19 @@ def get_user_workflows(user_id: str, current_user: User = Depends(get_current_us
         if user_id != str(current_user.id):
              raise HTTPException(status_code=403, detail="Access denied")
     
-    return db.query(Workflow).filter(Workflow.owner_id == user_id).all()
+    is_locked_subquery = db.query(exists().where(and_(
+        LockData.entity_id == Workflow.id,
+        LockData.entity_type == "workflows"
+    ))).scalar_subquery()
+    
+    results = db.query(Workflow, is_locked_subquery.label("is_locked")).filter(Workflow.owner_id == user_id).all()
+    
+    response = []
+    for wf, is_locked in results:
+        wf_dict = WorkflowOut.model_validate(wf).model_dump()
+        wf_dict["is_locked"] = is_locked
+        response.append(wf_dict)
+    return response
 
 
 @router.post("/workflows", response_model=WorkflowOut)
@@ -186,7 +201,9 @@ def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_curre
         db.commit()
         db.refresh(wf)
         
-    return wf
+    wf_dict = WorkflowOut.model_validate(wf).model_dump()
+    wf_dict["is_locked"] = False
+    return wf_dict
 
 
 @router.get("/workflows/{workflow_id}", response_model=WorkflowDetail)
@@ -201,7 +218,15 @@ def get_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_curren
     # Enforce strict ownership: only creator or admin
     if current_user.role != "admin" and wf.owner_id != str(current_user.id):
         raise HTTPException(status_code=403, detail="Access denied")
-    return wf
+    
+    is_locked = db.query(exists().where(and_(
+        LockData.entity_id == workflow_id,
+        LockData.entity_type == "workflows"
+    ))).scalar()
+    
+    wf_dict = WorkflowDetail.model_validate(wf).model_dump()
+    wf_dict["is_locked"] = is_locked
+    return wf_dict
 
 
 @router.put("/workflows/{workflow_id}", response_model=WorkflowDetail)
@@ -305,7 +330,14 @@ def duplicate_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_
         db.add(new_p)
     db.commit()
 
-    return new_wf
+    is_locked = db.query(exists().where(and_(
+        LockData.entity_id == new_wf.id,
+        LockData.entity_type == "workflows"
+    ))).scalar()
+    
+    wf_dict = WorkflowOut.model_validate(new_wf).model_dump()
+    wf_dict["is_locked"] = is_locked
+    return wf_dict
 
 
 @router.delete("/workflows/{workflow_id}")
@@ -506,4 +538,16 @@ def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(
 
 @router.get("/common", response_model=List[WorkflowOut])
 def list_common_workflows(db: Session = Depends(get_db), _=workflow_access):
-    return db.query(Workflow).filter(Workflow.owner_id == "common").all()
+    is_locked_subquery = db.query(exists().where(and_(
+        LockData.entity_id == Workflow.id,
+        LockData.entity_type == "workflows"
+    ))).scalar_subquery()
+    
+    results = db.query(Workflow, is_locked_subquery.label("is_locked")).filter(Workflow.owner_id == "common").all()
+    
+    response = []
+    for wf, is_locked in results:
+        wf_dict = WorkflowOut.model_validate(wf).model_dump()
+        wf_dict["is_locked"] = is_locked
+        response.append(wf_dict)
+    return response

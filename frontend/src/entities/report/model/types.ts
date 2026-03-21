@@ -18,6 +18,7 @@ export interface ReportStyle {
     category?: string;
     css: string;
     is_default: boolean;
+    is_locked: boolean;
 }
 
 export interface Report {
@@ -31,6 +32,7 @@ export interface Report {
     style_id?: string;
     category?: string;
     created_by: string;
+    is_locked: boolean;
     parameters: ObjectParameter[];
     meta?: Record<string, any>;
 }

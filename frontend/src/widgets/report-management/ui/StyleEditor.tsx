@@ -17,6 +17,7 @@ interface StyleEditorProps {
     style?: ReportStyle | null;
     allStyles?: ReportStyle[];
     onDirtyChange?: (dirty: boolean) => void;
+    isLocked?: boolean;
 }
 
 export interface StyleEditorRef {
@@ -24,7 +25,7 @@ export interface StyleEditorRef {
     isSaving: boolean;
 }
 
-export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style, allStyles = [], onDirtyChange }, ref) => {
+export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style, allStyles = [], onDirtyChange, isLocked }, ref) => {
     const { theme } = useThemeStore();
     const [isSaving, setIsSaving] = useState(false);
 
@@ -128,6 +129,7 @@ export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style
                     value={name}
                     onChange={setName}
                     placeholder="e.g. Modern Invoice"
+                    disabled={isLocked}
                 />
                 <AppCategoryInput
                     label="Category"
@@ -135,6 +137,7 @@ export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style
                     onChange={setCategory}
                     placeholder="e.g. Finance|Invoices"
                     allPaths={allCategoryPaths}
+                    disabled={isLocked}
                 />
             </div>
 
@@ -146,7 +149,8 @@ export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style
                         id="isDefault"
                         checked={isDefault}
                         onChange={(e) => setIsDefault(e.target.checked)}
-                        className="w-5 h-5 rounded-md border-[var(--border-base)] text-brand focus:ring-brand cursor-pointer"
+                        className="w-5 h-5 rounded-md border-[var(--border-base)] text-brand focus:ring-brand cursor-pointer disabled:opacity-50"
+                        disabled={isLocked}
                     />
                 </div>
                 <label htmlFor="isDefault" className="text-sm font-semibold text-[var(--text-main)] cursor-pointer select-none">
@@ -174,6 +178,7 @@ export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style
                         extensions={cssExtensions}
                         onChange={(value) => setCssContent(value)}
                         className="h-full text-sm font-mono"
+                        readOnly={isLocked}
                     />
                 </div>
             </div>

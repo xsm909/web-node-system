@@ -26,6 +26,7 @@ interface ReportEditorProps {
     activeTab: 'general' | 'code' | 'template' | 'preview';
     onTabChange?: (tab: 'general' | 'code' | 'template' | 'preview') => void;
     onDirtyChange?: (dirty: boolean) => void;
+    isLocked?: boolean;
 }
 
 export interface ReportEditorRef {
@@ -38,7 +39,7 @@ export interface ReportEditorRef {
     isGenerating: boolean;
 }
 
-export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ report, reports = [], styles, activeTab, onTabChange, onDirtyChange }, ref) => {
+export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ report, reports = [], styles, activeTab, onTabChange, onDirtyChange, isLocked }, ref) => {
     const { theme } = useThemeStore();
     const [isSaving, setIsSaving] = useState(false);
     const [isCompiling, setIsCompiling] = useState(false);
@@ -457,6 +458,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                             value={name}
                             onChange={setName}
                             placeholder="e.g. Monthly Sales"
+                            disabled={isLocked}
                         />
                         <AppCategoryInput
                             label="Category"
@@ -464,6 +466,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                             onChange={setCategory}
                             placeholder="e.g. Finance|Reports"
                             allPaths={allCategoryPaths}
+                            disabled={isLocked}
                         />
                     </div>
 
@@ -474,6 +477,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                         value={description}
                         onChange={setDescription}
                         placeholder="Describe what this report does..."
+                        disabled={isLocked}
                     />
                     
                     <div className="space-y-1.5">
@@ -481,7 +485,8 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                         <select
                             value={type}
                             onChange={(e) => setType(e.target.value as ReportType)}
-                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all outline-none"
+                            className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all outline-none disabled:opacity-50"
+                            disabled={isLocked}
                         >
                             <option value="global">Global</option>
                             <option value="client">Client-Specific</option>
@@ -493,39 +498,43 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                     <div className="pt-6 border-t border-[var(--border-base)]">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Parameters</h3>
-                            <button
-                                onClick={() => {
-                                    const newParam: any = {
-                                        id: `temp_${Date.now()}`,
-                                        parameter_name: '',
-                                        parameter_type: 'text',
-                                        default_value: '',
-                                        source: '',
-                                        value_field: '',
-                                        label_field: ''
-                                    };
-                                    setParameters([...parameters, newParam]);
-                                }}
-                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs font-bold hover:bg-[var(--bg-hover)] transition-all"
-                            >
-                                <Icon name="plus" size={14} />
-                                Add Parameter
-                            </button>
+                            {!isLocked && (
+                                <button
+                                    onClick={() => {
+                                        const newParam: any = {
+                                            id: `temp_${Date.now()}`,
+                                            parameter_name: '',
+                                            parameter_type: 'text',
+                                            default_value: '',
+                                            source: '',
+                                            value_field: '',
+                                            label_field: ''
+                                        };
+                                        setParameters([...parameters, newParam]);
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs font-bold hover:bg-[var(--bg-hover)] transition-all"
+                                >
+                                    <Icon name="plus" size={14} />
+                                    Add Parameter
+                                </button>
+                            )}
                         </div>
 
                         <div className="space-y-4">
                             {parameters.map((param, index) => (
                                 <div key={param.id} className="p-4 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] space-y-4 relative group">
-                                    <button
-                                        onClick={() => {
-                                            const newParams = [...parameters];
-                                            newParams.splice(index, 1);
-                                            setParameters(newParams);
-                                        }}
-                                        className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                    >
-                                        <Icon name="delete" size={16} />
-                                    </button>
+                                    {!isLocked && (
+                                        <button
+                                            onClick={() => {
+                                                const newParams = [...parameters];
+                                                newParams.splice(index, 1);
+                                                setParameters(newParams);
+                                            }}
+                                            className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                        >
+                                            <Icon name="delete" size={16} />
+                                        </button>
+                                    )}
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
@@ -538,8 +547,9 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                                     newParams[index].parameter_name = e.target.value;
                                                     setParameters(newParams);
                                                 }}
-                                                className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand"
+                                                className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand disabled:opacity-50"
                                                 placeholder="e.g. user_id"
+                                                disabled={isLocked}
                                             />
                                         </div>
                                         <div className="space-y-1.5">
@@ -551,7 +561,8 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                                     newParams[index].parameter_type = e.target.value as any;
                                                     setParameters(newParams);
                                                 }}
-                                                className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand"
+                                                className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand disabled:opacity-50"
+                                                disabled={isLocked}
                                             >
                                                 <option value="text">Text</option>
                                                 <option value="number">Number</option>
@@ -576,6 +587,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                                     }}
                                                     className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand"
                                                     placeholder="@users->id,name"
+                                                    disabled={isLocked}
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
@@ -588,8 +600,9 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                                         newParams[index].value_field = e.target.value;
                                                         setParameters(newParams);
                                                     }}
-                                                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand"
+                                                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand disabled:opacity-50"
                                                     placeholder="id"
+                                                    disabled={isLocked}
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
@@ -602,8 +615,9 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                                         newParams[index].label_field = e.target.value;
                                                         setParameters(newParams);
                                                     }}
-                                                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand"
+                                                    className="w-full px-3 py-2 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs focus:border-brand disabled:opacity-50"
                                                     placeholder="name"
+                                                    disabled={isLocked}
                                                 />
                                             </div>
                                         </div>
@@ -620,6 +634,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                                 setParameters(newParams);
                                             }}
                                             options={paramOptions[param.parameter_name]}
+                                            disabled={isLocked}
                                         />
                                     </div>
                                 </div>
@@ -653,6 +668,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                 setEditorRef(view);
                             }}
                             className="h-full text-sm font-mono"
+                            readOnly={isLocked}
                         />
                     </div>
 

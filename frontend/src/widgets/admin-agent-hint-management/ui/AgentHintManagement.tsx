@@ -11,6 +11,7 @@ import { AppInput } from '../../../shared/ui/app-input';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { createColumnHelper } from '@tanstack/react-table';
+import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 
 import { marked } from 'marked';
 
@@ -131,9 +132,14 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                             <Icon name="description" size={18} />
                         </div>
                         <div className="flex flex-col min-w-0">
-                            <span className="text-sm text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
-                                {hint.key}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
+                                    {hint.key}
+                                </span>
+                                {hint.is_locked && (
+                                    <Icon name="lock" size={12} className="text-amber-500/60" />
+                                )}
+                            </div>
                         </div>
                     </div>
                 );
@@ -154,16 +160,18 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 const hint = info.row.original;
                 return (
                     <div className="flex justify-end">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIdToDelete(hint.id);
-                            }}
-                            className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400 opacity-0 group-hover:opacity-100"
-                            title="Delete"
-                        >
-                            <Icon name="delete" size={16} />
-                        </button>
+                        {!hint.is_locked && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIdToDelete(hint.id);
+                                }}
+                                className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400 opacity-0 group-hover:opacity-100"
+                                title="Delete"
+                            >
+                                <Icon name="delete" size={16} />
+                            </button>
+                        )}
                     </div>
                 );
             }
@@ -189,6 +197,18 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 ]}
                 activeTab={isPreview ? 'preview' : 'edit'}
                 onTabChange={(id) => setIsPreview(id === 'preview')}
+                headerRightContent={
+                    selectedHint ? (
+                        <AppLockToggle 
+                            entityId={selectedHint.id} 
+                            entityType="agent_hints" 
+                            initialLocked={selectedHint.is_locked}
+                            onToggle={(locked) => {
+                                setSelectedHint(prev => prev ? { ...prev, is_locked: locked } : prev);
+                            }}
+                        />
+                    ) : undefined
+                }
             >
                 <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                     {!isPreview && (
@@ -207,6 +227,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                                 value={category}
                                 onChange={setCategory}
                                 allPaths={allCategoryPaths}
+                                disabled={selectedHint?.is_locked}
                             />
                         </div>
                     )}

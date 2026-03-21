@@ -16,6 +16,7 @@ import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { getPythonHints, type PythonHint } from '../../../shared/api/python-hints';
 import { useThemeStore } from '../../../shared/lib/theme/store';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
+import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 
 
 interface NodeTypeFormViewProps {
@@ -200,6 +201,18 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             ]}
             activeTab={activeTab}
             onTabChange={(id) => setActiveTab(id as FormTab)}
+            headerRightContent={
+                currentNode?.id ? (
+                    <AppLockToggle 
+                        entityId={currentNode.id} 
+                        entityType="node_types" 
+                        initialLocked={!!currentNode.is_locked}
+                        onToggle={(locked) => {
+                            setCurrentNode(prev => prev ? { ...prev, is_locked: locked } : prev);
+                        }}
+                    />
+                ) : undefined
+            }
         >
             <form
                 onSubmit={(e) => {

@@ -10,6 +10,8 @@ import { AppFormView } from '../../../shared/ui/app-form-view';
 import { UserEditor, type UserEditorRef } from './UserEditor';
 import { Icon } from '../../../shared/ui/icon';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
+import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
 const columnHelper = createColumnHelper<User>();
 
@@ -23,6 +25,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
     const [view, setView] = useState<'list' | 'edit'>('list');
     const [activeTab, setActiveTab] = useState<'common' | 'metadata' | 'prompts'>('common');
     const [isFormDirty, setIsFormDirty] = useState(false);
+    const [deletingUser, setDeletingUser] = useState<User | null>(null);
     const editorRef = useRef<UserEditorRef>(null);
 
     const { data: users = [], isLoading, refetch } = useQuery({
@@ -34,17 +37,16 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
     });
 
     const columns = useMemo(() => [
-        columnHelper.accessor('id', {
-            header: 'ID',
-            cell: info => (
-                <span className="font-mono text-[var(--text-muted)] opacity-40 group-hover:opacity-60 transition-opacity">
-                    {info.getValue().slice(0, 8)}...
-                </span>
-            ),
-        }),
         columnHelper.accessor('username', {
             header: 'Username',
-            cell: info => <span className="text-[var(--text-main)]">{info.getValue()}</span>,
+            cell: info => (
+                <div className="flex items-center gap-2">
+                    <span className="text-[var(--text-main)]">{info.getValue()}</span>
+                    {info.row.original.is_locked && (
+                        <Icon name="lock" size={12} className="text-amber-500/60" />
+                    )}
+                </div>
+            ),
         }),
         columnHelper.accessor('role', {
             header: 'Role',
@@ -71,15 +73,35 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 );
             },
         }),
-    ], []);
+        columnHelper.display({
+            id: 'actions',
+            header: () => <div className="text-right">Actions</div>,
+            cell: info => {
+                const user = info.row.original;
+                return (
+                    <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                        {!user.is_locked && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setDeletingUser(user); }}
+                                className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                                title="Delete User"
+                            >
+                                <Icon name="delete" size={16} />
+                            </button>
+                        )}
+                    </div>
+                );
+            },
+        }),
+    ], [refetch]);
 
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredUsers = useMemo(() => {
         const q = searchQuery.toLowerCase().trim();
         if (!q) return users;
-        return users.filter(u => 
-            u.username.toLowerCase().includes(q) || 
+        return users.filter(u =>
+            u.username.toLowerCase().includes(q) ||
             u.role.toLowerCase().includes(q) ||
             u.id.toLowerCase().includes(q)
         );
@@ -96,6 +118,18 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
         setSelectedUser(null);
         setActiveTab('common');
         refetch();
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deletingUser) return;
+        try {
+            await apiClient.delete(`/admin/users/${deletingUser.id}`);
+            refetch();
+        } catch (error) {
+            console.error('Failed to delete user:', error);
+        } finally {
+            setDeletingUser(null);
+        }
     };
 
     const isSaving = editorRef.current?.isSaving || false;
@@ -134,6 +168,17 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 activeTab={activeTab}
                 onTabChange={(id) => setActiveTab(id as 'common' | 'metadata' | 'prompts')}
                 saveLabel="Save User"
+                headerRightContent={
+                    <AppLockToggle 
+                        entityId={selectedUser.id} 
+                        entityType="users" 
+                        initialLocked={selectedUser.is_locked}
+                        onToggle={(locked) => {
+                            setSelectedUser({ ...selectedUser, is_locked: locked });
+                            refetch();
+                        }}
+                    />
+                }
                 noPadding={activeTab === 'prompts' || activeTab === 'metadata'}
                 fullHeight={activeTab === 'prompts' || activeTab === 'metadata'}
             >
@@ -144,6 +189,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                         onSaveSuccess={handleBack}
                         activeTab={activeTab}
                         onDirtyChange={setIsFormDirty}
+                        isLocked={selectedUser.is_locked}
                     />
                 </div>
             </AppFormView>
@@ -189,6 +235,15 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 config={{
                     emptyMessage: 'No users found.'
                 }}
+            />
+
+            <ConfirmModal
+                isOpen={!!deletingUser}
+                title="Delete User"
+                description={`Are you sure you want to delete user "${deletingUser?.username}"? This action cannot be undone.`}
+                confirmLabel="Delete"
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setDeletingUser(null)}
             />
         </div>
     );

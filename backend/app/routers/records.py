@@ -6,8 +6,10 @@ from uuid import UUID
 
 from ..core.database import get_db
 from ..core.security import get_current_user
-from ..models import User, RoleEnum
+from ..models import User, RoleEnum, LockData
 from ..models.schema import Record, Schema
+from sqlalchemy import exists, and_
+from sqlalchemy import exists, and_
 from ..schemas.schema_registry import (
     RecordCreate, RecordUpdate, RecordResponse
 )
@@ -22,8 +24,19 @@ def check_admin(user: User):
 
 @router.get("/", response_model=List[RecordResponse])
 def get_records(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Returns all records. In production, this should be scoped by entity access permissions.
-    return db.query(Record).all()
+    is_locked_subquery = db.query(exists().where(and_(
+        LockData.entity_id == Record.id,
+        LockData.entity_type == "records"
+    ))).scalar_subquery()
+    
+    results = db.query(Record, is_locked_subquery.label("is_locked")).all()
+    
+    response = []
+    for record, is_locked in results:
+        record_dict = {c.name: getattr(record, c.name) for c in record.__table__.columns}
+        record_dict["is_locked"] = is_locked
+        response.append(record_dict)
+    return response
 
 @router.post("/", response_model=RecordResponse)
 def create_record(
@@ -63,13 +76,15 @@ def create_record(
         entity_id=entity_id,
         entity_type=entity_type,
         data=record_in.data,
-        order=order,
-        lock=record_in.lock
+        order=order
     )
     db.add(new_record)
     db.commit()
     db.refresh(new_record)
-    return new_record
+    
+    record_dict = {c.name: getattr(new_record, c.name) for c in new_record.__table__.columns}
+    record_dict["is_locked"] = False
+    return record_dict
 
 @router.put("/{record_id}", response_model=RecordResponse)
 def update_record(
@@ -82,30 +97,23 @@ def update_record(
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
 
-    update_data = record_in.model_dump(exclude_unset=True)
-
-    # If record is locked, only allow updating the 'lock' field itself
-    if record.lock:
-        allowed_keys = {"lock"}
-        updating_keys = set(update_data.keys())
-        if not updating_keys.issubset(allowed_keys):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail="Record is locked and cannot be edited. Unlock it first."
-            )
-
     if record_in.data is not None:
         is_valid, err_msg = validate_json_data(db, record.schema.content, record_in.data)
         if not is_valid:
             raise HTTPException(status_code=400, detail=f"Validation error: {err_msg}")
         record.data = record_in.data
-        
-    if record_in.lock is not None:
-        record.lock = record_in.lock
 
     db.commit()
     db.refresh(record)
-    return record
+    
+    is_locked = db.query(exists().where(and_(
+        LockData.entity_id == record_id,
+        LockData.entity_type == "records"
+    ))).scalar()
+    
+    record_dict = {c.name: getattr(record, c.name) for c in record.__table__.columns}
+    record_dict["is_locked"] = is_locked
+    return record_dict
 
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -118,12 +126,6 @@ def delete_record(
     record = db.query(Record).filter(Record.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
-
-    if record.lock:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Record is locked and cannot be deleted. Unlock it first."
-        )
 
     db.delete(record)
     db.commit()
@@ -163,10 +165,22 @@ def get_entity_metadata(
     ).order_by(Record.order).all()
     
     # Recursively load descendants for each root
+    results = []
     for record in records:
         get_recursive_record(db, record.id)
         
-    return records
+        is_locked = db.query(exists().where(and_(
+            LockData.entity_id == record.id,
+            LockData.entity_type == "records"
+        ))).scalar()
+        
+        record_dict = {c.name: getattr(record, c.name) for c in record.__table__.columns}
+        record_dict["is_locked"] = is_locked
+        # We also need to add is_locked to children if we want full depth, 
+        # but for now let's just do root.
+        results.append(record_dict)
+        
+    return results
 
 
 from sqlalchemy import text
@@ -200,7 +214,18 @@ WHERE (entity_type, entity_id) = (SELECT entity_type, entity_id FROM records WHE
         return []
     
     ids = [r[0] for r in matching_rows]
-    return db.query(Record).filter(Record.id.in_(ids)).all()
+    records = db.query(Record).filter(Record.id.in_(ids)).all()
+    
+    response = []
+    for record in records:
+        is_locked = db.query(exists().where(and_(
+            LockData.entity_id == record.id,
+            LockData.entity_type == "records"
+        ))).scalar()
+        record_dict = {c.name: getattr(record, c.name) for c in record.__table__.columns}
+        record_dict["is_locked"] = is_locked
+        response.append(record_dict)
+    return response
 
 
 

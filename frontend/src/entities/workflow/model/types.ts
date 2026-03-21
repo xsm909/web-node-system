@@ -10,4 +10,5 @@ export interface Workflow {
     graph?: any;
     category?: string;
     parameters: ObjectParameter[];
+    is_locked: boolean;
 }

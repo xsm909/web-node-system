@@ -3,6 +3,7 @@ import { apiClient } from '../../../shared/api/client';
 import type { Report, ReportStyle } from '../../../entities/report/model/types';
 import { useAuthStore } from '../../../features/auth/store';
 import { AppHeader } from '../../app-header';
+import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import { Icon } from '../../../shared/ui/icon';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
@@ -274,12 +275,25 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 }}
                 onCancel={handleBack}
                 saveLabel="Save Style"
+                headerRightContent={
+                    selectedStyle ? (
+                        <AppLockToggle 
+                            entityId={selectedStyle.id} 
+                            entityType="report_styles" 
+                            initialLocked={selectedStyle.is_locked}
+                            onToggle={(locked) => {
+                                setSelectedStyle(prev => prev ? { ...prev, is_locked: locked } : null);
+                            }}
+                        />
+                    ) : undefined
+                }
             >
                 <StyleEditor
                     ref={styleEditorRef}
                     style={selectedStyle}
                     allStyles={styles}
                     onDirtyChange={setStyleEditorIsDirty}
+                    isLocked={selectedStyle?.is_locked}
                 />
             </AppFormView>
         );
@@ -316,6 +330,16 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 allowedShortcuts={['f1', 'f4', 'f5', 'f9']}
                 headerRightContent={
                     <div className="flex gap-2">
+                        {selectedReport && (
+                            <AppLockToggle 
+                                entityId={selectedReport.id} 
+                                entityType="reports" 
+                                initialLocked={selectedReport.is_locked}
+                                onToggle={(locked) => {
+                                    setSelectedReport(prev => prev ? { ...prev, is_locked: locked } : null);
+                                }}
+                            />
+                        )}
                         {activeTab === 'code' && (
                             <button
                                 onClick={handleHeaderCompile}
@@ -345,6 +369,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     activeTab={activeTab}
                     onTabChange={(id) => setActiveTab(id as any)}
                     onDirtyChange={setReportEditorIsDirty}
+                    isLocked={selectedReport?.is_locked}
                 />
             </AppFormView>
         );

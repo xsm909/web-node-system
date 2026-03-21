@@ -15,6 +15,7 @@ interface UserEditorProps {
     onSaveSuccess?: () => void;
     activeTab?: 'common' | 'metadata' | 'prompts';
     onDirtyChange?: (isDirty: boolean) => void;
+    isLocked?: boolean;
 }
 
 export interface UserEditorRef {
@@ -22,7 +23,7 @@ export interface UserEditorRef {
     isSaving: boolean;
 }
 
-export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, onSaveSuccess, activeTab = 'common', onDirtyChange }, ref) => {
+export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, onSaveSuccess, activeTab = 'common', onDirtyChange, isLocked }, ref) => {
     const queryClient = useQueryClient();
     const [selectedManagerId, setSelectedManagerId] = useState<string>('');
 
@@ -146,9 +147,10 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                                         variant="primary"
                                         className="w-full"
                                         config={{ groupActions: [] }}
+                                        disabled={isLocked}
                                     />
                                 </FormField>
-                                {selectedManagerId && (
+                                {selectedManagerId && !isLocked && (
                                     <button
                                         onClick={() => setSelectedManagerId('')}
                                         className="text-[10px] font-bold text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-colors ml-1"

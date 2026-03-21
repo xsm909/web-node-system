@@ -13,6 +13,7 @@ interface AIAssistantButtonProps {
     label?: string;
     modelData: Record<string, SelectionGroup>;
     initialPrompt?: string;
+    disabled?: boolean;
 }
 
 export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
@@ -22,7 +23,8 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
     isEmpty = true,
     label = "AI Assistant",
     modelData,
-    initialPrompt = ''
+    initialPrompt = '',
+    disabled = false,
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -70,7 +72,7 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
                         setMode('generate');
                         setIsModalOpen(true);
                     }}
-                    disabled={isGenerating}
+                    disabled={isGenerating || disabled}
                     className="flex items-center gap-2 px-3 py-1.5 bg-brand text-white rounded-lg shadow-md shadow-brand/10 hover:brightness-110 active:scale-95 transition-all font-bold text-[10px] uppercase tracking-wider disabled:opacity-50 disabled:pointer-events-none"
                 >
                     <Icon name={isGenerating ? "refresh" : "bolt"} size={12} className={isGenerating ? "animate-spin" : ""} />
@@ -88,7 +90,7 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
                     iconClassName={isGenerating ? "animate-spin" : ""}
                     variant="brand"
                     className="!py-0"
-                    disabled={isGenerating}
+                    disabled={isGenerating || disabled}
                 />
             )}
 

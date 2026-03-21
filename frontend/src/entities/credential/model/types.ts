@@ -4,4 +4,5 @@ export interface Credential {
     value: string;
     type: string;
     description: string | null;
+    is_locked: boolean;
 }

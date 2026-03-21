@@ -21,6 +21,7 @@ interface NodeEditorViewProps {
     isReadOnly?: boolean;
     inline?: boolean;
     workflowParameters?: any[];
+    isLocked?: boolean;
 }
 
 const ParameterRow: React.FC<{
@@ -190,6 +191,7 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
     isReadOnly = false,
     inline = false,
     workflowParameters = [],
+    isLocked = false,
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
     const [sqlEditorParam, setSqlEditorParam] = useState<string | null>(null);
@@ -198,6 +200,7 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
 
     const nodeTypeData = nodeTypes.find(t => t.name === node?.data.label);
     const allParameters = nodeTypeData?.parameters || [];
+    const effectiveReadOnly = isReadOnly || isLocked;
 
     // Technical param logic 
     const isTechnicalParam = (p: any) => /^[A-Z0-9_]+$/.test(p.name) && !p.options_source;
@@ -230,9 +233,9 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
         const currentParams = JSON.stringify(form.state.values);
         const reallyDirty = currentParams !== initialParams;
         
-        console.log('[NodeEditorView] handleBack reallyDirty:', reallyDirty, 'isReadOnly:', isReadOnly);
+        console.log('[NodeEditorView] handleBack reallyDirty:', reallyDirty, 'isReadOnly:', effectiveReadOnly);
         
-        if (reallyDirty && !isReadOnly) {
+        if (reallyDirty && !effectiveReadOnly) {
             setShowConfirmBack(true);
         } else {
             onBack();
@@ -336,7 +339,7 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                                                     onChange(node.id, updatedFormData);
                                                 }
                                             }}
-                                            isReadOnly={isReadOnly}
+                                            isReadOnly={effectiveReadOnly}
                                             onOpenSqlEditor={() => setSqlEditorParam(param.name)}
                                         />
                                     )}

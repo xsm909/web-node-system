@@ -12,8 +12,10 @@ import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { WorkflowGraph } from '../../workflow-graph';
 import { WorkflowHeader } from '../../workflow-header';
 import { NodeEditorView } from '../../node-editor-view';
+import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { useClientStore } from '../../../features/workflow-management/model/clientStore';
+import { useAuthStore } from '../../../features/auth/store';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppParametersView } from '../../../shared/ui/app-parameters-view/AppParametersView';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
@@ -258,6 +260,8 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
         notifyChange,
         isDirty
     } = useWorkflowEditor();
+    const { user: currentUser } = useAuthStore();
+    const isAdmin = currentUser?.role === 'admin';
 
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [isParamsExpanded, setIsParamsExpanded] = useState(globalIsParamsExpanded);
@@ -393,7 +397,18 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
             fullHeight
             noPadding
             headerRightContent={
-                <WorkflowHeader
+                <div className="flex items-center gap-3">
+                    {isAdmin && activeWorkflow && (
+                        <AppLockToggle 
+                            entityId={activeWorkflow.id} 
+                            entityType="workflows" 
+                            initialLocked={activeWorkflow.is_locked}
+                            onToggle={(locked) => {
+                                setActiveWorkflow({ ...activeWorkflow, is_locked: locked });
+                            }}
+                        />
+                    )}
+                    <WorkflowHeader
                     isRunning={isRunning}
                     isSidebarOpen={isSidebarOpen}
                     onRun={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
@@ -401,6 +416,7 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
                     canAction={!isSaving}
                     onOpenParameters={onOpenParameters}
                 />
+                </div>
             }
         >
             <div className="flex-1 flex flex-col min-h-0 relative">
@@ -414,7 +430,7 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
                                 <WorkflowGraph
                                     workflow={activeWorkflow}
                                     nodeTypes={nodeTypes}
-                                    isReadOnly={false}
+                                    isReadOnly={activeWorkflow.is_locked}
                                     onNodesChangeCallback={onNodesChange}
                                     onEdgesChangeCallback={onEdgesChange}
                                     onNodeDoubleClickCallback={onEditNode}
@@ -439,6 +455,7 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
                                     nodeTypes={nodeTypes}
                                     onChange={handleParamsChange}
                                     workflowParameters={activeWorkflow?.parameters || []}
+                                    isLocked={activeWorkflow.is_locked}
                                     onBack={() => {
                                         setSelectedNode(null);
                                         setIsParamsExpanded(false);
@@ -459,6 +476,7 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
                                                     notifyChange();
                                                 }}
                                                 options={paramOptions[param.parameter_name] || []}
+                                                disabled={activeWorkflow.is_locked}
                                             />
                                         </div>
                                     ))}

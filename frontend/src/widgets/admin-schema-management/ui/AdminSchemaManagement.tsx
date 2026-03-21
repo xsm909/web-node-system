@@ -5,6 +5,7 @@ import { SchemaEditor } from '../../../features/schema-editor/SchemaEditor';
 import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
@@ -37,8 +38,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
     const [category, setCategory] = useState('');
     const [content, setContent] = useState('{\n  "type": "object",\n  "properties": {}\n}');
     const [isSystem, setIsSystem] = useState(false);
-    const [lock, setLock] = useState(false);
-    const [initialFormState, setInitialFormState] = useState({ key: '', category: '', content: '', isSystem: false, lock: false });
+    const [initialFormState, setInitialFormState] = useState({ key: '', category: '', content: '', isSystem: false });
 
     const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(schemas), [schemas]);
 
@@ -49,13 +49,11 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
             category: schema.category || '',
             content: JSON.stringify(schema.content, null, 2),
             isSystem: schema.is_system,
-            lock: schema.lock
         };
         setKey(data.key);
         setCategory(data.category);
         setContent(data.content);
         setIsSystem(data.isSystem);
-        setLock(data.lock);
         setInitialFormState(data);
         setIsEditing(true);
     };
@@ -67,13 +65,11 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
             category: '',
             content: '{\n  "type": "object",\n  "properties": {}\n}',
             isSystem: false,
-            lock: false
         };
         setKey(data.key);
         setCategory(data.category);
         setContent(data.content);
         setIsSystem(data.isSystem);
-        setLock(data.lock);
         setInitialFormState(data);
         setIsEditing(true);
     };
@@ -85,26 +81,16 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
             category: schema.category || '',
             content: JSON.stringify(schema.content, null, 2),
             isSystem: false,
-            lock: false
         };
         setKey(data.key);
         setCategory(data.category);
         setContent(data.content);
         setIsSystem(data.isSystem);
-        setLock(data.lock);
         setInitialFormState(data);
         setIsEditing(true);
     };
 
-    const handleToggleLock = () => {
-        if (!selectedSchema) return;
-        const newLockState = !lock;
-        setLock(newLockState);
-        updateMutation.mutate({ 
-            id: selectedSchema.id, 
-            data: { lock: newLockState } 
-        });
-    };
+    // Unified toggle handled by AppLockToggle
 
     const handleSave = () => {
         try {
@@ -114,7 +100,6 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                 content: parsedContent,
                 category: category.trim() || null,
                 is_system: isSystem,
-                lock: lock
             };
 
             if (selectedSchema) {
@@ -125,7 +110,6 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                             category: savedSchema.category || '',
                             content: JSON.stringify(savedSchema.content, null, 2),
                             isSystem: savedSchema.is_system,
-                            lock: savedSchema.lock
                         });
                     }
                 });
@@ -138,7 +122,6 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                             category: savedSchema.category || '',
                             content: JSON.stringify(savedSchema.content, null, 2),
                             isSystem: savedSchema.is_system,
-                            lock: savedSchema.lock
                         });
                     }
                 });
@@ -151,8 +134,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
     const isDirty = key !== initialFormState.key ||
                     category !== initialFormState.category ||
                     content !== initialFormState.content ||
-                    isSystem !== initialFormState.isSystem ||
-                    lock !== initialFormState.lock;
+                    isSystem !== initialFormState.isSystem;
 
     const handleDelete = (id: string, is_system: boolean) => {
         if (is_system) {
@@ -193,11 +175,8 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                                 {schema.is_system && (
                                     <span className="text-[9px] text-blue-400 uppercase tracking-tighter opacity-60">System Schema</span>
                                 )}
-                                {schema.lock && (
-                                    <span className="flex items-center gap-1 text-[9px] text-red-400 uppercase tracking-tighter opacity-80">
-                                        <Icon name="lock" size={10} />
-                                        Locked
-                                    </span>
+                                {schema.is_locked && (
+                                    <Icon name="lock" size={12} className="text-amber-500/60" />
                                 )}
                             </div>
                         </div>
@@ -235,27 +214,22 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
             cell: info => {
                 const schema = info.row.original;
                 return (
-                    <div className="flex gap-1 justify-end">
+                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                             onClick={(e) => { e.stopPropagation(); handleDuplicate(schema); }}
-                            className="p-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors text-gray-400 opacity-0 group-hover:opacity-100"
+                            className="p-2 rounded-lg bg-surface-700 hover:bg-surface-600 transition-colors text-gray-400"
                             title="Duplicate"
                         >
                             <Icon name="content_copy" size={16} />
                         </button>
-                        {!schema.is_system && !schema.lock && (
+                        {!schema.is_system && !schema.is_locked && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); handleDelete(schema.id, schema.is_system); }}
-                                className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400 opacity-0 group-hover:opacity-100"
+                                className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors text-red-400"
                                 title="Delete"
                             >
                                 <Icon name="delete" size={16} />
                             </button>
-                        )}
-                        {schema.lock && (
-                            <div className="p-2 text-red-400/40" title="Locked">
-                                <Icon name="lock" size={16} />
-                            </div>
                         )}
                     </div>
                 );
@@ -278,17 +252,15 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                 saveLabel={selectedSchema ? "Save Schema" : "Create Schema"}
                 headerRightContent={
                     selectedSchema ? (
-                        <button
-                            onClick={handleToggleLock}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                                lock 
-                                ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20' 
-                                : 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20'
-                            }`}
-                        >
-                            <Icon name={lock ? 'lock' : 'unlock'} size={14} />
-                            {lock ? 'Unlock to Edit' : 'Lock Schema'}
-                        </button>
+                        <AppLockToggle 
+                            entityId={selectedSchema.id} 
+                            entityType="schemas" 
+                            initialLocked={selectedSchema.is_locked}
+                            onToggle={() => {
+                                // Refresh logic if needed, but AppFormView handles dirty state
+                                // We might want to update selectedSchema.is_locked locally
+                            }}
+                        />
                     ) : undefined
                 }
             >
@@ -299,8 +271,8 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                             placeholder="Schema Key (e.g., user-profile)"
                             value={key}
                             onChange={setKey}
-                            disabled={!!selectedSchema || lock}
-                            showCopy={!!selectedSchema || lock}
+                            disabled={!!selectedSchema || (selectedSchema as any)?.is_locked}
+                            showCopy={!!selectedSchema || (selectedSchema as any)?.is_locked}
                         />
                         <AppCategoryInput
                             label="Category"
@@ -308,17 +280,17 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                             value={category}
                             onChange={setCategory}
                             allPaths={allCategoryPaths}
-                            disabled={lock}
+                            disabled={(selectedSchema as any)?.is_locked}
                         />
                     </div>
 
                     <div>
-                        <label className={`flex items-center gap-3 text-sm font-bold text-[var(--text-main)] cursor-pointer w-max ${lock ? 'cursor-not-allowed' : 'hover:text-brand transition-colors'}`}>
+                        <label className={`flex items-center gap-3 text-sm font-bold text-[var(--text-main)] cursor-pointer w-max ${selectedSchema?.is_locked ? 'cursor-not-allowed' : 'hover:text-brand transition-colors'}`}>
                             <input
                                 type="checkbox"
                                 checked={isSystem}
                                 onChange={e => setIsSystem(e.target.checked)}
-                                disabled={lock}
+                                disabled={(selectedSchema as any)?.is_locked}
                                 className="rounded border-[var(--border-base)] text-brand focus:ring-brand w-5 h-5 transition-colors"
                             />
                             System Schema
@@ -330,7 +302,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                         <SchemaEditor
                             initialValue={content}
                             onChange={setContent}
-                            readOnly={lock}
+                            readOnly={(selectedSchema as any)?.is_locked}
                         />
                     </div>
                 </div>
