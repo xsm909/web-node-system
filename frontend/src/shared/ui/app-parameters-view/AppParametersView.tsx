@@ -21,7 +21,7 @@ export const AppParametersView: React.FC<AppParametersViewProps> = ({
     return (
         <div className={`absolute top-0 right-0 w-full z-30 flex flex-col items-end transition-all duration-300 pr-[20px] pointer-events-none ${className}`}>
             <div
-                className={`w-[350px] bg-[var(--bg-surface)] border-x border-b border-[var(--border-base)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] rounded-bl-2xl rounded-br-none overflow-visible transition-all duration-300 flex flex-col pointer-events-auto ${isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}
+                className={`w-[350px] bg-[var(--bg-surface)] border-x border-b border-[var(--border-base)] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)] rounded-bl-2xl rounded-br-none overflow-visible transition-all duration-300 flex flex-col ${isExpanded ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
                 style={{ maxHeight: isExpanded ? '85vh' : '0px' }}
             >
                 <div className="p-4 flex flex-col max-h-[85vh] relative">
