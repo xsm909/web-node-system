@@ -25,8 +25,8 @@ export const AppFormFieldRect = React.forwardRef<any, AppFormFieldRectProps>(({
 }, ref) => {
     const baseClasses = `
         w-full flex items-center gap-2 min-w-0
-        px-3 py-1
-        bg-surface-950/20
+        px-3 py-0.5
+        bg-surface-950/40
         border border-[var(--border-base)]
         rounded-lg
         transition-all

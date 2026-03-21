@@ -89,11 +89,11 @@ const ParameterRow: React.FC<{
     };
 
     return (
-        <div className="space-y-2 group">
+        <div className="space-y-1.5 group">
             <div className="flex items-center justify-between">
                 <label
                     htmlFor={`param-${param.name}`}
-                    className="text-xs font-medium text-[var(--text-main)] opacity-70 group-focus-within:text-brand transition-colors"
+                    className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] group-focus-within:text-brand transition-colors"
                 >
                     {param.label}
                 </label>
@@ -279,9 +279,8 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
         exclusive: true,
         exclusiveExceptions: ['F1', 'F5'] // maybe allow standard ones? Actually user said: "Also with workflow, if I go into node editing mode. What was available for workflow is no longer available until I return."
     });
-
     return (
-        <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-app)] relative h-full overflow-hidden">
+        <div className={`flex-1 flex flex-col min-w-0 relative h-full overflow-hidden ${inline ? 'bg-transparent shadow-none' : 'bg-[var(--bg-app)]'}`}>
             {!inline && (
                 <AppHeader
                     onBack={handleBack}
@@ -303,19 +302,19 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
             )}
 
 
-            <div className={`flex-1 overflow-y-auto custom-scrollbar ${inline ? 'p-6' : 'p-8'}`}>
+            <div className={inline ? 'p-0' : 'flex-1 overflow-y-auto custom-scrollbar p-8'}>
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         form.handleSubmit();
                     }}
-                    className={`${inline ? 'space-y-6' : 'max-w-4xl mx-auto space-y-8'} animate-in fade-in slide-in-from-bottom-4 duration-500`}
+                    className={`${inline ? 'space-y-4' : 'max-w-4xl mx-auto space-y-8'} animate-in fade-in slide-in-from-bottom-4 duration-500`}
                 >
                     <div className={`${inline ? 'bg-transparent border-0 p-0 shadow-none' : 'bg-surface-800 border border-[var(--border-base)] rounded-2xl p-6 shadow-xl'}`}>
                         {!inline && <div className="px-1 text-xs font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-6 border-b border-[var(--border-base)] pb-3">Configuration & Settings</div>}
 
-                        <div className={`grid grid-cols-1 ${inline ? '' : 'md:grid-cols-2'} gap-6 relative z-10`}>
+                        <div className={`grid grid-cols-1 ${inline ? '' : 'md:grid-cols-2'} gap-4 relative z-10`}>
                             {parameters.map((param: any) => (
                                 <form.Field
                                     key={param.name}

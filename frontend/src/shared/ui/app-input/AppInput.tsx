@@ -61,7 +61,7 @@ export const AppInput: React.FC<AppInputProps> = ({
     };
     
     return (
-        <div className={`space-y-1.5 ${className}`}>
+        <div className={`space-y-1 ${className}`}>
             {label && (
                 <label className="text-xs font-bold text-[var(--text-main)]">
                     {label} {required && <span className="text-red-500">*</span>}
