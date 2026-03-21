@@ -1734,19 +1734,21 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
                     {/* Left Sidebar: Tables List */}
                 <div className="w-64 border-r border-[var(--border-base)] flex flex-col bg-[var(--bg-alt)]">
-                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                        <div>
-                            <div className="px-2 py-1 flex items-center justify-between">
-                                <h3 className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
-                                    <Icon name="database" size={14} />
-                                    Available Tables
-                                </h3>
-                            </div>
+                    <div className="flex-1 overflow-y-auto">
+                        {/* Header: Sticky inside scrollable area for blur effect */}
+                        <div className="px-4 py-3 flex items-center justify-between sticky top-0 z-10 bg-[var(--bg-alt)]/80 backdrop-blur-md border-b border-[var(--border-base)]/30 shadow-sm shadow-black/5">
+                            <h3 className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-main)] flex items-center gap-2">
+                                <Icon name="database" size={14} className="text-brand" />
+                                Available Tables
+                            </h3>
+                        </div>
+
+                        <div className="p-2 space-y-1">
                             {loading ? (
                                 <div className="p-4 text-xs text-[var(--text-muted)] italic">Loading...</div>
                             ) : (
-                                <div className="space-y-1">
-                                    {/* Temporary Tables (CTEs) */}
+                                <>
+                                    {/* Temporary Tables (CTEs) - Nested and Recursive */}
                                     {fullState.ctes.map(cte => (
                                         <DraggableTableSidebarItem
                                             key={cte.id}
@@ -1758,6 +1760,11 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                         />
                                     ))}
 
+                                    {/* Separator between Virtual Tables and Database Tables */}
+                                    {fullState.ctes.length > 0 && tables.length > 0 && (
+                                        <div className="h-px bg-[var(--border-base)] my-2 mx-2 opacity-50" />
+                                    )}
+
                                     {/* Database Tables */}
                                     {tables.map(table => (
                                         <DraggableTableSidebarItem
@@ -1767,7 +1774,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             onAdd={() => handleAddTable(table)}
                                         />
                                     ))}
-                                </div>
+                                </>
                             )}
                         </div>
                     </div>
