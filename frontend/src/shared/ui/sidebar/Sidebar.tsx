@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import type { ReactNode } from 'react';
 
 export interface SidebarProps {
@@ -17,6 +18,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
     content,
     footer
 }) => {
+    // Manage CSS variable for AppFooter or other global elements to know sidebar width
+    useEffect(() => {
+        const updateSidebarWidth = () => {
+            // On desktop (lg: >=1024px), sidebar is always static and visible
+            const isDesktop = window.innerWidth >= 1024;
+            // Sidebar is considered taking space if it's desktop, OR if it's open on mobile.
+            // Wait, on mobile it's an overlay (fixed). So it shouldn't shift the main layout?
+            // User requested: "если sidebar есть открыт то appfooter начинается от sidebar"
+            // We'll set the variable based on whether it is open or statically visible.
+            if (isDesktop || isOpen) {
+                document.documentElement.style.setProperty('--sidebar-width', '18rem'); // 72 tailwind units = 18rem
+            } else {
+                document.documentElement.style.setProperty('--sidebar-width', '0px');
+            }
+        };
+
+        updateSidebarWidth();
+        window.addEventListener('resize', updateSidebarWidth);
+        return () => {
+            window.removeEventListener('resize', updateSidebarWidth);
+            document.documentElement.style.removeProperty('--sidebar-width');
+        };
+    }, [isOpen]);
+
     return (
         <>
             {/* Mobile backdrop */}

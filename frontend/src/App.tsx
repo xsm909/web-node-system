@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Router from './app/Router';
 import { useThemeStore } from './shared/lib/theme/store';
 import { HotkeysProvider } from './shared/lib/hotkeys/HotkeysContext';
-import { HotkeysDebug } from './shared/ui/hotkeys-debug/HotkeysDebug';
+import { AppFooter } from './shared/ui/app-footer/AppFooter';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,7 +29,7 @@ export default function App() {
     <HotkeysProvider>
       <QueryClientProvider client={queryClient}>
         <Router />
-        <HotkeysDebug />
+        <AppFooter />
       </QueryClientProvider>
     </HotkeysProvider>
   );
