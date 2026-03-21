@@ -91,8 +91,15 @@ def unsafe_request(sql_query: str, params: Optional[Dict[str, Any]] = None) -> L
             level="system"
         )
 
+        import json
+        if isinstance(params, str):
+            try:
+                params = json.loads(params)
+            except Exception:
+                pass
+                
         # Resolve parameters
-        final_params = (params or {}).copy()
+        final_params = (params if isinstance(params, dict) else {}).copy()
         
         # 1. Try to fill missing params from object_params_context
         ctx_params = object_params_context.get()

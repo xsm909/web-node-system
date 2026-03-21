@@ -17,6 +17,7 @@ interface AppCompactModalFormProps {
     noPadding?: boolean;
     headerLeftContent?: React.ReactNode;
     headerRightContent?: React.ReactNode;
+    allowedShortcuts?: string[];
 }
 
 export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
@@ -34,6 +35,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     noPadding = false,
     headerLeftContent,
     headerRightContent,
+    allowedShortcuts = [],
 }) => {
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -106,7 +108,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                 /^F\d+$/.test(e.key) || 
                 ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
 
-            if (isGlobalShortcut) {
+            if (isGlobalShortcut && !allowedShortcuts.includes(e.key)) {
                 e.preventDefault();
                 e.stopPropagation();
             }
@@ -185,7 +187,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                     </div>
                 </header>
 
-                <div className={`flex-1 overflow-y-auto min-h-0 ${fullHeight ? 'max-h-none' : 'max-h-[70vh]'} ${noPadding ? '' : 'p-4'}`}>
+                <div className={`flex-1 flex flex-col overflow-y-auto min-h-0 ${fullHeight ? 'max-h-none' : 'max-h-[70vh]'} ${noPadding ? '' : 'p-4'}`}>
                     {children}
                 </div>
 

@@ -1603,6 +1603,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             icon="database"
             fullHeight
             noPadding
+            allowedShortcuts={['F5', 'F9']}
             width="w-[95vw] max-w-[1400px]"
             submitLabel="Ready"
             cancelLabel="Cancel"

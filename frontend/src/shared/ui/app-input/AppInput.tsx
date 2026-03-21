@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Icon } from '../icon';
 
 export interface AppInputProps {
-    label: string;
+    label?: string;
     value: string;
     onChange: (value: string) => void;
     multiline?: boolean;
@@ -51,9 +51,11 @@ export const AppInput: React.FC<AppInputProps> = ({
     
     return (
         <div className={`space-y-1.5 ${className}`}>
-            <label className="text-sm font-bold text-[var(--text-main)]">
-                {label} {required && <span className="text-red-500">*</span>}
-            </label>
+            {label && (
+                <label className="text-sm font-bold text-[var(--text-main)]">
+                    {label} {required && <span className="text-red-500">*</span>}
+                </label>
+            )}
             
             <div className="relative group/input">
                 {multiline ? (

@@ -140,10 +140,8 @@ const ParameterRow: React.FC<{
                     <div className="flex gap-2 items-start w-full">
                         <div className="flex-1">
                             <AppInput
-                                label={param.label}
                                 type="text"
-                                multiline
-                                rows={3}
+                                multiline={false}
                                 value={value ?? ''}
                                 onChange={(val) => onChange({ [param.name]: val })}
                                 placeholder={`Enter SQL query...`}
@@ -166,7 +164,7 @@ const ParameterRow: React.FC<{
                     </div>
                 ) : (
                     <AppInput
-                        label={param.label}
+                        label=""
                         type={param.type === 'number' ? 'number' : 'text'}
                         value={value ?? ''}
                         onChange={(val) => {
