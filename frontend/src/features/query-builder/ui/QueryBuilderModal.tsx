@@ -17,6 +17,7 @@ import {
 import { Icon } from '../../../shared/ui/icon';
 import { AppFormFieldRect } from '../../../shared/ui/app-input';
 import { AppTabs } from '../../../shared/ui/app-tabs';
+import { AppAreaHint } from '../../../shared/ui/app-area-hint';
 import { useDatabaseMetadata } from '../lib/useDatabaseMetadata';
 import type { MultiQueryState, QueryState, SelectedField, JoinCondition, WhereCondition } from '../model/types';
 import { generateSQL, generateBlockSQL } from '../lib/sqlGenerator';
@@ -158,7 +159,7 @@ const JoinsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryStat
     };
 
     return (
-        <div className="space-y-6 max-w-5xl">
+        <div className="space-y-6">
             <div className="flex items-center justify-between px-2">
                 <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Table Joins</h3>
                 <button
@@ -170,26 +171,28 @@ const JoinsView: React.FC<ViewProps> = ({ state, setState, getColumns, queryStat
                 </button>
             </div>
 
-            <div className="rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] overflow-hidden divide-y divide-[var(--border-base)] shadow-sm">
-                {state.joins.map((join, index) => (
-                    <JoinItem
-                        key={join.id}
-                        join={join}
-                        index={index}
-                        state={state}
-                        setState={setState}
-                        getColumns={getColumns}
-                        queryState={queryState}
-                    />
-                ))}
-
-                {state.joins.length === 0 && (
-                    <div className="py-12 flex flex-col items-center justify-center opacity-40">
-                        <Icon name="device_hub" size={32} className="mb-2 text-[var(--text-muted)]" />
-                        <p className="text-xs font-normal">No joins defined yet.</p>
-                    </div>
-                )}
-            </div>
+            {state.joins.length > 0 ? (
+                <div className="rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] overflow-hidden divide-y divide-[var(--border-base)] shadow-sm">
+                    {state.joins.map((join, index) => (
+                        <JoinItem
+                            key={join.id}
+                            join={join}
+                            index={index}
+                            state={state}
+                            setState={setState}
+                            getColumns={getColumns}
+                            queryState={queryState}
+                        />
+                    ))}
+                </div>
+            ) : (
+                <AppAreaHint
+                    icon="device_hub"
+                    title="No joins defined yet"
+                    description="Connect tables to combine data"
+                    className="py-12"
+                />
+            )}
         </div>
     );
 };
@@ -353,7 +356,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
     };
 
     return (
-        <div className="space-y-6 max-w-5xl">
+        <div className="space-y-6">
             <div className="flex items-center justify-between px-2">
                 <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Filtering Conditions</h3>
                 <button
@@ -503,10 +506,12 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                 ))}
 
                 {state.where.length === 0 && (
-                    <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
-                        <Icon name="filter_alt" size={32} className="mb-2 text-[var(--text-muted)]" />
-                        <p className="text-xs font-normal">No conditions defined yet.</p>
-                    </div>
+                    <AppAreaHint
+                        icon="filter_alt"
+                        title="No conditions defined yet"
+                        description="Add filters to narrow down results"
+                        className="py-12"
+                    />
                 )}
             </div>
         </div>
@@ -536,7 +541,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
     };
 
     return (
-        <div className="space-y-12 max-w-5xl">
+        <div className="space-y-12">
             {/* Grouping Section */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between px-2">
@@ -595,10 +600,12 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                         </div>
                     ))}
                     {(state.groupBy || []).length === 0 && (
-                        <div className="md:col-span-2 py-8 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
-                            <Icon name="group_work" size={24} className="mb-2 text-[var(--text-muted)]" />
-                            <p className="text-[10px] font-normal uppercase tracking-tighter">No groupings defined</p>
-                        </div>
+                        <AppAreaHint
+                            icon="group_work"
+                            title="No groupings defined"
+                            description="Use to aggregate rows"
+                            className="md:col-span-2 py-8"
+                        />
                     )}
                 </div>
             </div>
@@ -676,10 +683,12 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                         </div>
                     ))}
                     {(state.orderBy || []).length === 0 && (
-                        <div className="md:col-span-2 py-8 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
-                            <Icon name="sort" size={24} className="mb-2 text-[var(--text-muted)]" />
-                            <p className="text-[10px] font-normal uppercase tracking-tighter">No sortings defined</p>
-                        </div>
+                        <AppAreaHint
+                            icon="sort"
+                            title="No sortings defined"
+                            description="Order results by columns"
+                            className="md:col-span-2 py-8"
+                        />
                     )}
                 </div>
             </div>
