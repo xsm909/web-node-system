@@ -40,7 +40,7 @@ export const AppTabs: React.FC<AppTabsProps> = ({
                             key={tab.id}
                             type="button"
                             onClick={() => onTabChange(tab.id)}
-                            className={`px-6 py-5 text-sm font-bold transition-all relative flex items-center gap-2.5 ${isActive ? 'text-brand' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] opacity-60 hover:opacity-100'
+                            className={`px-6 py-5 text-sm font-normal transition-all relative flex items-center gap-2.5 ${isActive ? 'text-brand' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] opacity-60 hover:opacity-100'
                                 }`}
                         >
                             {tab.icon && <Icon name={tab.icon} size={16} className={isActive ? 'text-brand' : 'text-[var(--text-muted)]'} />}
@@ -58,7 +58,7 @@ export const AppTabs: React.FC<AppTabsProps> = ({
                         key={tab.id}
                         type="button"
                         onClick={() => onTabChange(tab.id)}
-                        className={`px-4 py-1.5 text-sm font-semibold transition-all relative flex items-center justify-center gap-2 rounded-t-lg -mb-px ${isActive
+                        className={`px-4 py-1.5 text-sm font-normal transition-all relative flex items-center justify-center gap-2 rounded-t-lg -mb-px ${isActive
                             ? 'text-brand bg-[var(--bg-app)] border-t border-l border-r border-[var(--border-base)] shadow-[0_-2px_6px_rgba(0,0,0,0.02)] z-10'
                             : 'text-[var(--text-muted)] border-t border-l border-r border-transparent hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]/40 hover:border-[var(--border-muted)]/40'
                             }`}

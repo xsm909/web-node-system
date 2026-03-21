@@ -1734,12 +1734,6 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
                     {/* Left Sidebar: Tables List */}
                 <div className="w-64 border-r border-[var(--border-base)] flex flex-col bg-[var(--bg-alt)]">
-                    <div className="p-4 border-b border-[var(--border-base)]">
-                        <h3 className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
-                            <Icon name="table_chart" size={14} />
-                            Available Tables
-                        </h3>
-                    </div>
                     <div className="flex-1 overflow-y-auto p-2 space-y-1">
                         <div>
                             <div className="px-2 py-1 flex items-center justify-between">
@@ -1783,128 +1777,137 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-app)]">
                     {/* Block Toolbar */}
                     {/* Query Tabs Bar */}
-                    <div className="px-6 border-b border-[var(--border-base)] bg-[var(--bg-app)] flex items-center gap-1 group/tabs overflow-x-auto no-scrollbar pt-4">
-                        {/* Main Query Tab */}
-                        <button
-                            onClick={() => setActiveBlockId('main')}
-                            className={`px-4 py-2 text-[11px] font-normal uppercase tracking-wider transition-all border-t-2 border-x border-b-0 rounded-t-xl -mb-[1px] flex items-center gap-2 whitespace-nowrap ${
-                                activeBlockId === 'main'
-                                    ? 'bg-[var(--bg-app)] border-[var(--border-base)] text-brand border-t-brand'
-                                    : 'bg-[var(--bg-alt)] border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-app)]'
-                            }`}
-                        >
-                            <Icon name="sql" size={14} />
-                            Main Query
-                        </button>
-
-                        {/* CTE Tabs */}
-                        {fullState.ctes.map(cte => (
-                            <div key={cte.id} className="relative group">
-                                <button
-                                    onClick={() => setActiveBlockId(cte.id)}
-                                    onDoubleClick={() => {
-                                        setCteToRename({ id: cte.id, alias: cte.alias });
-                                        setRenameValue(cte.alias);
-                                        setIsRenameModalOpen(true);
-                                    }}
-                                    className={`px-4 py-2 text-[11px] font-normal uppercase tracking-wider transition-all border-t-2 border-x border-b-0 rounded-t-xl -mb-[1px] flex items-center gap-2 whitespace-nowrap pr-8 ${
-                                        activeBlockId === cte.id
-                                            ? 'bg-[var(--bg-app)] border-[var(--border-base)] text-brand border-t-brand'
-                                            : 'bg-[var(--bg-alt)] border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-app)]'
-                                    }`}
-                                >
-                                    <Icon name={cte.isRecursive ? 'table_recursive' : 'table_virtual'} size={14} />
-                                    {cte.alias}
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setCteToDelete({ id: cte.id, alias: cte.alias });
-                                        setIsDeleteConfirmOpen(true);
-                                    }}
-                                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md transition-all hover:bg-red-500/10 hover:text-red-500 ${
-                                        activeBlockId === cte.id ? 'text-[var(--text-muted)]' : 'text-transparent group-hover:text-[var(--text-muted)]'
-                                    }`}
-                                >
-                                    <Icon name="close" size={12} />
-                                </button>
-                            </div>
-                        ))}
-
-                        {/* Add Button */}
-                        <div className="relative ml-2 pb-px flex-shrink-0">
+                    <div className="relative flex-shrink-0">
+                        <div className="absolute bottom-0 left-0 right-0 h-px bg-[var(--border-base)]" />
+                        <div className="px-6 h-[48px] bg-[var(--bg-app)] flex items-end gap-1 group/tabs overflow-x-auto no-scrollbar">
+                            {/* Main Query Tab */}
                             <button
-                                ref={addButtonRef}
-                                onClick={() => {
-                                    setAddAnchorRect(addButtonRef.current?.getBoundingClientRect() || null);
-                                    setIsAddMenuOpen(!isAddMenuOpen);
-                                }}
-                                className={`p-2 rounded-xl transition-all ${isAddMenuOpen ? 'bg-brand text-white' : 'hover:bg-brand/10 text-brand'}`}
-                                title="Add new query block"
+                                onClick={() => setActiveBlockId('main')}
+                                className={`px-4 py-1.5 text-sm font-normal transition-all border-t border-x border-b-0 rounded-t-lg flex items-center gap-2 whitespace-nowrap relative z-20 ${
+                                    activeBlockId === 'main'
+                                        ? 'text-brand bg-[var(--bg-app)] border-[var(--border-base)] shadow-[0_-2px_6px_rgba(0,0,0,0.02)]'
+                                        : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]/40 hover:border-[var(--border-muted)]/40'
+                                }`}
                             >
-                                <Icon name="add" size={16} />
+                                <Icon name="sql" size={16} />
+                                <span>Main Query</span>
+                                {activeBlockId === 'main' && <div className="absolute inset-0 bg-brand/[0.03] rounded-t-lg -z-10" />}
                             </button>
 
-                            <AppContextMenu
-                                isOpen={isAddMenuOpen}
-                                onClose={() => setIsAddMenuOpen(false)}
-                                anchorRect={addAnchorRect}
-                            >
-                                <div className="p-2 space-y-1">
+                            {/* CTE Tabs */}
+                            {fullState.ctes.map(cte => (
+                                <div key={cte.id} className="relative group">
                                     <button
-                                        onClick={() => {
-                                            setIsAddMenuOpen(false);
-                                            handleAddCTE(false);
+                                        onClick={() => setActiveBlockId(cte.id)}
+                                        onDoubleClick={() => {
+                                            setCteToRename({ id: cte.id, alias: cte.alias });
+                                            setRenameValue(cte.alias);
+                                            setIsRenameModalOpen(true);
                                         }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-normal text-[var(--text-main)] hover:bg-brand/10 rounded-xl transition-all outline-none"
+                                        className={`px-4 py-1.5 text-sm font-normal transition-all border-t border-x border-b-0 rounded-t-lg flex items-center gap-2 whitespace-nowrap pr-10 relative z-20 ${
+                                            activeBlockId === cte.id
+                                                ? 'text-brand bg-[var(--bg-app)] border-[var(--border-base)] shadow-[0_-2px_6px_rgba(0,0,0,0.02)]'
+                                                : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]/40 hover:border-[var(--border-muted)]/40'
+                                        }`}
                                     >
-                                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
-                                            <Icon name="table_virtual" size={16} />
-                                        </div>
-                                        <div className="text-left">
-                                            <div className="leading-tight">Regular Block</div>
-                                            <div className="text-[9px] text-[var(--text-muted)] font-normal">Standard SQL query</div>
-                                        </div>
+                                        <Icon name={cte.isRecursive ? 'table_recursive' : 'table_virtual'} size={16} />
+                                        <span>{cte.alias}</span>
+                                        {activeBlockId === cte.id && <div className="absolute inset-0 bg-brand/[0.03] rounded-t-lg -z-10" />}
                                     </button>
                                     <button
-                                        onClick={() => {
-                                            setIsAddMenuOpen(false);
-                                            setEditingCTE(null);
-                                            setIsRecursiveModalOpen(true);
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setCteToDelete({ id: cte.id, alias: cte.alias });
+                                            setIsDeleteConfirmOpen(true);
                                         }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-normal text-[var(--text-main)] hover:bg-brand/10 rounded-xl transition-all outline-none"
+                                        className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md transition-all hover:bg-red-500/10 hover:text-red-500 ${
+                                            activeBlockId === cte.id ? 'text-[var(--text-muted)]' : 'text-transparent group-hover:text-[var(--text-muted)]'
+                                        }`}
                                     >
-                                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
-                                            <Icon name="table_recursive" size={16} />
-                                        </div>
-                                        <div className="text-left">
-                                            <div className="leading-tight">Recursive Block</div>
-                                            <div className="text-[9px] text-[var(--text-muted)] font-normal">Hierarchical query</div>
-                                        </div>
+                                        <Icon name="close" size={14} />
                                     </button>
+                                </div>
+                            ))}
+
+                            {/* Add Button */}
+                            <div className="relative ml-2 pb-px flex-shrink-0">
+                                <button
+                                    ref={addButtonRef}
+                                    onClick={() => {
+                                        setAddAnchorRect(addButtonRef.current?.getBoundingClientRect() || null);
+                                        setIsAddMenuOpen(!isAddMenuOpen);
+                                    }}
+                                    className={`p-2 rounded-xl transition-all ${isAddMenuOpen ? 'bg-brand text-white' : 'hover:bg-brand/10 text-brand'}`}
+                                    title="Add new query block"
+                                >
+                                    <Icon name="add" size={16} />
+                                </button>
+
+                                <AppContextMenu
+                                    isOpen={isAddMenuOpen}
+                                    onClose={() => setIsAddMenuOpen(false)}
+                                    anchorRect={addAnchorRect}
+                                >
+                                    <div className="p-2 space-y-1">
+                                        <button
+                                            onClick={() => {
+                                                setIsAddMenuOpen(false);
+                                                handleAddCTE(false);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-normal text-[var(--text-main)] hover:bg-brand/10 rounded-xl transition-all outline-none"
+                                        >
+                                            <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
+                                                <Icon name="table_virtual" size={16} />
+                                            </div>
+                                            <div className="text-left">
+                                                <div className="leading-tight">Regular Block</div>
+                                                <div className="text-[9px] text-[var(--text-muted)] font-normal">Standard SQL query</div>
+                                            </div>
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setIsAddMenuOpen(false);
+                                                setEditingCTE(null);
+                                                setIsRecursiveModalOpen(true);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-[11px] font-normal text-[var(--text-main)] hover:bg-brand/10 rounded-xl transition-all outline-none"
+                                        >
+                                            <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
+                                                <Icon name="table_recursive" size={16} />
+                                            </div>
+                                            <div className="text-left">
+                                                <div className="leading-tight">Recursive Block</div>
+                                                <div className="text-[9px] text-[var(--text-muted)] font-normal">Hierarchical query</div>
+                                            </div>
+                                        </button>
                                 </div>
                             </AppContextMenu>
                         </div>
                     </div>
+                </div>
 
-                    {/* Main Content Area */}
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        <div className="px-6 border-b border-[var(--border-base)]">
-                            <AppTabs
-                                tabs={[
-                                    { id: 'tables', label: 'Selected Tables' },
-                                    { id: 'joins', label: 'Joins' },
-                                    { id: 'conditions', label: 'Conditions' },
-                                    { id: 'grouping_sorting', label: 'Grouping & Sorting' }
-                                ]}
-                                activeTab={activeTab}
-                                onTabChange={(tabId: string) => setActiveTab(tabId as any)}
-                            />
+                {/* Main Content Area */}
+                <div className="flex-1 flex flex-col overflow-hidden">
+                        <div className="relative flex-shrink-0">
+                            <div className="absolute bottom-0 left-0 right-0 h-px bg-[var(--border-base)]" />
+                            <div className="px-6 h-[40px] flex items-end">
+                                <AppTabs
+                                    className="z-20"
+                                    tabs={[
+                                        { id: 'tables', label: 'Selected Tables' },
+                                        { id: 'joins', label: 'Joins' },
+                                        { id: 'conditions', label: 'Conditions' },
+                                        { id: 'grouping_sorting', label: 'Grouping & Sorting' }
+                                    ]}
+                                    activeTab={activeTab}
+                                    onTabChange={(tabId: string) => setActiveTab(tabId as any)}
+                                />
+                            </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 bg-[var(--bg-app)]">
+                        <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-app)]">
                             {activeTab === 'tables' && (
-                                    <div className="h-full flex gap-6 overflow-hidden relative">
+                                    <div className="flex-1 flex gap-4 overflow-hidden relative p-4 pt-5">
                                         <div className="flex-1 flex flex-col min-w-0">
                                             <SelectedTablesTreeView
                                                 tables={activeState.tables}
@@ -1923,7 +1926,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                         </div>
 
                                         {activeState.tables.length === 0 && (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40 bg-[var(--bg-app)]/50 pointer-events-none z-10">
+                                            <div className="absolute inset-4 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40 bg-[var(--bg-app)]/50 pointer-events-none z-10">
                                                 <Icon name="table_chart" size={48} className="mb-4 text-[var(--text-muted)]" />
                                                 <p className="text-sm font-normal">Add a database table or a query block from the sidebar.</p>
                                             </div>
@@ -1931,25 +1934,29 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                     </div>
                                 )}
                                 {activeTab === 'joins' && (
-                                    <JoinsView
-                                        state={activeState}
-                                        setState={updateActiveState}
-                                        getColumns={getColumns}
-                                        queryState={fullState}
-                                    />
-                                )}
-                                {activeTab === 'conditions' && (
-                                    <div className="h-full flex flex-col gap-6 overflow-hidden">
-                                        <ConditionsView
+                                    <div className="flex-1 overflow-y-auto p-6">
+                                        <JoinsView
                                             state={activeState}
                                             setState={updateActiveState}
                                             getColumns={getColumns}
                                             queryState={fullState}
-                                            parameters={parameters}
                                         />
+                                    </div>
+                                )}
+                                {activeTab === 'conditions' && (
+                                    <div className="flex-1 flex flex-col overflow-hidden">
+                                        <div className="flex-1 overflow-y-auto p-6">
+                                            <ConditionsView
+                                                state={activeState}
+                                                setState={updateActiveState}
+                                                getColumns={getColumns}
+                                                queryState={fullState}
+                                                parameters={parameters}
+                                            />
+                                        </div>
 
                                         {parameters && parameters.length > 0 && (
-                                            <div className="shrink-0 p-6 border-t border-[var(--border-base)] bg-[var(--bg-alt)]/30 rounded-t-3xl backdrop-blur-sm">
+                                            <div className="shrink-0 p-6 border-t border-[var(--border-base)] bg-[var(--bg-alt)]/30 backdrop-blur-sm">
                                                 <div className="flex items-center gap-3 mb-4">
                                                     <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
                                                         <Icon name="tune" size={16} />
@@ -1979,12 +1986,14 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                     </div>
                                 )}
                                 {activeTab === 'grouping_sorting' && (
-                                    <GroupingSortingView
-                                        state={activeState}
-                                        setState={updateActiveState}
-                                        getColumns={getColumns}
-                                        queryState={fullState}
-                                    />
+                                    <div className="flex-1 overflow-y-auto p-6">
+                                        <GroupingSortingView
+                                            state={activeState}
+                                            setState={updateActiveState}
+                                            getColumns={getColumns}
+                                            queryState={fullState}
+                                        />
+                                    </div>
                                 )}
                             </div>
 

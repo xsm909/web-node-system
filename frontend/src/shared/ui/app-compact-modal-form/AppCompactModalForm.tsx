@@ -164,7 +164,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                     </div>
                 </header>
 
-                <div className={`flex-1 flex flex-col overflow-y-auto min-h-0 ${fullHeight ? 'max-h-none' : 'max-h-[70vh]'} ${noPadding ? '' : 'p-4'}`}>
+                <div className={`flex-1 flex flex-col min-h-0 ${fullHeight ? 'max-h-none overflow-hidden' : 'max-h-[70vh] overflow-y-auto'} ${noPadding ? '' : 'p-4'}`}>
                     {children}
                 </div>
 

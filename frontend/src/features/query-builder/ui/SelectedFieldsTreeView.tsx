@@ -29,8 +29,8 @@ export const SelectedFieldsTreeView: React.FC<SelectedFieldsTreeViewProps> = ({
                 isOver ? 'border-brand ring-2 ring-brand/20 bg-brand/5' : 'border-[var(--border-base)]'
             }`}
         >
-            <div className="bg-[var(--bg-alt)] px-4 py-3 border-b border-[var(--border-base)] flex items-center justify-between font-bold">
-                <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
+            <div className="bg-[var(--bg-alt)] px-4 h-[40px] border-b border-[var(--border-base)] flex items-center justify-between font-bold">
+                <h3 className="text-[10px] font-normal uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
                     <Icon name="table_chart" size={14} />
                     SELECTED FIELDS
                 </h3>

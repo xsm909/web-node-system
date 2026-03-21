@@ -162,3 +162,12 @@
   border-top: 1px solid var(--border-base);
   margin: 2rem 0;
 }
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}

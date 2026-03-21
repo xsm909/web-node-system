@@ -36,8 +36,8 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
                 isOver ? 'border-brand ring-4 ring-brand/10 bg-brand/[0.02]' : 'border-[var(--border-base)]'
             }`}
         >
-            <div className="bg-[var(--bg-alt)] px-4 py-3 border-b border-[var(--border-base)] flex items-center justify-between">
-                <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
+            <div className="bg-[var(--bg-alt)] px-4 h-[40px] border-b border-[var(--border-base)] flex items-center justify-between">
+                <h3 className="text-[10px] font-normal uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2">
                     <Icon name="table_chart" size={14} />
                     SELECTED TABLES
                 </h3>
@@ -140,7 +140,7 @@ const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, query
             {...listeners}
             className="group flex flex-col"
         >
-            <div className="flex items-center gap-1 p-1 rounded-lg hover:bg-brand/5 border border-transparent hover:border-brand/10 transition-all cursor-grab active:cursor-grabbing">
+            <div className="flex items-center gap-1 p-2 rounded-lg hover:bg-brand/5 border border-transparent hover:border-brand/10 transition-all cursor-grab active:cursor-grabbing">
                 
                 <button 
                     onClick={(e) => {
