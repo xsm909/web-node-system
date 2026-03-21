@@ -117,13 +117,12 @@ export const AppFooter: React.FC = () => {
         return groupsArray;
     }, [scopes]);
 
-    if (displayGroups.length === 0) {
-        return null;
-    }
+    const isVisible = displayGroups.length > 0;
 
     return (
         <div 
-            className="fixed bottom-0 h-8 bg-slate-900 border-t border-slate-800 z-[99999] flex items-center px-4 shadow-xl select-none transition-all duration-300 ease-in-out"
+            className={`fixed bottom-0 h-8 bg-slate-900 border-t border-slate-800 z-40 flex items-center px-4 shadow-xl select-none transition-all duration-500 ease-in-out
+                ${isVisible ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
             style={{
                 left: 'var(--sidebar-width, 0px)',
                 width: 'calc(100% - var(--sidebar-width, 0px))'
