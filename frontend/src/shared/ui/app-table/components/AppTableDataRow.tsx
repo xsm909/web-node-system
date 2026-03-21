@@ -1,6 +1,5 @@
 import { flexRender, type Row } from '@tanstack/react-table';
 import type { AppTableConfig } from '../types';
-import { Icon } from '../../icon/Icon';
 
 interface AppTableDataRowProps<TData> {
     row: Row<TData>;
@@ -12,7 +11,6 @@ interface AppTableDataRowProps<TData> {
 export function AppTableDataRow<TData>({ row, onClick, level = 0, config }: AppTableDataRowProps<TData>) {
     const isClickable = !!onClick;
     const customClass = config?.rowClassName ? config.rowClassName(row.original) : '';
-    const isLocked = (row.original as any)?.is_locked;
 
     return (
         <tr
@@ -45,17 +43,6 @@ export function AppTableDataRow<TData>({ row, onClick, level = 0, config }: AppT
                             flex items-center gap-2 w-full h-full
                             ${isActions ? 'justify-end' : 'justify-start'}
                         `}>
-                            {isIndentCell && (
-                                <div className="flex items-center justify-center w-5 h-5 flex-shrink-0">
-                                    {isLocked && (
-                                        <Icon 
-                                            name="lock" 
-                                            size={16} 
-                                            className="text-amber-500" 
-                                        />
-                                    )}
-                                </div>
-                            )}
                             <div className="flex-1 min-w-0">
                                 {cellContent}
                             </div>

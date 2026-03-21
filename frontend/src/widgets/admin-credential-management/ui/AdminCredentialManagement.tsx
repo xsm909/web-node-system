@@ -4,12 +4,12 @@ import type { Credential } from '../../../entities/credential/model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
 import { createColumnHelper } from '@tanstack/react-table';
 import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
-
 
 const columnHelper = createColumnHelper<Credential>();
 
@@ -121,54 +121,61 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
 
     const columns = useMemo(() => [
         columnHelper.accessor('key', {
+            id: 'key',
             header: 'Identification Key',
-            cell: info => (
-                <div className="flex items-center gap-2 text-sm font-mono text-brand group-hover:brightness-110 transition-all uppercase tracking-tight">
-                    {info.getValue()}
-                </div>
-            )
+            cell: info => {
+                const cred = info.row.original;
+                return (
+                    <AppTableStandardCell
+                        icon="key"
+                        label={cred.key}
+                        subtitle={cred.description}
+                        isLocked={cred.is_locked}
+                        isMono={true}
+                    />
+                );
+            },
         }),
         columnHelper.accessor('type', {
             header: 'Type',
             cell: info => (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] bg-slate-500/10 text-slate-600 ring-1 ring-inset ring-slate-500/20 uppercase tracking-widest">
+                <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
                     {info.getValue()}
                 </span>
-            )
-        }),
-        columnHelper.accessor('description', {
-            header: 'Description / Note',
-            cell: info => (
-                <div className="text-sm text-[var(--text-muted)] opacity-70 group-hover:opacity-100 transition-opacity">
-                    {info.getValue() || <span className="italic opacity-30 font-normal">No context provided</span>}
-                </div>
-            )
+            ),
         }),
         columnHelper.display({
             id: 'actions',
             header: () => <div className="text-right">Actions</div>,
             cell: info => {
-                const c = info.row.original;
+                const cred = info.row.original;
                 return (
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-
-                        {!c.is_locked && (
+                    <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleOpenEdit(cred); }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-500/10 transition-colors"
+                            title="Edit Credential"
+                        >
+                            <Icon name="edit" size={16} />
+                        </button>
+                        {!cred.is_locked && (
                             <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(c);
-                                }}
-                                className="p-2 rounded-xl bg-[var(--border-muted)] hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 border border-[var(--border-base)] transition-all active:scale-90"
+                                onClick={(e) => { e.stopPropagation(); handleDelete(cred); }}
+                                className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
                                 title="Delete Credential"
                             >
-                                <Icon name="delete" size={14} />
+                                <Icon name="delete" size={16} />
                             </button>
+                        ) || (
+                            <div className="p-1.5">
+                                <Icon name="lock" size={16} className="text-amber-500/50" />
+                            </div>
                         )}
                     </div>
                 );
-            }
-        })
-    ], []);
+            },
+        }),
+    ], [handleOpenEdit, handleDelete]);
 
     if (loading) {
         return (

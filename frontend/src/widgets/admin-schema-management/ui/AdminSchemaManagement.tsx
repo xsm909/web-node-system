@@ -5,6 +5,7 @@ import { SchemaEditor } from '../../../features/schema-editor/SchemaEditor';
 import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
@@ -163,21 +164,12 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
             cell: info => {
                 const schema = info.row.original;
                 return (
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-surface-700 text-brand group-hover:bg-brand group-hover:text-white transition-colors">
-                            <Icon name="data_object" size={18} />
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                            <span className="text-sm text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
-                                {schema.content?.title || schema.key}
-                            </span>
-                            <div className="flex items-center gap-2 mt-0.5">
-                                {schema.is_system && (
-                                    <span className="text-[9px] text-blue-400 uppercase tracking-tighter opacity-60">System Schema</span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                    <AppTableStandardCell
+                        icon="data_object"
+                        label={schema.content?.title || schema.key}
+                        subtitle={schema.content?.description || (schema.is_system ? 'System Schema' : undefined)}
+                        isLocked={schema.is_locked}
+                    />
                 );
             }
         }),

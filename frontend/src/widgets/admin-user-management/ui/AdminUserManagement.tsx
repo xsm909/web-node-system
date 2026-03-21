@@ -10,6 +10,7 @@ import { AppFormView } from '../../../shared/ui/app-form-view';
 import { UserEditor, type UserEditorRef } from './UserEditor';
 import { Icon } from '../../../shared/ui/icon';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
@@ -39,18 +40,23 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
     const columns = useMemo(() => [
         columnHelper.accessor('username', {
             header: 'Username',
-            cell: info => (
-                <div className="flex items-center gap-2">
-                    <span className="text-[var(--text-main)]">{info.getValue()}</span>
-                </div>
-            ),
+            cell: info => {
+                const user = info.row.original;
+                return (
+                    <AppTableStandardCell
+                        icon="person"
+                        label={user.username}
+                        isLocked={user.is_locked}
+                    />
+                );
+            },
         }),
         columnHelper.accessor('role', {
             header: 'Role',
             cell: info => {
                 const role = info.getValue();
                 return (
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] tracking-widest ring-1 ring-inset bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-slate-500/20`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] tracking-widest ring-1 ring-inset bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-slate-500/20 uppercase`}>
                         {role}
                     </span>
                 );

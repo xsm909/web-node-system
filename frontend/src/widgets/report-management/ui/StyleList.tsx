@@ -5,6 +5,7 @@ import {
 import type { ReportStyle } from '../../../entities/report/model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 
 const columnHelper = createColumnHelper<ReportStyle>();
 
@@ -24,11 +25,11 @@ export function StyleList({ styles, isAdmin, onEdit, onDelete, searchQuery }: St
             cell: info => {
                 const style = info.row.original;
                 return (
-                    <div className="flex items-center gap-2">
-                        <span className="text-[var(--text-main)] font-medium group-hover:text-brand transition-colors">
-                            {info.getValue()}
-                        </span>
-                    </div>
+                    <AppTableStandardCell
+                        icon="palette"
+                        label={info.getValue()}
+                        isLocked={style.is_locked}
+                    />
                 );
             },
         }),

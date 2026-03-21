@@ -63,8 +63,14 @@ export function AppTable<TData>({
                     <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-brand/20">
                         {table.getHeaderGroups().map(headerGroup => (
                             <tr key={headerGroup.id} className="bg-brand">
-                                {headerGroup.headers.map(header => (
-                                    <th key={header.id} className="px-6 py-4 text-[11px] font-semibold text-white uppercase tracking-widest">
+                                {headerGroup.headers.map((header, index) => (
+                                    <th 
+                                        key={header.id} 
+                                        className={`
+                                            py-4 text-[11px] font-semibold text-white uppercase tracking-widest
+                                            ${index === 0 ? 'px-4' : 'px-6'}
+                                        `}
+                                    >
                                         {flexRender(header.column.columnDef.header, header.getContext())}
                                     </th>
                                 ))}

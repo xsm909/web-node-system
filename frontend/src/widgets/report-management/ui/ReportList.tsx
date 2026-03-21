@@ -5,6 +5,7 @@ import {
 import type { Report } from '../../../entities/report/model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 
 const columnHelper = createColumnHelper<Report>();
 
@@ -20,40 +21,18 @@ interface ReportListProps {
 export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQuery }: ReportListProps) {
 
     const columns = useMemo(() => [
-        columnHelper.display({
-            id: 'open',
-            header: '',
-            cell: info => {
-                const report = info.row.original;
-                return (
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onView(report); }}
-                        className="p-1 rounded-lg bg-[var(--border-muted)] text-[var(--text-main)] hover:bg-[var(--border-base)] transition-all opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                        title="Open Report"
-                    >
-                        <Icon name="play_arrow" size={16} />
-                    </button>
-                );
-            },
-            size: 40,
-        }),
         columnHelper.accessor('name', {
             id: 'name',
             header: 'Name',
             cell: info => {
                 const report = info.row.original;
                 return (
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
-                            <Icon name="bar_chart" size={16} />
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[var(--text-main)] truncate font-medium group-hover:text-brand transition-colors">{report.name}</span>
-                            </div>
-                            <span className="text-[10px] text-[var(--text-muted)] opacity-60 truncate">{report.description || 'No description'}</span>
-                        </div>
-                    </div>
+                    <AppTableStandardCell
+                        icon="bar_chart"
+                        label={report.name}
+                        subtitle={report.description}
+                        isLocked={report.is_locked}
+                    />
                 );
             },
         }),
@@ -72,10 +51,17 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQ
                 const report = info.row.original;
                 return (
                     <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onView(report); }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-500/10 transition-colors"
+                            title="Open Report"
+                        >
+                            <Icon name="play_arrow" size={16} />
+                        </button>
                         {isAdmin && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); onDelete(report); }}
-                                className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                                className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
                                 title="Delete Report"
                             >
                                 <Icon name="delete" size={16} />

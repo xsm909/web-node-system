@@ -5,6 +5,7 @@ import { MarkdownEditor } from '../../../features/markdown-editor/MarkdownEditor
 import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
@@ -126,18 +127,11 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
             cell: info => {
                 const hint = info.row.original;
                 return (
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-surface-700 text-brand group-hover:bg-brand group-hover:text-white transition-colors">
-                            <Icon name="description" size={18} />
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
-                                    {hint.key}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                    <AppTableStandardCell
+                        icon="description"
+                        label={hint.key}
+                        isLocked={hint.is_locked}
+                    />
                 );
             }
         }),
@@ -302,4 +296,3 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
         </div>
     );
 };
-

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import type { Workflow } from '../../../entities/workflow/model/types';
 import { useAuthStore } from '../../../features/auth/store';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Icon } from '../../../shared/ui/icon';
 import { AppHeader } from '../../app-header';
@@ -54,16 +55,16 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
     const columns = useMemo(() => [
         columnHelper.accessor('name', {
             header: 'Workflow Name',
-            cell: info => (
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-surface-700 text-brand">
-                        <Icon name="device_hub" size={18} />
-                    </div>
-                    <span className="font-semibold text-[var(--text-main)] group-hover:text-brand transition-colors">
-                        {info.getValue()}
-                    </span>
-                </div>
-            )
+            cell: info => {
+                const wf = info.row.original;
+                return (
+                    <AppTableStandardCell
+                        icon="device_hub"
+                        label={wf.name}
+                        isLocked={wf.is_locked}
+                    />
+                );
+            }
         }),
         columnHelper.accessor('id', {
             header: 'ID',

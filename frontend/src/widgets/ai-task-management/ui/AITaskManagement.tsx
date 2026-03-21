@@ -7,6 +7,7 @@ import { apiClient } from '../../../shared/api/client';
 import type { AITask } from '../../../entities/ai-task/model/types';
 import { AppHeader } from '../../app-header';
 import { AppTable } from '../../../shared/ui/app-table';
+import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AITaskEditModal } from './AITaskEditModal';
 
@@ -67,6 +68,50 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
     const columns = useMemo(() => {
         const cols = [];
 
+        // Primary Column (Description for Admin, Task Content for Manager)
+        cols.push(
+            columnHelper.display({
+                id: 'primary',
+                header: isAdmin ? 'Description' : 'Task Content',
+                cell: info => {
+                    const task = info.row.original;
+                    let label = '';
+                    let subtitle = undefined;
+
+                    if (isAdmin) {
+                        label = task.description || 'No description';
+                        // Maybe show model as subtitle for admin
+                        subtitle = task.ai_model;
+                    } else {
+                        const taskObj = task.task as any;
+                        if (taskObj) {
+                            if (taskObj.values && Array.isArray(taskObj.values)) {
+                                label = taskObj.values.join(', ');
+                            } else if (taskObj.value) {
+                                label = taskObj.value;
+                            } else if (taskObj.Task) {
+                                label = taskObj.Task;
+                            } else {
+                                label = JSON.stringify(taskObj);
+                            }
+                        } else {
+                            label = 'No content';
+                        }
+                    }
+
+                    return (
+                        <AppTableStandardCell
+                            icon="psychology"
+                            label={label}
+                            subtitle={subtitle}
+                            isLocked={task.is_locked}
+                        />
+                    );
+                }
+            })
+        );
+
+        // Metadata: Category
         cols.push(
             columnHelper.accessor('data_type_id', {
                 header: 'Category',
@@ -83,62 +128,7 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
             })
         );
 
-        if (isAdmin) {
-            cols.push(
-                columnHelper.accessor('ai_model', {
-                    header: 'Model',
-                    cell: (info: any) => (
-                        <span className="px-2 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-[10px] font-bold uppercase tracking-widest text-brand">
-                            {info.getValue()}
-                        </span>
-                    ),
-                })
-            );
-        }
-
-        if (isAdmin) {
-            cols.push(
-                columnHelper.accessor('description', {
-                    header: 'Description',
-                    cell: (info: any) => (
-                        <div className="max-w-[200px] truncate text-sm text-[var(--text-main)]" title={info.getValue() || ''}>
-                            {info.getValue() || <span className="text-[var(--text-muted)] italic opacity-40">No description</span>}
-                        </div>
-                    ),
-                })
-            );
-        }
-
-        if (!isAdmin) {
-            cols.push(
-                columnHelper.accessor('task', {
-                    header: 'Task Content',
-                    cell: (info: any) => {
-                        const taskObj = info.getValue() as any;
-                        let content = 'No content';
-
-                        if (taskObj) {
-                            if (taskObj.values && Array.isArray(taskObj.values)) {
-                                content = taskObj.values.join(', ');
-                            } else if (taskObj.value) {
-                                content = taskObj.value;
-                            } else if (taskObj.Task) {
-                                content = taskObj.Task;
-                            } else {
-                                content = JSON.stringify(taskObj);
-                            }
-                        }
-
-                        return (
-                            <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80" title={content}>
-                                {content}
-                            </div>
-                        );
-                    },
-                })
-            );
-        }
-
+        // Actions
         cols.push(
             columnHelper.display({
                 id: 'actions',
