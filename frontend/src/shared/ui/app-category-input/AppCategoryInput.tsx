@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { Icon } from '../icon';
 import { AppInput } from '../app-input';
+import { createPortal } from 'react-dom';
 
 export interface AppCategoryInputProps {
     value: string;
@@ -25,17 +26,47 @@ export const AppCategoryInput: React.FC<AppCategoryInputProps> = ({
 }) => {
     const [open, setOpen] = useState(false);
     const [inputValue, setInputValue] = useState(value);
+    const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, height: 0 });
     const ref = useRef<HTMLDivElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => { setInputValue(value); }, [value]);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+            const isInsideInput = ref.current?.contains(e.target as Node);
+            const isInsideDropdown = dropdownRef.current?.contains(e.target as Node);
+            if (!isInsideInput && !isInsideDropdown) {
+                setOpen(false);
+            }
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
+
+    const updateCoords = () => {
+        if (ref.current) {
+            const rect = ref.current.getBoundingClientRect();
+            setCoords({
+                top: rect.top,
+                left: rect.left,
+                width: rect.width,
+                height: rect.height
+            });
+        }
+    };
+
+    useLayoutEffect(() => {
+        if (open) {
+            updateCoords();
+            window.addEventListener('scroll', updateCoords, true);
+            window.addEventListener('resize', updateCoords);
+        }
+        return () => {
+            window.removeEventListener('scroll', updateCoords, true);
+            window.removeEventListener('resize', updateCoords);
+        };
+    }, [open]);
 
     const filtered = useMemo(() => {
         const q = (inputValue || '').toLowerCase();
@@ -77,8 +108,16 @@ export const AppCategoryInput: React.FC<AppCategoryInputProps> = ({
             )}
 
 
-            {open && !disabled && filtered.length > 0 && (
-                <div className="absolute z-50 top-full mt-2 left-0 right-0 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-150">
+            {open && !disabled && filtered.length > 0 && coords.width > 0 && typeof document !== 'undefined' && createPortal(
+                <div 
+                    ref={dropdownRef}
+                    className="fixed z-[3000] mt-1 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-300 ease-out"
+                    style={{
+                        top: coords.top + coords.height,
+                        left: coords.left,
+                        width: coords.width,
+                    }}
+                >
                     {filtered.map(path => {
                         const parts = path.split('|');
                         const depth = parts.length - 1;
@@ -103,7 +142,8 @@ export const AppCategoryInput: React.FC<AppCategoryInputProps> = ({
                             </button>
                         );
                     })}
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

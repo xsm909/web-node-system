@@ -19,6 +19,7 @@ import { AppParametersView } from '../../../shared/ui/app-parameters-view/AppPar
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
+import { AppInput } from '../../../shared/ui/app-input';
 import { AppParameterListEditor } from '../../../shared/ui/app-parameter-list-editor/AppParameterListEditor';
 import { AppParameterSelectByTamplate } from '../../../shared/ui/app-parameter-select-by-tamplate';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
@@ -638,8 +639,8 @@ const AdminWorkflowsTab = () => {
             isSidebarOpen={isSidebarOpen}
             onToggleSidebar={onToggleSidebar}
             onSelectWorkflow={handleSelectWorkflow}
-            onCreateWorkflow={(name) => {
-                handleCreateWorkflow(name, 'Analys').then((newWf: any) => {
+            onCreateWorkflow={(name, category) => {
+                handleCreateWorkflow(name, category).then((newWf: any) => {
                     if (newWf) handleSelectWorkflow(newWf);
                 });
             }}
@@ -714,40 +715,38 @@ const WorkflowModals = () => {
                 onCancel={() => setWorkflowToDelete(null)}
             />
 
-            <ConfirmModal
+            <AppCompactModalForm
                 isOpen={!!workflowToRename}
                 title="Rename Workflow"
-                description={`Update properties for "${workflowToRename?.name}".`}
-                confirmLabel="Update"
-                variant="success"
-                onConfirm={() => {
+                submitLabel="Update"
+                onClose={() => setWorkflowToRename(null)}
+                onSubmit={() => {
                     if (workflowToRename) {
                         handleRenameWorkflow(workflowToRename.id, renameInputValue, renameCategoryValue);
                     }
                     setWorkflowToRename(null);
                 }}
-                onCancel={() => setWorkflowToRename(null)}
             >
                 <div className="flex flex-col gap-4">
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider ml-1">Name</label>
-                        <input
-                            autoFocus
-                            className="w-full px-4 py-3 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-medium"
-                            placeholder="Workflow name"
-                            value={renameInputValue}
-                            onChange={(e) => setRenameInputValue(e.target.value)}
-                        />
-                    </div>
+                    <p className="text-sm text-[var(--text-muted)] mt-1 mb-2">
+                        Update properties for <span className="font-bold text-[var(--text-main)] italic">"{workflowToRename?.name}"</span>.
+                    </p>
+                    <AppInput
+                        label="Name"
+                        autoFocus
+                        placeholder="Workflow name"
+                        value={renameInputValue}
+                        onChange={setRenameInputValue}
+                    />
                     <AppCategoryInput
                         label="Category"
-                        placeholder="e.g. personal, common, Analys"
+                        placeholder="e.g. personal, common, analysis"
                         value={renameCategoryValue}
                         onChange={setRenameCategoryValue}
                         allPaths={allCategoryPaths}
                     />
                 </div>
-            </ConfirmModal>
+            </AppCompactModalForm>
         </>
     );
 };

@@ -26,7 +26,10 @@ import { Navigator, useNavigator } from '../../shared/ui/navigator';
 import { NodeEditorView } from '../../widgets/node-editor-view';
 import { PromptViewer } from '../../widgets/prompt-viewer/ui/PromptViewer';
 import { NodeTypeFormView } from '../../widgets/node-type-form-modal';
-
+import { AppCompactModalForm } from '../../shared/ui/app-compact-modal-form/AppCompactModalForm';
+import { AppCategoryInput } from '../../shared/ui/app-category-input/AppCategoryInput';
+import { AppInput } from '../../shared/ui/app-input';
+import { getUniqueCategoryPaths } from '../../shared/lib/categoryUtils';
 import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
 import { useHotkeys } from '../../shared/lib/hotkeys/useHotkeys';
 
@@ -568,8 +571,8 @@ const WorkflowsTabWithNavigator = ({
             isSidebarOpen={isSidebarOpen}
             onToggleSidebar={toggleSidebar}
             onSelectWorkflow={handleSelectWorkflow}
-            onCreateWorkflow={(name) => {
-                handleCreateWorkflow(name).then((newWf: any) => {
+            onCreateWorkflow={(name, category) => {
+                handleCreateWorkflow(name, category).then((newWf: any) => {
                     if (newWf) handleSelectWorkflow(newWf);
                 });
             }}
@@ -800,50 +803,48 @@ export default function ManagerPage() {
                             onCancel={() => setWorkflowToDelete(null)}
                         />
 
-                        <ConfirmModal
-                            isOpen={!!workflowToRename}
-                            title="Rename Workflow"
-                            description={`Update properties for "${workflowToRename?.name}".`}
-                            confirmLabel="Update"
-                            variant="success"
-                            onConfirm={() => {
-                                if (workflowToRename) {
-                                    handleRenameWorkflow(workflowToRename.id, renameInputValue, renameCategoryValue);
-                                }
-                                setWorkflowToRename(null);
-                            }}
-                            onCancel={() => setWorkflowToRename(null)}
-                        >
-                            <div className="flex flex-col gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider ml-1">Name</label>
-                                    <input
-                                        autoFocus
-                                        className="w-full px-4 py-3 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-medium"
-                                        placeholder="Workflow name"
-                                        value={renameInputValue}
-                                        onChange={(e) => setRenameInputValue(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && workflowToRename && renameInputValue.trim()) {
-                                                handleRenameWorkflow(workflowToRename.id, renameInputValue, renameCategoryValue);
-                                                setWorkflowToRename(null);
-                                            }
-                                        }}
-                                    />
-                                </div>
-                                {isAdmin && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider ml-1">Category</label>
-                                        <input
-                                            className="w-full px-4 py-3 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-brand transition-all font-medium"
-                                            placeholder="e.g. personal, common, Analys"
-                                            value={renameCategoryValue}
-                                            onChange={(e) => setRenameCategoryValue(e.target.value)}
+
+
+                        {(() => {
+                            // Local useMemo-like logic for categories within the scene
+                            const allCategoryPaths = getUniqueCategoryPaths(workflows);
+                            return (
+                                <AppCompactModalForm
+                                    isOpen={!!workflowToRename}
+                                    title="Rename Workflow"
+                                    submitLabel="Update"
+                                    onClose={() => setWorkflowToRename(null)}
+                                    onSubmit={() => {
+                                        if (workflowToRename) {
+                                            handleRenameWorkflow(workflowToRename.id, renameInputValue, renameCategoryValue);
+                                        }
+                                        setWorkflowToRename(null);
+                                    }}
+                                >
+                                    <div className="flex flex-col gap-4">
+                                        <p className="text-sm text-[var(--text-muted)] mt-1 mb-2">
+                                            Update properties for <span className="font-bold text-[var(--text-main)] italic">"{workflowToRename?.name}"</span>.
+                                        </p>
+                                        <AppInput
+                                            label="Name"
+                                            autoFocus
+                                            placeholder="Workflow name"
+                                            value={renameInputValue}
+                                            onChange={setRenameInputValue}
                                         />
+                                        {isAdmin && (
+                                            <AppCategoryInput
+                                                label="Category"
+                                                placeholder="e.g. personal, common, analysis"
+                                                value={renameCategoryValue}
+                                                onChange={setRenameCategoryValue}
+                                                allPaths={allCategoryPaths}
+                                            />
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        </ConfirmModal>
+                                </AppCompactModalForm>
+                            );
+                        })()}
                     </>
                 ) : activeTab === 'ai-tasks' ? (
                     <div className="flex-1 flex flex-col relative overflow-hidden">

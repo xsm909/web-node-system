@@ -18,6 +18,7 @@ export interface AppInputProps {
     onBlur?: () => void;
     icon?: string;
     showCopy?: boolean; // New prop to show copy button
+    autoFocus?: boolean;
 }
 
 export const AppInput: React.FC<AppInputProps> = ({
@@ -37,6 +38,7 @@ export const AppInput: React.FC<AppInputProps> = ({
     onBlur,
     icon,
     showCopy = false,
+    autoFocus = false,
 }) => {
     const [copied, setCopied] = useState(false);
 
@@ -68,6 +70,7 @@ export const AppInput: React.FC<AppInputProps> = ({
                         className={`${baseStyles} resize-none`}
                         onFocus={onFocus}
                         onBlur={onBlur}
+                        autoFocus={autoFocus}
                     />
                 ) : (
                     <div className="relative flex items-center">
@@ -80,6 +83,7 @@ export const AppInput: React.FC<AppInputProps> = ({
                             className={`${baseStyles} ${icon ? 'pl-10' : ''} ${(disabled && showCopy) ? 'pr-12' : ''}`}
                             onFocus={onFocus}
                             onBlur={onBlur}
+                            autoFocus={autoFocus}
                         />
                         {icon && (
                             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 opacity-40 text-[var(--text-main)]">

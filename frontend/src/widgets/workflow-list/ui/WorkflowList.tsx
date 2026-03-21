@@ -6,14 +6,17 @@ import { AppTableStandardCell } from '../../../shared/ui/app-table/components/Ap
 import { createColumnHelper } from '@tanstack/react-table';
 import { Icon } from '../../../shared/ui/icon';
 import { AppHeader } from '../../app-header';
-import { ConfirmModal } from '../../../shared/ui/confirm-modal';
+import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
+import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
+import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
+import { AppInput } from '../../../shared/ui/app-input';
 
 interface WorkflowListProps {
     workflows: Workflow[];
     isSidebarOpen: boolean;
     onToggleSidebar: () => void;
     onSelectWorkflow: (wf: Workflow) => void;
-    onCreateWorkflow: (name: string) => void;
+    onCreateWorkflow: (name: string, category: string) => void;
     onDeleteWorkflow: (wf: Workflow) => void;
     onRenameWorkflow: (wf: Workflow) => void;
     onDuplicateWorkflow: (wf: Workflow) => void;
@@ -37,6 +40,9 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
     const [searchQuery, setSearchQuery] = React.useState('');
     const [createModalOpen, setCreateModalOpen] = React.useState<boolean>(false);
     const [createInputValue, setCreateInputValue] = React.useState('');
+    const [createCategoryValue, setCreateCategoryValue] = React.useState('general');
+
+    const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(workflows), [workflows]);
 
     const flattenedWorkflows = useMemo((): Array<Workflow & { categoryLabel: string }> => {
         return workflows.map(wf => ({
@@ -151,34 +157,36 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                 isSearching={searchQuery.trim().length > 0}
             />
 
-            <ConfirmModal
+            <AppCompactModalForm
                 isOpen={createModalOpen}
                 title="New Workflow"
-                description="Enter a name for the new workflow."
-                confirmLabel="Create"
-                variant="success"
-                onConfirm={() => {
+                icon="add"
+                submitLabel="Create"
+                onClose={() => setCreateModalOpen(false)}
+                onSubmit={() => {
                     if (createInputValue.trim()) {
-                        onCreateWorkflow(createInputValue);
+                        onCreateWorkflow(createInputValue, createCategoryValue);
+                        setCreateModalOpen(false);
                     }
-                    setCreateModalOpen(false);
                 }}
-                onCancel={() => setCreateModalOpen(false)}
             >
-                <input
-                    autoFocus
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all font-medium"
-                    placeholder="Workflow name"
-                    value={createInputValue}
-                    onChange={(e) => setCreateInputValue(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && createInputValue.trim()) {
-                            onCreateWorkflow(createInputValue);
-                            setCreateModalOpen(false);
-                        }
-                    }}
-                />
-            </ConfirmModal>
+                <div className="flex flex-col gap-4">
+                    <AppInput
+                        label="Workflow Name"
+                        autoFocus
+                        placeholder="Enter name..."
+                        value={createInputValue}
+                        onChange={setCreateInputValue}
+                    />
+                    <AppCategoryInput
+                        label="Category"
+                        placeholder="e.g. personal, Analys"
+                        value={createCategoryValue}
+                        onChange={setCreateCategoryValue}
+                        allPaths={allCategoryPaths}
+                    />
+                </div>
+            </AppCompactModalForm>
         </div>
     );
 };
