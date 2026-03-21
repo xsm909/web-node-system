@@ -7,6 +7,9 @@ from ..models.prompt import Prompt
 from ..models.user import User
 from ..schemas.prompt import Prompt as PromptSchema, PromptCreate, PromptUpdate
 from ..routers.auth import get_current_user
+from sqlalchemy import exists, and_
+from ..models import LockData
+from ..core.locks import raise_if_locked, check_is_locked
 
 router = APIRouter(prefix="/prompts", tags=["Prompts"])
 
@@ -20,19 +23,29 @@ def list_prompts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(Prompt)
-    if entity_id:
-        query = query.filter(Prompt.entity_id == entity_id)
-    if entity_type:
-        query = query.filter(Prompt.entity_type == entity_type)
-    if category:
-        query = query.filter(Prompt.category == category)
-    if datatype:
-        query = query.filter(Prompt.datatype == datatype)
-    if reference_id:
-        query = query.filter(Prompt.reference_id == reference_id)
+    is_locked_subquery = db.query(exists().where(and_(
+        LockData.entity_id == Prompt.id,
+        LockData.entity_type == "prompts"
+    ))).scalar_subquery()
     
-    return query.all()
+    results = db.query(Prompt, is_locked_subquery.label("is_locked"))
+    if entity_id:
+        results = results.filter(Prompt.entity_id == entity_id)
+    if entity_type:
+        results = results.filter(Prompt.entity_type == entity_type)
+    if category:
+        results = results.filter(Prompt.category == category)
+    if datatype:
+        results = results.filter(Prompt.datatype == datatype)
+    if reference_id:
+        results = results.filter(Prompt.reference_id == reference_id)
+    
+    response = []
+    for prompt, is_locked in results.all():
+        prompt_dict = PromptSchema.model_validate(prompt).model_dump()
+        prompt_dict["is_locked"] = is_locked
+        response.append(prompt_dict)
+    return response
 
 @router.get("/{prompt_id}", response_model=PromptSchema)
 def get_prompt(
@@ -43,7 +56,12 @@ def get_prompt(
     prompt = db.query(Prompt).filter(Prompt.id == prompt_id).first()
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
-    return prompt
+    
+    is_locked = check_is_locked(db, prompt_id, "prompts")
+    prompt_dict = PromptSchema.model_validate(prompt).model_dump()
+    prompt_dict["is_locked"] = is_locked
+    return prompt_dict
+    return prompt_dict
 
 @router.post("/", response_model=PromptSchema)
 def create_prompt(
@@ -68,6 +86,8 @@ def update_prompt(
     if not db_prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
     
+    raise_if_locked(db, prompt_id, "prompts")
+    
     update_data = prompt_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_prompt, field, value)
@@ -85,6 +105,8 @@ def delete_prompt(
     db_prompt = db.query(Prompt).filter(Prompt.id == prompt_id).first()
     if not db_prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")
+    
+    raise_if_locked(db, prompt_id, "prompts")
     
     db.delete(db_prompt)
     db.commit()

@@ -16,7 +16,6 @@ import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { getPythonHints, type PythonHint } from '../../../shared/api/python-hints';
 import { useThemeStore } from '../../../shared/lib/theme/store';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
-import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 
 
 interface NodeTypeFormViewProps {
@@ -201,18 +200,12 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             ]}
             activeTab={activeTab}
             onTabChange={(id) => setActiveTab(id as FormTab)}
-            headerRightContent={
-                currentNode?.id ? (
-                    <AppLockToggle 
-                        entityId={currentNode.id} 
-                        entityType="node_types" 
-                        initialLocked={!!currentNode.is_locked}
-                        onToggle={(locked) => {
-                            setCurrentNode(prev => prev ? { ...prev, is_locked: locked } : prev);
-                        }}
-                    />
-                ) : undefined
-            }
+            entityId={currentNode?.id}
+            entityType="node_types"
+            isLocked={!!currentNode?.is_locked}
+            onLockToggle={(locked) => {
+                setCurrentNode(prev => prev ? { ...prev, is_locked: locked } : prev);
+            }}
         >
             <form
                 onSubmit={(e) => {
@@ -250,6 +243,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                             value={field.state.value}
                                             onChange={(v) => field.handleChange(v)}
                                             allPaths={allCategoryPaths}
+                                            disabled={currentNode?.is_locked}
                                         />
                                     )}
                                 />
@@ -265,6 +259,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                             required
                                             placeholder="1.0"
                                             className="font-mono font-black text-center text-lg"
+                                            disabled={currentNode?.is_locked}
                                         />
                                     )}
                                 />
@@ -281,6 +276,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                     value={field.state.value}
                                     onChange={(val) => field.handleChange(val)}
                                     placeholder="Brief explanation of what this node does..."
+                                    disabled={currentNode?.is_locked}
                                 />
                             )}
                         />
@@ -294,6 +290,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                         <IconPicker
                                             value={field.state.value}
                                             onChange={(val) => field.handleChange(val)}
+                                            disabled={currentNode?.is_locked}
                                         />
                                     )}
                                 />
@@ -304,8 +301,8 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                     name="is_async"
                                     children={(field) => (
                                         <div
-                                            className={`flex items-center gap-3 px-5 py-4 rounded-xl border transition-all cursor-pointer select-none h-[58px] ${field.state.value ? 'bg-brand/10 border-brand/50 text-brand' : 'bg-[var(--bg-app)] border-[var(--border-base)] text-[var(--text-muted)]'}`}
-                                            onClick={() => field.handleChange(!field.state.value)}
+                                            className={`flex items-center gap-3 px-5 py-4 rounded-xl border transition-all select-none h-[58px] ${field.state.value ? 'bg-brand/10 border-brand/50 text-brand' : 'bg-[var(--bg-app)] border-[var(--border-base)] text-[var(--text-muted)]'} ${currentNode?.is_locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                            onClick={currentNode?.is_locked ? undefined : () => field.handleChange(!field.state.value)}
                                         >
                                             <Icon name={field.state.value ? 'sync' : 'bolt'} size={20} className={field.state.value ? 'animate-spin-slow' : ''} />
                                             <div className="flex flex-col">
@@ -350,6 +347,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                         onChange={(value) => field.handleChange(value)}
                                         className="h-full text-sm font-mono"
                                         placeholder="# Define your executive logic here..."
+                                        readOnly={currentNode?.is_locked}
                                     />
                                 )}
                             />

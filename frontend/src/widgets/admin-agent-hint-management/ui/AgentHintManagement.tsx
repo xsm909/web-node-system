@@ -11,7 +11,6 @@ import { AppInput } from '../../../shared/ui/app-input';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { createColumnHelper } from '@tanstack/react-table';
-import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 
 import { marked } from 'marked';
 
@@ -136,9 +135,6 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                                 <span className="text-sm text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
                                     {hint.key}
                                 </span>
-                                {hint.is_locked && (
-                                    <Icon name="lock" size={12} className="text-amber-500/60" />
-                                )}
                             </div>
                         </div>
                     </div>
@@ -197,18 +193,12 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 ]}
                 activeTab={isPreview ? 'preview' : 'edit'}
                 onTabChange={(id) => setIsPreview(id === 'preview')}
-                headerRightContent={
-                    selectedHint ? (
-                        <AppLockToggle 
-                            entityId={selectedHint.id} 
-                            entityType="agent_hints" 
-                            initialLocked={selectedHint.is_locked}
-                            onToggle={(locked) => {
-                                setSelectedHint(prev => prev ? { ...prev, is_locked: locked } : prev);
-                            }}
-                        />
-                    ) : undefined
-                }
+                entityId={selectedHint?.id}
+                entityType="agent_hints"
+                isLocked={!!selectedHint?.is_locked}
+                onLockToggle={(locked) => {
+                    setSelectedHint(prev => prev ? { ...prev, is_locked: locked } : prev);
+                }}
             >
                 <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                     {!isPreview && (
@@ -247,6 +237,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                                 <MarkdownEditor
                                     initialValue={hintContent}
                                     onChange={setHintContent}
+                                    readOnly={selectedHint?.is_locked}
                                 />
                             </div>
                         )}
@@ -288,7 +279,8 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 config={{
                     categoryExtractor: h => h.category,
                     persistCategoryKey: 'hint_expanded_categories',
-                    emptyMessage: 'No hints matching your criteria.'
+                    emptyMessage: 'No hints matching your criteria.',
+                    indentColumnId: 'key'
                 }}
             />
 

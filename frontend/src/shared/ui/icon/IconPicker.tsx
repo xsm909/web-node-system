@@ -4,9 +4,10 @@ import { Icon } from './Icon';
 interface IconPickerProps {
     value: string;
     onChange: (value: string) => void;
+    disabled?: boolean;
 }
 
-export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange }) => {
+export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, disabled }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [availableIcons, setAvailableIcons] = useState<string[]>([]);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -35,7 +36,8 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange }) => {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] hover:border-brand/50 transition-all font-bold group"
+                disabled={disabled}
+                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] hover:border-brand/50 transition-all font-bold group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[var(--border-base)]"
             >
                 <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center text-brand border border-brand/20 group-hover:bg-brand/20 transition-all">
                     <Icon name={value || 'task'} dir="node_icons" size={24} />

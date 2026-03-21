@@ -22,6 +22,7 @@ class AgentHintInDB(AgentHintBase):
     created_by: UUID
     created_at: datetime
     updated_at: datetime
+    is_locked: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

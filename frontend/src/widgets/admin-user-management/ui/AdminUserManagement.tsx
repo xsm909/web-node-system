@@ -42,9 +42,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
             cell: info => (
                 <div className="flex items-center gap-2">
                     <span className="text-[var(--text-main)]">{info.getValue()}</span>
-                    {info.row.original.is_locked && (
-                        <Icon name="lock" size={12} className="text-amber-500/60" />
-                    )}
                 </div>
             ),
         }),
@@ -233,7 +230,8 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 onRowClick={handleRowClick}
                 isSearching={searchQuery.trim().length > 0}
                 config={{
-                    emptyMessage: 'No users found.'
+                    emptyMessage: 'No users found.',
+                    indentColumnId: 'username'
                 }}
             />
 

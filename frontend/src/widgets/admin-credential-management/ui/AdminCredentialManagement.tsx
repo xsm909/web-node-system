@@ -125,9 +125,6 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
             cell: info => (
                 <div className="flex items-center gap-2 text-sm font-mono text-brand group-hover:brightness-110 transition-all uppercase tracking-tight">
                     {info.getValue()}
-                    {info.row.original.is_locked && (
-                        <Icon name="lock" size={12} className="text-amber-500/60" />
-                    )}
                 </div>
             )
         }),
@@ -217,6 +214,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                             onChange={(val) => setFormData({ ...formData, key: val })}
                             placeholder="e.g. GEMINI_API_KEY"
                             className="font-mono font-bold"
+                            disabled={!!formData.is_locked}
                         />
                         <AppInput
                             label="Value"
@@ -227,6 +225,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                             onChange={(val) => setFormData({ ...formData, value: val })}
                             placeholder="Paste secret value here..."
                             className="font-mono font-bold"
+                            disabled={!!formData.is_locked}
                         />
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-1.5">
@@ -235,7 +234,8 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                                     <select
                                         value={formData.type}
                                         onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                        className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all outline-none appearance-none cursor-pointer font-bold"
+                                        disabled={!!formData.is_locked}
+                                        className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] text-sm focus:border-brand transition-all outline-none appearance-none cursor-pointer font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <option value="ai">AI / LLM Service</option>
                                         <option value="db">Database Accessory</option>
@@ -252,6 +252,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                                 value={formData.description || ''}
                                 onChange={(val) => setFormData({ ...formData, description: val })}
                                 placeholder="Short purpose note"
+                                disabled={!!formData.is_locked}
                             />
                         </div>
                     </div>
@@ -298,7 +299,8 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                 config={{
                     categoryExtractor: c => c.type,
                     persistCategoryKey: 'credential_expanded_categories',
-                    emptyMessage: 'No secure credentials detected. Add your first access key to enable remote integrations.'
+                    emptyMessage: 'No secure credentials detected. Add your first access key to enable remote integrations.',
+                    indentColumnId: 'key'
                 }}
             />
 

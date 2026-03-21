@@ -9,7 +9,7 @@ from ..core.security import get_current_user
 from ..models import User, RoleEnum, LockData
 from ..models.schema import Record, Schema
 from sqlalchemy import exists, and_
-from sqlalchemy import exists, and_
+from ..core.locks import raise_if_locked, check_is_locked
 from ..schemas.schema_registry import (
     RecordCreate, RecordUpdate, RecordResponse
 )
@@ -24,10 +24,10 @@ def check_admin(user: User):
 
 @router.get("/", response_model=List[RecordResponse])
 def get_records(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    is_locked_subquery = db.query(exists().where(and_(
+    is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == Record.id,
         LockData.entity_type == "records"
-    ))).scalar_subquery()
+    ).exists()
     
     results = db.query(Record, is_locked_subquery.label("is_locked")).all()
     
@@ -97,6 +97,8 @@ def update_record(
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
 
+    raise_if_locked(db, record_id, "records")
+
     if record_in.data is not None:
         is_valid, err_msg = validate_json_data(db, record.schema.content, record_in.data)
         if not is_valid:
@@ -126,6 +128,8 @@ def delete_record(
     record = db.query(Record).filter(Record.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
+
+    raise_if_locked(db, record_id, "records")
 
     db.delete(record)
     db.commit()

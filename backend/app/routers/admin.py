@@ -12,6 +12,7 @@ from ..models.credential import Credential
 from ..models import LockData
 from sqlalchemy import exists, and_
 from sqlalchemy.exc import IntegrityError
+from ..core.locks import raise_if_locked, check_is_locked
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 admin_only = Depends(require_role("admin"))
@@ -36,10 +37,10 @@ class UserOut(UserSummary):
 
 @router.get("/users", response_model=List[UserOut])
 def list_users(db: Session = Depends(get_db), _=admin_only):
-    is_locked_subquery = db.query(exists().where(and_(
+    is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == User.id,
         LockData.entity_type == "users"
-    ))).scalar_subquery()
+    ).exists()
     
     results = db.query(User, is_locked_subquery.label("is_locked")).options(selectinload(User.assigned_managers)).all()
     
@@ -259,6 +260,7 @@ class CredentialOut(BaseModel):
     value: str
     type: str
     description: Optional[str] = None
+    is_locked: bool = False
 
     class Config:
         from_attributes = True
@@ -266,10 +268,10 @@ class CredentialOut(BaseModel):
 
 @router.get("/users", response_model=List[UserOut])
 def list_users(db: Session = Depends(get_db), _=admin_only):
-    is_locked_subquery = db.query(exists().where(and_(
+    is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == User.id,
         LockData.entity_type == "users"
-    ))).scalar_subquery()
+    ).exists()
     
     results = db.query(User, is_locked_subquery.label("is_locked")).options(selectinload(User.assigned_managers)).all()
     
@@ -283,10 +285,10 @@ def list_users(db: Session = Depends(get_db), _=admin_only):
 
 @router.get("/managers", response_model=List[UserOut])
 def list_managers(db: Session = Depends(get_db), _=admin_only):
-    is_locked_subquery = db.query(exists().where(and_(
+    is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == User.id,
         LockData.entity_type == "users"
-    ))).scalar_subquery()
+    ).exists()
     
     results = db.query(User, is_locked_subquery.label("is_locked")).filter(User.role == RoleEnum.manager).all()
     
@@ -335,10 +337,10 @@ def unassign_client(manager_id: uuid.UUID, client_id: uuid.UUID, db: Session = D
 
 @router.get("/node-types", response_model=List[NodeTypeOut])
 def list_node_types(db: Session = Depends(get_db), _=admin_only):
-    is_locked_subquery = db.query(exists().where(and_(
+    is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == NodeType.id,
         LockData.entity_type == "node_types"
-    ))).scalar_subquery()
+    ).exists()
     
     results = db.query(NodeType, is_locked_subquery.label("is_locked")).all()
     
@@ -355,7 +357,11 @@ def get_node_type(node_id: uuid.UUID, db: Session = Depends(get_db), _=admin_onl
     node = db.query(NodeType).filter(NodeType.id == node_id).first()
     if not node:
         raise HTTPException(status_code=404, detail="Node type not found")
-    return node
+    
+    is_locked = check_is_locked(db, node_id, "node_types")
+    node_dict = NodeTypeOut.model_validate(node).model_dump()
+    node_dict["is_locked"] = is_locked
+    return node_dict
 
 
 @router.post("/node-types", response_model=NodeTypeOut)
@@ -374,7 +380,7 @@ def create_node_type(data: NodeTypeCreate, db: Session = Depends(get_db), _=admi
         db.add(node)
         db.commit()
         db.refresh(node)
-        return node
+        return {**NodeTypeOut.model_validate(node).model_dump(), "is_locked": False}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
@@ -385,6 +391,8 @@ def update_node_type(node_id: uuid.UUID, data: NodeTypeCreate, db: Session = Dep
     node = db.query(NodeType).filter(NodeType.id == node_id).first()
     if not node:
         raise HTTPException(status_code=404, detail="Node type not found")
+    
+    raise_if_locked(db, node_id, "node_types")
     
     update_data = data.model_dump()
     update_data["parameters"] = extract_node_parameters(update_data["code"])
@@ -406,7 +414,7 @@ def update_node_type(node_id: uuid.UUID, data: NodeTypeCreate, db: Session = Dep
             
         db.commit()
         db.refresh(node)
-        return node
+        return {**NodeTypeOut.model_validate(node).model_dump(), "is_locked": False}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
@@ -417,6 +425,9 @@ def delete_node_type(node_id: uuid.UUID, db: Session = Depends(get_db), _=admin_
     node = db.query(NodeType).filter(NodeType.id == node_id).first()
     if not node:
         raise HTTPException(status_code=404, detail="Node type not found")
+    
+    raise_if_locked(db, node_id, "node_types")
+    
     db.delete(node)
     db.commit()
     return {"status": "deleted"}
@@ -424,7 +435,19 @@ def delete_node_type(node_id: uuid.UUID, db: Session = Depends(get_db), _=admin_
 
 @router.get("/credentials", response_model=List[CredentialOut])
 def list_credentials(db: Session = Depends(get_db), _=admin_only):
-    return db.query(Credential).all()
+    is_locked_subquery = db.query(LockData.id).filter(
+        LockData.entity_id == Credential.id,
+        LockData.entity_type == "credentials"
+    ).exists()
+    
+    results = db.query(Credential, is_locked_subquery.label("is_locked")).all()
+    
+    response = []
+    for cred, is_locked in results:
+        cred_dict = CredentialOut.model_validate(cred).model_dump()
+        cred_dict["is_locked"] = is_locked
+        response.append(cred_dict)
+    return response
 
 
 @router.post("/credentials", response_model=CredentialOut)
@@ -444,6 +467,8 @@ def update_credential(credential_id: uuid.UUID, data: CredentialCreate, db: Sess
     if not credential:
         raise HTTPException(status_code=404, detail="Credential not found")
     
+    raise_if_locked(db, credential_id, "credentials")
+    
     for k, v in data.model_dump().items():
         setattr(credential, k, v)
     
@@ -457,6 +482,9 @@ def delete_credential(credential_id: uuid.UUID, db: Session = Depends(get_db), _
     credential = db.query(Credential).filter(Credential.id == credential_id).first()
     if not credential:
         raise HTTPException(status_code=404, detail="Credential not found")
+    
+    raise_if_locked(db, credential_id, "credentials")
+    
     db.delete(credential)
     db.commit()
     return {"status": "deleted"}

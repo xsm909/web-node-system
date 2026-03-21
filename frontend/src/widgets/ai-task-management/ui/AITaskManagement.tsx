@@ -2,14 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '../../../shared/ui/icon';
 import { useAuthStore } from '../../../features/auth/store';
-import {
-    useReactTable,
-    getCoreRowModel,
-    createColumnHelper,
-} from '@tanstack/react-table';
+import { createColumnHelper } from '@tanstack/react-table';
 import { apiClient } from '../../../shared/api/client';
 import type { AITask } from '../../../entities/ai-task/model/types';
-import { ManagementTable } from '../../../shared/ui/management-table';
+import { AppHeader } from '../../app-header';
+import { AppTable } from '../../../shared/ui/app-table';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AITaskEditModal } from './AITaskEditModal';
 
@@ -73,16 +70,13 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
         cols.push(
             columnHelper.accessor('data_type_id', {
                 header: 'Category',
-                cell: info => {
+                cell: (info: any) => {
                     const dtId = info.getValue() as number;
                     const dt = dataTypes.find((d: any) => d.id === dtId);
                     const label = dt ? (dt.config?.Caption || dt.config?.caption || dt.type) : dtId;
                     return (
                         <span className="px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-1.5">
                             {label}
-                            {info.row.original.is_locked && (
-                                <Icon name="lock" size={10} className="text-amber-500/60" />
-                            )}
                         </span>
                     );
                 },
@@ -93,7 +87,7 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
             cols.push(
                 columnHelper.accessor('ai_model', {
                     header: 'Model',
-                    cell: info => (
+                    cell: (info: any) => (
                         <span className="px-2 py-0.5 rounded-full bg-brand/10 border border-brand/20 text-[10px] font-bold uppercase tracking-widest text-brand">
                             {info.getValue()}
                         </span>
@@ -106,7 +100,7 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
             cols.push(
                 columnHelper.accessor('description', {
                     header: 'Description',
-                    cell: info => (
+                    cell: (info: any) => (
                         <div className="max-w-[200px] truncate text-sm text-[var(--text-main)]" title={info.getValue() || ''}>
                             {info.getValue() || <span className="text-[var(--text-muted)] italic opacity-40">No description</span>}
                         </div>
@@ -119,7 +113,7 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
             cols.push(
                 columnHelper.accessor('task', {
                     header: 'Task Content',
-                    cell: info => {
+                    cell: (info: any) => {
                         const taskObj = info.getValue() as any;
                         let content = 'No content';
 
@@ -149,7 +143,7 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
             columnHelper.display({
                 id: 'actions',
                 header: '',
-                cell: info => (
+                cell: (info: any) => (
                     <div className="flex justify-end gap-2 pr-4">
                         {!info.row.original.is_locked && (
                             <button
@@ -171,12 +165,6 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
         return cols;
     }, [isAdmin, deleteMutation.isPending, dataTypes]);
 
-    const table = useReactTable({
-        data: tasks,
-        columns,
-        getCoreRowModel: getCoreRowModel(),
-    });
-
     const handleRowClick = (task: AITask) => {
         setSelectedTask(task);
         setIsModalOpen(true);
@@ -184,21 +172,41 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
 
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
-            <ManagementTable
-                title="AI Tasks"
-                description="Manage and edit automated AI routines"
-                addButtonText="Create Task"
-                onAdd={() => {
-                    setSelectedTask(null);
-                    setIsModalOpen(true);
-                }}
-                table={table}
-                isLoading={isLoading || isDataTypesLoading}
-                dataLength={tasks.length}
-                onRowClick={handleRowClick}
-                emptyMessage="No AI Tasks found for this view."
-                onToggleSidebar={onToggleSidebar}
+            <AppHeader
+                onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
+                leftContent={
+                    <div className="flex flex-col">
+                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
+                            AI Tasks
+                        </h1>
+                    </div>
+                }
+                rightContent={
+                    <button
+                        onClick={() => {
+                            setSelectedTask(null);
+                            setIsModalOpen(true);
+                        }}
+                        className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
+                        title="Create Task"
+                    >
+                        <Icon name="add" size={20} />
+                    </button>
+                }
+                searchQuery={""} // Placeholder if we want search later
+                onSearchChange={() => {}}
+                searchPlaceholder="Manage and edit automated AI routines"
+            />
+
+            <AppTable
+                data={tasks}
+                columns={columns}
+                isLoading={isLoading || isDataTypesLoading}
+                onRowClick={handleRowClick}
+                config={{
+                    emptyMessage: 'No AI Tasks found for this view.'
+                }}
             />
 
             <AITaskEditModal

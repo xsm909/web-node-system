@@ -50,9 +50,6 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQ
                         <div className="flex flex-col min-w-0">
                             <div className="flex items-center gap-2">
                                 <span className="text-[var(--text-main)] truncate font-medium group-hover:text-brand transition-colors">{report.name}</span>
-                                {report.is_locked && (
-                                    <Icon name="lock" size={12} className="text-amber-500/60" />
-                                )}
                             </div>
                             <span className="text-[10px] text-[var(--text-muted)] opacity-60 truncate">{report.description || 'No description'}</span>
                         </div>

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { AppHeader } from '../../../widgets/app-header';
 import { ConfirmModal } from '../confirm-modal';
 import { Icon } from '../icon';
+import { AppLockToggle } from '../app-lock-toggle/AppLockToggle';
 import { useRegisterBlocker } from '../../lib/navigation-guard/useNavigationGuard';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 
@@ -34,6 +35,12 @@ export interface AppFormViewProps {
     fullHeight?: boolean;
     noPadding?: boolean;
     allowedShortcuts?: string[];
+    
+    // Lock Support
+    isLocked?: boolean;
+    entityId?: string;
+    entityType?: string;
+    onLockToggle?: (isLocked: boolean) => void;
 }
 
 export const AppFormView: React.FC<AppFormViewProps> = ({
@@ -55,7 +62,11 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     blockerId = 'app-form-view',
     fullHeight = false,
     noPadding = false,
-    allowedShortcuts = []
+    allowedShortcuts = [],
+    isLocked = false,
+    entityId,
+    entityType,
+    onLockToggle
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
 
@@ -120,7 +131,7 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                                 <Icon name={icon} size={18} />
                             </div>
                         )}
-                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
+                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate flex items-center gap-2">
                             {parentTitle ? (
                                 <div className="flex items-center gap-2">
                                     <span className="opacity-50 hover:opacity-100 cursor-pointer transition-opacity text-sm lg:text-base" onClick={handleBack}>{parentTitle}</span>
@@ -130,18 +141,34 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                             ) : (
                                 <span>{title}</span>
                             )}
+                            {isLocked && (
+                                <Icon 
+                                    name="lock" 
+                                    size={16} 
+                                    className="text-amber-500 ml-1" 
+                                />
+                            )}
                         </h1>
                     </div>
                 }
                 rightContent={
                     <div className="flex items-center gap-3">
+                        {entityId && entityType && (
+                            <AppLockToggle 
+                                entityId={entityId}
+                                entityType={entityType}
+                                initialLocked={isLocked}
+                                onToggle={onLockToggle}
+                                className="mr-1"
+                            />
+                        )}
                         {headerRightContent}
                         <button
                             type="button"
                             onClick={onSave}
-                            disabled={isSaving}
-                            className={`flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0 ${isSaving ? 'opacity-70 pointer-events-none' : ''}`}
-                            title={saveLabel}
+                            disabled={isSaving || isLocked}
+                            className={`flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0 ${isSaving || isLocked ? 'opacity-50 pointer-events-none' : ''}`}
+                            title={isLocked ? 'Locked' : saveLabel}
                         >
                             <Icon name={isSaving ? 'sync' : 'save'} size={20} className={isSaving ? 'animate-spin' : ''} />
                         </button>

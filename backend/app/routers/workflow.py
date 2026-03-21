@@ -14,6 +14,7 @@ from ..services.executor import execute_workflow
 from ..models.report import ObjectParameter
 from ..models import LockData
 from sqlalchemy import exists, and_
+from ..core.locks import raise_if_locked, check_is_locked
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 workflow_access = Depends(require_role("manager", "admin", "client"))
@@ -149,10 +150,10 @@ def get_user_workflows(user_id: str, current_user: User = Depends(get_current_us
         if user_id != str(current_user.id):
              raise HTTPException(status_code=403, detail="Access denied")
     
-    is_locked_subquery = db.query(exists().where(and_(
+    is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == Workflow.id,
         LockData.entity_type == "workflows"
-    ))).scalar_subquery()
+    ).exists()
     
     results = db.query(Workflow, is_locked_subquery.label("is_locked")).filter(Workflow.owner_id == user_id).all()
     
@@ -239,6 +240,8 @@ def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: 
     if current_user.role != "admin" and wf.owner_id != str(current_user.id):
         raise HTTPException(status_code=403, detail="Access denied")
     
+    raise_if_locked(db, workflow_id, "workflows")
+    
     if data.graph is not None:
         wf.graph = data.graph
     
@@ -278,6 +281,8 @@ def rename_workflow(workflow_id: uuid.UUID, data: WorkflowRename, current_user: 
         client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
+    
+    raise_if_locked(db, workflow_id, "workflows")
     
     if data.name:
         wf.name = data.name
@@ -350,6 +355,8 @@ def delete_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_cur
         client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
             raise HTTPException(status_code=403, detail="Access denied")
+    
+    raise_if_locked(db, workflow_id, "workflows")
     
     db.delete(wf)
     db.commit()
@@ -497,7 +504,19 @@ def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = No
 
 @router.get("/node-types", response_model=List[NodeTypeOut])
 def list_node_types(db: Session = Depends(get_db), _=workflow_access):
-    return db.query(NodeType).all()
+    is_locked_subquery = db.query(LockData.id).filter(
+        LockData.entity_id == NodeType.id,
+        LockData.entity_type == "node_types"
+    ).exists()
+    
+    results = db.query(NodeType, is_locked_subquery.label("is_locked")).all()
+    
+    response = []
+    for node, is_locked in results:
+        node_dict = NodeTypeOut.model_validate(node).model_dump()
+        node_dict["is_locked"] = is_locked
+        response.append(node_dict)
+    return response
 
 
 @router.get("/workflows/{workflow_id}/executions", response_model=List[ExecutionOut])
@@ -538,10 +557,10 @@ def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(
 
 @router.get("/common", response_model=List[WorkflowOut])
 def list_common_workflows(db: Session = Depends(get_db), _=workflow_access):
-    is_locked_subquery = db.query(exists().where(and_(
+    is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == Workflow.id,
         LockData.entity_type == "workflows"
-    ))).scalar_subquery()
+    ).exists()
     
     results = db.query(Workflow, is_locked_subquery.label("is_locked")).filter(Workflow.owner_id == "common").all()
     

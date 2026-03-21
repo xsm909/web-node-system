@@ -305,16 +305,10 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
         handleNodesChange(nodes);
         setActiveWorkflow((prev: any) => {
             if (!prev) return prev;
-            const mergedNodes = nodes.map((gn: any) => {
-                const existing = prev.graph?.nodes?.find((en: any) => en.id === gn.id);
-                const finalParams = existing?.data?.params || gn.data?.params || {};
-                return { ...gn, data: { ...gn.data, params: finalParams } };
-            });
-            nodesRef.current = mergedNodes; 
-            return { ...prev, graph: { ...prev.graph, nodes: mergedNodes } };
+            return { ...prev, graph: { ...prev.graph, nodes } };
         });
         notifyChange?.();
-    }, [handleNodesChange, setActiveWorkflow, notifyChange, nodesRef]);
+    }, [handleNodesChange, setActiveWorkflow, notifyChange]);
 
     const onEdgesChange = useCallback((edges: Edge[]) => {
         handleEdgesChange(edges);
@@ -322,9 +316,8 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
             if (!prev) return prev;
             return { ...prev, graph: { ...prev.graph, edges } };
         });
-        edgesRef.current = edges;
         notifyChange?.();
-    }, [handleEdgesChange, setActiveWorkflow, notifyChange, edgesRef]);
+    }, [handleEdgesChange, setActiveWorkflow, notifyChange]);
 
     const handleParamsChange = useCallback((nodeId: string, params: any) => {
         const currentNodes = nodesRef.current || [];

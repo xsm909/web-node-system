@@ -12,6 +12,7 @@ from ..models.user import User
 from ..models.report import Report, ReportTypeEnum, ObjectParameter, ReportStyle, ReportRun
 from ..models import LockData
 from sqlalchemy import exists, and_
+from ..core.locks import raise_if_locked, check_is_locked
 from ..services.report_executor import ReportExecutor, generate_json_schema
 from pydantic import BaseModel
 from jinja2 import Environment, meta, Template
@@ -130,10 +131,10 @@ class SourceTestResponse(BaseModel):
 
 @router.get("/styles", response_model=List[ReportStyleOut])
 def list_report_styles(db: Session = Depends(get_db), _=admin_access):
-    is_locked_subquery = db.query(exists().where(and_(
+    is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == ReportStyle.id,
         LockData.entity_type == "report_styles"
-    ))).scalar_subquery()
+    ).exists()
     
     results = db.query(ReportStyle, is_locked_subquery.label("is_locked")).all()
     
@@ -164,6 +165,8 @@ def update_report_style(style_id: uuid.UUID, data: ReportStyleUpdate, db: Sessio
     if not style:
         raise HTTPException(status_code=404, detail="Style not found")
     
+    raise_if_locked(db, style_id, "report_styles")
+    
     update_data = data.model_dump(exclude_unset=True)
     if update_data.get("is_default"):
          db.query(ReportStyle).filter(ReportStyle.id != style_id, ReportStyle.is_default == True).update({"is_default": False})
@@ -181,6 +184,8 @@ def delete_report_style(style_id: uuid.UUID, db: Session = Depends(get_db), _=ad
     if not style:
         raise HTTPException(status_code=404, detail="Style not found")
     
+    raise_if_locked(db, style_id, "report_styles")
+    
     db.delete(style)
     db.commit()
     return {"status": "deleted"}
@@ -189,10 +194,10 @@ def delete_report_style(style_id: uuid.UUID, db: Session = Depends(get_db), _=ad
 
 @router.get("/", response_model=List[ReportOut])
 def list_reports(db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
-    is_locked_subquery = db.query(exists().where(and_(
+    is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == Report.id,
         LockData.entity_type == "reports"
-    ))).scalar_subquery()
+    ).exists()
     
     if current_user.role == "admin":
         results = db.query(Report, is_locked_subquery.label("is_locked")).all()
@@ -246,6 +251,8 @@ def update_report(report_id: uuid.UUID, data: ReportUpdate, db: Session = Depend
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
+    
+    raise_if_locked(db, report_id, "reports")
         
     update_data = data.model_dump(exclude_unset=True, exclude={"parameters"})
     
@@ -281,6 +288,8 @@ def delete_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_a
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
+    
+    raise_if_locked(db, report_id, "reports")
     
     db.delete(report)
     db.commit()

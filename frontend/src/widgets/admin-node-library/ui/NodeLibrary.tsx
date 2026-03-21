@@ -84,9 +84,6 @@ export const AdminNodeLibrary = ({
                                 <span className="text-sm text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
                                     {node.name}
                                 </span>
-                                {node.is_locked && (
-                                    <Icon name="lock" size={12} className="text-amber-500/60" />
-                                )}
                             </div>
                         </div>
                     </div>

@@ -28,9 +28,6 @@ export function StyleList({ styles, isAdmin, onEdit, onDelete, searchQuery }: St
                         <span className="text-[var(--text-main)] font-medium group-hover:text-brand transition-colors">
                             {info.getValue()}
                         </span>
-                        {style.is_locked && (
-                            <Icon name="lock" size={12} className="text-amber-500/60" />
-                        )}
                     </div>
                 );
             },

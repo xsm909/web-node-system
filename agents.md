@@ -426,3 +426,24 @@ The platform supports specialized keyboard shortcuts to streamline development a
 -   **Reactive Properties**: The `useHotkeys` hook dynamically proxies hotkey properties (like `enabled`). Changing the `enabled` state of a hotkey (e.g. based on `activeTab`) automatically synchronizes with `HotkeysContext` without disrupting the stack order.
 -   **Visual Synchronization**: The `HotkeysDebug` overlay inherently respects the `exclusive` boundaries. If an exclusive scope is active, the debugger automatically hides any hotkeys that belong to lower (blocked) scopes, ensuring the visual indicator perfectly matches execution state.
 
+## 15. Data Locking System
+
+The platform implements a global data locking mechanism to prevent accidental deletion or modification of critical business entities.
+
+### 15.1 Backend Implementation
+- **Storage**: A centralized `lock_data` table stores active locks. Each record consists of:
+    - `entity_id` (UUID): The unique identifier of the locked record.
+    - `entity_type` (String): The category of the entity (e.g., `report`, `agent_hints`, `node_type`, `credentials`).
+- **Enforcement**:
+    - **Read Operations**: List and Detail endpoints must correlate with the `lock_data` table to return an `is_locked` boolean flag.
+    - **Write Operations**: All `UPDATE`, `PATCH`, and `DELETE` endpoints must invoke the `raise_if_locked(db, entity_id, entity_type)` utility. If a lock exists, the request must be rejected with a `403 Forbidden` error.
+
+### 15.2 Frontend Representation
+- **List Views**: Locked entities must display a discrete amber lock icon in the primary identification column (Key or Name).
+- **Read-Only Mode**:
+    - When an entity is locked, its edit form must transition to a strict **Read-Only** state.
+    - All input fields, select menus, and code editors must be disabled.
+    - The "Save" and "Delete" buttons must be hidden or disabled.
+- **Lock Management**:
+    - Administrators can toggle the lock status via the `AppLockToggle` component located in the `AppHeader` of the entity's editing view.
+    - The toggle state must be synchronized with the backend in real-time.

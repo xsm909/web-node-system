@@ -24,6 +24,10 @@ export const AppLockToggle: React.FC<AppLockToggleProps> = ({
     const [isLocked, setIsLocked] = useState(initialLocked);
     const [isLoading, setIsLoading] = useState(false);
 
+    React.useEffect(() => {
+        setIsLocked(initialLocked);
+    }, [initialLocked]);
+
     const handleToggle = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (isLoading || disabled) return;

@@ -9,6 +9,7 @@ import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { buildCategoryTree } from '../../../shared/lib/categoryUtils';
 import type { CategoryTreeNode } from '../../../shared/lib/categoryUtils';
 import type { SelectionGroup } from '../../../shared/ui/selection-list';
+import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { SlidePanel } from '../../../shared/ui/slide-panel';
 import { AppHeader } from '../../app-header';
@@ -108,10 +109,9 @@ const SortableRow = ({
                     {depth > 0 && (
                         <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
                     )}
-                    <span className={`px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 ${item.lock ? 'ring-1 ring-red-500/20 text-red-400/80' : ''}`}>
+                    <span className={`px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 ${item.is_locked ? 'ring-1 ring-amber-500/20 text-amber-400/80' : ''}`}>
                         {depth > 0 && <Icon name="arrow_split" size={12} />}
                         {item.schema?.key || 'Unknown'}
-                        {item.lock && <Icon name="lock" size={10} />}
                     </span>
                 </div>
             </td>
@@ -122,12 +122,12 @@ const SortableRow = ({
             </td>
             <td className="px-6 py-4 text-right">
                 <div className="flex justify-end gap-2 items-center">
-                    {item.lock && (
-                        <div className="p-1.5 text-red-500/40" title="Locked">
+                    {item.is_locked && (
+                        <div className="p-1.5 text-amber-500/40" title="Locked">
                             <Icon name="lock" size={14} />
                         </div>
                     )}
-                    {isAdmin && !item.lock && (
+                    {isAdmin && !item.is_locked && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -480,13 +480,30 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 onClose={handleBack}
                 title={selectedAssignment?.schema?.key || 'Metadata'}
                 subtitle="Configure and save detailed metadata for this record."
+                headerRightContent={
+                    selectedAssignment?.id && (
+                        <AppLockToggle 
+                            entityId={selectedAssignment.id}
+                            entityType="records"
+                            initialLocked={!!selectedAssignment.is_locked}
+                            onToggle={(locked) => {
+                                setSelectedAssignment((prev: any) => prev ? { ...prev, is_locked: locked } : prev);
+                                // Also update in the main list
+                                refetch();
+                            }}
+                        />
+                    )
+                }
                 footer={
-                    <div className="flex justify-end">
+                    <div className="flex gap-4 items-center justify-end">
+                        {selectedAssignment?.is_locked && (
+                             <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 opacity-60">Read Only Mode</span>
+                        )}
                         <button
                             onClick={() => editorRef.current?.handleSave()}
-                            disabled={editorRef.current?.isSaving}
-                            className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 shadow-lg shadow-brand/20 active:scale-95 shrink-0 transition-all disabled:opacity-50"
-                            title={editorRef.current?.isSaving ? "Saving..." : "Save Changes"}
+                            disabled={editorRef.current?.isSaving || selectedAssignment?.is_locked}
+                            className={`flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 shadow-lg shadow-brand/20 active:scale-95 shrink-0 transition-all ${editorRef.current?.isSaving || selectedAssignment?.is_locked ? "opacity-50 pointer-events-none" : ""}`}
+                            title={selectedAssignment?.is_locked ? "Locked" : (editorRef.current?.isSaving ? "Saving..." : "Save Changes")}
                         >
                             <Icon name={editorRef.current?.isSaving ? "sync" : "save"} size={20} className={editorRef.current?.isSaving ? "animate-spin" : ""} />
                         </button>

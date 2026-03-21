@@ -175,9 +175,6 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                                 {schema.is_system && (
                                     <span className="text-[9px] text-blue-400 uppercase tracking-tighter opacity-60">System Schema</span>
                                 )}
-                                {schema.is_locked && (
-                                    <Icon name="lock" size={12} className="text-amber-500/60" />
-                                )}
                             </div>
                         </div>
                     </div>
@@ -342,7 +339,8 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                 config={{
                     categoryExtractor: s => s.category,
                     persistCategoryKey: 'schema_expanded_categories',
-                    emptyMessage: 'No schemas matching your criteria.'
+                    emptyMessage: 'No schemas matching your criteria.',
+                    indentColumnId: 'key'
                 }}
             />
 

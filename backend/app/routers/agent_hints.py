@@ -7,6 +7,9 @@ from ..models.agent_hint import AgentHint
 from ..models.user import User
 from ..schemas.agent_hint import AgentHint as AgentHintSchema, AgentHintCreate, AgentHintUpdate
 from ..routers.auth import get_current_user
+from sqlalchemy import exists, and_
+from ..models import LockData
+from ..core.locks import raise_if_locked, check_is_locked
 
 router = APIRouter(prefix="/agent-hints", tags=["Agent Hints"])
 
@@ -16,10 +19,21 @@ def list_agent_hints(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(AgentHint)
+    is_locked_subquery = db.query(LockData.id).filter(
+        LockData.entity_id == AgentHint.id,
+        LockData.entity_type == "agent_hints"
+    ).exists()
+    
+    results = db.query(AgentHint, is_locked_subquery.label("is_locked"))
     if category:
-        query = query.filter(AgentHint.category == category)
-    return query.all()
+        results = results.filter(AgentHint.category == category)
+    
+    response = []
+    for hint, is_locked in results.all():
+        hint_dict = AgentHintSchema.model_validate(hint).model_dump()
+        hint_dict["is_locked"] = is_locked
+        response.append(hint_dict)
+    return response
 
 @router.get("/{hint_id}", response_model=AgentHintSchema)
 def get_agent_hint(
@@ -30,7 +44,11 @@ def get_agent_hint(
     hint = db.query(AgentHint).filter(AgentHint.id == hint_id).first()
     if not hint:
         raise HTTPException(status_code=404, detail="Hint not found")
-    return hint
+    
+    is_locked = check_is_locked(db, hint_id, "agent_hints")
+    hint_dict = AgentHintSchema.model_validate(hint).model_dump()
+    hint_dict["is_locked"] = is_locked
+    return hint_dict
 
 @router.post("/", response_model=AgentHintSchema)
 def create_agent_hint(
@@ -63,6 +81,8 @@ def update_agent_hint(
     if not db_hint:
         raise HTTPException(status_code=404, detail="Hint not found")
     
+    raise_if_locked(db, hint_id, "agent_hints")
+    
     update_data = hint_in.model_dump(exclude_unset=True)
     
     # Ensure key is not updated if it were somehow passed in AgentHintUpdate 
@@ -86,6 +106,8 @@ def delete_agent_hint(
     db_hint = db.query(AgentHint).filter(AgentHint.id == hint_id).first()
     if not db_hint:
         raise HTTPException(status_code=404, detail="Hint not found")
+    
+    raise_if_locked(db, hint_id, "agent_hints")
     
     db.delete(db_hint)
     db.commit()

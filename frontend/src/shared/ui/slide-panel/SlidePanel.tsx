@@ -9,6 +9,7 @@ interface SlidePanelProps {
     children: React.ReactNode;
     footer?: React.ReactNode;
     width?: string;
+    headerRightContent?: React.ReactNode;
 }
 
 export const SlidePanel: React.FC<SlidePanelProps> = ({
@@ -18,7 +19,8 @@ export const SlidePanel: React.FC<SlidePanelProps> = ({
     subtitle,
     children,
     footer,
-    width = 'w-full max-w-2xl'
+    width = 'w-full max-w-2xl',
+    headerRightContent
 }) => {
     // Prevent body scroll when open
     useEffect(() => {
@@ -50,12 +52,15 @@ export const SlidePanel: React.FC<SlidePanelProps> = ({
                         <h2 className="text-xl font-bold text-[var(--text-main)] tracking-tight">{title}</h2>
                         {subtitle && <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60 mt-0.5">{subtitle}</p>}
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 mr-[-8px] rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-all active:scale-95"
-                    >
-                        <Icon name="close" size={24} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {headerRightContent}
+                        <button
+                            onClick={onClose}
+                            className="p-2 mr-[-8px] rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-all active:scale-95"
+                        >
+                            <Icon name="close" size={24} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content */}

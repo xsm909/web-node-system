@@ -62,9 +62,6 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                     <span className="font-semibold text-[var(--text-main)] group-hover:text-brand transition-colors">
                         {info.getValue()}
                     </span>
-                    {info.row.original.is_locked && (
-                        <Icon name="lock" size={12} className="text-amber-500/60" />
-                    )}
                 </div>
             )
         }),

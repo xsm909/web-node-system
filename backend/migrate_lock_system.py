@@ -24,7 +24,9 @@ TABLES_TO_PROTECT = [
     "users",
     "node_types",
     "object_parameters",
-    "report_styles"
+    "report_styles",
+    "agent_hints",
+    "client_metadata"
 ]
 
 def run_migration():

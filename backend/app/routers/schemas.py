@@ -9,6 +9,7 @@ from ..models import User, RoleEnum, LockData, Schema, ExternalSchemaCache
 from ..schemas.schema_registry import SchemaCreate, SchemaUpdate, SchemaResponse, ExternalSchemaCacheResponse
 from sqlalchemy import exists, and_
 from ..services.cache_manager import fetch_and_cache_external_schema
+from ..core.locks import raise_if_locked, check_is_locked
 
 router = APIRouter(prefix="/schemas", tags=["schemas"])
 
@@ -18,10 +19,10 @@ def check_admin(user: User):
 
 @router.get("/", response_model=List[SchemaResponse])
 def get_schemas(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    is_locked_subquery = db.query(exists().where(and_(
+    is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == Schema.id,
         LockData.entity_type == "schemas"
-    ))).scalar_subquery()
+    ).exists()
     
     results = db.query(Schema, is_locked_subquery.label("is_locked")).all()
     
@@ -81,6 +82,8 @@ def update_schema(
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
 
+    raise_if_locked(db, schema_id, "schemas")
+
     update_data = schema_in.model_dump(exclude_unset=True)
 
     if "key" in update_data and update_data["key"] != schema.key:
@@ -127,6 +130,8 @@ def delete_schema(
     schema = db.query(Schema).filter(Schema.id == schema_id).first()
     if not schema:
         raise HTTPException(status_code=404, detail="Schema not found")
+
+    raise_if_locked(db, schema_id, "schemas")
 
     if schema.is_system:
         raise HTTPException(status_code=400, detail="Cannot delete a system schema")
