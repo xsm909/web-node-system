@@ -12,7 +12,7 @@ import type {
 import { getInputProps } from '@rjsf/utils';
 import { Icon } from '../../shared/ui/icon';
 import { ComboBox } from '../../shared/ui/combo-box/ComboBox';
-import { AppFormBox } from '../../shared/ui/app-input/AppFormBox';
+import { AppFormFieldRect } from '../../shared/ui/app-input/AppFormFieldRect';
 import { apiClient } from '../../shared/api/client';
 
 // ─── Interop Handles ───────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ function BaseInputTemplate(props: BaseInputTemplateProps) {
         : (value ?? '');
 
     return (
-        <AppFormBox className={hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}>
+        <AppFormFieldRect className={hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}>
             <input
                 id={id}
                 name={id}
@@ -52,7 +52,7 @@ function BaseInputTemplate(props: BaseInputTemplateProps) {
                 onFocus={(e) => onFocus(id, e.target.value)}
                 className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal"
             />
-        </AppFormBox>
+        </AppFormFieldRect>
     );
 }
 
@@ -67,7 +67,7 @@ function TextareaWidget(props: WidgetProps) {
         : (value ?? '');
 
     return (
-        <AppFormBox className={`h-auto py-2 ${hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}>
+        <AppFormFieldRect className={`h-auto py-2 ${hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}>
             <textarea
                 id={id}
                 name={id}
@@ -81,7 +81,7 @@ function TextareaWidget(props: WidgetProps) {
                 onFocus={(e) => onFocus(id, e.target.value)}
                 className="w-full bg-transparent outline-none text-xs font-normal resize-none disabled:opacity-50"
             />
-        </AppFormBox>
+        </AppFormFieldRect>
     );
 }
 
@@ -177,7 +177,7 @@ function SelectWidget(props: WidgetProps) {
     const hasError = rawErrors && rawErrors.length > 0;
 
     return (
-        <AppFormBox className={hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}>
+        <AppFormFieldRect className={hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}>
             <select
                 id={id}
                 name={id}
@@ -194,7 +194,7 @@ function SelectWidget(props: WidgetProps) {
                     </option>
                 ))}
             </select>
-        </AppFormBox>
+        </AppFormFieldRect>
     );
 }
 

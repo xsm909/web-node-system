@@ -14,7 +14,7 @@ import {
     useDraggable
 } from '@dnd-kit/core';
 import { Icon } from '../../../shared/ui/icon';
-import { AppFormBox } from '../../../shared/ui/app-input';
+import { AppFormFieldRect } from '../../../shared/ui/app-input';
 import { AppTabs } from '../../../shared/ui/app-tabs';
 import { useDatabaseMetadata } from '../lib/useDatabaseMetadata';
 import type { MultiQueryState, QueryState, SelectedField, JoinCondition, WhereCondition } from '../model/types';
@@ -84,7 +84,7 @@ const ColumnSelect: React.FC<ColumnSelectProps> = ({
     }, [tableAlias, getColumns, queryState, state]);
 
     return (
-        <AppFormBox className="!px-2 !py-0 h-8 min-w-[100px]">
+        <AppFormFieldRect className="!px-2 !py-0 h-8 min-w-[100px]">
             <select
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
@@ -95,7 +95,7 @@ const ColumnSelect: React.FC<ColumnSelectProps> = ({
                     <option key={col.name} value={col.name}>{col.name}</option>
                 ))}
             </select>
-        </AppFormBox>
+        </AppFormFieldRect>
     );
 };
 
@@ -253,7 +253,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
             >
                 <div className="space-y-4">
                         <div className="grid grid-cols-[85px_1fr_auto_1.2fr_auto_1fr_auto_1.2fr] gap-1 items-center group">
-                            <AppFormBox className="!px-2 !py-0 h-8">
+                            <AppFormFieldRect className="!px-2 !py-0 h-8">
                                 <select
                                     value={join.type}
                                     onChange={(e) => {
@@ -268,9 +268,9 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                                     <option value="RIGHT JOIN">RIGHT</option>
                                     <option value="FULL JOIN">FULL</option>
                                 </select>
-                            </AppFormBox>
+                            </AppFormFieldRect>
 
-                            <AppFormBox className="!px-2 !py-0 h-8 min-w-0">
+                            <AppFormFieldRect className="!px-2 !py-0 h-8 min-w-0">
                                 <select
                                     value={join.rightTableAlias}
                                     onChange={(e) => {
@@ -282,7 +282,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                                 >
                                     {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
                                 </select>
-                            </AppFormBox>
+                            </AppFormFieldRect>
 
                             <span className="text-[10px] text-[var(--text-muted)] font-normal opacity-40 px-0.5">.</span>
 
@@ -301,7 +301,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
 
                             <span className="text-brand font-normal text-sm px-1 opacity-30">=</span>
 
-                            <AppFormBox className="!px-2 !py-0 h-8 min-w-0">
+                            <AppFormFieldRect className="!px-2 !py-0 h-8 min-w-0">
                                 <select
                                     value={join.leftTableAlias}
                                     onChange={(e) => {
@@ -313,7 +313,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                                 >
                                     {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
                                 </select>
-                            </AppFormBox>
+                            </AppFormFieldRect>
 
                             <span className="text-[10px] text-[var(--text-muted)] font-normal opacity-40 px-0.5">.</span>
 
@@ -369,7 +369,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                     <div key={cond.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] grid grid-cols-[50px_1fr_1.2fr_85px_2fr_auto_auto] gap-2 items-center group">
                         <div className="flex justify-center min-w-0">
                             {index > 0 ? (
-                                <AppFormBox className="!px-1 !py-0 h-8 !bg-brand/10 !border-brand/20 w-full min-w-0 overflow-hidden">
+                                <AppFormFieldRect className="!px-1 !py-0 h-8 !bg-brand/10 !border-brand/20 w-full min-w-0 overflow-hidden">
                                     <select
                                         value={cond.logic}
                                         onChange={(e) => {
@@ -382,13 +382,13 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                                         <option value="AND">AND</option>
                                         <option value="OR">OR</option>
                                     </select>
-                                </AppFormBox>
+                                </AppFormFieldRect>
                             ) : (
                                 <span className="text-[9px] font-normal uppercase text-[var(--text-muted)] opacity-50 select-none">WHERE</span>
                             )}
                         </div>
 
-                        <AppFormBox className="!px-2 !py-0 h-8 min-w-0">
+                        <AppFormFieldRect className="!px-2 !py-0 h-8 min-w-0">
                             <select
                                 value={cond.tableAlias}
                                 onChange={(e) => {
@@ -400,7 +400,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                             >
                                 {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
                             </select>
-                        </AppFormBox>
+                        </AppFormFieldRect>
 
                         <ColumnSelect
                             tableAlias={cond.tableAlias}
@@ -415,7 +415,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                             state={state}
                         />
 
-                        <AppFormBox className="!px-1 !py-0 h-8 min-w-0 overflow-hidden">
+                        <AppFormFieldRect className="!px-1 !py-0 h-8 min-w-0 overflow-hidden">
                             <select
                                 value={cond.operator}
                                 onChange={(e) => {
@@ -436,11 +436,11 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                                 <option value="IS NULL">NULL</option>
                                 <option value="IS NOT NULL">NOT NULL</option>
                             </select>
-                        </AppFormBox>
+                        </AppFormFieldRect>
 
                         <div className="flex items-center gap-2 min-w-0">
                             {cond.valueType === 'parameter' ? (
-                                <AppFormBox className="flex-1 !px-2 !py-0 h-8 !border-brand/30">
+                                <AppFormFieldRect className="flex-1 !px-2 !py-0 h-8 !border-brand/30">
                                     <select
                                         value={cond.value}
                                         onChange={(e) => {
@@ -455,9 +455,9 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                                             <option key={p.parameter_name} value={p.parameter_name}>{p.parameter_name}</option>
                                         ))}
                                     </select>
-                                </AppFormBox>
+                                </AppFormFieldRect>
                             ) : (
-                                <AppFormBox className={`flex-1 !px-2 !py-0 h-8 ${(cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') ? 'opacity-30' : ''}`}>
+                                <AppFormFieldRect className={`flex-1 !px-2 !py-0 h-8 ${(cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') ? 'opacity-30' : ''}`}>
                                     <input
                                         placeholder="value"
                                         value={cond.value}
@@ -469,7 +469,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                                         disabled={cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL'}
                                         className="w-full bg-transparent outline-none h-full text-xs"
                                     />
-                                </AppFormBox>
+                                </AppFormFieldRect>
                             )}
                         </div>
 
@@ -556,7 +556,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(state.groupBy || []).map((group, index) => (
                         <div key={group.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] flex items-center gap-3 group">
-                            <AppFormBox className="!px-2 !py-0 h-8 min-w-[100px]">
+                            <AppFormFieldRect className="!px-2 !py-0 h-8 min-w-[100px]">
                                 <select
                                     value={group.tableAlias}
                                     onChange={(e) => {
@@ -568,7 +568,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                                 >
                                     {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
                                 </select>
-                            </AppFormBox>
+                            </AppFormFieldRect>
                             <ColumnSelect
                                 tableAlias={group.tableAlias}
                                 value={group.columnName}
@@ -622,7 +622,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(state.orderBy || []).map((order, index) => (
                         <div key={order.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] flex items-center gap-3 group">
-                            <AppFormBox className="!px-2 !py-0 h-8 min-w-[100px]">
+                            <AppFormFieldRect className="!px-2 !py-0 h-8 min-w-[100px]">
                                 <select
                                     value={order.tableAlias}
                                     onChange={(e) => {
@@ -634,7 +634,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                                 >
                                     {state.tables.map((t) => <option key={t.alias} value={t.alias}>{t.alias}</option>)}
                                 </select>
-                            </AppFormBox>
+                            </AppFormFieldRect>
                             <ColumnSelect
                                 tableAlias={order.tableAlias}
                                 value={order.columnName}
@@ -648,7 +648,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                                 state={state}
                                 placeholder="Sort column..."
                             />
-                            <AppFormBox className="!px-2 !py-0 h-8 w-20 !bg-brand/5 !border-brand/20">
+                            <AppFormFieldRect className="!px-2 !py-0 h-8 w-20 !bg-brand/5 !border-brand/20">
                                 <select
                                     value={order.direction}
                                     onChange={(e) => {
@@ -661,7 +661,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                                     <option value="ASC">ASC</option>
                                     <option value="DESC">DESC</option>
                                 </select>
-                            </AppFormBox>
+                            </AppFormFieldRect>
                             <button
                                 onClick={() => {
                                     const newOrders = [...state.orderBy];
@@ -708,7 +708,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                     </div>
                     
                     <div className={`flex items-center gap-3 transition-all ${state.useLimit ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-                        <AppFormBox className={`w-32 !px-3 !py-0 h-8 ${!state.useLimit ? 'opacity-40' : ''}`}>
+                        <AppFormFieldRect className={`w-32 !px-3 !py-0 h-8 ${!state.useLimit ? 'opacity-40' : ''}`}>
                             <input
                                 type="number"
                                 value={state.limit || ''}
@@ -720,7 +720,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                                 placeholder="e.g. 100"
                                 disabled={!state.useLimit}
                             />
-                        </AppFormBox>
+                        </AppFormFieldRect>
                     </div>
                     
                     <div className="ml-auto flex items-center gap-2 text-[9px] text-[var(--text-muted)] italic">
@@ -790,18 +790,18 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Block Alias</label>
-                        <AppFormBox>
+                        <AppFormFieldRect>
                             <input
                                 value={alias}
                                 onChange={e => setAlias(e.target.value)}
                                 placeholder="e.g. tree"
                                 className="w-full bg-transparent outline-none h-full text-xs"
                             />
-                        </AppFormBox>
+                        </AppFormFieldRect>
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Base Table</label>
-                        <AppFormBox>
+                        <AppFormFieldRect>
                             <select
                                 value={anchorTable}
                                 onChange={e => setAnchorTable(e.target.value)}
@@ -810,14 +810,14 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
                                 <option value="">Select table...</option>
                                 {tables.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
-                        </AppFormBox>
+                        </AppFormFieldRect>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Primary Key (ID)</label>
-                        <AppFormBox>
+                        <AppFormFieldRect>
                             <select
                                 value={primaryKey}
                                 onChange={e => setPrimaryKey(e.target.value)}
@@ -826,11 +826,11 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
                                 <option value="">Select PK...</option>
                                 {availableColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                             </select>
-                        </AppFormBox>
+                        </AppFormFieldRect>
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Parent Reference</label>
-                        <AppFormBox>
+                        <AppFormFieldRect>
                             <select
                                 value={parentKey}
                                 onChange={e => setParentKey(e.target.value)}
@@ -839,20 +839,20 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
                                 <option value="">Select Parent Key...</option>
                                 {availableColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                             </select>
-                        </AppFormBox>
+                        </AppFormFieldRect>
                     </div>
                 </div>
 
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Depth Column (Optional)</label>
-                    <AppFormBox>
+                    <AppFormFieldRect>
                         <input
                             value={depthColumn}
                             onChange={e => setDepthColumn(e.target.value)}
                             placeholder="e.g. level (leave empty to skip)"
                             className="w-full bg-transparent outline-none h-full text-xs"
                         />
-                    </AppFormBox>
+                    </AppFormFieldRect>
                 </div>
 
                 <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl">

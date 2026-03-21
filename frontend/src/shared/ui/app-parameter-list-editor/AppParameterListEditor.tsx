@@ -2,7 +2,7 @@ import React from 'react';
 import { Icon } from '../icon';
 import type { ObjectParameter } from '../../../entities/report/model/types';
 import { AppParameterSelectByTamplate } from '../app-parameter-select-by-tamplate';
-import { AppFormBox } from '../app-input';
+import { AppFormFieldRect } from '../app-input';
 
 interface AppParameterListEditorProps {
     parameters: ObjectParameter[];
@@ -66,7 +66,7 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5 flex flex-col">
                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Parameter Name</label>
-                                <AppFormBox>
+                                <AppFormFieldRect>
                                     <input
                                         type="text"
                                         value={param.parameter_name}
@@ -74,11 +74,11 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                                         className="w-full bg-transparent outline-none h-full text-xs font-normal"
                                         placeholder="e.g. user_id"
                                     />
-                                </AppFormBox>
+                                </AppFormFieldRect>
                             </div>
                             <div className="space-y-1.5 flex flex-col">
                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Type</label>
-                                <AppFormBox>
+                                <AppFormFieldRect>
                                     <select
                                         value={param.parameter_type}
                                         onChange={(e) => updateParam(index, { parameter_type: e.target.value as any })}
@@ -90,7 +90,7 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                                         <option value="date_range">Date Range</option>
                                         <option value="select">Select (Dropdown)</option>
                                     </select>
-                                </AppFormBox>
+                                </AppFormFieldRect>
                             </div>
                         </div>
 
@@ -98,7 +98,7 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Source (@table or SQL)</label>
-                                    <AppFormBox>
+                                    <AppFormFieldRect>
                                         <input
                                             type="text"
                                             value={param.source}
@@ -106,11 +106,11 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                                             className="w-full bg-transparent outline-none h-full text-xs font-normal"
                                             placeholder="@users->id,name"
                                         />
-                                    </AppFormBox>
+                                    </AppFormFieldRect>
                                 </div>
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Value Field</label>
-                                    <AppFormBox>
+                                    <AppFormFieldRect>
                                         <input
                                             type="text"
                                             value={param.value_field}
@@ -118,11 +118,11 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                                             className="w-full bg-transparent outline-none h-full text-xs font-normal"
                                             placeholder="id"
                                         />
-                                    </AppFormBox>
+                                    </AppFormFieldRect>
                                 </div>
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Label Field</label>
-                                    <AppFormBox>
+                                    <AppFormFieldRect>
                                         <input
                                             type="text"
                                             value={param.label_field}
@@ -130,7 +130,7 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                                             className="w-full bg-transparent outline-none h-full text-xs font-normal"
                                             placeholder="name"
                                         />
-                                    </AppFormBox>
+                                    </AppFormFieldRect>
                                 </div>
                             </div>
                         )}

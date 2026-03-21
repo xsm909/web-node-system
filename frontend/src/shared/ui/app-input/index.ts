@@ -1,2 +1,2 @@
 export * from './AppInput';
-export * from './AppFormBox';
+export * from './AppFormFieldRect';

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Icon } from '../icon';
-import { AppFormBox } from './AppFormBox';
+import { AppFormFieldRect } from './AppFormFieldRect';
 
 export interface AppInputProps {
     label?: string;
@@ -68,7 +68,7 @@ export const AppInput: React.FC<AppInputProps> = ({
                 </label>
             )}
             
-            <AppFormBox 
+            <AppFormFieldRect 
                 isFocused={isFocused} 
                 hasError={!!error} 
                 disabled={disabled}
@@ -118,7 +118,7 @@ export const AppInput: React.FC<AppInputProps> = ({
                         )}
                     </div>
                 )}
-            </AppFormBox>
+            </AppFormFieldRect>
 
             {description && !error && (
                 <p className="text-xs text-[var(--text-muted)] opacity-60 ml-0.5">

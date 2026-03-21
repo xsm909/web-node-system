@@ -11,7 +11,7 @@ import { EditorState } from "@codemirror/state";
 import { useThemeStore } from "../../../shared/lib/theme/store";
 import { autocompletion, snippetCompletion } from "@codemirror/autocomplete";
 import { getPythonHints, type PythonHint } from "../../../shared/api/python-hints";
-import { AppInput, AppFormBox } from "../../../shared/ui/app-input";
+import { AppInput, AppFormFieldRect } from "../../../shared/ui/app-input";
 import { AppCategoryInput } from "../../../shared/ui/app-category-input/AppCategoryInput";
 import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
 import { AppConsole, AppConsoleLogLine } from "../../../shared/ui/app-console";
@@ -482,7 +482,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                     
                     <div className="space-y-1.5">
                         <label className="text-sm font-normal text-[var(--text-main)]">Report Type</label>
-                        <AppFormBox disabled={isLocked}>
+                        <AppFormFieldRect disabled={isLocked}>
                             <select
                                 value={type}
                                 onChange={(e) => setType(e.target.value as ReportType)}
@@ -492,7 +492,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                 <option value="global">Global</option>
                                 <option value="client">Client-Specific</option>
                             </select>
-                        </AppFormBox>
+                        </AppFormFieldRect>
                     </div>
 
 
@@ -541,7 +541,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Parameter Name</label>
-                                            <AppFormBox disabled={isLocked} className="px-3">
+                                            <AppFormFieldRect disabled={isLocked} className="px-3">
                                                 <input
                                                     type="text"
                                                     value={param.parameter_name}
@@ -554,11 +554,11 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                                     placeholder="e.g. user_id"
                                                     disabled={isLocked}
                                                 />
-                                            </AppFormBox>
+                                            </AppFormFieldRect>
                                         </div>
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Type</label>
-                                            <AppFormBox disabled={isLocked} className="px-3">
+                                            <AppFormFieldRect disabled={isLocked} className="px-3">
                                                 <select
                                                     value={param.parameter_type}
                                                     onChange={(e) => {
@@ -575,7 +575,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                                     <option value="date_range">Date Range</option>
                                                     <option value="select">Select (Dropdown)</option>
                                                 </select>
-                                            </AppFormBox>
+                                            </AppFormFieldRect>
                                         </div>
                                     </div>
 
@@ -583,7 +583,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                         <div className="grid grid-cols-3 gap-4">
                                             <div className="space-y-1.5">
                                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Source (@table or SQL)</label>
-                                                <AppFormBox disabled={isLocked} className="px-3">
+                                                <AppFormFieldRect disabled={isLocked} className="px-3">
                                                     <input
                                                         type="text"
                                                         value={param.source}
@@ -596,11 +596,11 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                                         placeholder="@users->id,name"
                                                         disabled={isLocked}
                                                     />
-                                                </AppFormBox>
+                                                </AppFormFieldRect>
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Value Field</label>
-                                                <AppFormBox disabled={isLocked} className="px-3">
+                                                <AppFormFieldRect disabled={isLocked} className="px-3">
                                                     <input
                                                         type="text"
                                                         value={param.value_field}
@@ -613,11 +613,11 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                                         placeholder="id"
                                                         disabled={isLocked}
                                                     />
-                                                </AppFormBox>
+                                                </AppFormFieldRect>
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Label Field</label>
-                                                <AppFormBox disabled={isLocked} className="px-3">
+                                                <AppFormFieldRect disabled={isLocked} className="px-3">
                                                     <input
                                                         type="text"
                                                         value={param.label_field}
@@ -630,7 +630,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                                         placeholder="name"
                                                         disabled={isLocked}
                                                     />
-                                                </AppFormBox>
+                                                </AppFormFieldRect>
                                             </div>
                                         </div>
                                     )}
@@ -748,7 +748,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                     <div className="flex justify-between items-center px-1">
                         <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Jinja2 HTML Template</h3>
                         <div className="w-64">
-                            <AppFormBox>
+                            <AppFormFieldRect>
                                 <select
                                     value={styleId}
                                     onChange={(e) => setStyleId(e.target.value)}
@@ -759,7 +759,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                         <option key={s.id} value={s.id}>{s.name} {s.is_default ? '(Default)' : ''}</option>
                                     ))}
                                 </select>
-                            </AppFormBox>
+                            </AppFormFieldRect>
                         </div>
                     </div>
                     <div className="flex-1 min-h-0 rounded-xl border border-[var(--border-base)] overflow-hidden shadow-sm focus-within:border-brand transition-all">

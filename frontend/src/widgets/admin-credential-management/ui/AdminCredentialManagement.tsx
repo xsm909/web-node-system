@@ -7,7 +7,7 @@ import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
-import { AppInput, AppFormBox } from '../../../shared/ui/app-input';
+import { AppInput, AppFormFieldRect } from '../../../shared/ui/app-input';
 import { createColumnHelper } from '@tanstack/react-table';
 import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 
@@ -238,7 +238,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-1.5">
                                 <label className="text-sm font-bold text-[var(--text-main)]">Type</label>
-                                <AppFormBox disabled={!!formData.is_locked}>
+                                <AppFormFieldRect disabled={!!formData.is_locked}>
                                     <select
                                         value={formData.type}
                                         onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -250,7 +250,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                                         <option value="telegram">Telegram Bot</option>
                                         <option value="api">Generic API Endpoint</option>
                                     </select>
-                                </AppFormBox>
+                                </AppFormFieldRect>
                             </div>
                             <AppInput
                                 label="Description"

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Icon } from '../icon';
 import { SelectionList, type SelectionGroup, type SelectionItem, type SelectionAction, type SelectionListConfig } from '../selection-list';
-import { AppFormBox } from '../app-input/AppFormBox';
+import { AppFormFieldRect } from '../app-input/AppFormFieldRect';
 
 interface ComboBoxProps {
     value?: string;
@@ -80,7 +80,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
 
     return (
         <div className={`relative ${isSidebar ? 'w-full' : ''} ${className}`}>
-            <AppFormBox
+            <AppFormFieldRect
                 as="button"
                 type="button"
                 ref={triggerRef}
@@ -129,7 +129,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
                         className={`transition-transform duration-200 ml-auto ${isOpen ? 'rotate-180' : 'opacity-30 group-hover:opacity-60'}`}
                     />
                 )}
-            </AppFormBox>
+            </AppFormFieldRect>
 
             {isOpen && (
                 <SelectionList

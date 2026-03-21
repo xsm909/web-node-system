@@ -1,6 +1,6 @@
 import React from 'react';
 import { ComboBox } from '../combo-box/ComboBox';
-import { AppFormBox } from "../app-input";
+import { AppFormFieldRect } from "../app-input";
 import { Icon } from '../icon';
 import type { ObjectParameter as ReportParameter } from '../../../entities/report/model/types';
 
@@ -38,10 +38,10 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
         const errorOption = options.find(o => String(o.value) === 'error');
         if (errorOption) {
             return (
-                <AppFormBox hasError={true} className={`!bg-red-50 !border-red-200 !text-red-600 ${className}`}>
+                <AppFormFieldRect hasError={true} className={`!bg-red-50 !border-red-200 !text-red-600 ${className}`}>
                     <Icon name="error" className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate">{errorOption.label || 'Error source'}</span>
-                </AppFormBox>
+                </AppFormFieldRect>
             );
         }
 
@@ -83,7 +83,7 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
 
         return (
             <div className={`grid grid-cols-2 gap-2 ${className}`}>
-                <AppFormBox className="cursor-pointer">
+                <AppFormFieldRect className="cursor-pointer">
                     <input
                         type="date"
                         value={sValue}
@@ -91,8 +91,8 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
                         className="w-full bg-transparent outline-none h-full text-xs font-normal"
                         disabled={disabled}
                     />
-                </AppFormBox>
-                <AppFormBox className="cursor-pointer">
+                </AppFormFieldRect>
+                <AppFormFieldRect className="cursor-pointer">
                     <input
                         type="date"
                         value={eValue}
@@ -100,13 +100,13 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
                         className="w-full bg-transparent outline-none h-full text-xs font-normal"
                         disabled={disabled}
                     />
-                </AppFormBox>
+                </AppFormFieldRect>
             </div>
         );
     }
 
     return (
-        <AppFormBox className={className} disabled={disabled}>
+        <AppFormFieldRect className={className} disabled={disabled}>
             <input
                 type={parameter.parameter_type === 'number' ? 'number' : parameter.parameter_type === 'date' ? 'date' : 'text'}
                 value={value || ''}
@@ -115,6 +115,6 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
                 placeholder={placeholder || `Enter ${parameter.parameter_name}...`}
                 disabled={disabled}
             />
-        </AppFormBox>
+        </AppFormFieldRect>
     );
 };

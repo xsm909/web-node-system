@@ -1,6 +1,6 @@
 import React from 'react';
 
-export interface AppFormBoxProps {
+export interface AppFormFieldRectProps {
     children: React.ReactNode;
     className?: string;
     isFocused?: boolean;
@@ -14,7 +14,7 @@ export interface AppFormBoxProps {
  * A shared container for form elements (inputs, selects, etc.)
  * that provides standardized border, rounding, padding, and background.
  */
-export const AppFormBox: React.FC<AppFormBoxProps> = ({
+export const AppFormFieldRect = React.forwardRef<any, AppFormFieldRectProps>(({
     children,
     className = '',
     isFocused = false,
@@ -22,7 +22,7 @@ export const AppFormBox: React.FC<AppFormBoxProps> = ({
     hasError = false,
     as: Component = 'div',
     ...props
-}) => {
+}, ref) => {
     const baseClasses = `
         w-full flex items-center gap-2 min-w-0
         px-3 py-1
@@ -42,6 +42,7 @@ export const AppFormBox: React.FC<AppFormBoxProps> = ({
 
     return (
         <Component
+            ref={ref}
             className={`${baseClasses} ${className}`}
             disabled={disabled}
             {...props}
@@ -49,4 +50,6 @@ export const AppFormBox: React.FC<AppFormBoxProps> = ({
             {children}
         </Component>
     );
-};
+});
+
+AppFormFieldRect.displayName = 'AppFormFieldRect';

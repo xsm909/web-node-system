@@ -6,7 +6,7 @@ import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import type { SelectionGroup } from '../../../shared/ui/selection-list';
 import { ClientMetadataManagement } from '../../client-metadata-management/ui/ClientMetadataManagement';
 import { PromptViewer } from '../../prompt-viewer/ui/PromptViewer';
-import { AppInput, AppFormBox } from "../../../shared/ui/app-input";
+import { AppInput, AppFormFieldRect } from "../../../shared/ui/app-input";
 import { FormField } from '../../../shared/ui/form-field';
 
 
@@ -118,7 +118,7 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                             />
                             <div className="space-y-1.5">
                                 <label className="text-sm font-normal text-[var(--text-main)]">Role</label>
-                                <AppFormBox disabled={true}>
+                                <AppFormFieldRect disabled={true}>
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-normal uppercase tracking-widest ring-1 ring-inset ${user.role === 'admin'
                                         ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-indigo-500/20'
                                         : user.role === 'manager'
@@ -127,7 +127,7 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                                         }`}>
                                         {user.role}
                                     </span>
-                                </AppFormBox>
+                                </AppFormFieldRect>
                             </div>
                         </div>
 
