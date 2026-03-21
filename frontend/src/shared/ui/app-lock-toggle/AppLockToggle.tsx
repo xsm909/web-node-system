@@ -50,7 +50,8 @@ export const AppLockToggle: React.FC<AppLockToggleProps> = ({
                 'records': 'records',
                 'node_types': 'node-types',
                 'reports': 'reports',
-                'credentials': 'credentials'
+                'credentials': 'credentials',
+                'workflows': 'workflows'
             };
 
             const mappedKey = queryKeyMap[entityType];

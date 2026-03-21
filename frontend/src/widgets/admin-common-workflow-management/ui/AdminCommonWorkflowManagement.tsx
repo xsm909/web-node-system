@@ -10,9 +10,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { apiClient } from '../../../shared/api/client';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { WorkflowGraph } from '../../workflow-graph';
-import { WorkflowHeader } from '../../workflow-header';
 import { NodeEditorView } from '../../node-editor-view';
-import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { useClientStore } from '../../../features/workflow-management/model/clientStore';
 import { useAuthStore } from '../../../features/auth/store';
@@ -83,12 +81,13 @@ export const useWorkflowEditor = () => {
     return ctx;
 };
 
-export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, refreshTrigger, onToggleSidebar, isSidebarOpen }: any) => {
+export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, refreshTrigger, onToggleSidebar: onToggleSidebarProp, isSidebarOpen: isSidebarOpenProp }: any) => {
     const { activeClientId } = useClientStore();
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [isParametersModalOpen, setIsParametersModalOpen] = useState(false);
     const [renameInputValue, setRenameInputValue] = useState('');
     const [renameCategoryValue, setRenameCategoryValue] = useState<string>('personal');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(isSidebarOpenProp || false);
 
     const nodesRef = useRef<Node[]>([]);
     const edgesRef = useRef<Edge[]>([]);
@@ -143,6 +142,11 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
     const handleEdgesChange = useCallback((edges: Edge[]) => {
         edgesRef.current = edges;
     }, []);
+
+    const onToggleSidebar = useCallback(() => {
+        setIsSidebarOpen((prev: boolean) => !prev);
+        if (onToggleSidebarProp) onToggleSidebarProp();
+    }, [onToggleSidebarProp]);
 
     const handleEditNodeContext = useCallback(async (event: React.MouseEvent | KeyboardEvent | any, node: Node) => {
         if (!onEditNodeProp) return;
@@ -234,6 +238,9 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
 let globalIsParamsExpanded = false;
 
 const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
+    const { user: currentUser } = useAuthStore();
+    const isAdmin = currentUser?.role === 'admin';
+
     const {
         activeWorkflow,
         nodeTypes,
@@ -248,8 +255,6 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
         setIsParametersModalOpen,
         isConsoleVisible,
         setIsConsoleVisible,
-        onToggleSidebar,
-        isSidebarOpen,
         executionLogs,
         liveRuntimeData,
         handleNodesChange,
@@ -260,8 +265,6 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
         notifyChange,
         isDirty
     } = useWorkflowEditor();
-    const { user: currentUser } = useAuthStore();
-    const isAdmin = currentUser?.role === 'admin';
 
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [isParamsExpanded, setIsParamsExpanded] = useState(globalIsParamsExpanded);
@@ -389,26 +392,45 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
             allowedShortcuts={['cmd+c', 'ctrl+c', 'cmd+v', 'ctrl+v', 'f5', 'f2']}
             fullHeight
             noPadding
+            // Use built-in lock support only for admins
+            entityId={isAdmin ? activeWorkflow?.id : undefined}
+            entityType={isAdmin ? "workflows" : undefined}
+            isLocked={activeWorkflow?.is_locked}
+            onLockToggle={(locked) => {
+                setActiveWorkflow({ ...activeWorkflow, is_locked: locked });
+            }}
             headerRightContent={
-                <div className="flex items-center gap-3">
-                    {isAdmin && activeWorkflow && (
-                        <AppLockToggle 
-                            entityId={activeWorkflow.id} 
-                            entityType="workflows" 
-                            initialLocked={activeWorkflow.is_locked}
-                            onToggle={(locked) => {
-                                setActiveWorkflow({ ...activeWorkflow, is_locked: locked });
-                            }}
-                        />
-                    )}
-                    <WorkflowHeader
-                    isRunning={isRunning}
-                    isSidebarOpen={isSidebarOpen}
-                    onRun={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
-                    onToggleSidebar={onToggleSidebar}
-                    canAction={!isSaving}
-                    onOpenParameters={onOpenParameters}
-                />
+                <div className="flex items-center gap-2">
+                    <button
+                        className="h-10 px-4 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-alt)] transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed group"
+                        onClick={onOpenParameters}
+                        disabled={isSaving}
+                        title="Workflow Parameters"
+                    >
+                        <Icon name="tune" size={18} className="group-active:scale-95 transition-transform" />
+                    </button>
+
+                    <button
+                        className={`h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
+                            ${isRunning
+                                ? 'bg-brand/10 text-brand ring-1 ring-inset ring-brand/30 cursor-default'
+                                : 'bg-brand hover:brightness-110 text-white shadow-lg shadow-brand/20'
+                            }`}
+                        onClick={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
+                        disabled={isSaving || isRunning}
+                    >
+                        {isRunning ? (
+                            <>
+                                <Icon name="bolt" size={14} className="animate-pulse" />
+                                <span>Running...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Icon name="play" size={12} />
+                                <span>Run</span>
+                            </>
+                        )}
+                    </button>
                 </div>
             }
         >
@@ -469,7 +491,7 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
                                                     notifyChange();
                                                 }}
                                                 options={paramOptions[param.parameter_name] || []}
-                                                disabled={activeWorkflow.is_locked}
+                                                // Removed disabled={activeWorkflow.is_locked} to allow editing workflow parameters when workflow is locked
                                             />
                                         </div>
                                     ))}

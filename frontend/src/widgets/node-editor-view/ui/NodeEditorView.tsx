@@ -200,7 +200,8 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
 
     const nodeTypeData = nodeTypes.find(t => t.name === node?.data.label);
     const allParameters = nodeTypeData?.parameters || [];
-    const effectiveReadOnly = isReadOnly || isLocked;
+    // Relaxed locking: isLocked (workflow lock) no longer prevents parameter editing, only structural changes
+    const effectiveReadOnly = isReadOnly;
 
     // Technical param logic 
     const isTechnicalParam = (p: any) => /^[A-Z0-9_]+$/.test(p.name) && !p.options_source;

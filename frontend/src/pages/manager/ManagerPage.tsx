@@ -236,7 +236,7 @@ const WorkflowEditorView = ({
                             <WorkflowGraph
                                 workflow={activeWorkflow}
                                 nodeTypes={nodeTypes}
-                                isReadOnly={false}
+                                isReadOnly={activeWorkflow?.is_locked || false}
                                 onNodesChangeCallback={(nodes) => {
                                     handleNodesChange(nodes);
                                     

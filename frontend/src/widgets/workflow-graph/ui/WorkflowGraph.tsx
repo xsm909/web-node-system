@@ -413,7 +413,7 @@ export function WorkflowGraph({
             });
         }
 
-        const isProvider = !!type.isRightInputProvider;
+        const isProvider = !!(type as any).isRightInputProvider;
         const nodeWidth = isProvider ? 70 : 250;
         const newNodeId = `node_${Date.now()}`;
 
@@ -652,7 +652,10 @@ export function WorkflowGraph({
                         size={1.5}
                         className="text-[var(--text-muted)] opacity-20 dark:opacity-30"
                     />
-                    <Controls className="!bg-surface-800 !border-[var(--border-base)] !rounded-2xl !shadow-2xl !overflow-hidden [&_button]:!border-[var(--border-base)] [&_button]:!bg-transparent [&_button:hover]:!bg-brand/10 [&_svg]:!fill-[var(--text-main)] [&_svg]:!opacity-60" />
+                    <Controls 
+                        showInteractive={false}
+                        className="!bg-surface-800 !border-[var(--border-base)] !rounded-2xl !shadow-2xl !overflow-hidden [&_button]:!border-[var(--border-base)] [&_button]:!bg-transparent [&_button:hover]:!bg-brand/10 [&_svg]:!fill-[var(--text-main)] [&_svg]:!opacity-60" 
+                    />
                 </ReactFlow>
 
                 {isLoading && (

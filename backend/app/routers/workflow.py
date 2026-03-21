@@ -213,8 +213,14 @@ def get_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_curren
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
     
-    if current_user.role == "admin":
-        return wf
+    is_locked = db.query(exists().where(and_(
+        LockData.entity_id == workflow_id,
+        LockData.entity_type == "workflows"
+    ))).scalar()
+    
+    wf_dict = WorkflowDetail.model_validate(wf).model_dump()
+    wf_dict["is_locked"] = is_locked
+    return wf_dict
 
     # Enforce strict ownership: only creator or admin
     if current_user.role != "admin" and wf.owner_id != str(current_user.id):
@@ -268,7 +274,12 @@ def update_workflow(workflow_id: uuid.UUID, data: WorkflowUpdate, current_user: 
 
     db.commit()
     db.refresh(wf)
-    return wf
+    is_locked = check_is_locked(db, workflow_id, "workflows")
+    
+    wf_dict = WorkflowDetail.model_validate(wf).model_dump()
+    wf_dict["is_locked"] = is_locked
+    return wf_dict
+
 
 
 @router.patch("/workflows/{workflow_id}/rename", response_model=WorkflowDetail)
@@ -291,7 +302,12 @@ def rename_workflow(workflow_id: uuid.UUID, data: WorkflowRename, current_user: 
 
     db.commit()
     db.refresh(wf)
-    return wf
+    is_locked = check_is_locked(db, workflow_id, "workflows")
+    
+    wf_dict = WorkflowDetail.model_validate(wf).model_dump()
+    wf_dict["is_locked"] = is_locked
+    return wf_dict
+
 
 
 @router.post("/workflows/{workflow_id}/duplicate", response_model=WorkflowOut)
