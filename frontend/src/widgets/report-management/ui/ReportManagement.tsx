@@ -14,6 +14,7 @@ import { ReportEditor, type ReportEditorRef } from './ReportEditor';
 import { ReportViewer, type ReportViewerRef } from './ReportViewer';
 import { StyleList } from './StyleList';
 import { StyleEditor, type StyleEditorRef } from './StyleEditor';
+import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 
 interface ReportManagementProps {
     onToggleSidebar?: () => void;
@@ -68,45 +69,34 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         }
     };
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (view === 'list') return;
+    // View shortcuts
+    useHotkeys([
+        { key: 'Escape', description: 'Go Back', handler: () => handleBack() }
+    ], { 
+        scopeName: 'Report Viewer', 
+        enabled: view === 'view' 
+    });
 
-            // Intercept global application shortcuts
-            const isGlobalShortcut = 
-                (e.key === 'Escape') || 
-                /^F\d+$/.test(e.key) || 
-                (e.key >= 'F1' && e.key <= 'F12') || 
-                ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
-
-            if (isGlobalShortcut) {
-                // If an actual modal is open (like QueryBuilder), ignore parent shortcuts.
-                // We check for our specific modal classes on FIXED elements to avoid accidental blockage 
-                // by internal editor dialogs or other components.
-                const activeModal = document.querySelector('.fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[3000\\]');
-                if (activeModal) return;
-
-                if (e.key === 'Escape' && view === 'view') {
-                    e.preventDefault();
-                    handleBack();
-                } else if (view === 'edit') {
-                    if (e.key === 'F4') {
-                        e.preventDefault();
-                        setActiveTab('code');
-                    } else if (e.key === 'F5') {
-                        e.preventDefault();
-                        handleHeaderCompile();
-                    } else if (e.key === 'F9') {
-                        e.preventDefault();
-                        handleHeaderGenerate();
-                    }
-                }
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown, true);
-        return () => window.removeEventListener('keydown', handleKeyDown, true);
-    }, [view, activeTab, isCompiling, isGenerating]);
+    // Editor shortcuts
+    useHotkeys([
+        { key: 'F4', description: 'Python Code', handler: () => setActiveTab('code') },
+        { 
+            key: 'F1', 
+            description: 'SQL Query Builder', 
+            enabled: activeTab === 'code',
+            handler: () => reportEditorRef.current?.handleOpenQueryBuilder()
+        },
+        { 
+            key: 'F5', 
+            description: 'Compile', 
+            enabled: activeTab === 'code',
+            handler: () => handleHeaderCompile() 
+        },
+        { key: 'F9', description: 'Generate', handler: () => handleHeaderGenerate() }
+    ], { 
+        scopeName: 'Report Editor', 
+        enabled: view === 'edit' && isAdmin && topTab === 'reports' 
+    });
 
     useEffect(() => {
         const fetchReports = async () => {
@@ -323,6 +313,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 activeTab={activeTab}
                 onTabChange={(id) => setActiveTab(id as any)}
                 saveLabel="Save Report"
+                allowedShortcuts={['f1', 'f4', 'f5', 'f9']}
                 headerRightContent={
                     <div className="flex gap-2">
                         {activeTab === 'code' && (

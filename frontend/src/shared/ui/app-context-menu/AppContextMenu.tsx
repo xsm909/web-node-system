@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 
 interface AppContextMenuProps {
     isOpen: boolean;
@@ -55,6 +56,14 @@ export const AppContextMenu: React.FC<AppContextMenuProps> = ({
         }
     }, [isOpen, anchorRect]);
 
+    useHotkeys([
+        { key: 'Escape', description: 'Close Menu', handler: () => onClose() }
+    ], { 
+        scopeName: 'Context Menu',
+        enabled: isOpen,
+        exclusive: true 
+    });
+
     useEffect(() => {
         if (!isOpen) return;
 
@@ -64,20 +73,13 @@ export const AppContextMenu: React.FC<AppContextMenuProps> = ({
             }
         };
 
-        const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onClose();
-        };
-
         const timer = setTimeout(() => {
             document.addEventListener('mousedown', handleClickOutside);
         }, 10);
         
-        document.addEventListener('keydown', handleEscape);
-        
         return () => {
             clearTimeout(timer);
             document.removeEventListener('mousedown', handleClickOutside);
-            document.removeEventListener('keydown', handleEscape);
         };
     }, [isOpen, onClose]);
 

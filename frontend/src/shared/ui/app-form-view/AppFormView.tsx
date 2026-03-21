@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { AppHeader } from '../../../widgets/app-header';
 import { ConfirmModal } from '../confirm-modal';
 import { Icon } from '../icon';
 import { useRegisterBlocker } from '../../lib/navigation-guard/useNavigationGuard';
+import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 
 import { AppTabs, type AppTab } from '../app-tabs';
 
@@ -32,6 +33,7 @@ export interface AppFormViewProps {
     blockerId?: string;
     fullHeight?: boolean;
     noPadding?: boolean;
+    allowedShortcuts?: string[];
 }
 
 export const AppFormView: React.FC<AppFormViewProps> = ({
@@ -52,7 +54,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     saveLabel = 'Save Changes',
     blockerId = 'app-form-view',
     fullHeight = false,
-    noPadding = false
+    noPadding = false,
+    allowedShortcuts = []
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
 
@@ -72,34 +75,27 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
         }
     }, [isDirty, onCancel]);
 
-    // Keyboard shortcut handler
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            // Intercept global application shortcuts
-            const isGlobalShortcut = 
-                e.key === 'Escape' ||
-                /^F\d+$/.test(e.key) || 
-                (e.key >= 'F1' && e.key <= 'F12') || 
-                ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
-
-            if (isGlobalShortcut) {
-                // If a modal is open, ignore parent shortcuts
-                const activeModal = document.querySelector('.fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[3000\\]');
-                if (activeModal) return;
-                
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    handleBack();
-                } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
-                    e.preventDefault();
-                    onSave();
-                }
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown, true);
-        return () => window.removeEventListener('keydown', handleKeyDown, true);
-    }, [handleBack, onSave]);
+    useHotkeys([
+        {
+            key: 'Escape',
+            description: 'Back',
+            handler: handleBack,
+        },
+        {
+            key: 'cmd+s',
+            description: saveLabel,
+            handler: onSave,
+        },
+        {
+            key: 'ctrl+s',
+            description: saveLabel,
+            handler: onSave,
+        }
+    ], { 
+        scopeName: 'Form View',
+        exclusive: true,
+        exclusiveExceptions: allowedShortcuts
+    });
 
     const handleDiscard = () => {
         setShowConfirmBack(false);

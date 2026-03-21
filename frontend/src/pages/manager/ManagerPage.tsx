@@ -27,6 +27,7 @@ import { PromptViewer } from '../../widgets/prompt-viewer/ui/PromptViewer';
 import { NodeTypeFormView } from '../../widgets/node-type-form-modal';
 
 import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
+import { useHotkeys } from '../../shared/lib/hotkeys/useHotkeys';
 
 const WorkflowEditorView = ({
     activeWorkflow,
@@ -78,16 +79,13 @@ const WorkflowEditorView = ({
     const nav = useNavigator();
 
     // Keyboard shortcut for save
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-                e.preventDefault();
-                saveWorkflow();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [saveWorkflow]);
+    useHotkeys([
+        { key: 'cmd+s', description: 'Save Workflow', handler: () => saveWorkflow() },
+        { key: 'ctrl+s', description: 'Save Workflow', handler: () => saveWorkflow() }
+    ], { 
+        scopeName: 'Workflow Editor',
+        enabled: canSave && !isCreating
+    });
 
     const handleParamsChange = useCallback((nodeId: string, params: any) => {
         console.log('[WorkflowEditorView] handleParamsChange for nodeId:', nodeId, 'new params:', params);

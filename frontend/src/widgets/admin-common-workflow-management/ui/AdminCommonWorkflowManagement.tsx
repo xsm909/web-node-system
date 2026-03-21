@@ -363,6 +363,7 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
             onCancel={onBack}
             isSaving={isSaving}
             saveLabel="Save Workflow"
+            allowedShortcuts={['cmd+c', 'ctrl+c', 'cmd+v', 'ctrl+v']}
             fullHeight
             noPadding
             headerRightContent={

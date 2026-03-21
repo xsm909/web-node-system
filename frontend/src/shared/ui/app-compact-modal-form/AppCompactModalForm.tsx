@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../icon';
+import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 
 interface AppCompactModalFormProps {
     isOpen: boolean;
@@ -85,54 +86,30 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
         };
     }, [isDragging, dragStart]);
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (!isOpen) return;
-
-            // Z-index check to handle nested modals: only the top-most one should catch the event
-            const modals = Array.from(document.querySelectorAll('.fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[3000\\]')) as HTMLElement[];
-            if (modals.length > 0) {
-                // Find the highest visible z-index
-                const highestZ = Math.max(...modals.map(m => parseInt(getComputedStyle(m).zIndex) || 0));
-                
-                // If there are multiple modals with the highest z-index, the one later in the DOM is on top
-                const topModals = modals.filter(m => (parseInt(getComputedStyle(m).zIndex) || 0) === highestZ);
-                const topmost = topModals[topModals.length - 1];
-                
-                const ourElement = modalRef.current?.parentElement;
-                if (ourElement !== topmost) return;
-            }
-
-            // Intercept and stop propagation for all global application shortcuts
-            const isGlobalShortcut = 
-                /^F\d+$/.test(e.key) || 
-                ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
-
-            if (isGlobalShortcut && !allowedShortcuts.includes(e.key)) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            if (e.key === 'Enter') {
-                // Check if any element is focused and it's not a button or textarea
+    useHotkeys([
+        {
+            key: 'Escape',
+            description: 'Close Modal',
+            handler: () => onClose(),
+        },
+        {
+            key: 'Enter',
+            description: submitLabel,
+            preventDefault: false, // Let handler decide
+            handler: (e) => {
                 const active = document.activeElement;
                 if (active?.tagName !== 'BUTTON' && active?.tagName !== 'TEXTAREA') {
                     e.preventDefault();
-                    e.stopPropagation();
                     onSubmit();
                 }
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                e.stopPropagation();
-                onClose();
             }
-        };
-
-        // Use capture phase to ensure we intercept before global shortcuts, 
-        // but the z-index check ensures we only handle it if we're top-most.
-        window.addEventListener('keydown', handleKeyDown, true);
-        return () => window.removeEventListener('keydown', handleKeyDown, true);
-    }, [isOpen, onSubmit, onClose]);
+        }
+    ], { 
+        scopeName: 'Modal', 
+        enabled: isOpen,
+        exclusive: true,
+        exclusiveExceptions: allowedShortcuts 
+    });
 
     if (!isOpen) return null;
 

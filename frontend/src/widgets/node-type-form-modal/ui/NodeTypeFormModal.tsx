@@ -12,6 +12,7 @@ import { useForm } from '@tanstack/react-form';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
+import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { getPythonHints, type PythonHint } from '../../../shared/api/python-hints';
 import { useThemeStore } from '../../../shared/lib/theme/store';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
@@ -73,16 +74,9 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         }
     }, [currentNode?.id]);
     
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'F4') {
-                e.preventDefault();
-                setActiveTab('code');
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
+    useHotkeys([
+        { key: 'F4', description: 'Python Code', handler: () => setActiveTab('code') }
+    ], { scopeName: 'Node Type Editor' });
 
     const form = useForm({
         defaultValues: {

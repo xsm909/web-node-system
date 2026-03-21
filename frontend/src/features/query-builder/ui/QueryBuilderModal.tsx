@@ -26,6 +26,7 @@ import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/A
 import { apiClient } from '../../../shared/api/client';
 import { AppContextMenu } from '../../../shared/ui/app-context-menu';
 import { AppTabulatorTable } from '../../../shared/ui/app-tabulator-table/AppTabulatorTable';
+import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 
 // Note: copyToClipboard is now handled inside QueryBuilderModal component to manage local state feedback
 
@@ -1018,56 +1019,17 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }
     }, [isExecuting, effectiveSql, apiClient, onError, parameterValues]);
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (!isOpen) return;
+    const isModalLayerActive = isResultsOpen || isRecursiveModalOpen || isRenameModalOpen || !!editingField || !!editingCTE || isDeleteConfirmOpen;
 
-            // If any nested internal modal is open, ignore global shortcut
-            if (isResultsOpen || isRecursiveModalOpen || isRenameModalOpen || !!editingField || !!editingCTE || isDeleteConfirmOpen) {
-                return;
-            }
-
-            // Z-index check to handle nested modals: only the top-most one should catch the event
-            const modals = Array.from(document.querySelectorAll('.fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[3000\\], [role="dialog"]')) as HTMLElement[];
-            if (modals.length > 0) {
-                const highestZ = Math.max(...modals.map(m => parseInt(getComputedStyle(m).zIndex) || 0));
-                // QueryBuilderModal is z-[1000]
-                const ourZ = 1000;
-                
-                if (ourZ < highestZ) return;
-            }
-
-            // Intercept and stop propagation for all global application shortcuts
-            // only those that QueryBuilderModal itself doesn't use (like F1, F2, F4, Ctrl+S)
-            const isGlobalShortcut = 
-                (/^F\d+$/.test(e.key) && e.key !== 'F5' && e.key !== 'F9') || 
-                ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
-
-            if (isGlobalShortcut) {
-                e.preventDefault();
-                e.stopPropagation();
-                return;
-            }
-
-            // ESC to close Query Builder
-            if (e.key === 'Escape') {
-                e.preventDefault();
-                e.stopPropagation();
-                onClose();
-                return;
-            }
-
-            // F5/F9 (Compile/Generate)
-            if (e.key === 'F5' || e.key === 'F9' || (e.key === 'r' && (e.metaKey || e.ctrlKey))) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleExecuteQuery();
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown, true);
-        return () => window.removeEventListener('keydown', handleKeyDown, true);
-    }, [isOpen, handleExecuteQuery, onClose, isResultsOpen, isRecursiveModalOpen, isRenameModalOpen, editingField, editingCTE, isDeleteConfirmOpen]);
+    useHotkeys([
+        { key: 'Escape', description: 'Close', handler: () => onClose() },
+        { key: 'F5', description: 'Execute Query', handler: () => handleExecuteQuery() },
+        { key: 'cmd+r', description: 'Execute Query', handler: () => handleExecuteQuery() },
+        { key: 'ctrl+r', description: 'Execute Query', handler: () => handleExecuteQuery() }
+    ], { 
+        scopeName: 'Query Builder', 
+        enabled: isOpen && !isModalLayerActive
+    });
 
     const handleCopyResults = async () => {
         try {
@@ -1603,10 +1565,10 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             icon="database"
             fullHeight
             noPadding
-            allowedShortcuts={['F5', 'F9']}
             width="w-[95vw] max-w-[1400px]"
             submitLabel="Ready"
             cancelLabel="Cancel"
+            allowedShortcuts={['f5', 'cmd+r', 'ctrl+r']}
             onSubmit={() => {
                 const finalSql = generateSQL(fullState, { isForPreview: false });
                 onDone(finalSql);

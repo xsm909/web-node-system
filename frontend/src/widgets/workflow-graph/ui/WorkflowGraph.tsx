@@ -26,6 +26,7 @@ import { NodeContextMenu } from '../../node-context-menu/NodeContextMenu';
 import { StartNode } from '../../../entities/node-type/ui/StartNode';
 import { DefaultNode } from '../../../entities/node-type/ui/DefaultNode';
 import { AddNodeMenu } from '../../add-node-menu';
+import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 
 const nodeTypesConfig = {
     start: StartNode,
@@ -317,32 +318,12 @@ export function WorkflowGraph({
         setEdges((eds) => eds.map(e => ({ ...e, selected: false })).concat(newEdges));
     }, [clipboard, setNodes, setEdges]);
 
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            const isCopy = (event.metaKey || event.ctrlKey) && (event.key.toLowerCase() === 'c' || event.code === 'KeyC');
-            const isPaste = (event.metaKey || event.ctrlKey) && (event.key.toLowerCase() === 'v' || event.code === 'KeyV');
-
-            if (isCopy) {
-                // Only copy if not focused on an input/textarea
-                const target = event.target as HTMLElement;
-                if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-
-                event.preventDefault();
-                handleCopy();
-            }
-
-            if (isPaste) {
-                const target = event.target as HTMLElement;
-                if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-
-                event.preventDefault();
-                handlePaste();
-            }
-        };
-
-        document.addEventListener('keydown', onKeyDown);
-        return () => document.removeEventListener('keydown', onKeyDown);
-    }, [handleCopy, handlePaste]);
+    useHotkeys([
+        { key: 'cmd+c', description: 'Copy Nodes', handler: () => handleCopy() },
+        { key: 'ctrl+c', description: 'Copy Nodes', handler: () => handleCopy() },
+        { key: 'cmd+v', description: 'Paste Nodes', handler: () => handlePaste() },
+        { key: 'ctrl+v', description: 'Paste Nodes', handler: () => handlePaste() }
+    ], { scopeName: 'Workflow Graph' });
 
     const onMouseMove = useCallback((event: React.MouseEvent) => {
         const position = screenToFlowPosition({

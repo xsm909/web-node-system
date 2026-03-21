@@ -1,4 +1,5 @@
 import React from 'react';
+import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 
 export type ConfirmModalVariant = 'danger' | 'warning' | 'success';
 
@@ -80,42 +81,22 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     onCancel,
     isLoading = false,
 }) => {
-    React.useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (!isOpen) return;
-
-            // Z-index check to handle nested modals
-            const modals = Array.from(document.querySelectorAll('.fixed.inset-0.z-\\[2000\\], .fixed.inset-0.z-\\[1000\\], .fixed.inset-0.z-\\[3000\\]')) as HTMLElement[];
-            if (modals.length > 0) {
-                const highestZ = Math.max(...modals.map(m => parseInt(getComputedStyle(m).zIndex) || 0));
-                const ourZ = 2000; // ConfirmModal is z-[2000]
-                if (ourZ < highestZ) return;
-            }
-
-            // Intercept and stop propagation for all global application shortcuts
-            const isGlobalShortcut = 
-                /^F\d+$/.test(e.key) || 
-                ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's');
-
-            if (isGlobalShortcut) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                e.stopPropagation();
-                onConfirm();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                e.stopPropagation();
-                onCancel();
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown, true);
-        return () => window.removeEventListener('keydown', handleKeyDown, true);
-    }, [isOpen, onConfirm, onCancel]);
+    useHotkeys([
+        {
+            key: 'Escape',
+            description: 'Cancel',
+            handler: () => onCancel(),
+        },
+        {
+            key: 'Enter',
+            description: confirmLabel,
+            handler: () => onConfirm(),
+        }
+    ], { 
+        scopeName: 'Confirm Modal', 
+        enabled: isOpen,
+        exclusive: true
+    });
 
     if (!isOpen) return null;
 

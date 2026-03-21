@@ -402,19 +402,27 @@ reliability when answering real‑world questions.
 
 ## 14. Keyboard Shortcuts
 
-The platform supports specialized keyboard shortcuts to streamline development and management workflows:
+The platform supports specialized keyboard shortcuts to streamline development and management workflows, managed via a centralized **Global Hotkey Manager** (`HotkeysProvider`).
 
 ### 14.1 Global Editor Shortcuts
--   **F1**: Open **SQL Query Builder** when in a Python code editor.
+-   **Centralized Management**: All hotkeys are registered using the `useHotkeys` hook. This creates a stack of "scopes". Modals and menus push "exclusive" scopes that suspend background shortcuts.
+-   **Hotkey Debug Overlay**: A visual indicator in the bottom-right corner displays active shortcuts. Disabled hotkeys (contextually inactive) are automatically hidden.
+-   **F1**: Open **SQL Query Builder** when in a Python code editor (Active only when the **Code** tab is selected).
 -   **Esc**: Navigate **Back** (to the parent list) from any editor or detail view.
 -   **F4**: Switch to the **Python Code** tab (Node Engine/Report Code) from any other tab.
 -   **Ctrl+S / Cmd+S**: Trigger **Save** action for the current form or editor.
 
-### 14.2 Report Editor Shortcuts
--   **F5**: Trigger **Compile** action for the current report script.
+### 14.2 Code Editor Shortcuts
+-   **F5**: Trigger **Compile** action for the current report script or node (Active only when the **Python Code** tab is selected).
 -   **F9**: Trigger **Generate** action to preview the report.
 
-### 14.3 Context-Aware Behavior
--   **Modal Priority**: All keyboard shortcuts are strictly context-aware. When a modal window is open, shortcuts apply only to that modal.
--   **Automatic Guarding**: Modals proactively intercept and stop propagation for global shortcuts (`F1`-`F12`, `Esc`, `Ctrl+S`). Parent layers automatically ignore these keys when a modal is active to prevent unintended background actions.
+### 14.3 Modal & Context-Aware Behavior
+-   **Exclusive Scopes**: Modals use `exclusive: true` scopes to block propagation of global shortcuts (e.g., `Cmd+S`, `F9`) from underlying layers.
+-   **Hotkey Priority**: The topmost scope in the stack always has priority. A match in a child scope terminates processing for that event.
+-   **Exception Support**: Exclusive scopes can allow specific keys to pass through via the `exclusiveExceptions` property.
+-   **Nested Modals & Wrappers**: If a component wraps another component that has an exclusive scope (e.g. `AppFormView` or `AppCompactModalForm`), the inner content MUST pass its required hotkeys up to the wrapper via an `allowedShortcuts` array so they bypass the wrapper's exclusive block. 
+
+### 14.4 Dynamic Hotkey Registration
+-   **Reactive Properties**: The `useHotkeys` hook dynamically proxies hotkey properties (like `enabled`). Changing the `enabled` state of a hotkey (e.g. based on `activeTab`) automatically synchronizes with `HotkeysContext` without disrupting the stack order.
+-   **Visual Synchronization**: The `HotkeysDebug` overlay inherently respects the `exclusive` boundaries. If an exclusive scope is active, the debugger automatically hides any hotkeys that belong to lower (blocked) scopes, ensuring the visual indicator perfectly matches execution state.
 

@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Router from './app/Router';
 import { useThemeStore } from './shared/lib/theme/store';
+import { HotkeysProvider } from './shared/lib/hotkeys/HotkeysContext';
+import { HotkeysDebug } from './shared/ui/hotkeys-debug/HotkeysDebug';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,8 +26,11 @@ export default function App() {
   }, [theme]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router />
-    </QueryClientProvider>
+    <HotkeysProvider>
+      <QueryClientProvider client={queryClient}>
+        <Router />
+        <HotkeysDebug />
+      </QueryClientProvider>
+    </HotkeysProvider>
   );
 }

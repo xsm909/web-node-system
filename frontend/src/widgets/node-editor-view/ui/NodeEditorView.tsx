@@ -11,6 +11,7 @@ import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppInput } from '../../../shared/ui/app-input';
 import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
 import { Icon } from '../../../shared/ui/icon';
+import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 
 interface NodeEditorViewProps {
     node: Node | null;
@@ -237,6 +238,43 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
             onBack();
         }
     };
+
+    useHotkeys([
+        {
+            key: 'Escape',
+            description: 'Back to Workflow',
+            handler: () => {
+                if (!showConfirmBack && sqlEditorParam === null) {
+                    handleBack();
+                }
+            }
+        },
+        {
+            key: 'cmd+s',
+            description: 'Save Parameters',
+            preventDefault: true,
+            handler: () => {
+                if (!showConfirmBack && sqlEditorParam === null) {
+                    form.handleSubmit();
+                }
+            }
+        },
+        {
+            key: 'ctrl+s',
+            description: 'Save Parameters',
+            preventDefault: true,
+            handler: () => {
+                if (!showConfirmBack && sqlEditorParam === null) {
+                    form.handleSubmit();
+                }
+            }
+        }
+    ], {
+        scopeName: `NodeEditor-${node?.id}`,
+        enabled: true,
+        exclusive: true,
+        exclusiveExceptions: ['F1', 'F5'] // maybe allow standard ones? Actually user said: "Also with workflow, if I go into node editing mode. What was available for workflow is no longer available until I return."
+    });
 
     return (
         <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-app)] relative h-full overflow-hidden">
