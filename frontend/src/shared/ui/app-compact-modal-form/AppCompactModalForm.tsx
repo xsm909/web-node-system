@@ -83,10 +83,13 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
             if (modals.length > 0) {
                 // Find the highest visible z-index
                 const highestZ = Math.max(...modals.map(m => parseInt(getComputedStyle(m).zIndex) || 0));
-                // Extract our z-index from the direct element if possible, or from modalRef
-                const ourZ = modalRef.current ? parseInt(getComputedStyle(modalRef.current.parentElement!).zIndex) || 0 : 0;
                 
-                if (ourZ < highestZ) return;
+                // If there are multiple modals with the highest z-index, the one later in the DOM is on top
+                const topModals = modals.filter(m => (parseInt(getComputedStyle(m).zIndex) || 0) === highestZ);
+                const topmost = topModals[topModals.length - 1];
+                
+                const ourElement = modalRef.current?.parentElement;
+                if (ourElement !== topmost) return;
             }
 
             // Intercept and stop propagation for all global application shortcuts
@@ -123,7 +126,12 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/5 backdrop-blur-none animate-in fade-in duration-200 pointer-events-none">
+        <div 
+            className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/20 backdrop-blur-none animate-in fade-in duration-200"
+            onMouseDown={(e) => {
+                if (e.target === e.currentTarget) e.stopPropagation();
+            }}
+        >
             <div 
                 ref={modalRef}
                 role="dialog"
