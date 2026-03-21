@@ -30,7 +30,7 @@ export const AppTabs: React.FC<AppTabsProps> = ({
     variant = 'boxed'
 }) => {
     return (
-        <div className={`flex gap-1.5 items-end relative -mb-px ${className}`}>
+        <div className={`flex gap-1.5 items-end relative ${className}`}>
             {tabs.map(tab => {
                 const isActive = activeTab === tab.id;
 
@@ -58,7 +58,7 @@ export const AppTabs: React.FC<AppTabsProps> = ({
                         key={tab.id}
                         type="button"
                         onClick={() => onTabChange(tab.id)}
-                        className={`px-4 py-1.5 text-sm font-normal transition-all relative flex items-center justify-center gap-2 rounded-t-lg -mb-px ${isActive
+                        className={`px-4 py-1.5 text-sm font-normal transition-all relative flex items-center justify-center gap-2 rounded-t-lg ${isActive
                             ? 'text-brand bg-[var(--bg-app)] border-t border-l border-r border-[var(--border-base)] shadow-[0_-2px_6px_rgba(0,0,0,0.02)] z-10'
                             : 'text-[var(--text-muted)] border-t border-l border-r border-transparent hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]/40 hover:border-[var(--border-muted)]/40'
                             }`}
