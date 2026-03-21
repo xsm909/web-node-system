@@ -1934,6 +1934,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             <SelectedFieldsTreeView
                                                 fields={activeState.selectedFields}
                                                 onEditField={setEditingField}
+                                                onRemoveAllFields={() => {
+                                                    updateActiveState(prev => ({ ...prev, selectedFields: [] }));
+                                                }}
                                             />
                                         </div>
 

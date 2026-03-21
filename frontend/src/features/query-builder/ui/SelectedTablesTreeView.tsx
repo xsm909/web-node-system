@@ -29,6 +29,38 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
         id: 'selected-tables-drop-zone',
     });
 
+    const [expandedStates, setExpandedStates] = useState<Record<string, boolean>>({});
+
+    useEffect(() => {
+        setExpandedStates(prev => {
+            const next = { ...prev };
+            let changed = false;
+            tables.forEach(t => {
+                if (next[t.alias] === undefined) {
+                    next[t.alias] = true;
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+    }, [tables]);
+
+    const toggleExpand = (alias: string) => {
+        setExpandedStates(prev => ({ ...prev, [alias]: !prev[alias] }));
+    };
+
+    const expandAll = () => {
+        const next: Record<string, boolean> = {};
+        tables.forEach(t => next[t.alias] = true);
+        setExpandedStates(next);
+    };
+
+    const collapseAll = () => {
+        const next: Record<string, boolean> = {};
+        tables.forEach(t => next[t.alias] = false);
+        setExpandedStates(next);
+    };
+
     return (
         <div 
             ref={setNodeRef}
@@ -36,11 +68,27 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
                 isOver ? 'border-brand ring-2 ring-brand/20 bg-brand/5' : 'border-[var(--border-base)]'
             }`}
         >
-            <div className="px-4 py-3 flex items-center justify-between sticky top-0 z-10 bg-[var(--bg-alt)]/80 backdrop-blur-md border-b border-[var(--border-base)]/30 shadow-sm shadow-black/5">
+            <div className="h-9 px-4 flex items-center justify-between sticky top-0 z-10 bg-[var(--bg-alt)]/80 backdrop-blur-md border-b border-[var(--border-base)]/30 shadow-sm shadow-black/5">
                 <h3 className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-main)] flex items-center gap-2">
                     <Icon name="table_chart" size={14} className="text-brand" />
                     SELECTED TABLES
                 </h3>
+                <div className="flex items-center gap-1">
+                    <button 
+                        onClick={expandAll}
+                        title="Expand All"
+                        className="p-1 rounded hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand transition-all flex items-center justify-center"
+                    >
+                        <Icon name="expand_all" size={16} />
+                    </button>
+                    <button 
+                        onClick={collapseAll}
+                        title="Collapse All"
+                        className="p-1 rounded hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand transition-all flex items-center justify-center"
+                    >
+                        <Icon name="collapse_all" size={16} />
+                    </button>
+                </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
                 <SortableContext
@@ -55,6 +103,8 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
                             onRemoveTable={onRemoveTable}
                             getColumns={getColumns}
                             queryState={queryState}
+                            isExpanded={expandedStates[table.alias] ?? true}
+                            onToggleExpand={() => toggleExpand(table.alias)}
                         />
                     ))}
                 </SortableContext>
@@ -65,8 +115,7 @@ export const SelectedTablesTreeView: React.FC<SelectedTablesTreeViewProps> = ({
     );
 };
 
-const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, queryState }: any) => {
-    const [isExpanded, setIsExpanded] = useState(true);
+const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, queryState, isExpanded, onToggleExpand }: any) => {
     const [columns, setColumns] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -140,7 +189,7 @@ const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, query
                 <button 
                     onClick={(e) => {
                         e.stopPropagation();
-                        setIsExpanded(!isExpanded);
+                        onToggleExpand();
                     }}
                     className="p-1 rounded hover:bg-brand/10 text-[var(--text-muted)] hover:text-brand transition-all"
                 >
@@ -148,7 +197,7 @@ const TableTreeItem = ({ table, selectedFields, onRemoveTable, getColumns, query
                 </button>
                 <div className="flex-1 flex items-center gap-2 cursor-pointer" onClick={(e) => {
                     e.stopPropagation();
-                    setIsExpanded(!isExpanded);
+                    onToggleExpand();
                 }}>
                     <Icon 
                         name={isCte ? (targetCte?.isRecursive ? 'table_recursive' : 'table_virtual') : 'table_chart'} 

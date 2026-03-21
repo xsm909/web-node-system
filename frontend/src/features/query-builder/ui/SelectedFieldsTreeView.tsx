@@ -12,11 +12,13 @@ import type { SelectedField } from '../model/types';
 interface SelectedFieldsTreeViewProps {
     fields: SelectedField[];
     onEditField: (field: SelectedField) => void;
+    onRemoveAllFields?: () => void;
 }
 
 export const SelectedFieldsTreeView: React.FC<SelectedFieldsTreeViewProps> = ({
     fields,
-    onEditField
+    onEditField,
+    onRemoveAllFields
 }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: 'selected-fields-drop-zone',
@@ -29,11 +31,20 @@ export const SelectedFieldsTreeView: React.FC<SelectedFieldsTreeViewProps> = ({
                 isOver ? 'border-brand ring-2 ring-brand/20 bg-brand/5' : 'border-[var(--border-base)]'
             }`}
         >
-            <div className="px-4 py-3 flex items-center justify-between sticky top-0 z-10 bg-[var(--bg-alt)]/80 backdrop-blur-md border-b border-[var(--border-base)]/30 shadow-sm shadow-black/5">
+            <div className="h-9 px-4 flex items-center justify-between sticky top-0 z-10 bg-[var(--bg-alt)]/80 backdrop-blur-md border-b border-[var(--border-base)]/30 shadow-sm shadow-black/5">
                 <h3 className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-main)] flex items-center gap-2">
                     <Icon name="table_chart" size={14} className="text-brand" />
                     SELECTED FIELDS
                 </h3>
+                {fields.length > 0 && onRemoveAllFields && (
+                    <button 
+                        onClick={onRemoveAllFields}
+                        title="Remove All Fields"
+                        className="p-1 rounded hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-all flex items-center justify-center"
+                    >
+                        <Icon name="delete_all" size={18} />
+                    </button>
+                )}
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
                 <SortableContext 
@@ -81,7 +92,7 @@ const SortableFieldItem = ({ field, onEditField }: any) => {
             style={style}
             {...attributes}
             {...listeners}
-            className="group flex items-center gap-3 p-2 rounded-lg hover:bg-brand/5 border border-transparent hover:border-brand/10 transition-all cursor-grab active:cursor-grabbing bg-[var(--bg-app)] shadow-sm"
+            className="group flex items-center gap-3 p-2 rounded-lg hover:bg-brand/5 border border-transparent hover:border-brand/10 transition-all cursor-grab active:cursor-grabbing"
             onClick={() => onEditField(field)}
         >
 
