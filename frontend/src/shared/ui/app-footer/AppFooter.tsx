@@ -121,7 +121,7 @@ export const AppFooter: React.FC = () => {
 
     return (
         <div 
-            className={`fixed bottom-0 h-8 bg-slate-900 border-t border-slate-800 z-40 flex items-center px-4 shadow-xl select-none transition-all duration-500 ease-in-out
+            className={`fixed bottom-0 h-8 bg-[var(--bg-footer)] border-t border-[var(--border-footer)] z-40 flex items-center px-4 shadow-xl select-none transition-all duration-500 ease-in-out
                 ${isVisible ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
             style={{
                 left: 'var(--sidebar-width, 0px)',
@@ -131,7 +131,7 @@ export const AppFooter: React.FC = () => {
             <div className="flex items-center gap-6 overflow-x-auto no-scrollbar w-full text-xs">
                 {displayGroups.map((group, idx) => (
                     <div key={`${group.description}-${idx}`} className="flex items-center gap-2 whitespace-nowrap shrink-0">
-                        <kbd className="font-mono font-medium text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
+                        <kbd className="font-mono font-medium text-[var(--text-footer-kbd)] bg-[var(--bg-footer-kbd)] px-1.5 py-0.5 rounded border border-[var(--border-footer-kbd)]">
                             {group.formattedKey}
                         </kbd>
                         <span className="text-slate-500 font-medium">

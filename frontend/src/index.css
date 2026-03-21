@@ -16,6 +16,13 @@
   /* Emerald 500 */
   --brand-hover: #059669;
   /* Emerald 600 */
+
+  /* Footer Colors */
+  --bg-footer: #e2e8f0;
+  --border-footer: #cbd5e1;
+  --text-footer-kbd: #1e293b;
+  --bg-footer-kbd: rgba(255, 255, 255, 0.5);
+  --border-footer-kbd: #94a3b8;
 }
 
 .dark {
@@ -29,6 +36,13 @@
   --border-muted: #334155;
   --brand: #10b981;
   --brand-hover: #34d399;
+
+  /* Footer Colors - Night */
+  --bg-footer: #0f172a;
+  --border-footer: #1e293b;
+  --text-footer-kbd: #94a3b8;
+  --bg-footer-kbd: rgba(30, 41, 59, 0.5);
+  --border-footer-kbd: rgba(51, 65, 85, 0.5);
 }
 
 @theme {
