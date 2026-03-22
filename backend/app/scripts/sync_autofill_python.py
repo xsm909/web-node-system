@@ -87,12 +87,7 @@ def extract_hints_from_file(file_path):
     # Cache for signatures of internal libs
     lib_signatures_cache = {}
 
-    def get_cached_signature(lib_path, func_name):
-        if lib_path not in lib_signatures_cache:
-            lib_signatures_cache[lib_path] = get_signatures_from_file(lib_path)
-        return lib_signatures_cache[lib_path].get(func_name)
-
-    # 1. Extract ALLOWED_MODULES (using regex for simplicity as it's a simple list)
+    # 1. Extract ALLOWED_MODULES
     modules_match = re.search(r'ALLOWED_MODULES\s*=\s*\[(.*?)\]', content, re.DOTALL)
     if modules_match:
         modules_str = modules_match.group(1)
@@ -107,85 +102,99 @@ def extract_hints_from_file(file_path):
             })
 
     # 2. Extract SAFE_GLOBALS and SimpleNamespaces
-    # We'll look for the SAFE_GLOBALS assignment
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
             for target in node.targets:
                 if isinstance(target, ast.Name) and target.id == 'SAFE_GLOBALS':
                     if isinstance(node.value, ast.Dict):
                         for k, v in zip(node.value.keys, node.value.values):
+                            if k is None: continue # Skip packing
+                            
+                            label = None
                             if isinstance(k, ast.Constant):
                                 label = k.value
-                                if label.startswith('_'): continue
+                            elif isinstance(k, ast.Str): # Support older Python
+                                label = k.s
+                            
+                            if label is None or not isinstance(label, str) or label.startswith('_'): 
+                                continue
                                 
-                                # Check if it's a SimpleNamespace
-                                if isinstance(v, ast.Call) and isinstance(v.func, ast.Name) and v.func.id == 'SimpleNamespace':
+                            # Recursive namespace processor
+                            def process_namespace_rec(label, node, hints, import_map, lib_signatures_cache):
+                                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'SimpleNamespace':
                                     hints.append({
                                         "label": label,
                                         "type": "variable",
                                         "detail": f"{label} namespace",
                                         "boost": 3
                                     })
-                                    # Process keywords in SimpleNamespace(a=b, ...)
-                                    for kw in v.keywords:
-                                        member_name = kw.arg
-                                        detail = f"{label} function"
-                                        
-                                        # Try to resolve signature
-                                        if isinstance(kw.value, ast.Name):
-                                            ref_name = kw.value.id
-                                            lib_path = import_map.get(ref_name)
-                                            if lib_path:
-                                                sig = get_cached_signature(lib_path, ref_name)
-                                                if sig:
-                                                    detail = sig
-                                        
-                                        hints.append({
-                                            "label": f"{label}.{member_name}",
-                                            "type": "function",
-                                            "detail": detail,
-                                            "boost": 4
-                                        })
+                                    for kw in node.keywords:
+                                        process_namespace_rec(f"{label}.{kw.arg}", kw.value, hints, import_map, lib_signatures_cache)
                                 else:
-                                    # Direct exposure
-                                    if label in ("time", "json", "datetime", "timedelta"):
-                                        hints.append({
-                                            "label": label,
-                                            "type": "module",
-                                            "detail": f"Built-in {label}",
-                                            "boost": 2
-                                        })
-                                    elif label == "charts":
-                                        # Special handling for charts (defined as a module usually)
-                                        hints.append({
-                                            "label": "charts",
-                                            "type": "module",
-                                            "detail": "Charts library",
-                                            "boost": 2
-                                        })
-                                        charts_path = os.path.join(os.path.dirname(file_path), '..', 'internal_libs', 'charts.py')
-                                        if os.path.exists(charts_path):
-                                            chart_sigs = get_signatures_from_file(charts_path)
-                                            for func, sig in chart_sigs.items():
-                                                if func.startswith('_') or func == 'apply_corporate_style': continue
-                                                hints.append({
-                                                    "label": f"charts.{func}",
-                                                    "type": "function",
-                                                    "detail": sig,
-                                                    "boost": 5
-                                                })
-                                    else:
-                                        hints.append({
-                                            "label": label,
-                                            "type": "variable",
-                                            "detail": f"Exposed library: {label}",
-                                            "boost": 2
-                                        })
+                                    # It's a leaf (function, variable, or module)
+                                    parent_parts = label.split('.')
+                                    parent_label = '.'.join(parent_parts[:-1])
+                                    
+                                    # Special modules/built-ins (only at top level)
+                                    if not parent_label:
+                                        if label in ("time", "json", "datetime", "timedelta"):
+                                            hints.append({
+                                                "label": label,
+                                                "type": "module",
+                                                "detail": f"Built-in {label}",
+                                                "boost": 2
+                                            })
+                                            return
+                                        elif label == "charts":
+                                            hints.append({
+                                                "label": "charts",
+                                                "type": "module",
+                                                "detail": "Charts library",
+                                                "boost": 2
+                                            })
+                                            # Also extract charts functions
+                                            base_dir = os.path.dirname(file_path)
+                                            charts_path = os.path.join(base_dir, '..', 'internal_libs', 'charts.py')
+                                            
+                                            if os.path.exists(charts_path):
+                                                chart_sigs = get_signatures_from_file(charts_path)
+                                                for func, sig in chart_sigs.items():
+                                                    if func.startswith('_') or func == 'apply_corporate_style': continue
+                                                    hints.append({
+                                                        "label": f"charts.{func}",
+                                                        "type": "function",
+                                                        "detail": sig,
+                                                        "boost": 5
+                                                    })
+                                            return
+
+                                    detail = f"{label} function" if parent_label else f"{label} variable"
+                                    
+                                    # Try to resolve signature if it's a direct reference
+                                    if isinstance(node, ast.Name):
+                                        ref_name = node.id
+                                        lib_path = import_map.get(ref_name)
+                                        if lib_path:
+                                            if lib_path not in lib_signatures_cache:
+                                                lib_signatures_cache[lib_path] = get_signatures_from_file(lib_path)
+                                            sig = lib_signatures_cache[lib_path].get(ref_name)
+                                            if sig:
+                                                detail = sig
+                                    
+                                    hints.append({
+                                        "label": label,
+                                        "type": "function" if parent_label else "variable",
+                                        "detail": detail,
+                                        "boost": 4 if parent_label else 3
+                                    })
+
+                            process_namespace_rec(label, v, hints, import_map, lib_signatures_cache)
 
     return hints
 
 def extract_hints():
-    services_dir = os.path.join(os.path.dirname(__file__), '..', 'services')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    services_dir = os.path.join(script_dir, '..', 'services')
     executors = [
         os.path.join(services_dir, 'executor.py'),
         os.path.join(services_dir, 'report_executor.py')
@@ -219,7 +228,7 @@ def extract_hints():
         "boost": 10
     })
 
-    output_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'python_hints.json')
+    output_path = os.path.join(script_dir, '..', 'resources', 'python_hints.json')
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(all_hints, f, indent=4)
     

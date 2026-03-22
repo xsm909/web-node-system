@@ -204,7 +204,6 @@ def smart_search(query: str, model_config: dict = None) -> str:
     system_log(f"[TOOL] Error: smart_search -> {res}", level="error")
     return res
 
-
 def read_workflow_data(execution_id: str = None) -> str:
     """Fetches workflow data from the database."""
     system_log(f"[TOOL] Start: read_workflow_data(execution_id='{execution_id}')", level="system")

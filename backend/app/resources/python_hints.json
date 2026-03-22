@@ -152,31 +152,31 @@
     {
         "label": "openai.create_new_conversation",
         "type": "function",
-        "detail": "openai function",
+        "detail": "openai.create_new_conversation function",
         "boost": 4
     },
     {
         "label": "openai.set_prompt",
         "type": "function",
-        "detail": "openai function",
+        "detail": "openai.set_prompt function",
         "boost": 4
     },
     {
         "label": "openai.ask_chat",
         "type": "function",
-        "detail": "openai function",
+        "detail": "openai.ask_chat function",
         "boost": 4
     },
     {
         "label": "openai.ask_single",
         "type": "function",
-        "detail": "openai function",
+        "detail": "openai.ask_single function",
         "boost": 4
     },
     {
         "label": "openai.perform_web_search",
         "type": "function",
-        "detail": "openai function",
+        "detail": "openai.perform_web_search function",
         "boost": 4
     },
     {
@@ -188,31 +188,31 @@
     {
         "label": "gemini.create_new_conversation",
         "type": "function",
-        "detail": "gemini function",
+        "detail": "gemini.create_new_conversation function",
         "boost": 4
     },
     {
         "label": "gemini.set_prompt",
         "type": "function",
-        "detail": "gemini function",
+        "detail": "gemini.set_prompt function",
         "boost": 4
     },
     {
         "label": "gemini.ask_chat",
         "type": "function",
-        "detail": "gemini function",
+        "detail": "gemini.ask_chat function",
         "boost": 4
     },
     {
         "label": "gemini.ask_single",
         "type": "function",
-        "detail": "gemini function",
+        "detail": "gemini.ask_single function",
         "boost": 4
     },
     {
         "label": "gemini.perform_web_search",
         "type": "function",
-        "detail": "gemini function",
+        "detail": "gemini.perform_web_search function",
         "boost": 4
     },
     {
@@ -224,31 +224,31 @@
     {
         "label": "perplexity.create_new_conversation",
         "type": "function",
-        "detail": "perplexity function",
+        "detail": "perplexity.create_new_conversation function",
         "boost": 4
     },
     {
         "label": "perplexity.set_prompt",
         "type": "function",
-        "detail": "perplexity function",
+        "detail": "perplexity.set_prompt function",
         "boost": 4
     },
     {
         "label": "perplexity.ask_chat",
         "type": "function",
-        "detail": "perplexity function",
+        "detail": "perplexity.ask_chat function",
         "boost": 4
     },
     {
         "label": "perplexity.ask_single",
         "type": "function",
-        "detail": "perplexity function",
+        "detail": "perplexity.ask_single function",
         "boost": 4
     },
     {
         "label": "perplexity.perform_web_search",
         "type": "function",
-        "detail": "perplexity function",
+        "detail": "perplexity.perform_web_search function",
         "boost": 4
     },
     {
@@ -260,25 +260,25 @@
     {
         "label": "common.get_active_client",
         "type": "function",
-        "detail": "common function",
+        "detail": "common.get_active_client function",
         "boost": 4
     },
     {
         "label": "common.GetAIByModel",
         "type": "function",
-        "detail": "common function",
+        "detail": "common.GetAIByModel function",
         "boost": 4
     },
     {
         "label": "common.is_valid_json",
         "type": "function",
-        "detail": "common function",
+        "detail": "common.is_valid_json function",
         "boost": 4
     },
     {
         "label": "common.fill_template",
         "type": "function",
-        "detail": "common function",
+        "detail": "common.fill_template function",
         "boost": 4
     },
     {
@@ -290,7 +290,7 @@
     {
         "label": "inner_database.unsafe_request",
         "type": "function",
-        "detail": "inner_database function",
+        "detail": "inner_database.unsafe_request function",
         "boost": 4
     },
     {
@@ -302,13 +302,13 @@
     {
         "label": "analytics.process_request",
         "type": "function",
-        "detail": "analytics function",
+        "detail": "analytics.process_request function",
         "boost": 4
     },
     {
         "label": "analytics.process_analytics_request",
         "type": "function",
-        "detail": "analytics function",
+        "detail": "analytics.process_analytics_request function",
         "boost": 4
     },
     {
@@ -320,43 +320,43 @@
     {
         "label": "meta.get_metadata",
         "type": "function",
-        "detail": "meta function",
+        "detail": "meta.get_metadata function",
         "boost": 4
     },
     {
         "label": "meta.get_metadata_by_id",
         "type": "function",
-        "detail": "meta function",
+        "detail": "meta.get_metadata_by_id function",
         "boost": 4
     },
     {
         "label": "meta.get_all_metadata",
         "type": "function",
-        "detail": "meta function",
+        "detail": "meta.get_all_metadata function",
         "boost": 4
     },
     {
         "label": "meta.get_all_client_metadata",
         "type": "function",
-        "detail": "meta function",
+        "detail": "meta.get_all_client_metadata function",
         "boost": 4
     },
     {
         "label": "meta.get_metadata_by_schema",
         "type": "function",
-        "detail": "meta function",
+        "detail": "meta.get_metadata_by_schema function",
         "boost": 4
     },
     {
         "label": "meta.get_client_metadata_by_schema",
         "type": "function",
-        "detail": "meta function",
+        "detail": "meta.get_client_metadata_by_schema function",
         "boost": 4
     },
     {
         "label": "meta.get_owner_metadata_by_schema",
         "type": "function",
-        "detail": "meta function",
+        "detail": "meta.get_owner_metadata_by_schema function",
         "boost": 4
     },
     {
@@ -368,43 +368,43 @@
     {
         "label": "metadata.get_metadata",
         "type": "function",
-        "detail": "metadata function",
+        "detail": "metadata.get_metadata function",
         "boost": 4
     },
     {
         "label": "metadata.get_metadata_by_id",
         "type": "function",
-        "detail": "metadata function",
+        "detail": "metadata.get_metadata_by_id function",
         "boost": 4
     },
     {
         "label": "metadata.get_all_metadata",
         "type": "function",
-        "detail": "metadata function",
+        "detail": "metadata.get_all_metadata function",
         "boost": 4
     },
     {
         "label": "metadata.get_all_client_metadata",
         "type": "function",
-        "detail": "metadata function",
+        "detail": "metadata.get_all_client_metadata function",
         "boost": 4
     },
     {
         "label": "metadata.get_metadata_by_schema",
         "type": "function",
-        "detail": "metadata function",
+        "detail": "metadata.get_metadata_by_schema function",
         "boost": 4
     },
     {
         "label": "metadata.get_client_metadata_by_schema",
         "type": "function",
-        "detail": "metadata function",
+        "detail": "metadata.get_client_metadata_by_schema function",
         "boost": 4
     },
     {
         "label": "metadata.get_owner_metadata_by_schema",
         "type": "function",
-        "detail": "metadata function",
+        "detail": "metadata.get_owner_metadata_by_schema function",
         "boost": 4
     },
     {
@@ -416,13 +416,13 @@
     {
         "label": "schema.get_schema_by_key",
         "type": "function",
-        "detail": "schema function",
+        "detail": "schema.get_schema_by_key function",
         "boost": 4
     },
     {
         "label": "schema.get_all_schemas",
         "type": "function",
-        "detail": "schema function",
+        "detail": "schema.get_all_schemas function",
         "boost": 4
     },
     {
@@ -434,13 +434,13 @@
     {
         "label": "agent.run",
         "type": "function",
-        "detail": "agent function",
+        "detail": "agent.run function",
         "boost": 4
     },
     {
         "label": "agent.get_agent_hint_by_key",
         "type": "function",
-        "detail": "agent function",
+        "detail": "agent.get_agent_hint_by_key function",
         "boost": 4
     },
     {
@@ -452,25 +452,25 @@
     {
         "label": "prompts.add_prompt",
         "type": "function",
-        "detail": "prompts function",
+        "detail": "prompts.add_prompt function",
         "boost": 4
     },
     {
         "label": "prompts.get_prompts_by_category_with_reference_id",
         "type": "function",
-        "detail": "prompts function",
+        "detail": "prompts.get_prompts_by_category_with_reference_id function",
         "boost": 4
     },
     {
         "label": "prompts.get_prompts_by_category_with_id",
         "type": "function",
-        "detail": "prompts function",
+        "detail": "prompts.get_prompts_by_category_with_id function",
         "boost": 4
     },
     {
         "label": "prompts.delete_prompts_by_period",
         "type": "function",
-        "detail": "prompts function",
+        "detail": "prompts.delete_prompts_by_period function",
         "boost": 4
     },
     {
@@ -482,31 +482,31 @@
     {
         "label": "response_data.clear_recent_records_by_entity_and_category",
         "type": "function",
-        "detail": "response_data function",
+        "detail": "response_data.clear_recent_records_by_entity_and_category function",
         "boost": 4
     },
     {
         "label": "response_data.add_response",
         "type": "function",
-        "detail": "response_data function",
+        "detail": "response_data.add_response function",
         "boost": 4
     },
     {
         "label": "response_data.update_response_meta",
         "type": "function",
-        "detail": "response_data function",
+        "detail": "response_data.update_response_meta function",
         "boost": 4
     },
     {
         "label": "response_data.update_response_meta_by_key",
         "type": "function",
-        "detail": "response_data function",
+        "detail": "response_data.update_response_meta_by_key function",
         "boost": 4
     },
     {
         "label": "response_data.get_responses_by_period_and_category",
         "type": "function",
-        "detail": "response_data function",
+        "detail": "response_data.get_responses_by_period_and_category function",
         "boost": 4
     },
     {
@@ -620,8 +620,38 @@
     {
         "label": "workflow",
         "type": "variable",
-        "detail": "Exposed library: workflow",
-        "boost": 2
+        "detail": "workflow namespace",
+        "boost": 3
+    },
+    {
+        "label": "workflow.execute_node",
+        "type": "function",
+        "detail": "workflow.execute_node function",
+        "boost": 4
+    },
+    {
+        "label": "workflow.runtime",
+        "type": "variable",
+        "detail": "workflow.runtime namespace",
+        "boost": 3
+    },
+    {
+        "label": "workflow.runtime.get_data",
+        "type": "function",
+        "detail": "workflow.runtime.get_data function",
+        "boost": 4
+    },
+    {
+        "label": "workflow.runtime.set_data",
+        "type": "function",
+        "detail": "workflow.runtime.set_data function",
+        "boost": 4
+    },
+    {
+        "label": "workflow.runtime.get_value",
+        "type": "function",
+        "detail": "workflow.runtime.get_value function",
+        "boost": 4
     },
     {
         "label": "run",

@@ -37,6 +37,11 @@ from ..internal_libs import response_lib
 from ..internal_libs import charts
 from ..internal_libs.logger_lib import executor_logger
 from ..internal_libs.context_lib import execution_context
+from ..internal_libs.runtime_lib import (
+    get_runtime_data as runtime_get_data,
+    set_runtime_data as runtime_set_data,
+    get_runtime_value_by_key as runtime_get_value
+)
 
 
 def json_sanitize(obj):
@@ -219,7 +224,14 @@ SAFE_GLOBALS = {
     "datetime": datetime,
     "time": time,
     "timedelta": timedelta,
-    "workflow": None,  # Will be injected per-execution
+    "workflow": SimpleNamespace(
+        execute_node=lambda h, i: None,
+        runtime=SimpleNamespace(
+            get_data=lambda: None,
+            set_data=lambda d: None,
+            get_value=lambda k: None
+        )
+    ),  # Will be injected per-execution
 }
 
 
@@ -601,6 +613,7 @@ class WorkflowExecutor:
                     self.nodes = nodes
                     self.node_map = node_map
                     self.outputs = outputs
+                    self.runtime = SimpleNamespace()
 
                 def execute_node(self, handle_index, inputs: dict = None):
                     # Support both "then_1" and legacy "than_1"
@@ -695,6 +708,10 @@ class WorkflowExecutor:
                 "workflow": WorkflowNamespace(self, node_id, edges, nodes, node_map, outputs),
             }
             
+            node_globals["workflow"].runtime.get_data = lambda: runtime_get_data(str(self.execution_id))
+            node_globals["workflow"].runtime.set_data = lambda data: runtime_set_data(data, str(self.execution_id))
+            node_globals["workflow"].runtime.get_value = lambda key: runtime_get_value(str(self.execution_id), key)
+
             current_execution_id = str(self.execution_id)
             execution_libs.get_workflow_data = lambda: get_workflow_data(current_execution_id)
             execution_libs.get_runtime_data = lambda: get_runtime_data(current_execution_id)
