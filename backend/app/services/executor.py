@@ -21,6 +21,7 @@ from ..internal_libs.struct_func import get_workflow_data, get_runtime_data, upd
 from ..internal_libs.openai.openai_lib import openai_create_new_conversation as openai_create_new_conversation, openai_set_prompt as openai_set_prompt, openai_ask_chat as openai_ask_chat, openai_ask_single as openai_ask_single, openai_perform_web_search as openai_perform_web_search
 from ..internal_libs.gemini.gemini_lib import gemini_create_new_conversation as gemini_create_new_conversation, gemini_set_prompt as gemini_set_prompt, gemini_ask_chat as gemini_ask_chat, gemini_ask_single as gemini_ask_single, gemini_perform_web_search as gemini_perform_web_search
 from ..internal_libs.perplexity.perplexity_lib import perplexity_create_new_conversation as perplexity_create_new_conversation, perplexity_set_prompt as perplexity_set_prompt, perplexity_ask_chat as perplexity_ask_chat, perplexity_ask_single as perplexity_ask_single, perplexity_perform_web_search as perplexity_perform_web_search
+from ..internal_libs.grok.grok_lib import grok_create_new_conversation as grok_create_new_conversation, grok_set_prompt as grok_set_prompt, grok_ask_chat as grok_ask_chat, grok_ask_single as grok_ask_single, grok_perform_web_search as grok_perform_web_search
 from ..internal_libs import agent_lib
 from ..internal_libs import common_lib
 from ..internal_libs.tools_lib import (
@@ -168,6 +169,13 @@ SAFE_GLOBALS = {
         ask_chat=perplexity_ask_chat,
         ask_single=perplexity_ask_single,
         perform_web_search=perplexity_perform_web_search,
+    ),
+    "grok": SimpleNamespace(
+        create_new_conversation=grok_create_new_conversation,
+        set_prompt=grok_set_prompt,
+        ask_chat=grok_ask_chat,
+        ask_single=grok_ask_single,
+        perform_web_search=grok_perform_web_search,
     ),
     "common": SimpleNamespace(
         get_active_client=common_lib.get_active_client,
@@ -620,6 +628,7 @@ class WorkflowExecutor:
             execution_libs = copy(SAFE_GLOBALS["libs"])
             execution_openai = copy(SAFE_GLOBALS["openai"])
             execution_common = copy(SAFE_GLOBALS["common"])
+            execution_grok = copy(SAFE_GLOBALS["grok"])
 
             # Logic for synchronous branch execution (LOOP)
             class WorkflowNamespace:
@@ -679,6 +688,7 @@ class WorkflowExecutor:
                 "libs": execution_libs,
                 "openai": execution_openai,
                 "common": execution_common,
+                "grok": execution_grok,
                 "analytics": SimpleNamespace(
                     process_request=analytics.process_analytics_request,
                     process_analytics_request=analytics.process_analytics_request

@@ -159,18 +159,25 @@ def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, i
             
         client = genai.Client(api_key=api_key)
 
+    elif "sonar" in model_name or "llama" in model_name: 
+        provider = "perplexity"
+        api_key = get_credential_by_key("PERPLEXITY_API_KEY")
+        base_url = "https://api.perplexity.ai"
+        if not api_key: return f"Error: PERPLEXITY_API_KEY not found."
+        client = OpenAI(api_key=api_key, base_url=base_url)
+
+    elif "grok" in model_name:
+        provider = "grok"
+        api_key = get_credential_by_key("XAI_API_KEY") or get_credential_by_key("GROK_API_KEY")
+        base_url = "https://api.x.ai/v1"
+        if not api_key: return f"Error: GROK_API_KEY (or XAI_API_KEY) not found."
+        client = OpenAI(api_key=api_key, base_url=base_url)
 
     else:
-        # OpenAI or Perplexity (OpenAI-compatible)
-        if "sonar" in model_name or "llama" in model_name: 
-            provider = "perplexity"
-            api_key = get_credential_by_key("PERPLEXITY_API_KEY")
-            base_url = "https://api.perplexity.ai"
-        else:
-            api_key = get_credential_by_key("OPENAI_API_KEY")
-            base_url = None
-        
-        if not api_key: return f"Error: {provider.upper()}_API_KEY not found."
+        provider = "openai"
+        api_key = get_credential_by_key("OPENAI_API_KEY")
+        base_url = None
+        if not api_key: return f"Error: OPENAI_API_KEY not found."
         client = OpenAI(api_key=api_key, base_url=base_url)
 
     # 2. Tools setup
@@ -219,8 +226,8 @@ def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, i
                 openai_native_tools.append(web_search_tool)
                 tools_desc += f"- auto-search: {provider.title()} Search enabled\n"
                 system_log(f"[AGENT] Auto-search enabled for {provider.title()} - {web_search_tool}", level="system")
-        elif provider == "perplexity":
-             tools_desc += f"- auto-search: Enabled (built-in to Sonar models)\n"
+        elif provider in ("perplexity", "grok"):
+             tools_desc += f"- auto-search: Enabled (built-in to {provider.title()} models)\n"
              system_log(f"[AGENT] Auto-search enabled for {provider.title()} - search auto-enabled", level="system")
 
     # 3. Target Schema for final_answer
@@ -327,14 +334,14 @@ AVAILABLE TOOLS:
 
                     #system_log(f"[AGENT] OPENAI response: {resp}", level="system")
                 else:
-                    # Perplexity (Proxy for OpenAI-compatible but doesn't support 'responses')
+                    # Perplexity or Grok (Proxy for OpenAI-compatible but doesn't support 'responses')
                     resp = client.chat.completions.create(
                         model=model,
                         messages=messages,
                         response_format={"type": "text"}
                     )
                     response_text = resp.choices[0].message.content
-                    #system_log(f"[AGENT] PERPLEXITY response: {resp}", level="system")
+                    #system_log(f"[AGENT] {provider.upper()} response: {resp}", level="system")
 
             #system_log(f"[AGENT] AI raw response: {response_text[:300]}...", level="system")
             
