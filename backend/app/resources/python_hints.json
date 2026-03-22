@@ -468,9 +468,15 @@
         "boost": 4
     },
     {
-        "label": "prompts.delete_prompts_by_period",
+        "label": "prompts.delete_prompts_by_period_and_entity",
         "type": "function",
-        "detail": "prompts.delete_prompts_by_period function",
+        "detail": "prompts.delete_prompts_by_period_and_entity function",
+        "boost": 4
+    },
+    {
+        "label": "prompts.delete_prompts_by_period_and_reference_id",
+        "type": "function",
+        "detail": "prompts.delete_prompts_by_period_and_reference_id function",
         "boost": 4
     },
     {

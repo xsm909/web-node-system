@@ -123,6 +123,7 @@ SAFE_GLOBALS = {
         "sorted": sorted,
         "reversed": reversed,
         "isinstance": isinstance,
+        "type": type,
         "__build_class__": __build_class__,
         "_iter_unpack_sequence_": Guards.guarded_iter_unpack_sequence,
         "_getiter_": iter,
@@ -211,7 +212,8 @@ SAFE_GLOBALS = {
         add_prompt=prompt_lib.add_prompt,
         get_prompts_by_category_with_reference_id=prompt_lib.get_prompts_by_category_with_reference_id,
         get_prompts_by_category_with_id=prompt_lib.get_prompts_by_category_with_id,
-        delete_prompts_by_period=prompt_lib.delete_prompts_by_period
+        delete_prompts_by_period_and_entity=prompt_lib.delete_prompts_by_period_and_entity,
+        delete_prompts_by_period_and_reference_id=prompt_lib.delete_prompts_by_period_and_reference_id
     ),
     "response_data": SimpleNamespace(
         clear_recent_records_by_entity_and_category=response_lib.clear_recent_records_by_entity_and_category,
@@ -361,6 +363,21 @@ class WorkflowExecutor:
             
             # Merge: defaults first, then passed data
             merged_runtime = {**workflow_params, **passed_runtime_data}
+            
+            # Type conversion for workflow parameters
+            for p in workflow.parameters:
+                val = merged_runtime.get(p.parameter_name)
+                if val is not None:
+                    try:
+                        if p.parameter_type == "number":
+                            merged_runtime[p.parameter_name] = float(val) if "." in str(val) else int(val)
+                        elif p.parameter_type == "boolean":
+                            if isinstance(val, str):
+                                merged_runtime[p.parameter_name] = val.lower() in ("true", "1", "yes")
+                            else:
+                                merged_runtime[p.parameter_name] = bool(val)
+                    except (ValueError, TypeError):
+                        pass
             
             self.execution.runtime_data = merged_runtime
             self.db.commit()
@@ -696,7 +713,8 @@ class WorkflowExecutor:
                     add_prompt=prompt_lib.add_prompt,
                     get_prompts_by_category_with_reference_id=prompt_lib.get_prompts_by_category_with_reference_id,
                     get_prompts_by_category_with_id=prompt_lib.get_prompts_by_category_with_id,
-                    delete_prompts_by_period=prompt_lib.delete_prompts_by_period
+                    delete_prompts_by_period_and_entity=prompt_lib.delete_prompts_by_period_and_entity,
+                    delete_prompts_by_period_and_reference_id=prompt_lib.delete_prompts_by_period_and_reference_id
                 ),
                 "response_data": SimpleNamespace(
                     clear_recent_records_by_entity_and_category=response_lib.clear_recent_records_by_entity_and_category,

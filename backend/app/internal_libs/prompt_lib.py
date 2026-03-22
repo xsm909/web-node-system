@@ -186,7 +186,7 @@ def get_prompts_by_category_with_id(category: str, entity_id: str) -> list:
     finally:
         db.close()
 
-def delete_prompts_by_period(
+def delete_prompts_by_period_and_entity(
     entity_id: Union[str, uuid.UUID],
     category: str,
     data_start: Union[str, datetime],
@@ -206,7 +206,7 @@ def delete_prompts_by_period(
         A dictionary with the status of the operation and the count of deleted records.
     """
     if not all([entity_id, category, data_start, data_end]):
-        system_log("[PROMPT_LIB] Skipping delete_prompts_by_period: All fields are mandatory", level="warning")
+        system_log("[PROMPT_LIB] Skipping delete_prompts_by_period_and_entity: All fields are mandatory", level="warning")
         return {"status": "error", "message": "All fields (entity_id, category, data_start, data_end) are mandatory"}
 
     system_log(
@@ -229,6 +229,76 @@ def delete_prompts_by_period(
         # Perform deletion
         delete_query = db.query(Prompt).filter(
             Prompt.entity_id == e_uuid,
+            Prompt.category == category,
+            Prompt.created_at >= data_start,
+            Prompt.created_at <= data_end
+        )
+
+        count = delete_query.count()
+        delete_query.delete(synchronize_session=False)
+        db.commit()
+
+        system_log(f"[PROMPT_LIB] Successfully deleted {count} prompts", level="system")
+        result = {
+            "status": "success",
+            "deleted_count": count
+        }
+
+    except Exception as e:
+        db.rollback()
+        system_log(f"[PROMPT_LIB] Error deleting prompts: {str(e)}", level="error")
+        result = {
+            "status": "error",
+            "message": str(e)
+        }
+    finally:
+        db.close()
+    
+    return result
+
+def delete_prompts_by_period_and_reference_id(
+    reference_id: Union[str, uuid.UUID],
+    category: str,
+    data_start: Union[str, datetime],
+    data_end: Union[str, datetime]
+) -> Dict[str, Any]:
+    """
+    Deletes all records from the 'prompts' table for a specific reference_id and category
+    within a given date period (created_at).
+
+    Args:
+        reference_id: The ID of the reference (e.g., conversation ID, script ID, etc.).
+        category: Category for the prompt (e.g., 'Common|Prompt').
+        data_start: Start of the period (inclusive).
+        data_end: End of the period (inclusive).
+
+    Returns:
+        A dictionary with the status of the operation and the count of deleted records.
+    """
+    if not all([reference_id, category, data_start, data_end]):
+        system_log("[PROMPT_LIB] Skipping delete_prompts_by_period_and_reference_id: All fields are mandatory", level="warning")
+        return {"status": "error", "message": "All fields (reference_id, category, data_start, data_end) are mandatory"}
+
+    system_log(
+        f"[PROMPT_LIB] Deleting prompts for reference_id: {reference_id}, category: {category}, "
+        f"period: {data_start} to {data_end}",
+        level="system"
+    )
+
+    db = SessionLocal()
+    try:
+        # Convert string ID to UUID
+        r_uuid = uuid.UUID(reference_id) if isinstance(reference_id, str) else reference_id
+        
+        # Parse dates if they are strings
+        if isinstance(data_start, str):
+            data_start = datetime.fromisoformat(data_start.replace('Z', '+00:00'))
+        if isinstance(data_end, str):
+            data_end = datetime.fromisoformat(data_end.replace('Z', '+00:00'))
+
+        # Perform deletion
+        delete_query = db.query(Prompt).filter(
+            Prompt.reference_id == r_uuid,
             Prompt.category == category,
             Prompt.created_at >= data_start,
             Prompt.created_at <= data_end
