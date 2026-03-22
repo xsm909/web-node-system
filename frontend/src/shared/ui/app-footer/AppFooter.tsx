@@ -11,6 +11,14 @@ const getWeight = (key: string): number => {
     return 4; // Other keys
 };
 
+// Helper to extract numerical value from F-keys for secondary sorting
+const getSecondaryWeight = (key: string): number => {
+    const lower = key.toLowerCase();
+    const fMatch = lower.match(/^f(\d+)$/);
+    if (fMatch) return parseInt(fMatch[1], 10);
+    return 0;
+};
+
 const formatGroupedKeys = (keys: string[]): string => {
     const lowerKeys = keys.map(k => k.toLowerCase());
     const usedKeys = new Set<string>();
@@ -102,17 +110,30 @@ export const AppFooter: React.FC = () => {
 
         const groupsArray = Array.from(grouped.entries()).map(([description, keys]) => {
             // Find minimum weight among keys for sorting
-            const weight = Math.min(...keys.map(getWeight));
+            const weights = keys.map(getWeight);
+            const minWeight = Math.min(...weights);
+
+            // For secondary weight, we take the one from the key that has the minimum primary weight
+            // (or if multiple have the same min weight, the minimum among those)
+            const secondaryWeights = keys
+                .filter((_, idx) => weights[idx] === minWeight)
+                .map(getSecondaryWeight);
+            const minSecondaryWeight = Math.min(...secondaryWeights);
+
             return {
                 description,
                 keys,
                 formattedKey: formatGroupedKeys(keys),
-                weight
+                weight: minWeight,
+                secondaryWeight: minSecondaryWeight
             };
         });
 
         // Sort by weight
-        groupsArray.sort((a, b) => a.weight - b.weight);
+        groupsArray.sort((a, b) => {
+            if (a.weight !== b.weight) return a.weight - b.weight;
+            return a.secondaryWeight - b.secondaryWeight;
+        });
 
         return groupsArray;
     }, [scopes]);
