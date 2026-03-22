@@ -178,14 +178,24 @@ def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, i
     allowed_tools = {}
     tools_desc = ""
     gemini_native_tools = []
+    openai_native_tools = []
+    
+    auto_search_requested = any(t.lower() == "auto-search" for t in tools)
     
     for t_name in tools:
         name = t_name.lower()
-        
-        # Special handling for Gemini native tools
-        if provider == "gemini" and name == "google_search":
+        if name == "auto-search":
+            continue # Handled below
+            
+        # Specific search tool manual overrides
+        if name == "google_search" and provider == "gemini":
             gemini_native_tools.append(types.Tool(google_search=types.GoogleSearch()))
             tools_desc += f"- {name}: Native Google Search grounding (real-time information)\n"
+            continue
+            
+        if name == "web_search" and provider == "openai":
+            openai_native_tools.append({"type": "web_search"})
+            tools_desc += f"- {name}: Native Web Search (real-time information)\n"
             continue
 
         if name in ALL_TOOLS:
@@ -194,6 +204,24 @@ def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, i
             sig = inspect.signature(func)
             doc = func.__doc__.strip() if func.__doc__ else "No description."
             tools_desc += f"- {name}{sig}: {doc}\n"
+
+    # Handle auto-search mapping
+    if auto_search_requested:
+        if provider == "gemini":
+            grounding_tool = types.Tool(google_search=types.GoogleSearch())
+            if not any(getattr(t, 'google_search', None) for t in gemini_native_tools):
+                gemini_native_tools.append(grounding_tool)
+                tools_desc += f"- auto-search: {provider.title()} Search grounding enabled\n"
+                system_log(f"[AGENT] Auto-search enabled for {provider.title()} - {grounding_tool}", level="system")
+        elif provider == "openai":
+            web_search_tool = {"type": "web_search"}
+            if not any(t.get("type") == "web_search" for t in openai_native_tools):
+                openai_native_tools.append(web_search_tool)
+                tools_desc += f"- auto-search: {provider.title()} Search enabled\n"
+                system_log(f"[AGENT] Auto-search enabled for {provider.title()} - {web_search_tool}", level="system")
+        elif provider == "perplexity":
+             tools_desc += f"- auto-search: Enabled (built-in to Sonar models)\n"
+             system_log(f"[AGENT] Auto-search enabled for {provider.title()} - search auto-enabled", level="system")
 
     # 3. Target Schema for final_answer
     target_schema = None
@@ -262,14 +290,11 @@ AVAILABLE TOOLS:
                 # Gemini prefers the JSON schema for complex structures or when cleaning is needed
                 cleaned_schema = _clean_schema_for_gemini(AgentStep.model_json_schema())
                 
-                # Section 13: Mandatory Grounding for Gemini
-                grounding_tool = types.Tool(google_search=types.GoogleSearch())
-                
                 resp = client.models.generate_content(
                     model=model,
                     contents=contents,
                     config=types.GenerateContentConfig(
-                        tools=[grounding_tool],
+                        tools=gemini_native_tools if gemini_native_tools else None,
                         response_mime_type="application/json",
                         # We skip response_schema for Gemini here because it restricts dynamic dictionaries like 'parameters'
                         # if we don't define every possible key upfront. Prompting is sufficient for JSON structure.
@@ -294,11 +319,12 @@ AVAILABLE TOOLS:
                     
                     resp = client.responses.create(
                         model=model,
-                        tools=[{"type": "web_search"}],
+                        tools=openai_native_tools if openai_native_tools else None,
                         input=formatted_input.strip()
                     )
                     # Note: Section 13 uses input=... and response.output_text
                     response_text = resp.output_text
+
                     #system_log(f"[AGENT] OPENAI response: {resp}", level="system")
                 else:
                     # Perplexity (Proxy for OpenAI-compatible but doesn't support 'responses')
