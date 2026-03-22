@@ -14,6 +14,7 @@ import { Icon } from '../../shared/ui/icon';
 import { ComboBox } from '../../shared/ui/combo-box/ComboBox';
 import { AppFormFieldRect } from '../../shared/ui/app-input/AppFormFieldRect';
 import { apiClient } from '../../shared/api/client';
+import { UI_CONSTANTS } from '../../shared/ui/constants';
 
 // ─── Interop Handles ───────────────────────────────────────────────────────────
 const getInterop = (mod: any) => mod?.default || mod;
@@ -35,7 +36,7 @@ function BaseInputTemplate(props: BaseInputTemplateProps) {
         : (value ?? '');
 
     return (
-        <AppFormFieldRect className={hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}>
+        <AppFormFieldRect className={`${UI_CONSTANTS.FORM_CONTROL_HEIGHT} ${hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}>
             <input
                 id={id}
                 name={id}
@@ -177,7 +178,7 @@ function SelectWidget(props: WidgetProps) {
     const hasError = rawErrors && rawErrors.length > 0;
 
     return (
-        <AppFormFieldRect className={hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}>
+        <AppFormFieldRect className={`${UI_CONSTANTS.FORM_CONTROL_HEIGHT} ${hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}>
             <select
                 id={id}
                 name={id}

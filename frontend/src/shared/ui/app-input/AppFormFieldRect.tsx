@@ -1,4 +1,5 @@
 import React from 'react';
+import { UI_CONSTANTS } from '../constants';
 
 export interface AppFormFieldRectProps {
     children: React.ReactNode;
@@ -25,7 +26,7 @@ export const AppFormFieldRect = React.forwardRef<any, AppFormFieldRectProps>(({
 }, ref) => {
     const baseClasses = `
         w-full flex items-center gap-2 min-w-0
-        px-3 py-0.5
+        ${UI_CONSTANTS.FORM_CONTROL_PX} ${UI_CONSTANTS.FORM_CONTROL_PY}
         bg-surface-950/40
         border border-[var(--border-base)]
         rounded-lg

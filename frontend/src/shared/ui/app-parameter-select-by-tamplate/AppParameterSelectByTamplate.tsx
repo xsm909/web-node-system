@@ -3,8 +3,10 @@ import { ComboBox } from '../combo-box/ComboBox';
 import { AppFormFieldRect } from "../app-input";
 import { Icon } from '../icon';
 import type { ObjectParameter as ReportParameter } from '../../../entities/report/model/types';
+import { UI_CONSTANTS } from '../constants';
 
 interface AppParameterSelectByTamplateProps {
+// ...
     parameter: ReportParameter;
     value: any;
     onChange: (value: any) => void;
@@ -38,7 +40,7 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
         const errorOption = options.find(o => String(o.value) === 'error');
         if (errorOption) {
             return (
-                <AppFormFieldRect hasError={true} className={`!bg-red-50 !border-red-200 !text-red-600 ${className}`}>
+                <AppFormFieldRect hasError={true} className={`!bg-red-50 !border-red-200 !text-red-600 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} ${className}`}>
                     <Icon name="error" className="w-4 h-4 flex-shrink-0" />
                     <span className="truncate">{errorOption.label || 'Error source'}</span>
                 </AppFormFieldRect>
@@ -83,7 +85,7 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
 
         return (
             <div className={`grid grid-cols-2 gap-2 ${className}`}>
-                <AppFormFieldRect className="cursor-pointer">
+                <AppFormFieldRect className={`cursor-pointer ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
                     <input
                         type="date"
                         value={sValue}
@@ -92,7 +94,7 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
                         disabled={disabled}
                     />
                 </AppFormFieldRect>
-                <AppFormFieldRect className="cursor-pointer">
+                <AppFormFieldRect className={`cursor-pointer ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
                     <input
                         type="date"
                         value={eValue}
@@ -106,7 +108,7 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
     }
 
     return (
-        <AppFormFieldRect className={className} disabled={disabled}>
+        <AppFormFieldRect className={`${UI_CONSTANTS.FORM_CONTROL_HEIGHT} ${className}`} disabled={disabled}>
             <input
                 type={parameter.parameter_type === 'number' ? 'number' : parameter.parameter_type === 'date' ? 'date' : 'text'}
                 value={value || ''}

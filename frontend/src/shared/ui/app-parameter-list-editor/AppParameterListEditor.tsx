@@ -3,6 +3,7 @@ import { Icon } from '../icon';
 import type { ObjectParameter } from '../../../entities/report/model/types';
 import { AppParameterSelectByTamplate } from '../app-parameter-select-by-tamplate';
 import { AppFormFieldRect } from '../app-input';
+import { UI_CONSTANTS } from '../constants';
 
 interface AppParameterListEditorProps {
     parameters: ObjectParameter[];
@@ -66,7 +67,7 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5 flex flex-col">
                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Parameter Name</label>
-                                <AppFormFieldRect>
+                                <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                     <input
                                         type="text"
                                         value={param.parameter_name}
@@ -78,7 +79,7 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                             </div>
                             <div className="space-y-1.5 flex flex-col">
                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Type</label>
-                                <AppFormFieldRect>
+                                <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                     <select
                                         value={param.parameter_type}
                                         onChange={(e) => updateParam(index, { parameter_type: e.target.value as any })}
@@ -98,7 +99,7 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Source (@table or SQL)</label>
-                                    <AppFormFieldRect>
+                                    <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                         <input
                                             type="text"
                                             value={param.source}
@@ -110,7 +111,7 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                                 </div>
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Value Field</label>
-                                    <AppFormFieldRect>
+                                    <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                         <input
                                             type="text"
                                             value={param.value_field}
@@ -122,7 +123,7 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                                 </div>
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Label Field</label>
-                                    <AppFormFieldRect>
+                                    <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                         <input
                                             type="text"
                                             value={param.label_field}

@@ -2,8 +2,10 @@ import React, { useState, useRef } from 'react';
 import { Icon } from '../icon';
 import { SelectionList, type SelectionGroup, type SelectionItem, type SelectionAction, type SelectionListConfig } from '../selection-list';
 import { AppFormFieldRect } from '../app-input/AppFormFieldRect';
+import { UI_CONSTANTS } from '../constants';
 
 interface ComboBoxProps {
+// ... (omitted props for brevity, but I must provide full target content)
     value?: string;
     label?: string;
     subLabel?: string;
@@ -89,7 +91,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
                 isFocused={isOpen}
                 title={title}
                 className={`
-                    ${isIconOnly ? 'p-0 justify-center' : 'justify-start'}
+                    ${isIconOnly ? 'p-0 justify-center' : `justify-start ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}
                     ${isSidebar ? 'w-full' : 'max-w-full'}
                     ${triggerClassName.includes('rounded-full') ? 'rounded-full' : ''}
                     ${isBrand ? 'bg-brand text-white shadow-md shadow-brand/10 border-transparent hover:brightness-110 active:scale-95' : ''}

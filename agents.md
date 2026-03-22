@@ -247,6 +247,16 @@ The system supports 4 static node types and 1 dynamic behavior based on graph co
     - **Interactive Rows**: Use the `onRowClick` pattern for primary interactions like opening edit modals or detail views.
 - **Reference**: Use **Schema Registry** (`AdminSchemaManagement`) and **User Management** (`AdminUserManagement`) as the visual and functional reference for table layouts, header integration, and full-height implementation.
 
+### 11.1 Centralized UI Constants (`UI_CONSTANTS`)
+
+To maintain visual cohesion, all form controls, buttons, and layouts must reference the centralized `UI_CONSTANTS` defined in `shared/ui/constants.ts`.
+
+- **Standard Height**: Use `UI_CONSTANTS.FORM_CONTROL_HEIGHT` (default: `h-[32px]`) for all inputs, selects, and action buttons.
+- **Internal Padding**: Use `UI_CONSTANTS.FORM_CONTROL_PX` and `UI_CONSTANTS.FORM_CONTROL_PY` for consistent internal spacing.
+- **Calculations**: Use `UI_CONSTANTS.FORM_CONTROL_HEIGHT_PX` for absolute positioning or minimum width calculations (e.g., ensuring an action button is square).
+
+Avoid hardcoded pixel values for control heights in new components.
+
 ## 12. Standardized Form Layouts (AppFormView)
 
 - **Navigation Stack Principle**: All entity editing forms accessed from the administrator sidebar must act as a distinct layer in a "navigation stack", replacing the list view rather than rendering as a floating card or popup.

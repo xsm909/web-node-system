@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import { Icon } from '../icon';
 import { AppFormFieldRect } from './AppFormFieldRect';
+import { UI_CONSTANTS } from '../constants';
+
+export interface AppInputAction {
+    icon: string;
+    onClick: () => void;
+    title?: string;
+    label?: string; // Optional text next to icon
+    color?: 'brand' | 'danger' | 'success' | 'warning' | 'default';
+    disabled?: boolean;
+}
 
 export interface AppInputProps {
     label?: string;
@@ -20,6 +30,7 @@ export interface AppInputProps {
     icon?: string;
     showCopy?: boolean;
     autoFocus?: boolean;
+    actions?: AppInputAction[];
 }
 
 export const AppInput: React.FC<AppInputProps> = ({
@@ -40,6 +51,7 @@ export const AppInput: React.FC<AppInputProps> = ({
     icon,
     showCopy = false,
     autoFocus = false,
+    actions = [],
 }) => {
     const [copied, setCopied] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -59,6 +71,19 @@ export const AppInput: React.FC<AppInputProps> = ({
         setIsFocused(false);
         if (onBlur) onBlur();
     };
+
+    const allActions = [...actions];
+    if (disabled && showCopy && value) {
+        allActions.push({
+            icon: copied ? 'check' : 'content_copy',
+            onClick: handleCopy,
+            title: 'Copy to clipboard',
+            label: copied ? 'Copied' : undefined,
+            color: 'brand',
+        });
+    }
+
+    const hasActions = allActions.length > 0;
     
     return (
         <div className={`space-y-1 ${className}`}>
@@ -72,50 +97,75 @@ export const AppInput: React.FC<AppInputProps> = ({
                 isFocused={isFocused} 
                 hasError={!!error} 
                 disabled={disabled}
-                className={multiline ? 'items-start h-auto' : ''}
+                className={`${multiline ? 'items-start h-auto' : UI_CONSTANTS.FORM_CONTROL_HEIGHT} ${hasActions ? '!pr-0 !py-0' : ''}`}
             >
-                {multiline ? (
-                    <textarea
-                        value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        placeholder={placeholder}
-                        disabled={disabled}
-                        rows={rows}
-                        className="w-full bg-transparent outline-none resize-none p-0"
-                        onFocus={handleFocus}
-                        onBlur={handleBlur}
-                        autoFocus={autoFocus}
-                    />
-                ) : (
-                    <div className="relative flex items-center w-full">
-                        {icon && (
-                            <div className="mr-3 opacity-40 text-[var(--text-main)] shrink-0">
-                                <Icon name={icon} size={16} />
-                            </div>
-                        )}
-                        <input
-                            type={type}
+                <div className={`flex-1 flex items-center min-w-0 h-full ${hasActions ? 'pl-3' : ''}`}>
+                    {multiline ? (
+                        <textarea
                             value={value}
                             onChange={(e) => onChange(e.target.value)}
                             placeholder={placeholder}
                             disabled={disabled}
-                            className={`w-full bg-transparent outline-none p-0 ${(disabled && showCopy) ? 'pr-12' : ''}`}
+                            rows={rows}
+                            className="w-full bg-transparent outline-none resize-none p-0 py-1"
                             onFocus={handleFocus}
                             onBlur={handleBlur}
                             autoFocus={autoFocus}
                         />
-                        
-                        {disabled && showCopy && value && (
+                    ) : (
+                        <div className="flex items-center w-full h-full">
+                            {icon && (
+                                <div className="mr-3 opacity-40 text-[var(--text-main)] shrink-0">
+                                    <Icon name={icon} size={16} />
+                                </div>
+                            )}
+                            <input
+                                type={type}
+                                value={value}
+                                onChange={(e) => onChange(e.target.value)}
+                                placeholder={placeholder}
+                                disabled={disabled}
+                                className="w-full bg-transparent outline-none p-0 h-full"
+                                onFocus={handleFocus}
+                                onBlur={handleBlur}
+                                autoFocus={autoFocus}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {hasActions && (
+                    <div className="flex items-stretch h-full shrink-0">
+                        {allActions.map((action, index) => (
                             <button
+                                key={index}
                                 type="button"
-                                onClick={handleCopy}
-                                className="absolute right-0 p-1.5 rounded-lg hover:bg-brand/10 text-brand transition-all flex items-center gap-1.5 active:scale-95"
-                                title="Copy to clipboard"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    action.onClick();
+                                }}
+                                disabled={action.disabled || disabled}
+                                className={`
+                                    flex items-center justify-center gap-1.5 px-2.5
+                                    border-l border-[var(--border-base)]
+                                    hover:bg-white/5 transition-all
+                                    active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+                                    min-w-[${UI_CONSTANTS.FORM_CONTROL_HEIGHT_PX}px]
+                                    ${action.color === 'brand' ? 'text-brand' : ''}
+                                    ${action.color === 'danger' ? 'text-red-500' : ''}
+                                    ${action.color === 'success' ? 'text-green-500' : ''}
+                                    ${action.color === 'warning' ? 'text-amber-500' : ''}
+                                `}
+                                title={action.title}
                             >
-                                <Icon name={copied ? 'check' : 'content_copy'} size={14} />
-                                {copied && <span className="text-[10px] font-bold uppercase tracking-tighter">Copied</span>}
+                                <Icon name={action.icon} size={14} />
+                                {action.label && (
+                                    <span className="text-[10px] font-bold uppercase tracking-tighter">
+                                        {action.label}
+                                    </span>
+                                )}
                             </button>
-                        )}
+                        ))}
                     </div>
                 )}
             </AppFormFieldRect>
@@ -134,3 +184,4 @@ export const AppInput: React.FC<AppInputProps> = ({
         </div>
     );
 };
+

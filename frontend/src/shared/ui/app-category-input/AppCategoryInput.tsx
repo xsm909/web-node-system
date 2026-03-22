@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
-import { Icon } from '../icon';
 import { AppInput } from '../app-input';
 import { createPortal } from 'react-dom';
 
@@ -95,17 +94,14 @@ export const AppCategoryInput: React.FC<AppCategoryInputProps> = ({
                 placeholder={placeholder}
                 disabled={disabled}
                 required={required}
+                actions={!disabled ? [
+                    {
+                        icon: open ? 'expand_less' : 'expand_more',
+                        onClick: () => setOpen(o => !o),
+                        title: open ? 'Close' : 'Expand'
+                    }
+                ] : []}
             />
-            {!disabled && (
-                <button
-                    type="button"
-                    tabIndex={-1}
-                    className="absolute right-4 top-[30px] -translate-y-1/2 opacity-40 hover:opacity-80 transition-opacity text-[var(--text-main)]"
-                    onClick={() => setOpen(o => !o)}
-                >
-                    <Icon name={open ? 'expand_less' : 'expand_more'} size={16} />
-                </button>
-            )}
 
 
             {open && !disabled && filtered.length > 0 && coords.width > 0 && typeof document !== 'undefined' && createPortal(
