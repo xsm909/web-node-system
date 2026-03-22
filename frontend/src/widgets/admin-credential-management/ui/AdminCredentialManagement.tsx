@@ -8,6 +8,7 @@ import { AppTableStandardCell } from '../../../shared/ui/app-table/components/Ap
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput, AppFormFieldRect } from '../../../shared/ui/app-input';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 import { createColumnHelper } from '@tanstack/react-table';
 import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 
@@ -238,7 +239,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-1.5">
                                 <label className="text-sm font-bold text-[var(--text-main)]">Type</label>
-                                <AppFormFieldRect disabled={!!formData.is_locked}>
+                                <AppFormFieldRect disabled={!!formData.is_locked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                     <select
                                         value={formData.type}
                                         onChange={(e) => setFormData({ ...formData, type: e.target.value })}

@@ -39,6 +39,7 @@ export const AppFormFieldRect = React.forwardRef<any, AppFormFieldRectProps>(({
         ${hasError ? 'border-red-500 ring-1 ring-red-500/20' : ''}
         ${disabled ? 'cursor-not-allowed opacity-50' : ''}
         text-xs font-normal
+        ${UI_CONSTANTS.DEBUG_BG}
     `.replace(/\s+/g, ' ').trim();
 
     return (

@@ -3,7 +3,7 @@
  */
 export const UI_CONSTANTS = {
     /** Standard height for input fields, selects, and buttons in forms. */
-    FORM_CONTROL_HEIGHT: 'h-[32px]',
+    FORM_CONTROL_HEIGHT: 'h-[28px]',
 
     /** Numeric height in pixels for calculations (e.g. for absolute positioning). */
     FORM_CONTROL_HEIGHT_PX: 32,
@@ -13,4 +13,9 @@ export const UI_CONSTANTS = {
 
     /** Horizontal padding for form controls. */
     FORM_CONTROL_PX: 'px-3',
+
+    /** Debug background color to identify elements using constants. Change to 'bg-red-500/20' for testing. 
+     * or bg-transparent
+    */
+    DEBUG_BG: 'bg-transparent',
 };

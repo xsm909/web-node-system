@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useSchemas } from '../../../entities/schema/api';
 import { useCreateRecord } from '../../../entities/record/api';
 import { Icon } from '../../../shared/ui/icon';
+import { AppFormFieldRect } from '../../../shared/ui/app-input';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 interface AssignSchemaModalProps {
     isOpen: boolean;
@@ -65,18 +67,20 @@ export const AssignSchemaModal: React.FC<AssignSchemaModalProps> = ({
                         {isLoading ? (
                             <div className="text-sm text-gray-400">Loading schemas...</div>
                         ) : (
-                            <select
-                                value={selectedSchemaId}
-                                onChange={e => setSelectedSchemaId(e.target.value)}
-                                className="w-full bg-surface-950 border border-gray-700 text-[var(--text-main)] text-sm rounded-xl px-4 py-3 outline-none focus:border-brand transition-colors"
-                            >
-                                <option value="" disabled>Select a schema...</option>
-                                {schemas?.map(schema => (
-                                    <option key={schema.id} value={schema.id}>
-                                        {schema.key} {schema.is_system ? '(System)' : ''}
-                                    </option>
-                                ))}
-                            </select>
+                            <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
+                                <select
+                                    value={selectedSchemaId}
+                                    onChange={e => setSelectedSchemaId(e.target.value)}
+                                    className="w-full bg-transparent text-[var(--text-main)] text-sm outline-none cursor-pointer h-full"
+                                >
+                                    <option value="" disabled className="bg-surface-900">Select a schema...</option>
+                                    {schemas?.map(schema => (
+                                        <option key={schema.id} value={schema.id} className="bg-surface-900 text-white">
+                                            {schema.key} {schema.is_system ? '(System)' : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </AppFormFieldRect>
                         )}
                     </div>
                 </div>

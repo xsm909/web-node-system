@@ -12,6 +12,7 @@ import { useThemeStore } from "../../../shared/lib/theme/store";
 import { autocompletion, snippetCompletion } from "@codemirror/autocomplete";
 import { getPythonHints, type PythonHint } from "../../../shared/api/python-hints";
 import { AppInput, AppFormFieldRect } from "../../../shared/ui/app-input";
+import { UI_CONSTANTS } from "../../../shared/ui/constants";
 import { AppCategoryInput } from "../../../shared/ui/app-category-input/AppCategoryInput";
 import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
 import { AppConsole, AppConsoleLogLine } from "../../../shared/ui/app-console";
@@ -482,7 +483,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                     
                     <div className="space-y-1.5">
                         <label className="text-sm font-normal text-[var(--text-main)]">Report Type</label>
-                        <AppFormFieldRect disabled={isLocked}>
+                        <AppFormFieldRect disabled={isLocked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                             <select
                                 value={type}
                                 onChange={(e) => setType(e.target.value as ReportType)}
@@ -541,7 +542,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Parameter Name</label>
-                                            <AppFormFieldRect disabled={isLocked} className="px-3">
+                                            <AppFormFieldRect disabled={isLocked} className={`px-3 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
                                                 <input
                                                     type="text"
                                                     value={param.parameter_name}
@@ -558,7 +559,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                         </div>
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Type</label>
-                                            <AppFormFieldRect disabled={isLocked} className="px-3">
+                                            <AppFormFieldRect disabled={isLocked} className={`px-3 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
                                                 <select
                                                     value={param.parameter_type}
                                                     onChange={(e) => {
@@ -583,7 +584,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                         <div className="grid grid-cols-3 gap-4">
                                             <div className="space-y-1.5">
                                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Source (@table or SQL)</label>
-                                                <AppFormFieldRect disabled={isLocked} className="px-3">
+                                                <AppFormFieldRect disabled={isLocked} className={`px-3 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
                                                     <input
                                                         type="text"
                                                         value={param.source}
@@ -600,7 +601,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Value Field</label>
-                                                <AppFormFieldRect disabled={isLocked} className="px-3">
+                                                <AppFormFieldRect disabled={isLocked} className={`px-3 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
                                                     <input
                                                         type="text"
                                                         value={param.value_field}
@@ -617,7 +618,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Label Field</label>
-                                                <AppFormFieldRect disabled={isLocked} className="px-3">
+                                                <AppFormFieldRect disabled={isLocked} className={`px-3 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
                                                     <input
                                                         type="text"
                                                         value={param.label_field}
@@ -748,7 +749,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                     <div className="flex justify-between items-center px-1">
                         <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Jinja2 HTML Template</h3>
                         <div className="w-64">
-                            <AppFormFieldRect>
+                            <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                 <select
                                     value={styleId}
                                     onChange={(e) => setStyleId(e.target.value)}

@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/core';
 import { Icon } from '../../../shared/ui/icon';
 import { AppFormFieldRect } from '../../../shared/ui/app-input';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 import { AppTabs } from '../../../shared/ui/app-tabs';
 import { AppAreaHint } from '../../../shared/ui/app-area-hint';
 import { useDatabaseMetadata } from '../lib/useDatabaseMetadata';
@@ -86,7 +87,7 @@ const ColumnSelect: React.FC<ColumnSelectProps> = ({
     }, [tableAlias, getColumns, queryState, state]);
 
     return (
-        <AppFormFieldRect className="!px-2 !py-0 h-8 min-w-[100px]">
+        <AppFormFieldRect className={`!px-2 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} min-w-[100px]`}>
             <select
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
@@ -257,7 +258,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
             >
                 <div className="space-y-4">
                         <div className="grid grid-cols-[85px_1fr_auto_1.2fr_auto_1fr_auto_1.2fr] gap-1 items-center group">
-                            <AppFormFieldRect className="!px-2 !py-0 h-8">
+                            <AppFormFieldRect className={`!px-2 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
                                 <select
                                     value={join.type}
                                     onChange={(e) => {
@@ -274,7 +275,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
                                 </select>
                             </AppFormFieldRect>
 
-                            <AppFormFieldRect className="!px-2 !py-0 h-8 min-w-0">
+                            <AppFormFieldRect className={`!px-2 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} min-w-0`}>
                                 <select
                                     value={join.rightTableAlias}
                                     onChange={(e) => {
@@ -305,7 +306,7 @@ const JoinItem: React.FC<JoinItemProps> = ({ join, index, state, setState, getCo
 
                             <span className="text-brand font-normal text-sm px-1 opacity-30">=</span>
 
-                            <AppFormFieldRect className="!px-2 !py-0 h-8 min-w-0">
+                            <AppFormFieldRect className={`!px-2 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} min-w-0`}>
                                 <select
                                     value={join.leftTableAlias}
                                     onChange={(e) => {
@@ -373,7 +374,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                     <div key={cond.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] grid grid-cols-[50px_1fr_1.2fr_85px_2fr_auto_auto] gap-2 items-center group">
                         <div className="flex justify-center min-w-0">
                             {index > 0 ? (
-                                <AppFormFieldRect className="!px-1 !py-0 h-8 !bg-brand/10 !border-brand/20 w-full min-w-0 overflow-hidden">
+                                <AppFormFieldRect className={`!px-1 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} !bg-brand/10 !border-brand/20 w-full min-w-0 overflow-hidden`}>
                                     <select
                                         value={cond.logic}
                                         onChange={(e) => {
@@ -419,7 +420,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                             state={state}
                         />
 
-                        <AppFormFieldRect className="!px-1 !py-0 h-8 min-w-0 overflow-hidden">
+                        <AppFormFieldRect className={`!px-1 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} min-w-0 overflow-hidden`}>
                             <select
                                 value={cond.operator}
                                 onChange={(e) => {
@@ -444,7 +445,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
 
                         <div className="flex items-center gap-2 min-w-0">
                             {cond.valueType === 'parameter' ? (
-                                <AppFormFieldRect className="flex-1 !px-2 !py-0 h-8 !border-brand/30">
+                                <AppFormFieldRect className={`flex-1 !px-2 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} !border-brand/30`}>
                                     <select
                                         value={cond.value}
                                         onChange={(e) => {
@@ -461,7 +462,7 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                                     </select>
                                 </AppFormFieldRect>
                             ) : (
-                                <AppFormFieldRect className={`flex-1 !px-2 !py-0 h-8 ${(cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') ? 'opacity-30' : ''}`}>
+                                <AppFormFieldRect className={`flex-1 !px-2 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} ${(cond.operator === 'IS NULL' || cond.operator === 'IS NOT NULL') ? 'opacity-30' : ''}`}>
                                     <input
                                         placeholder="value"
                                         value={cond.value}
@@ -562,7 +563,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(state.groupBy || []).map((group, index) => (
                         <div key={group.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] flex items-center gap-3 group">
-                            <AppFormFieldRect className="!px-2 !py-0 h-8 min-w-[100px]">
+                            <AppFormFieldRect className={`!px-2 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} min-w-[100px]`}>
                                 <select
                                     value={group.tableAlias}
                                     onChange={(e) => {
@@ -630,7 +631,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(state.orderBy || []).map((order, index) => (
                         <div key={order.id} className="p-4 rounded-2xl border border-[var(--border-base)] bg-[var(--bg-app)] flex items-center gap-3 group">
-                            <AppFormFieldRect className="!px-2 !py-0 h-8 min-w-[100px]">
+                            <AppFormFieldRect className={`!px-2 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} min-w-[100px]`}>
                                 <select
                                     value={order.tableAlias}
                                     onChange={(e) => {
@@ -656,7 +657,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                                 state={state}
                                 placeholder="Sort column..."
                             />
-                            <AppFormFieldRect className="!px-2 !py-0 h-8 w-20 !bg-brand/5 !border-brand/20">
+                            <AppFormFieldRect className={`!px-2 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} w-20 !bg-brand/5 !border-brand/20`}>
                                 <select
                                     value={order.direction}
                                     onChange={(e) => {
@@ -718,7 +719,7 @@ const GroupingSortingView: React.FC<ViewProps> = ({ state, setState, getColumns,
                     </div>
                     
                     <div className={`flex items-center gap-3 transition-all ${state.useLimit ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-                        <AppFormFieldRect className={`w-32 !px-3 !py-0 h-8 ${!state.useLimit ? 'opacity-40' : ''}`}>
+                        <AppFormFieldRect className={`w-32 !px-3 !py-0 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} ${!state.useLimit ? 'opacity-40' : ''}`}>
                             <input
                                 type="number"
                                 value={state.limit || ''}
