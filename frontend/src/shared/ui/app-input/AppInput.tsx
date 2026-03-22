@@ -145,17 +145,17 @@ export const AppInput: React.FC<AppInputProps> = ({
                                     action.onClick();
                                 }}
                                 disabled={action.disabled || disabled}
-                                className={`
+                                 className={`
                                     flex items-center justify-center gap-1.5 px-2.5
                                     border-l border-[var(--border-base)]
                                     hover:bg-white/5 transition-all
                                     active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
-                                    min-w-[${UI_CONSTANTS.FORM_CONTROL_HEIGHT_PX}px]
                                     ${action.color === 'brand' ? 'text-brand' : ''}
                                     ${action.color === 'danger' ? 'text-red-500' : ''}
                                     ${action.color === 'success' ? 'text-green-500' : ''}
                                     ${action.color === 'warning' ? 'text-amber-500' : ''}
                                 `}
+                                style={{ minWidth: UI_CONSTANTS.FORM_CONTROL_HEIGHT_PX }}
                                 title={action.title}
                             >
                                 <Icon name={action.icon} size={14} />

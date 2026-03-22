@@ -10,7 +10,6 @@ import { useForm } from '@tanstack/react-form';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppInput } from '../../../shared/ui/app-input';
 import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
-import { Icon } from '../../../shared/ui/icon';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 
 interface NodeEditorViewProps {
@@ -139,31 +138,22 @@ const ParameterRow: React.FC<{
                         className="w-full"
                     />
                 ) : param.is_sql_query_constructor ? (
-                    <div className="flex gap-2 items-start w-full">
-                        <div className="flex-1">
-                            <AppInput
-                                type="text"
-                                multiline={false}
-                                value={value ?? ''}
-                                onChange={(val) => onChange({ [param.name]: val })}
-                                placeholder={`Enter SQL query...`}
-                                disabled={isReadOnly}
-                            />
-                        </div>
-                        <button
-                            type="button"
-                            disabled={isReadOnly}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                if (onOpenSqlEditor) onOpenSqlEditor();
-                            }}
-                            className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-brand text-white hover:brightness-110 transition-all disabled:opacity-50"
-                            title="Open Query Constructor"
-                        >
-                            <Icon name="database" size={20} />
-                        </button>
-                    </div>
+                    <AppInput
+                        type="text"
+                        multiline={false}
+                        value={value ?? ''}
+                        onChange={(val) => onChange({ [param.name]: val })}
+                        placeholder={`Enter SQL query...`}
+                        disabled={isReadOnly}
+                        actions={[
+                            {
+                                icon: 'wizard',
+                                onClick: () => onOpenSqlEditor?.(),
+                                title: 'Open Query Constructor',
+                                color: 'success',
+                            }
+                        ]}
+                    />
                 ) : (
                     <AppInput
                         label=""
@@ -191,7 +181,7 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
     isReadOnly = false,
     inline = false,
     workflowParameters = [],
-    isLocked = false,
+    isLocked: _isLocked = false,
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
     const [sqlEditorParam, setSqlEditorParam] = useState<string | null>(null);
