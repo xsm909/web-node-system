@@ -128,7 +128,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 const hint = info.row.original;
                 return (
                     <AppTableStandardCell
-                        icon="description"
+                        icon="lightbulb_circle"
                         label={hint.key}
                         isLocked={hint.is_locked}
                     />
@@ -175,7 +175,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
             <AppFormView
                 title={selectedHint ? selectedHint.key : (key ? `${key} (New)` : 'New Agent Hint')}
                 parentTitle="Agent Hints"
-                icon="description"
+                icon="lightbulb_circle"
                 isDirty={isDirty}
                 isSaving={updateMutation.isPending || createMutation.isPending}
                 onSave={handleSave}

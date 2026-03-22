@@ -388,7 +388,7 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
         <AppFormView
             title={activeWorkflow?.name || 'Workflow'}
             parentTitle="Workflows"
-            icon="account_tree"
+            icon="automation"
             isDirty={isDirty}
             onSave={saveWorkflow}
             onCancel={onBack}

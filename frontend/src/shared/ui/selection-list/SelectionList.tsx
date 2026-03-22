@@ -11,6 +11,7 @@ export interface SelectionItem {
     parentId?: string;
     selectable?: boolean;
     icon?: string;
+    iconDir?: 'icons' | 'node_icons';
 }
 
 export interface SelectionGroup {
@@ -20,6 +21,7 @@ export interface SelectionGroup {
     children: Record<string, SelectionGroup>;
     selectable?: boolean;
     icon?: string;
+    iconDir?: 'icons' | 'node_icons';
     /** Per-group override of config.groupActions. If set, only these actions show for this group. */
     groupActions?: SelectionAction[];
     /** If set, overrides config.allowDelete/allowRename/allowDuplicate for items in this group. */
@@ -123,7 +125,7 @@ const SelectionListContent: React.FC<SelectionListContentProps> = ({
                             >
                                 <div className="flex items-center justify-between w-full">
                                     <div className="flex items-center gap-2 truncate pr-4">
-                                        <Icon name={group.icon || "folder_code"} size={14} className={isActive ? 'text-brand' : isSelectable ? 'text-brand/50 group-hover:text-brand' : 'text-brand/40'} />
+                                        <Icon name={group.icon || "folder_code"} dir={group.iconDir || 'icons'} size={14} className={isActive ? 'text-brand' : isSelectable ? 'text-brand/50 group-hover:text-brand' : 'text-brand/40'} />
                                         <span className="truncate">{label}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
@@ -175,7 +177,7 @@ const SelectionListContent: React.FC<SelectionListContentProps> = ({
                             >
                                 <div className="flex justify-between items-center w-full">
                                     <div className="flex items-center gap-2 truncate flex-1 pr-2">
-                                        <Icon name={item.icon || "data_object"} size={14} className={isActive ? 'text-brand' : 'text-brand/50'} />
+                                        <Icon name={item.icon || "data_object"} dir={item.iconDir || 'icons'} size={14} className={isActive ? 'text-brand' : 'text-brand/50'} />
                                         <span className={`truncate ${isActive ? 'text-brand' : 'text-[var(--text-main)] group-hover/item:text-brand'}`}>{item.name}</span>
                                     </div>
                                 </div>
@@ -386,7 +388,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                             }`}
                                     >
                                         <div className="flex items-center gap-2 truncate">
-                                            <Icon name={item.icon || "data_object"} size={14} className={isHighlighted ? 'text-brand' : 'text-brand/50'} />
+                                            <Icon name={item.icon || "data_object"} dir={item.iconDir || 'icons'} size={14} className={isHighlighted ? 'text-brand' : 'text-brand/50'} />
                                             <span className={`truncate transition-colors ${isHighlighted ? 'text-brand' : 'group-hover:text-brand'}`}>{item.name}</span>
                                         </div>
                                         {item.description && (

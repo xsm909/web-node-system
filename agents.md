@@ -199,6 +199,20 @@ design like  - https://protocol.tailwindui.com/pagination
 
 ### 9.1 using icons from https://fonts.google.com/icons and download them as svg to assets/icons folder
 
+### 9.2 icons rule
+separate name in fillename using underscore and use lowercase
+
+### 9.3 icons and objects
+Credentials - verified.svg
+Report - article.svg
+Workflow - automation.png
+Schema - schema.svg
+Agent hints - lightbulb_circle.svg
+Node type - function.svg
+
+collapse all  - collapse_all.svg
+expand all - expand_all.svg
+
 ## 10. Types of Nodes
 
 The system supports 4 static node types and 1 dynamic behavior based on graph context:

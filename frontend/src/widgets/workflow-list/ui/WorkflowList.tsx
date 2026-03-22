@@ -65,7 +65,7 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                 const wf = info.row.original;
                 return (
                     <AppTableStandardCell
-                        icon="device_hub"
+                        icon="automation"
                         label={wf.name}
                         isLocked={wf.is_locked}
                     />

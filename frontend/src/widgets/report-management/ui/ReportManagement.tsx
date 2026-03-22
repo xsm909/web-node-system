@@ -305,7 +305,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
             <AppFormView
                 title={selectedReport?.name || 'New Report'}
                 parentTitle="Reports Management"
-                icon="description"
+                icon="article"
                 isDirty={reportEditorIsDirty}
                 isSaving={isSaving}
                 onSave={() => {
@@ -423,7 +423,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                         {view === 'view' && isGenerated && (
                             <ComboBox
                                 label="Export"
-                                icon="docs"
+                                icon="article"
                                 iconSize={18}
                                 data={{
                                     items: {
@@ -459,7 +459,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     <div className="px-8 border-b border-[var(--border-base)] bg-[var(--bg-app)]">
                         <AppTabs
                             tabs={[
-                                { id: 'reports', label: 'Reports', icon: 'description' },
+                                { id: 'reports', label: 'Reports', icon: 'article' },
                                 { id: 'styles', label: 'Styles', icon: 'palette' },
                             ]}
                             activeTab={topTab}

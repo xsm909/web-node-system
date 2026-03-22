@@ -117,7 +117,7 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, onClick, level = 0 }) => (
         <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
             <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-surface-700 text-brand group-hover:bg-brand group-hover:text-white transition-colors">
-                    <Icon name={node.icon || 'extension'} size={18} />
+                    <Icon name={node.icon || 'function'} dir="node_icons" size={18} />
                 </div>
                 <div className="flex flex-col min-w-0">
                     <span className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
@@ -200,11 +200,11 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
                 <td className="px-6 py-2" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
                     <div className="flex items-center gap-2">
                         <Icon
-                            name={isExpanded ? 'down' : 'play'}
+                            name={isExpanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
                             size={14}
                             className="text-gray-500 opacity-60"
                         />
-                        <Icon name="folder_code" size={16} className="text-brand/70" />
+                        <Icon name="folder" size={16} className="text-brand/70" />
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{node.name}</span>
                     </div>
                 </td>

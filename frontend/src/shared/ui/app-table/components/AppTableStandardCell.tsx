@@ -9,6 +9,7 @@ interface AppTableStandardCellProps {
     isMono?: boolean;
     className?: string;
     iconClassName?: string;
+    iconDir?: 'icons' | 'node_icons';
 }
 
 export const AppTableStandardCell: React.FC<AppTableStandardCellProps> = ({
@@ -18,13 +19,14 @@ export const AppTableStandardCell: React.FC<AppTableStandardCellProps> = ({
     isLocked,
     isMono = false,
     className = "",
-    iconClassName = ""
+    iconClassName = "",
+    iconDir = 'icons'
 }) => {
     return (
         <div className={`flex items-center gap-3 min-w-0 ${className}`}>
             {icon && (
                 <div className={`flex-shrink-0 p-2 rounded-lg bg-surface-700 text-brand group-hover:bg-brand group-hover:text-white transition-colors ${iconClassName}`}>
-                    <Icon name={icon} size={18} />
+                    <Icon name={icon} dir={iconDir} size={18} />
                 </div>
             )}
             <div className="flex flex-col min-w-0">

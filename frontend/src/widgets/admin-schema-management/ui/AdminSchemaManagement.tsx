@@ -165,7 +165,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                 const schema = info.row.original;
                 return (
                     <AppTableStandardCell
-                        icon="data_object"
+                        icon="schema"
                         label={schema.content?.title || schema.key}
                         subtitle={schema.content?.description || (schema.is_system ? 'System Schema' : undefined)}
                         isLocked={schema.is_locked}
@@ -233,7 +233,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
             <AppFormView
                 title={selectedSchema ? selectedSchema.key : (key ? `${key} (New)` : 'New Schema')}
                 parentTitle="Schema Registry"
-                icon="data_object"
+                icon="schema"
                 isDirty={isDirty}
                 isSaving={updateMutation.isPending || createMutation.isPending}
                 onSave={handleSave}

@@ -127,7 +127,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                 const cred = info.row.original;
                 return (
                     <AppTableStandardCell
-                        icon="key"
+                        icon="verified"
                         label={cred.key}
                         subtitle={cred.description}
                         isLocked={cred.is_locked}
@@ -190,7 +190,7 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
             <AppFormView
                 title={editingId ? (formData.key || 'Editing') : 'Add New Credential'}
                 parentTitle="API Credentials"
-                icon="key"
+                icon="verified"
                 isDirty={isDirty}
                 isSaving={loading}
                 onSave={handleSave}

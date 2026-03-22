@@ -176,12 +176,12 @@ export default function AdminPage() {
                 onClose={() => setIsSidebarOpen(false)}
                 navItems={[
                     { id: 'users', label: 'Users', icon: 'people', isActive: activeTab === 'users', onClick: () => setActiveTab('users') },
-                    { id: 'credentials', label: 'Credentials', icon: 'key_clear', isActive: activeTab === 'credentials', onClick: () => setActiveTab('credentials') },
-                    { id: 'reports', label: 'Reports', icon: 'docs', isActive: activeTab === 'reports', onClick: () => setActiveTab('reports') },
-                    { id: 'schemas', label: 'Schemas', icon: 'data_object', isActive: activeTab === 'schemas', onClick: () => setActiveTab('schemas') },
-                    { id: 'agent-hints', label: 'Agent Hints', icon: 'dev_hint', isActive: activeTab === 'agent-hints', onClick: () => setActiveTab('agent-hints') },
-                    { id: 'nodes', label: 'Node Types', icon: 'code_blocks', isActive: activeTab === 'nodes', onClick: () => setActiveTab('nodes') },
-                    { id: 'workflows', label: 'Workflows', icon: 'conversion', isActive: activeTab === 'workflows', onClick: () => setActiveTab('workflows') },
+                    { id: 'credentials', label: 'Credentials', icon: 'verified', isActive: activeTab === 'credentials', onClick: () => setActiveTab('credentials') },
+                    { id: 'reports', label: 'Reports', icon: 'article', isActive: activeTab === 'reports', onClick: () => setActiveTab('reports') },
+                    { id: 'schemas', label: 'Schemas', icon: 'schema', isActive: activeTab === 'schemas', onClick: () => setActiveTab('schemas') },
+                    { id: 'agent-hints', label: 'Agent Hints', icon: 'lightbulb_circle', isActive: activeTab === 'agent-hints', onClick: () => setActiveTab('agent-hints') },
+                    { id: 'nodes', label: 'Node Types', icon: 'function', isActive: activeTab === 'nodes', onClick: () => setActiveTab('nodes') },
+                    { id: 'workflows', label: 'Workflows', icon: 'automation', isActive: activeTab === 'workflows', onClick: () => setActiveTab('workflows') },
                 ]}
             />
 

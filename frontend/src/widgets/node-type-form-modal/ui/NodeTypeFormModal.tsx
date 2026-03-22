@@ -86,7 +86,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             version: currentNode?.version || '1.0',
             description: currentNode?.description || '',
             category: currentNode?.category || '',
-            icon: currentNode?.icon || 'task',
+            icon: currentNode?.icon || 'function',
             code: currentNode?.code || 'def run(inputs, params):\n    return {}',
             is_async: currentNode?.is_async || false,
             input_schema: currentNode?.input_schema || {},
@@ -107,7 +107,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                     version: updatedNode.version || '1.0',
                     description: updatedNode.description || '',
                     category: updatedNode.category || '',
-                    icon: updatedNode.icon || 'task',
+                    icon: updatedNode.icon || 'function',
                     code: updatedNode.code || '',
                     is_async: !!updatedNode.is_async,
                     input_schema: updatedNode.input_schema || {},
@@ -191,7 +191,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         <AppFormView
             title={currentNode?.name || 'New Node Structure'}
             parentTitle="Node Library"
-            icon="device_hub"
+            icon="function"
             isDirty={isDirty}
             onSave={() => form.handleSubmit()}
             onCancel={onClose}

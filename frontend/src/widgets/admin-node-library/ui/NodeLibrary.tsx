@@ -71,7 +71,8 @@ export const AdminNodeLibrary = ({
                 const node = info.row.original;
                 return (
                     <AppTableStandardCell
-                        icon={node.icon || 'extension'}
+                        icon={node.icon || 'function'}
+                        iconDir="node_icons"
                         label={node.name}
                         subtitle={node.description}
                         isLocked={node.is_locked}

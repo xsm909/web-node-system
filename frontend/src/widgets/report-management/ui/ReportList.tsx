@@ -28,7 +28,7 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQ
                 const report = info.row.original;
                 return (
                     <AppTableStandardCell
-                        icon="bar_chart"
+                        icon="article"
                         label={report.name}
                         subtitle={report.description}
                         isLocked={report.is_locked}

@@ -34,7 +34,8 @@ export const AddNodeMenu: React.FC<AddNodeMenuProps> = ({ clientX, clientY, node
                         description: nt.description,
                         parentId: key,
                         selectable: true,
-                        icon: nt.icon || 'task'
+                        icon: nt.icon || 'function',
+                        iconDir: 'node_icons'
                     })),
                     children: transform(child)
                 };
@@ -52,13 +53,15 @@ export const AddNodeMenu: React.FC<AddNodeMenuProps> = ({ clientX, clientY, node
                 name: 'General',
                 selectable: false,
                 icon: 'category',
+                iconDir: 'icons',
                 items: categoryTree.nodes.map(nt => ({
                     id: nt.id,
                     name: nt.name,
                     description: nt.description,
                     parentId: 'root-nodes',
                     selectable: true,
-                    icon: nt.icon || 'task'
+                    icon: nt.icon || 'function',
+                    iconDir: 'node_icons'
                 })),
                 children: {}
             };
