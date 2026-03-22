@@ -2,7 +2,9 @@ import json
 import urllib.request
 import urllib.error
 import uuid
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
+from openai import OpenAI
+from ..agent_providers import AgentProvider
 from ..credentials import get_credential_by_key
 
 # In-memory storage for conversations
@@ -90,4 +92,16 @@ def grok_perform_web_search(query: str, model: str = "grok-2-latest") -> str:
     Performs a web search using Grok.
     Grok models typically have real-time access enabled.
     """
-    return grok_ask_single(query, model=model)
+
+class GrokAgentProvider(AgentProvider):
+    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None) -> str:
+        client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+        
+        # Grok uses standard chat.completions.create for OpenAI compatibility
+        full_messages = [{"role": "system", "content": system_prompt}] + messages
+        resp = client.chat.completions.create(
+            model=self.model,
+            messages=full_messages,
+            response_format={"type": "text"}
+        )
+        return resp.choices[0].message.content

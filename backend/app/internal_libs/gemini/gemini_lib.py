@@ -1,7 +1,7 @@
 import uuid
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import google.genai as genai
 from google.genai import types
 from ..credentials import get_credential_by_key
@@ -113,3 +113,43 @@ def gemini_perform_web_search(query: str, model_name: str = "gemini-2.0-flash") 
         return response.text
     except Exception as e:
         return f"Error calling Gemini API: {str(e)}"
+
+from ..agent_providers import AgentProvider
+
+def _clean_schema_for_gemini(schema: Any) -> Any:
+    """
+    Recursively removes 'additionalProperties' and modifies schema for Gemini compatibility.
+    Gemini doesn't support 'additionalProperties' in its response schema.
+    """
+    if isinstance(schema, dict):
+        # Remove additionalProperties if it exists
+        schema.pop("additionalProperties", None)
+        # Process all values recursively
+        for key, value in list(schema.items()):
+            schema[key] = _clean_schema_for_gemini(value)
+    elif isinstance(schema, list):
+        # Process all items in the list recursively
+        return [_clean_schema_for_gemini(item) for item in schema]
+    return schema
+
+class GeminiAgentProvider(AgentProvider):
+    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None) -> str:
+        client = genai.Client(api_key=self.api_key)
+        
+        # Convert messages to Gemini format
+        contents = []
+        for m in messages:
+            role = "user" if m["role"] == "user" else "model"
+            contents.append(types.Content(role=role, parts=[types.Part(text=m["content"])]))
+            
+        resp = client.models.generate_content(
+            model=self.model,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                tools=native_tools if native_tools else None,
+                response_mime_type="application/json",
+                system_instruction=system_prompt
+            )
+        )
+        return resp.text
+

@@ -3,7 +3,7 @@ import urllib.request
 import urllib.error
 import uuid
 from openai import OpenAI
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any, Union
 from ..credentials import get_credential_by_key
 
 # In-memory storage for conversations
@@ -120,4 +120,22 @@ def openai_perform_web_search(query: str, model: str = "gpt-5.2") -> str:
         input=query,
         reasoning={"effort": "low"}
     )
-    return response.output_text
+
+from ..agent_providers import AgentProvider
+
+class OpenAIAgentProvider(AgentProvider):
+    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None) -> str:
+        client = OpenAI(api_key=self.api_key)
+        
+        # Section 13: OpenAI responses.create pattern
+        formatted_input = ""
+        for m in messages:
+            prefix = "User: " if m["role"] == "user" else "Assistant: "
+            formatted_input += f"{prefix}{m['content']}\n"
+            
+        resp = client.responses.create(
+            model=self.model,
+            tools=native_tools if native_tools else None,
+            input=formatted_input.strip()
+        )
+        return resp.output_text

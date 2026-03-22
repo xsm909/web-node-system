@@ -2,7 +2,9 @@ import json
 import urllib.request
 import urllib.error
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any, Union
+from openai import OpenAI
+from ..agent_providers import AgentProvider
 from ..credentials import get_credential_by_key
 
 # In-memory storage for conversations (shared structure with openai_lib)
@@ -91,3 +93,17 @@ def perplexity_perform_web_search(query: str, model: str = "sonar") -> str:
     The 'sonar' model is optimized for online search and citations.
     """
     return perplexity_ask_single(query, model=model)
+
+
+class PerplexityAgentProvider(AgentProvider):
+    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None) -> str:
+        client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+        
+        # Perplexity defaults to completions for now (OpenAI compatible)
+        full_messages = [{"role": "system", "content": system_prompt}] + messages
+        resp = client.chat.completions.create(
+            model=self.model,
+            messages=full_messages,
+            response_format={"type": "text"}
+        )
+        return resp.choices[0].message.content

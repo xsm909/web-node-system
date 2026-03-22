@@ -40,21 +40,103 @@ ALL_TOOLS = {
     "smart_search": tools_lib.smart_search,
 }
 
-def _clean_schema_for_gemini(schema: Any) -> Any:
+def prepare_tools(tools: List[str], provider: str) -> Dict[str, Any]:
     """
-    Recursively removes 'additionalProperties' and modifies schema for Gemini compatibility.
-    Gemini doesn't support 'additionalProperties' in its response schema.
+    Identifies allowed tools, handles auto-search mapping, and generates a description string.
+    Returns a dictionary with:
+        - 'allowed_tools': dict of functions
+        - 'tools_desc': string description
+        - 'native_tools': list of native tool configs (grounding, etc.)
     """
-    if isinstance(schema, dict):
-        # Remove additionalProperties if it exists
-        schema.pop("additionalProperties", None)
-        # Process all values recursively
-        for key, value in list(schema.items()):
-            schema[key] = _clean_schema_for_gemini(value)
-    elif isinstance(schema, list):
-        # Process all items in the list recursively
-        return [_clean_schema_for_gemini(item) for item in schema]
-    return schema
+    import inspect
+    from google.genai import types
+    
+    allowed_tools_funcs = {}
+    tools_desc = ""
+    native_tools = []
+    
+    auto_search_requested = any(t.lower() == "auto-search" for t in tools)
+    
+    for t_name in tools:
+        name = t_name.lower()
+        if name == "auto-search":
+            continue
+            
+        # Specific search tool manual overrides
+        if name == "google_search" and provider == "gemini":
+            native_tools.append(types.Tool(google_search=types.GoogleSearch()))
+            tools_desc += f"- {name}: Native Google Search grounding (real-time information)\n"
+            continue
+            
+        if name == "web_search" and provider == "openai":
+            native_tools.append({"type": "web_search"})
+            tools_desc += f"- {name}: Native Web Search (real-time information)\n"
+            continue
+
+        if name in ALL_TOOLS:
+            func = ALL_TOOLS[name]
+            allowed_tools_funcs[name] = func
+            sig = inspect.signature(func)
+            doc = func.__doc__.strip() if func.__doc__ else "No description."
+            tools_desc += f"- {name}{sig}: {doc}\n"
+
+    # Handle auto-search mapping
+    if auto_search_requested:
+        if provider == "gemini":
+            grounding_tool = types.Tool(google_search=types.GoogleSearch())
+            if not any(getattr(t, 'google_search', None) for t in native_tools):
+                native_tools.append(grounding_tool)
+                tools_desc += f"- auto-search: {provider.title()} Search grounding enabled\n"
+        elif provider == "openai":
+            web_search_tool = {"type": "web_search"}
+            if not any(t.get("type") == "web_search" for t in native_tools):
+                native_tools.append(web_search_tool)
+                tools_desc += f"- auto-search: {provider.title()} Search enabled\n"
+        elif provider in ("perplexity", "grok"):
+             tools_desc += f"- auto-search: Enabled (built-in to {provider.title()} models)\n"
+
+    return {
+        "allowed_tools": allowed_tools_funcs,
+        "tools_desc": tools_desc,
+        "native_tools": native_tools
+    }
+
+def get_provider(model: str) -> Any:
+    """
+    Factory to retrieve and initialize the correct provider instance.
+    """
+    from .credentials import get_credential_by_key
+    from .common_lib import GetAIByModel
+    from .agent_providers import get_provider_class
+    
+    provider_name = GetAIByModel(model).lower()
+    model_name = model.lower()
+    
+    api_key = None
+    base_url = None
+    
+    if provider_name == "gemini":
+        api_key = get_credential_by_key("GEMINI_API_KEY") or get_credential_by_key("GEMINI_API") or get_credential_by_key("GEMENI_API")
+        if model == "gemini-1.5-flash": model = "gemini-1.5-flash-latest"
+        elif model == "gemini-1.5-pro": model = "gemini-1.5-pro-latest"
+    elif provider_name == "perplexity":
+        api_key = get_credential_by_key("PERPLEXITY_API_KEY")
+        base_url = "https://api.perplexity.ai"
+    elif provider_name == "grok":
+        api_key = get_credential_by_key("XAI_API_KEY") or get_credential_by_key("GROK_API_KEY")
+        base_url = "https://api.x.ai/v1"
+    else:
+        api_key = get_credential_by_key("OPENAI_API_KEY")
+        base_url = None
+        
+    if not api_key:
+        raise ValueError(f"API key not found for provider {provider_name}")
+        
+    ProviderClass = get_provider_class(model)
+    return ProviderClass(model=model, api_key=api_key, base_url=base_url), provider_name
+
+
+
 
 def _extract_json(text: str) -> str:
     """
@@ -136,108 +218,25 @@ def _extract_json(text: str) -> str:
 
 def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, iteration_limit: int = 10):
 
-    """
-    Executes an AI Agent run with pure SDKs and structured JSON output.
-    """
-    system_log(f"[AGENT] Starting run (Model: {model}, Schema: {schema_key})", level="system")
+    # 1. Setup Provider & Tools
+    try:
+        provider_instance, provider_name = get_provider(model)
+    except Exception as e:
+        return f"Error: {str(e)}"
 
-    # 1. Credentials & Provider
-    from .credentials import get_credential_by_key
-    provider = "openai"
-    model_name = model.lower()
-    
-    if "gemini" in model_name:
-        provider = "gemini"
-        api_key = get_credential_by_key("GEMINI_API_KEY") or get_credential_by_key("GEMINI_API") or get_credential_by_key("GEMENI_API")
-        if not api_key: return "Error: GEMINI_API_KEY not found."
-        
-        # Only map short aliases to their latest versions
-        if model == "gemini-1.5-flash":
-            model = "gemini-1.5-flash-latest"
-        elif model == "gemini-1.5-pro":
-            model = "gemini-1.5-pro-latest"
-            
-        client = genai.Client(api_key=api_key)
+    prepared = prepare_tools(tools, provider_name)
+    allowed_tools = prepared["allowed_tools"]
+    tools_desc = prepared["tools_desc"]
+    native_tools = prepared["native_tools"]
 
-    elif "sonar" in model_name or "llama" in model_name: 
-        provider = "perplexity"
-        api_key = get_credential_by_key("PERPLEXITY_API_KEY")
-        base_url = "https://api.perplexity.ai"
-        if not api_key: return f"Error: PERPLEXITY_API_KEY not found."
-        client = OpenAI(api_key=api_key, base_url=base_url)
-
-    elif "grok" in model_name:
-        provider = "grok"
-        api_key = get_credential_by_key("XAI_API_KEY") or get_credential_by_key("GROK_API_KEY")
-        base_url = "https://api.x.ai/v1"
-        if not api_key: return f"Error: GROK_API_KEY (or XAI_API_KEY) not found."
-        client = OpenAI(api_key=api_key, base_url=base_url)
-
-    else:
-        provider = "openai"
-        api_key = get_credential_by_key("OPENAI_API_KEY")
-        base_url = None
-        if not api_key: return f"Error: OPENAI_API_KEY not found."
-        client = OpenAI(api_key=api_key, base_url=base_url)
-
-    # 2. Tools setup
-    import inspect
-    allowed_tools = {}
-    tools_desc = ""
-    gemini_native_tools = []
-    openai_native_tools = []
-    
-    auto_search_requested = any(t.lower() == "auto-search" for t in tools)
-    
-    for t_name in tools:
-        name = t_name.lower()
-        if name == "auto-search":
-            continue # Handled below
-            
-        # Specific search tool manual overrides
-        if name == "google_search" and provider == "gemini":
-            gemini_native_tools.append(types.Tool(google_search=types.GoogleSearch()))
-            tools_desc += f"- {name}: Native Google Search grounding (real-time information)\n"
-            continue
-            
-        if name == "web_search" and provider == "openai":
-            openai_native_tools.append({"type": "web_search"})
-            tools_desc += f"- {name}: Native Web Search (real-time information)\n"
-            continue
-
-        if name in ALL_TOOLS:
-            func = ALL_TOOLS[name]
-            allowed_tools[name] = func
-            sig = inspect.signature(func)
-            doc = func.__doc__.strip() if func.__doc__ else "No description."
-            tools_desc += f"- {name}{sig}: {doc}\n"
-
-    # Handle auto-search mapping
-    if auto_search_requested:
-        if provider == "gemini":
-            grounding_tool = types.Tool(google_search=types.GoogleSearch())
-            if not any(getattr(t, 'google_search', None) for t in gemini_native_tools):
-                gemini_native_tools.append(grounding_tool)
-                tools_desc += f"- auto-search: {provider.title()} Search grounding enabled\n"
-                system_log(f"[AGENT] Auto-search enabled for {provider.title()} - {grounding_tool}", level="system")
-        elif provider == "openai":
-            web_search_tool = {"type": "web_search"}
-            if not any(t.get("type") == "web_search" for t in openai_native_tools):
-                openai_native_tools.append(web_search_tool)
-                tools_desc += f"- auto-search: {provider.title()} Search enabled\n"
-                system_log(f"[AGENT] Auto-search enabled for {provider.title()} - {web_search_tool}", level="system")
-        elif provider in ("perplexity", "grok"):
-             tools_desc += f"- auto-search: Enabled (built-in to {provider.title()} models)\n"
-             system_log(f"[AGENT] Auto-search enabled for {provider.title()} - search auto-enabled", level="system")
-
-    # 3. Target Schema for final_answer
+    # 2. Target Schema for final_answer
     target_schema = None
     if schema_key:
         schema_str = schema_lib.get_schema_by_key(schema_key)
         if schema_str and schema_str != "null":
             target_schema = json.loads(schema_str)
 
-    # 4. System Prompt
+    # 3. System Prompt
     schema_instruction = ""
     if target_schema:
         schema_instruction = f"\nCRITICAL: Your 'final_answer' MUST conform to this JSON Schema:\n{json.dumps(target_schema, indent=2)}"
@@ -279,69 +278,20 @@ AVAILABLE TOOLS:
 """
 
     messages = [
-        {"role": "system", "content": system_prompt},
         {"role": "user", "content": task}
     ]
 
-    
+    import inspect
     for i in range(iteration_limit):
         system_log(f"[AGENT] Iteration {i}", level="system")
         
         try:
-            if provider == "gemini":
-                # Convert messages to Gemini format (simplistic)
-                contents = []
-                for m in messages:
-                    contents.append(types.Content(role="user" if m["role"]=="user" else "model", parts=[types.Part(text=m["content"])]))
-                
-                # Gemini prefers the JSON schema for complex structures or when cleaning is needed
-                cleaned_schema = _clean_schema_for_gemini(AgentStep.model_json_schema())
-                
-                resp = client.models.generate_content(
-                    model=model,
-                    contents=contents,
-                    config=types.GenerateContentConfig(
-                        tools=gemini_native_tools if gemini_native_tools else None,
-                        response_mime_type="application/json",
-                        # We skip response_schema for Gemini here because it restricts dynamic dictionaries like 'parameters'
-                        # if we don't define every possible key upfront. Prompting is sufficient for JSON structure.
-                        system_instruction=system_prompt
-                    )
-                )
-                response_text = resp.text
-                #system_log(f"[AGENT] GEMINI response: {resp}", level="system")
-            else:
-                # OpenAI (Perplexity remains on completions for now as it's a proxy)
-                if provider == "openai":
-                    # Section 13: OpenAI responses.create pattern
-                    # We construct a single string input from messages for context
-                    # Current agents.md example shows a single string for 'input'
-                    formatted_input = ""
-                    for m in messages:
-                        prefix = "User: " if m["role"] == "user" else "Assistant: "
-                        formatted_input += f"{prefix}{m['content']}\n"
-                    
-                    # If this is not the first iteration, the last message in history is the error feedback
-                    # This ensures the model knows what it needs to fix.
-                    
-                    resp = client.responses.create(
-                        model=model,
-                        tools=openai_native_tools if openai_native_tools else None,
-                        input=formatted_input.strip()
-                    )
-                    # Note: Section 13 uses input=... and response.output_text
-                    response_text = resp.output_text
-
-                    #system_log(f"[AGENT] OPENAI response: {resp}", level="system")
-                else:
-                    # Perplexity or Grok (Proxy for OpenAI-compatible but doesn't support 'responses')
-                    resp = client.chat.completions.create(
-                        model=model,
-                        messages=messages,
-                        response_format={"type": "text"}
-                    )
-                    response_text = resp.choices[0].message.content
-                    #system_log(f"[AGENT] {provider.upper()} response: {resp}", level="system")
+            # Delegate response generation to provider
+            response_text = provider_instance.generate_response(
+                messages=messages, 
+                system_prompt=system_prompt,
+                native_tools=native_tools
+            )
 
             #system_log(f"[AGENT] AI raw response: {response_text[:300]}...", level="system")
             
@@ -414,7 +364,7 @@ AVAILABLE TOOLS:
                 
                 return {
                     "response_text": step.final_answer if isinstance(step.final_answer, str) else json.dumps(step.final_answer, ensure_ascii=False),
-                    "response_raw": resp,
+                    "response_raw": response_text,
                     "success": True
                 }
 
@@ -422,7 +372,7 @@ AVAILABLE TOOLS:
             system_log(f"[AGENT] Loop error: {str(e)}", level="error")
             return {
                 "response_text": f"Error: {str(e)}",
-                "response_raw": locals().get("resp"),
+                "response_raw": response_text if 'response_text' in locals() else None,
                 "success": False
             }
 
