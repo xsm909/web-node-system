@@ -13,7 +13,6 @@ import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { SlidePanel } from '../../../shared/ui/slide-panel';
 import { AppHeader } from '../../app-header';
-import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import {
     DndContext,
     closestCenter,
@@ -570,34 +569,24 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 title={selectedAssignment?.schema?.key || 'Metadata'}
                 subtitle="Configure and save detailed metadata for this record."
                 headerRightContent={
-                    selectedAssignment?.id && (
-                        <AppLockToggle 
-                            entityId={selectedAssignment.id}
-                            entityType="records"
-                            initialLocked={!!selectedAssignment.is_locked}
-                            onToggle={(locked) => {
-                                setSelectedAssignment((prev: any) => prev ? { ...prev, is_locked: locked } : prev);
-                                // Also update in the main list
-                                refetch();
-                            }}
-                        />
-                    )
+                    <AppLockToggle 
+                        entityId={selectedAssignment?.id}
+                        entityType="records"
+                        initialLocked={!!selectedAssignment?.is_locked}
+                        onToggle={(locked) => {
+                            setSelectedAssignment((prev: any) => prev ? { ...prev, is_locked: locked } : prev);
+                            refetch();
+                        }}
+                        onSave={() => editorRef.current?.handleSave()}
+                        isSaving={editorRef.current?.isSaving}
+                    />
                 }
                 footer={
-                    <div className="flex gap-4 items-center justify-end">
-                        {selectedAssignment?.is_locked && (
+                    selectedAssignment?.is_locked ? (
+                        <div className="flex items-center justify-end px-4">
                              <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 opacity-60">Read Only Mode</span>
-                        )}
-                        <AppRoundButton
-                            onClick={() => editorRef.current?.handleSave()}
-                            isLoading={editorRef.current?.isSaving}
-                            isDisabled={selectedAssignment?.is_locked}
-                            icon="save"
-                            variant="brand"
-                            title={selectedAssignment?.is_locked ? "Locked" : (editorRef.current?.isSaving ? "Saving..." : "Save Changes")}
-                            iconSize={20}
-                        />
-                    </div>
+                        </div>
+                    ) : undefined
                 }
             >
                 {selectedAssignment && (

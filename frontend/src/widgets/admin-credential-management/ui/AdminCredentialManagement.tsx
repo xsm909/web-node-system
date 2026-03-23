@@ -10,7 +10,6 @@ import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput, AppFormFieldRect } from '../../../shared/ui/app-input';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
 import { createColumnHelper } from '@tanstack/react-table';
-import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 
 const columnHelper = createColumnHelper<Credential>();
@@ -198,19 +197,13 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                 onSave={handleSave}
                 onCancel={() => setIsEditing(false)}
                 saveLabel={editingId ? "Save Credential" : "Add Credential"}
-                headerRightContent={
-                    editingId ? (
-                        <AppLockToggle 
-                            entityId={editingId} 
-                            entityType="credentials" 
-                            initialLocked={!!formData.is_locked}
-                            onToggle={(locked) => {
-                                setFormData(prev => ({ ...prev, is_locked: locked }));
-                                fetchData();
-                            }}
-                        />
-                    ) : undefined
-                }
+                entityId={editingId ?? undefined}
+                entityType="credentials"
+                isLocked={!!formData.is_locked}
+                onLockToggle={(locked) => {
+                    setFormData(prev => ({ ...prev, is_locked: locked }));
+                    fetchData();
+                }}
             >
                 <div className="max-w-5xl mx-auto w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                     <header className="mb-8">

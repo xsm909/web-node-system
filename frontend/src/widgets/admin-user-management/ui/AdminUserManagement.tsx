@@ -11,7 +11,6 @@ import { UserEditor, type UserEditorRef } from './UserEditor';
 import { Icon } from '../../../shared/ui/icon';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
-import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
@@ -173,17 +172,15 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 activeTab={activeTab}
                 onTabChange={(id) => setActiveTab(id as 'common' | 'metadata' | 'prompts')}
                 saveLabel="Save User"
+                entityId={selectedUser.id}
+                entityType="users"
+                isLocked={selectedUser.is_locked}
+                onLockToggle={(locked) => {
+                    setSelectedUser({ ...selectedUser, is_locked: locked });
+                    refetch();
+                }}
                 headerRightContent={
                     <div className="flex items-center gap-2">
-                        <AppLockToggle 
-                            entityId={selectedUser.id} 
-                            entityType="users" 
-                            initialLocked={selectedUser.is_locked}
-                            onToggle={(locked) => {
-                                setSelectedUser({ ...selectedUser, is_locked: locked });
-                                refetch();
-                            }}
-                        />
                         {activeTab === 'metadata' && metadataActions}
                     </div>
                 }

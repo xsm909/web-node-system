@@ -7,7 +7,6 @@ import { useRegisterBlocker } from '../../lib/navigation-guard/useNavigationGuar
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 
 import { AppTabs, type AppTab } from '../app-tabs';
-import { AppRoundButton } from '../app-round-button/AppRoundButton';
 
 export type { AppTab as AppFormTab };
 
@@ -154,24 +153,18 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                 }
                 rightContent={
                     <div className="flex items-center gap-3">
-                        {entityId && entityType && (
-                            <AppLockToggle 
-                                entityId={entityId}
-                                entityType={entityType}
-                                initialLocked={isLocked}
-                                onToggle={onLockToggle}
-                                className="mr-1"
-                            />
-                        )}
-                        {headerRightContent}
-                        <AppRoundButton
-                            icon="save"
-                            onClick={onSave}
-                            isLoading={isSaving}
-                            isDisabled={isLocked}
-                            variant="brand"
-                            title={isLocked ? 'Locked' : saveLabel}
+                        <AppLockToggle 
+                            entityId={entityId}
+                            entityType={entityType}
+                            initialLocked={isLocked}
+                            onToggle={onLockToggle}
+                            onSave={onSave}
+                            isSaving={isSaving}
+                            isDirty={isDirty}
+                            saveLabel={saveLabel}
+                            className="mr-1"
                         />
+                        {headerRightContent}
                     </div>
                 }
             />

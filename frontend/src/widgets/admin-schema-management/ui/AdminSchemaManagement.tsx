@@ -6,7 +6,6 @@ import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
-import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
@@ -240,19 +239,14 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                 onSave={handleSave}
                 onCancel={() => setIsEditing(false)}
                 saveLabel={selectedSchema ? "Save Schema" : "Create Schema"}
-                headerRightContent={
-                    selectedSchema ? (
-                        <AppLockToggle 
-                            entityId={selectedSchema.id} 
-                            entityType="schemas" 
-                            initialLocked={selectedSchema.is_locked}
-                            onToggle={() => {
-                                // Refresh logic if needed, but AppFormView handles dirty state
-                                // We might want to update selectedSchema.is_locked locally
-                            }}
-                        />
-                    ) : undefined
-                }
+                entityId={selectedSchema?.id}
+                entityType="schemas"
+                isLocked={selectedSchema?.is_locked}
+                onLockToggle={(locked) => {
+                    if (selectedSchema) {
+                        setSelectedSchema({ ...selectedSchema, is_locked: locked });
+                    }
+                }}
             >
                 <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                     <div className="grid grid-cols-2 gap-8">
