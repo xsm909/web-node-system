@@ -25,6 +25,27 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     dialect = engine.dialect.name
     try:
+        # Migrations for projects
+        try:
+            if dialect == 'postgresql':
+                db.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS owner_id UUID;"))
+                db.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS theme_color VARCHAR(20);"))
+                # Ensure type is correct if it was already added as 50
+                db.execute(text("ALTER TABLE projects ALTER COLUMN theme_color TYPE VARCHAR(20);"))
+                # If there are no projects, we can safely set NOT NULL. 
+                # If there are projects, we might need a default, but since there are 0, we can proceed or just keep it nullable in DB if we want to be safe.
+                # The user said non-nullable, so I'll try to set it.
+                db.execute(text("ALTER TABLE projects ALTER COLUMN owner_id SET NOT NULL;"))
+                db.execute(text("CREATE INDEX IF NOT EXISTS idx_projects_owner_id ON projects(owner_id);"))
+            else:
+                db.execute(text("ALTER TABLE projects ADD COLUMN owner_id CHAR(36);"))
+                db.execute(text("ALTER TABLE projects ADD COLUMN theme_color VARCHAR(20);"))
+                db.execute(text("CREATE INDEX idx_projects_owner_id ON projects(owner_id);"))
+            db.commit()
+        except Exception as e:
+            print(f"Project migration error: {e}")
+            db.rollback()
+
         # Migrations for reports
         try:
             if dialect == 'postgresql':
