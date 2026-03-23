@@ -93,6 +93,8 @@ def prepare_tools(tools: List[str], provider: str) -> Dict[str, Any]:
                 native_tools.append(web_search_tool)
                 tools_desc += f"- auto-search: {provider.title()} Search enabled\n"
         elif provider in ("perplexity", "grok"):
+             if provider == "grok":
+                 native_tools.append({"type": "web_search"})
              tools_desc += f"- auto-search: Enabled (built-in to {provider.title()} models)\n"
 
     return {
@@ -125,6 +127,8 @@ def get_provider(model: str) -> Any:
     elif provider_name == "grok":
         api_key = get_credential_by_key("XAI_API_KEY") or get_credential_by_key("GROK_API_KEY")
         base_url = "https://api.x.ai/v1"
+        # Backward compatibility for old workflows
+        if model == "grok-2-latest": model = "grok-2"
     else:
         api_key = get_credential_by_key("OPENAI_API_KEY")
         base_url = None
@@ -228,6 +232,7 @@ def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, i
     allowed_tools = prepared["allowed_tools"]
     tools_desc = prepared["tools_desc"]
     native_tools = prepared["native_tools"]
+    system_log(f"[AGENT] Native tools: {native_tools}", level="system")
 
     # 2. Target Schema for final_answer
     target_schema = None

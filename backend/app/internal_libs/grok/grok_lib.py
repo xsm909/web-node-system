@@ -53,7 +53,7 @@ def grok_set_prompt(conversation_id: str, prompt: str) -> bool:
     _system_prompts[conversation_id] = prompt
     return True
 
-def grok_ask_chat(conversation_id: str, text: str, model: str = "grok-2-latest") -> str:
+def grok_ask_chat(conversation_id: str, text: str, model: str = "grok-2") -> str:
     api_key = _get_api_key()
     if not api_key:
         return "Error: XAI_API_KEY (or GROK_API_KEY) not found in credentials."
@@ -79,7 +79,7 @@ def grok_ask_chat(conversation_id: str, text: str, model: str = "grok-2-latest")
         
     return answer
 
-def grok_ask_single(text: str, model: str = "grok-2-latest") -> str:
+def grok_ask_single(text: str, model: str = "grok-2") -> str:
     api_key = _get_api_key()
     if not api_key:
         return "Error: XAI_API_KEY (or GROK_API_KEY) not found in credentials."
@@ -87,7 +87,7 @@ def grok_ask_single(text: str, model: str = "grok-2-latest") -> str:
     messages = [{"role": "user", "content": text}]
     return _make_request(api_key, messages, model)
 
-def grok_perform_web_search(query: str, model: str = "grok-2-latest") -> str:
+def grok_perform_web_search(query: str, model: str = "grok-2") -> str:
     """
     Performs a web search using Grok.
     Grok models typically have real-time access enabled.
@@ -97,11 +97,16 @@ class GrokAgentProvider(AgentProvider):
     def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None) -> str:
         client = OpenAI(api_key=self.api_key, base_url=self.base_url)
         
-        # Grok uses standard chat.completions.create for OpenAI compatibility
-        full_messages = [{"role": "system", "content": system_prompt}] + messages
-        resp = client.chat.completions.create(
-            model=self.model,
-            messages=full_messages,
-            response_format={"type": "text"}
-        )
-        return resp.choices[0].message.content
+        # Section 13: Grok uses Responses API for native search tools
+        # We pass a list of messages to input to ensure system prompt is prioritized
+        input_messages = [{"role": "system", "content": system_prompt}] + messages
+            
+        kwargs = {
+            "model": self.model,
+            "input": input_messages
+        }
+        if native_tools:
+            kwargs["tools"] = native_tools
+            
+        resp = client.responses.create(**kwargs)
+        return resp.output_text
