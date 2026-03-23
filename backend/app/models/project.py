@@ -12,3 +12,4 @@ class Project(Base):
     description = Column(Text, nullable=True)
     owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     theme_color = Column(String(20), nullable=True, default="#3b82f6")
+    category = Column(String(50), nullable=False, default="general")

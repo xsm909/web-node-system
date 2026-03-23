@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI):
             if dialect == 'postgresql':
                 db.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS owner_id UUID;"))
                 db.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS theme_color VARCHAR(20);"))
+                db.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'general';"))
                 # Ensure type is correct if it was already added as 50
                 db.execute(text("ALTER TABLE projects ALTER COLUMN theme_color TYPE VARCHAR(20);"))
                 # If there are no projects, we can safely set NOT NULL. 
@@ -40,6 +41,7 @@ async def lifespan(app: FastAPI):
             else:
                 db.execute(text("ALTER TABLE projects ADD COLUMN owner_id CHAR(36);"))
                 db.execute(text("ALTER TABLE projects ADD COLUMN theme_color VARCHAR(20);"))
+                db.execute(text("ALTER TABLE projects ADD COLUMN category VARCHAR(50) DEFAULT 'general';"))
                 db.execute(text("CREATE INDEX idx_projects_owner_id ON projects(owner_id);"))
             db.commit()
         except Exception as e:

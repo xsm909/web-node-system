@@ -17,7 +17,8 @@ def migrate():
                         id UUID PRIMARY KEY,
                         "key" VARCHAR(75) UNIQUE NOT NULL,
                         name VARCHAR(255) NOT NULL,
-                        description TEXT
+                        description TEXT,
+                        category VARCHAR(50) NOT NULL DEFAULT 'general'
                     );""",
                     "CREATE INDEX IF NOT EXISTS idx_projects_key ON projects(\"key\");"
                 ]
@@ -27,7 +28,8 @@ def migrate():
                         id CHAR(36) PRIMARY KEY,
                         `key` VARCHAR(75) UNIQUE NOT NULL,
                         name VARCHAR(255) NOT NULL,
-                        description TEXT
+                        description TEXT,
+                        category VARCHAR(50) NOT NULL DEFAULT 'general'
                     );""",
                     "CREATE INDEX idx_projects_key ON projects(`key`);"
                 ]
@@ -37,7 +39,8 @@ def migrate():
                         id CHAR(36) PRIMARY KEY,
                         key VARCHAR(75) UNIQUE NOT NULL,
                         name VARCHAR(255) NOT NULL,
-                        description TEXT
+                        description TEXT,
+                        category VARCHAR(50) NOT NULL DEFAULT 'general'
                     );""",
                     "CREATE INDEX IF NOT EXISTS idx_projects_key ON projects(key);"
                 ]
