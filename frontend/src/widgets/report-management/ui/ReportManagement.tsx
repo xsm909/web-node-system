@@ -16,6 +16,7 @@ import { ReportViewer, type ReportViewerRef } from './ReportViewer';
 import { StyleList } from './StyleList';
 import { StyleEditor, type StyleEditorRef } from './StyleEditor';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { useProjectStore } from '../../../features/projects/store';
 
 interface ReportManagementProps {
     onToggleSidebar?: () => void;
@@ -35,6 +36,8 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const { activeProject, isProjectMode } = useProjectStore();
+    const [creationProjectId, setCreationProjectId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
     const [idToDelete, setIdToDelete] = useState<string | null>(null);
@@ -117,10 +120,11 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
             }
         };
         fetchReports();
-    }, [refreshTrigger, isAdmin]);
+    }, [refreshTrigger, isAdmin, isProjectMode, activeProject?.id]);
 
     const handleCreate = () => {
         setSelectedReport(null);
+        setCreationProjectId(activeProject?.id || null);
         setView('edit');
     };
 
@@ -177,6 +181,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const handleBack = () => {
         setView('list');
         setSelectedReport(null);
+        setCreationProjectId(null);
         setSelectedStyle(null);
         setIsGenerated(false);
         setActiveTab('general');
@@ -304,7 +309,9 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 isSaving={isSaving}
                 onSave={() => {
                     setIsSaving(true);
-                    reportEditorRef.current?.handleSave()
+                    // Pass creationProjectId for new reports to ensure project association even if project mode was exited
+                    const saveParams = !selectedReport && creationProjectId ? { project_id: creationProjectId } : {};
+                    reportEditorRef.current?.handleSave(saveParams)
                         .then((savedReport) => {
                             if (savedReport) {
                                 setSelectedReport(savedReport);

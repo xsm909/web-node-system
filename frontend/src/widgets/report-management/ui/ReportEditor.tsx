@@ -31,7 +31,7 @@ interface ReportEditorProps {
 }
 
 export interface ReportEditorRef {
-    handleSave: () => Promise<Report | void>;
+    handleSave: (params?: { project_id?: string | null }) => Promise<Report | void>;
     handleCompile: () => Promise<void>;
     handleGenerate: () => Promise<void>;
     handleOpenQueryBuilder: () => void;
@@ -320,7 +320,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
         isGenerating
     }));
 
-    const handleSave = async () => {
+    const handleSave = async (params?: { project_id?: string | null }) => {
         if (!name || !code || !template) {
             alert("Name, code, and template are required");
             return;
@@ -339,7 +339,8 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             parameters: parameters.map(({ id, ...rest }: any) => {
                 if (typeof id === 'string' && id.startsWith('temp_')) return rest;
                 return { id, ...rest };
-            })
+            }),
+            project_id: params?.project_id || report?.project_id
         };
 
         try {

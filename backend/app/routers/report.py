@@ -14,6 +14,7 @@ from ..models import LockData
 from sqlalchemy import exists, and_
 from ..core.locks import raise_if_locked, check_is_locked
 from ..services.report_executor import ReportExecutor, generate_json_schema
+from ..internal_libs import projects_lib
 from pydantic import BaseModel
 from jinja2 import Environment, meta, Template
 from ..internal_libs.openai.openai_lib import openai_ask_single
@@ -65,6 +66,7 @@ class ReportBase(BaseModel):
     meta: Optional[Dict[str, Any]] = {}
 
 class ReportCreate(ReportBase):
+    project_id: Optional[uuid.UUID] = None
     parameters: Optional[List[ObjectParameterCreate]] = []
 
 class ReportUpdate(BaseModel):
@@ -81,7 +83,10 @@ class ReportUpdate(BaseModel):
 
 class ReportOut(ReportBase):
     id: uuid.UUID
+    project_id: Optional[uuid.UUID] = None
     created_by: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
     parameters: List[ObjectParameterOut] = []
     is_locked: bool = False
 
@@ -199,10 +204,22 @@ def list_reports(db: Session = Depends(get_db), current_user: User = Depends(get
         LockData.entity_type == "reports"
     ).exists()
     
-    if current_user.role == "admin":
-        results = db.query(Report, is_locked_subquery.label("is_locked")).all()
+    current_project_id = projects_lib.get_project_id()
+    
+    query = db.query(Report, is_locked_subquery.label("is_locked"))
+    
+    if current_project_id:
+        # In project mode: see ONLY project items
+        query = query.filter(Report.project_id == current_project_id)
     else:
-        results = db.query(Report, is_locked_subquery.label("is_locked")).filter(Report.type == ReportTypeEnum.global_type).all()
+        # Outside project mode: see ONLY general items
+        query = query.filter(Report.project_id == None)
+        # Also apply original role-based filters if needed, 
+        # but the requirement says "либо проектные либ общие"
+        if current_user.role != "admin":
+             query = query.filter(Report.type == ReportTypeEnum.global_type)
+
+    results = query.all()
     
     response = []
     for report, is_locked in results:
@@ -227,24 +244,24 @@ def get_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user
 
 @router.post("/", response_model=ReportOut)
 def create_report(data: ReportCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=admin_access):
-    report_data = data.model_dump(exclude={"parameters"})
     
-    report = Report(
-        **report_data,
-        created_by=current_user.id
+    db_report = Report(
+        **data.model_dump(exclude={"parameters"}),
+        created_by=current_user.id,
+        project_id=data.project_id or projects_lib.get_project_id()
     )
-    db.add(report)
+    db.add(db_report)
     db.commit()
-    db.refresh(report)
+    db.refresh(db_report)
     
     if data.parameters:
         for p in data.parameters:
-            param = ObjectParameter(**p.model_dump(), object_id=report.id, object_name="reports")
+            param = ObjectParameter(**p.model_dump(), object_id=db_report.id, object_name="reports")
             db.add(param)
         db.commit()
-        db.refresh(report)
+        db.refresh(db_report)
         
-    return report
+    return db_report
 
 @router.put("/{report_id}", response_model=ReportOut)
 def update_report(report_id: uuid.UUID, data: ReportUpdate, db: Session = Depends(get_db), _=admin_access):

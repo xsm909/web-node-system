@@ -15,6 +15,7 @@ from ..models.report import ObjectParameter
 from ..models import LockData
 from sqlalchemy import exists, and_
 from ..core.locks import raise_if_locked, check_is_locked
+from ..internal_libs import projects_lib
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 workflow_access = Depends(require_role("manager", "admin", "client"))
@@ -42,23 +43,67 @@ class WorkflowUpdate(BaseModel):
     runtime_data: Optional[dict] = None
     parameters: Optional[List[ObjectParameterCreate]] = None
 
+class WorkflowBase(BaseModel):
+    name: str
+    status: Optional[str] = "draft"
+    owner_id: str
+    category: Optional[str] = "general"
+
 
 class WorkflowRename(BaseModel):
     name: str
     category: Optional[str] = None
 
 
-class WorkflowOut(BaseModel):
+class WorkflowOut(WorkflowBase):
     id: uuid.UUID
-    name: str
-    status: Optional[str] = "draft"
-    owner_id: str
-    category: Optional[str] = "general"
+    project_id: Optional[uuid.UUID] = None
+    created_at: datetime
+    updated_at: datetime
     parameters: List[ObjectParameterOut] = []
     is_locked: bool = False
 
     class Config:
         from_attributes = True
+
+
+class WorkflowCreate(WorkflowBase):
+    project_id: Optional[uuid.UUID] = None
+    graph: dict = {
+            "nodes": [
+                {
+                    "id": "node_start", 
+                    "type": "start", 
+                    "position": {"x": 100, "y": 100}, 
+                    "deletable": False,
+                    "data": {"label": "Start", "nodeType": "Start"}
+                }
+            ], 
+            "edges": []
+        }
+    workflow_data: Optional[dict] = None
+    runtime_data: Optional[dict] = None
+    parameters: Optional[List[ObjectParameterCreate]] = []
+
+    @field_validator('graph', 'workflow_data', mode='before')
+    @classmethod
+    def parse_json_str(cls, v):
+        """Safely parse JSON string fields into dicts."""
+        if v is None:
+            return {}
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return {}
+        return v
+
+
+class WorkflowUpdate(BaseModel):
+    graph: Optional[dict] = None
+    workflow_data: Optional[dict] = None
+    runtime_data: Optional[dict] = None
+    parameters: Optional[List[ObjectParameterCreate]] = None
 
 
 class WorkflowDetail(WorkflowOut):
@@ -150,12 +195,23 @@ def get_user_workflows(user_id: str, current_user: User = Depends(get_current_us
         if user_id != str(current_user.id):
              raise HTTPException(status_code=403, detail="Access denied")
     
+    current_project_id = projects_lib.get_project_id()
+    
     is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == Workflow.id,
         LockData.entity_type == "workflows"
     ).exists()
     
-    results = db.query(Workflow, is_locked_subquery.label("is_locked")).filter(Workflow.owner_id == user_id).all()
+    query = db.query(Workflow, is_locked_subquery.label("is_locked")).filter(Workflow.owner_id == user_id)
+    
+    if current_project_id:
+        # In project mode: see ONLY project items
+        query = query.filter(Workflow.project_id == current_project_id)
+    else:
+        # Outside project mode: see ONLY general items
+        query = query.filter(Workflow.project_id == None)
+        
+    results = query.all()
     
     response = []
     for wf, is_locked in results:
@@ -198,7 +254,8 @@ def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_curre
             "edges": []
         },
         workflow_data=data.workflow_data or {},
-        status=WorkflowStatus.draft
+        status=WorkflowStatus.draft,
+        project_id=data.project_id or projects_lib.get_project_id()
     )
     db.add(wf)
     db.commit()
@@ -579,12 +636,23 @@ def get_execution_details(execution_id: uuid.UUID, current_user: User = Depends(
 
 @router.get("/common", response_model=List[WorkflowOut])
 def list_common_workflows(db: Session = Depends(get_db), _=workflow_access):
+    current_project_id = projects_lib.get_project_id()
+    
     is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == Workflow.id,
         LockData.entity_type == "workflows"
     ).exists()
     
-    results = db.query(Workflow, is_locked_subquery.label("is_locked")).filter(Workflow.owner_id == "common").all()
+    query = db.query(Workflow, is_locked_subquery.label("is_locked")).filter(Workflow.owner_id == "common")
+    
+    if current_project_id:
+        # In project mode: see project items ONLY
+        query = query.filter(Workflow.project_id == current_project_id)
+    else:
+        # Outside project mode: see general items ONLY
+        query = query.filter(Workflow.project_id == None)
+        
+    results = query.all()
     
     response = []
     for wf, is_locked in results:

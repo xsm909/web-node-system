@@ -92,3 +92,32 @@ Updated core internal libraries (`prompt_lib` and `response_lib`) to automatical
 - **Auto-Scoping**: Verified that new prompts/responses are created with the correct `project_id`.
 - **Query Filtering**: Verified that retrieval operations only return data for the active project.
 - **Retro-Compatibility**: Verified that operations still work correctly for "global" data (where `project_id` is null) when no project is active.
+
+## Phase 4: Project Isolation for Core Entities
+
+### Summary
+Implemented strict data isolation and project context persistence for Schemas, Workflows, and Reports. This ensures that users see only the data relevant to their current project context (or system/common data) and that new items maintain their project association even if the project context is exited during the creation process.
+
+### Backend Details
+- **Schema Router** ([schemas.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/routers/schemas.py)):
+    - `get_schemas`: Filters by `project_id` or `is_system=True` in project mode; only `project_id=None` outside project mode.
+    - `create_schema`: Persists `project_id` from the creation payload or current context.
+- **Workflow Router** ([workflow.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/routers/workflow.py)):
+    - `list_common_workflows` & `get_user_workflows`: Strictly filter by `project_id` based on project mode.
+    - `create_workflow`: Persists `project_id` from the payload or current context.
+- **Report Router** ([report.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/routers/report.py)):
+    - `list_reports`: Filters by `project_id` in project mode; only `project_id=None` outside project mode.
+    - `create_report`: Persists `project_id` from the payload or current context.
+
+### Frontend Details
+- **Automatic List Refreshing**:
+    - Updated `useSchemas` query key to include project context.
+    - Integrated `useProjectStore` into `ReportManagement` and `AdminCommonWorkflowManagement` to ensure lists refresh automatically when entering or exiting a project.
+- **Creation Persistence**:
+    - Implemented `creationProjectId` state in management widgets.
+    - This state captures the active `project_id` when creation starts and passes it to the final save/create hit, preserving the association even if the user navigates away or exits the project during editing (particularly relevant for multi-tab editors like `ReportEditor`).
+
+### Verification Results
+- **Data Isolation**: Verified that project-specific workflows and reports are hidden when no project is active, and vice versa.
+- **UI Consistency**: Confirmed that all lists refresh instantly upon project activation/deactivation.
+- **Persistence**: Validated that items created within a project context are correctly saved with the `project_id` even if the project is exited before clicking "Save".

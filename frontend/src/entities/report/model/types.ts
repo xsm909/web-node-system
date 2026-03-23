@@ -34,5 +34,6 @@ export interface Report {
     created_by: string;
     is_locked: boolean;
     parameters: ObjectParameter[];
+    project_id?: string | null;
     meta?: Record<string, any>;
 }

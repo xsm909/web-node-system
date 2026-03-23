@@ -23,7 +23,7 @@ class SchemaBase(BaseModel):
         return v
 
 class SchemaCreate(SchemaBase):
-    pass
+    project_id: Optional[UUID] = None
 
 class SchemaUpdate(BaseModel):
     key: Optional[str] = None
@@ -34,6 +34,7 @@ class SchemaUpdate(BaseModel):
 
 class SchemaResponse(SchemaBase):
     id: UUID
+    project_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime
     is_locked: bool = False

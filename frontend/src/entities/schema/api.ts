@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
+import { useProjectStore } from '../../features/projects/store';
 
 export interface Schema {
     id: string;
@@ -19,6 +20,7 @@ export interface CreateSchemaDto {
     category?: string | null;
     meta?: any;
     is_system: boolean;
+    project_id?: string | null;
 }
 
 export interface UpdateSchemaDto {
@@ -31,8 +33,9 @@ export interface UpdateSchemaDto {
 
 // Queries
 export const useSchemas = () => {
+    const { activeProject, isProjectMode } = useProjectStore();
     return useQuery({
-        queryKey: ['schemas'],
+        queryKey: ['schemas', isProjectMode, activeProject?.id],
         queryFn: async () => {
             const response = await apiClient.get<Schema[]>('/schemas');
             return response.data;
@@ -55,9 +58,12 @@ export const useSchema = (schemaId: string | undefined) => {
 // Mutations
 export const useCreateSchema = () => {
     const queryClient = useQueryClient();
+    const { activeProject } = useProjectStore();
     return useMutation({
         mutationFn: async (data: CreateSchemaDto) => {
-            const response = await apiClient.post<Schema>('/schemas', data);
+            // Ensure project_id is captured from the current active project if not provided
+            const project_id = data.project_id || activeProject?.id;
+            const response = await apiClient.post<Schema>('/schemas', { ...data, project_id });
             return response.data;
         },
         onSuccess: () => {

@@ -5,6 +5,7 @@ import type { AssignedUser } from '../../../entities/user/model/types';
 import type { Workflow } from '../../../entities/workflow/model/types';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import { useClientStore } from '../model/clientStore';
+import { useProjectStore } from '../../projects/store';
 
 export function useWorkflowManagement(refreshTrigger?: number) {
     const { user: currentUser } = useAuthStore();
@@ -13,6 +14,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
     const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
+    const { activeProject, isProjectMode } = useProjectStore();
 
     const [isCreating, setIsCreating] = useState(false);
     const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
@@ -70,7 +72,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
             }
         };
         init();
-    }, [currentUser?.id, loadWorkflowsForUser, setAssignedUsers]);
+    }, [currentUser?.id, loadWorkflowsForUser, setAssignedUsers, isProjectMode, activeProject?.id]);
 
     useEffect(() => {
         if (refreshTrigger !== undefined && refreshTrigger > 0) {
@@ -91,7 +93,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         }
     };
 
-    const handleCreateWorkflow = async (name: string, category: string = 'general') => {
+    const handleCreateWorkflow = async (name: string, category: string = 'general', project_id?: string | null) => {
         if (!currentUser?.id) return;
 
         setIsCreating(true);
@@ -99,7 +101,8 @@ export function useWorkflowManagement(refreshTrigger?: number) {
             const { data } = await apiClient.post('/workflows/workflows', {
                 name,
                 category,
-                owner_id: activeClientId || currentUser.id
+                owner_id: activeClientId || currentUser.id,
+                project_id: project_id || activeProject?.id || null
             });
 
             setWorkflows((prev) => [...prev, data]);

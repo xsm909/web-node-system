@@ -23,6 +23,7 @@ import { AppInput } from '../../../shared/ui/app-input';
 import { AppParameterListEditor } from '../../../shared/ui/app-parameter-list-editor/AppParameterListEditor';
 import { AppParameterSelectByTamplate } from '../../../shared/ui/app-parameter-select-by-tamplate';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { useProjectStore } from '../../../features/projects/store';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -43,7 +44,7 @@ interface WorkflowEditorContextType {
     loadWorkflow: (wf: any) => void;
     setActiveWorkflow: (wf: any) => void;
     setWorkflows: (updater: any) => void;
-    handleCreateWorkflow: (name: string, category: string) => Promise<any>;
+    handleCreateWorkflow: (name: string, category: string, project_id?: string | null) => Promise<any>;
     confirmDeleteWorkflow: () => void;
     handleDuplicateWorkflow: (id: string) => void;
     handleRenameWorkflow: (id: string, name: string, category: string) => void;
@@ -73,6 +74,9 @@ interface WorkflowEditorContextType {
     isSidebarOpen: boolean;
     isParametersModalOpen: boolean;
     setIsParametersModalOpen: (v: boolean) => void;
+    creationProjectId: string | null;
+    activeProjectId?: string | null;
+    setCreationProjectId: (v: string | null) => void;
 }
 
 const WorkflowEditorContext = createContext<WorkflowEditorContextType | null>(null);
@@ -90,6 +94,8 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
     const [renameInputValue, setRenameInputValue] = useState('');
     const [renameCategoryValue, setRenameCategoryValue] = useState<string>('personal');
     const [isSidebarOpen, setIsSidebarOpen] = useState(isSidebarOpenProp || false);
+    const { activeProject } = useProjectStore();
+    const [creationProjectId, setCreationProjectId] = useState<string | null>(null);
 
     const nodesRef = useRef<Node[]>([]);
     const edgesRef = useRef<Edge[]>([]);
@@ -189,7 +195,7 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         loadWorkflow,
         setActiveWorkflow,
         setWorkflows,
-        handleCreateWorkflow,
+        handleCreateWorkflow: (name: string, category: string) => handleCreateWorkflow(name, category, creationProjectId || activeProject?.id),
         confirmDeleteWorkflow,
         handleDuplicateWorkflow,
         handleRenameWorkflow,
@@ -214,7 +220,10 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         handleEdgesChange,
         onEditNode: handleEditNodeContext,
         onToggleSidebar,
-        isSidebarOpen
+        isSidebarOpen,
+        creationProjectId,
+        activeProjectId: activeProject?.id,
+        setCreationProjectId
     }), [
         workflows, activeWorkflow, nodeTypes, isRunning, isSaving, isDirty, 
         executionLogs, liveRuntimeData, activeNodeIds, activeClientId,
@@ -225,7 +234,8 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         workflowToRename, setWorkflowToRename, renameInputValue, 
         setRenameInputValue, renameCategoryValue, setRenameCategoryValue,
         handleNodesChange, handleEdgesChange, handleEditNodeContext, onToggleSidebar, isSidebarOpen,
-        isParametersModalOpen, setIsParametersModalOpen, setWorkflows
+        isParametersModalOpen, setIsParametersModalOpen, setWorkflows,
+        creationProjectId, activeProject?.id, setCreationProjectId
     ]);
 
     return (
@@ -610,7 +620,10 @@ const AdminWorkflowsTab = () => {
         setRenameCategoryValue,
         onToggleSidebar,
         isSidebarOpen,
-        loadWorkflow
+        loadWorkflow,
+        activeProjectId,
+        creationProjectId,
+        setCreationProjectId
     } = useWorkflowEditor();
     
     const nav = useNavigator();
@@ -640,7 +653,8 @@ const AdminWorkflowsTab = () => {
             onToggleSidebar={onToggleSidebar}
             onSelectWorkflow={handleSelectWorkflow}
             onCreateWorkflow={(name, category) => {
-                handleCreateWorkflow(name, category).then((newWf: any) => {
+                setCreationProjectId(activeProjectId || null);
+                handleCreateWorkflow(name, category, activeProjectId).then((newWf: any) => {
                     if (newWf) handleSelectWorkflow(newWf);
                 });
             }}
