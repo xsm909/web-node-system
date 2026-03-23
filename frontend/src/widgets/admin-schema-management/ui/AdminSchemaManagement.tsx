@@ -39,6 +39,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
     const [category, setCategory] = useState('');
     const [content, setContent] = useState('{\n  "type": "object",\n  "properties": {}\n}');
     const [isSystem, setIsSystem] = useState(false);
+    const [localError, setLocalError] = useState<string | null>(null);
     const [initialFormState, setInitialFormState] = useState({ key: '', category: '', content: '', isSystem: false });
 
     const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(schemas), [schemas]);
@@ -56,6 +57,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
         setContent(data.content);
         setIsSystem(data.isSystem);
         setInitialFormState(data);
+        setLocalError(null);
         setIsEditing(true);
     };
 
@@ -72,6 +74,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
         setContent(data.content);
         setIsSystem(data.isSystem);
         setInitialFormState(data);
+        setLocalError(null);
         setIsEditing(true);
     };
 
@@ -88,12 +91,14 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
         setContent(data.content);
         setIsSystem(data.isSystem);
         setInitialFormState(data);
+        setLocalError(null);
         setIsEditing(true);
     };
 
     // Unified toggle handled by AppLockToggle
 
     const handleSave = () => {
+        setLocalError(null);
         try {
             const parsedContent = JSON.parse(content);
             const data = {
@@ -112,6 +117,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                             content: JSON.stringify(savedSchema.content, null, 2),
                             isSystem: savedSchema.is_system,
                         });
+                        setIsEditing(false);
                     }
                 });
             } else {
@@ -124,11 +130,12 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                             content: JSON.stringify(savedSchema.content, null, 2),
                             isSystem: savedSchema.is_system,
                         });
+                        setIsEditing(false);
                     }
                 });
             }
-        } catch (e) {
-            alert("Invalid JSON format in schema content.");
+        } catch (e: any) {
+            setLocalError(`Invalid JSON format: ${e.message}`);
         }
     };
 
@@ -136,6 +143,20 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                     category !== initialFormState.category ||
                     content !== initialFormState.content ||
                     isSystem !== initialFormState.isSystem;
+
+    const getErrorMessage = () => {
+        if (localError) return localError;
+        const err = updateMutation.error || createMutation.error;
+        if (!err) return null;
+
+        const detail = (err as any)?.response?.data?.detail;
+        if (detail) {
+            if (typeof detail === 'string') return detail;
+            if (Array.isArray(detail)) return detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+            return JSON.stringify(detail);
+        }
+        return err.message;
+    };
 
     const handleDelete = (id: string, is_system: boolean) => {
         if (is_system) {
@@ -236,6 +257,7 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                 icon="schema"
                 isDirty={isDirty}
                 isSaving={updateMutation.isPending || createMutation.isPending}
+                error={getErrorMessage() || undefined}
                 onSave={handleSave}
                 onCancel={() => setIsEditing(false)}
                 saveLabel={selectedSchema ? "Save Schema" : "Create Schema"}

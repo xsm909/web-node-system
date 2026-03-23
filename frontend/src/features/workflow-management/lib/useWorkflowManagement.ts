@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient } from '../../../shared/api/client';
 import { useAuthStore } from '../../auth/store';
 import type { AssignedUser } from '../../../entities/user/model/types';
@@ -19,6 +19,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
     const [isCreating, setIsCreating] = useState(false);
     const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
     const [workflowToRename, setWorkflowToRename] = useState<Workflow | null>(null);
+    const [workflowError, setWorkflowError] = useState<string | null>(null);
 
     // Auto-close workflow if it doesn't belong to the active context (client or current user)
     useEffect(() => {
@@ -129,6 +130,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         if (!workflowToDelete) return;
 
         try {
+            setWorkflowError(null);
             await apiClient.delete(`/workflows/workflows/${workflowToDelete.id}`);
 
             setWorkflows((prev) => prev.filter(w => w.id !== workflowToDelete.id));
@@ -136,10 +138,11 @@ export function useWorkflowManagement(refreshTrigger?: number) {
             if (activeWorkflow?.id === workflowToDelete.id) {
                 setActiveWorkflow(null);
             }
-        } catch (error) {
-            console.error('Failed to delete workflow', error);
-        } finally {
             setWorkflowToDelete(null);
+        } catch (error: any) {
+            const detail = error?.response?.data?.detail || error?.message || 'Failed to delete workflow';
+            setWorkflowError(typeof detail === 'string' ? detail : JSON.stringify(detail));
+            console.error('Failed to delete workflow', error);
         }
     };
 
@@ -159,6 +162,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
     const handleRenameWorkflow = async (workflowId: string, newName: string, newCategory?: string) => {
         if (!newName.trim()) return;
         try {
+            setWorkflowError(null);
             const { data } = await apiClient.patch(`/workflows/workflows/${workflowId}/rename`, {
                 name: newName,
                 category: newCategory
@@ -171,7 +175,10 @@ export function useWorkflowManagement(refreshTrigger?: number) {
             if (activeWorkflow?.id === workflowId) {
                 setActiveWorkflow(data);
             }
-        } catch (error) {
+            setWorkflowToRename(null);
+        } catch (error: any) {
+            const detail = error?.response?.data?.detail || error?.message || 'Failed to rename workflow';
+            setWorkflowError(typeof detail === 'string' ? detail : JSON.stringify(detail));
             console.error('Failed to rename workflow', error);
         }
     };
@@ -184,9 +191,11 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         isCreating,
         workflowToDelete,
         workflowToRename,
+        workflowError,
         currentUser,
         setWorkflowToDelete,
         setWorkflowToRename,
+        setWorkflowError,
         loadWorkflow,
         handleCreateWorkflow,
         confirmDeleteWorkflow,

@@ -19,6 +19,7 @@ interface AppCompactModalFormProps {
     headerLeftContent?: React.ReactNode;
     headerRightContent?: React.ReactNode;
     allowedShortcuts?: string[];
+    error?: string;
 }
 
 export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
@@ -37,6 +38,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     headerLeftContent,
     headerRightContent,
     allowedShortcuts = [],
+    error,
 }) => {
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -165,6 +167,15 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                 </header>
 
                 <div className={`flex-1 flex flex-col min-h-0 ${fullHeight ? 'max-h-none overflow-hidden' : 'max-h-[70vh] overflow-y-auto'} ${noPadding ? '' : 'p-4'}`}>
+                    {error && (
+                        <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
+                            <Icon name="error" size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-red-500 opacity-80">Error occurred</span>
+                                <p className="text-xs font-medium text-red-600 leading-relaxed break-words">{error}</p>
+                            </div>
+                        </div>
+                    )}
                     {children}
                 </div>
 

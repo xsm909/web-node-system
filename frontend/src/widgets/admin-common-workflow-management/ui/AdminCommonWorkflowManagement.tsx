@@ -39,6 +39,7 @@ interface WorkflowEditorContextType {
     liveRuntimeData: Record<string, any>;
     activeNodeIds: string[];
     activeClientId: string | null;
+    workflowError: string | null;
     
     // Operations
     loadWorkflow: (wf: any) => void;
@@ -63,6 +64,7 @@ interface WorkflowEditorContextType {
     setRenameInputValue: (v: string) => void;
     renameCategoryValue: string;
     setRenameCategoryValue: (v: string) => void;
+    setWorkflowError: (v: string | null) => void;
     
     // Lower-level refs/state for graph interaction
     nodesRef: React.MutableRefObject<Node[]>;
@@ -106,8 +108,10 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         nodeTypes,
         workflowToDelete,
         workflowToRename,
+        workflowError,
         setWorkflowToDelete,
         setWorkflowToRename,
+        setWorkflowError,
         loadWorkflow,
         handleCreateWorkflow,
         confirmDeleteWorkflow,
@@ -192,6 +196,7 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         liveRuntimeData,
         activeNodeIds,
         activeClientId,
+        workflowError,
         loadWorkflow,
         setActiveWorkflow,
         setWorkflows,
@@ -214,6 +219,7 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         setRenameInputValue,
         renameCategoryValue,
         setRenameCategoryValue,
+        setWorkflowError,
         nodesRef,
         edgesRef,
         handleNodesChange,
@@ -231,7 +237,7 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         handleDuplicateWorkflow, handleRenameWorkflow, saveWorkflow, runWorkflow,
         notifyChange, isConsoleVisible, 
         setIsConsoleVisible, workflowToDelete, setWorkflowToDelete, 
-        workflowToRename, setWorkflowToRename, renameInputValue, 
+        workflowToRename, setWorkflowToRename, workflowError, setWorkflowError, renameInputValue, 
         setRenameInputValue, renameCategoryValue, setRenameCategoryValue,
         handleNodesChange, handleEdgesChange, handleEditNodeContext, onToggleSidebar, isSidebarOpen,
         isParametersModalOpen, setIsParametersModalOpen, setWorkflows,
@@ -705,12 +711,14 @@ const WorkflowModals = () => {
         confirmDeleteWorkflow,
         setWorkflowToDelete,
         workflowToRename,
+        workflowError,
         handleRenameWorkflow,
         renameInputValue,
         setRenameInputValue,
         renameCategoryValue,
         setRenameCategoryValue,
         setWorkflowToRename,
+        setWorkflowError,
         workflows
     } = useWorkflowEditor();
 
@@ -731,7 +739,11 @@ const WorkflowModals = () => {
                 isOpen={!!workflowToRename}
                 title="Rename Workflow"
                 submitLabel="Update"
-                onClose={() => setWorkflowToRename(null)}
+                onClose={() => {
+                    setWorkflowToRename(null);
+                    setWorkflowError(null);
+                }}
+                error={workflowError || undefined}
                 onSubmit={() => {
                     if (workflowToRename) {
                         handleRenameWorkflow(workflowToRename.id, renameInputValue, renameCategoryValue);

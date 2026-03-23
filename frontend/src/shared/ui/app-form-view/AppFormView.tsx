@@ -41,6 +41,7 @@ export interface AppFormViewProps {
     entityId?: string;
     entityType?: string;
     onLockToggle?: (isLocked: boolean) => void;
+    error?: string;
 }
 
 export const AppFormView: React.FC<AppFormViewProps> = ({
@@ -66,7 +67,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     isLocked = false,
     entityId,
     entityType,
-    onLockToggle
+    onLockToggle,
+    error
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
 
@@ -182,6 +184,17 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
 
                 <div className={`flex-1 flex flex-col min-h-0 ${fullHeight ? '' : 'overflow-hidden'}`}>
                     <div className={`flex-1 flex flex-col min-h-0 ${noPadding ? '' : 'px-10 pt-3 pb-10'} ${fullHeight ? '' : 'overflow-y-auto custom-scrollbar'}`}>
+                        {error && (
+                            <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-4 animate-in slide-in-from-top-2 duration-300">
+                                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 flex-shrink-0">
+                                    <Icon name="error" size={20} />
+                                </div>
+                                <div className="flex flex-col gap-1 min-w-0 py-0.5">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-red-500 opacity-80">Critical execution error</span>
+                                    <p className="text-sm font-medium text-red-600 leading-relaxed break-words">{error}</p>
+                                </div>
+                            </div>
+                        )}
                         {children}
                     </div>
 
