@@ -12,6 +12,7 @@ import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCateg
 import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
+import { useProjectStore } from '../../../features/projects/store';
 
 const columnHelper = createColumnHelper<Project>();
 
@@ -25,6 +26,9 @@ export const AdminProjectManagement: React.FC<AdminProjectManagementProps> = ({ 
     const createMutation = useCreateProject();
     const updateMutation = useUpdateProject();
     const deleteMutation = useDeleteProject();
+
+    const { activateProject, activeProject: currentActiveProject } = useProjectStore();
+    // ...
 
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -136,13 +140,27 @@ export const AdminProjectManagement: React.FC<AdminProjectManagementProps> = ({ 
             header: 'Project Name',
             cell: info => {
                 const project = info.row.original;
+                const isActive = currentActiveProject?.id === project.id;
                 return (
-                    <AppTableStandardCell
-                        icon="project"
-                        label={project.name}
-                        subtitle={project.key}
-                        isLocked={project.is_locked}
-                    />
+                    <div className="flex items-center gap-2 group/row">
+                        <AppRoundButton
+                            icon={isActive ? "verified" : "play"}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                activateProject(project);
+                            }}
+                            size="small"
+                            variant="brand"
+                            title={isActive ? "Project Active" : "Activate Project"}
+                            className={isActive ? 'shadow-brand/40' : 'opacity-0 group-hover/row:opacity-100'}
+                        />
+                        <AppTableStandardCell
+                            icon="project"
+                            label={project.name}
+                            subtitle={project.key}
+                            isLocked={project.is_locked}
+                        />
+                    </div>
                 );
             }
         }),

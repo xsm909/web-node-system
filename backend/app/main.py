@@ -198,6 +198,24 @@ $$ LANGUAGE plpgsql;
 
 app = FastAPI(title="Workflow Engine API", version="1.0.0", lifespan=lifespan)
 
+from fastapi import Request
+from .internal_libs.context_lib import project_id_context, project_owner_context
+
+@app.middleware("http")
+async def add_project_context(request: Request, call_next):
+    project_id = request.headers.get("X-Project-Id")
+    project_owner = request.headers.get("X-Project-Owner")
+    
+    token_id = project_id_context.set(project_id)
+    token_owner = project_owner_context.set(project_owner)
+    
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        project_id_context.reset(token_id)
+        project_owner_context.reset(token_owner)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

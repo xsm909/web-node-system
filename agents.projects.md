@@ -37,3 +37,36 @@ Implemented the core Project system, allowing administrators to manage projects 
 - Database migrations successfully applied in Docker environment.
 - Full CRUD cycle verified in Admin UI.
 - Data locking correctly prevents editing/deletion of locked projects.
+
+## Phase 2: Project Mode Implementation
+
+### Summary
+Introduced "Project Mode," a system-wide state where the application context is tied to a specific project. This mode affects the visual theme, sidebar navigation, and provides context to backend operations.
+
+### Frontend Details
+- **State Management**: `useProjectStore` (Zustand) manages `activeProject` and `isProjectMode`.
+- **Activation Flow**: 
+    - User Management -> Projects Tab.
+    - A **"Play/Activate"** icon button is available directly in each row of the projects table (appears on hover or stays active if the project is selected).
+    - This allows high-speed switching between projects without entering the edit form.
+- **Dynamic Theming**: 
+    - Activating a project injects its `theme_color` into the `--brand` and `--brand-hover` CSS variables globally.
+    - Exiting restores the default Emerald green (`#10b981`).
+- **Sidebar Integration**: 
+    - An "Active Project" block appears above the "Sign Out" button.
+    - Displays the project name and an **"Exit Project"** button.
+- **API Interceptor**:
+    - Automatically attaches `X-Project-Id` and `X-Project-Owner` headers to all outgoing requests when Project Mode is active.
+
+### Backend Details
+- **Context Library**: `projects_lib.py` ([projects_lib.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/internal_libs/projects_lib.py))
+    - `is_project_mode() -> bool`
+    - `get_project_id() -> Optional[uuid.UUID]`
+    - `get_project_owner() -> Optional[uuid.UUID]`
+- **Middleware**: `add_project_context` middleware in `main.py` extracts project headers and populates `contextvars` in `context_lib.py`.
+
+### Verification Results
+- **Theme Sync**: Verified dynamic color updates on `:root`.
+- **Persistence**: Project mode state persists across page refreshes via `localStorage`.
+- **Sidebar UX**: Verified visibility of active project block and exit functionality.
+- **Backend Sync**: Verified that `projects_lib.py` correctly reports project state based on request headers.

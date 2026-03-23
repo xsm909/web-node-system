@@ -3,6 +3,7 @@ import { Sidebar } from '../../../shared/ui/sidebar';
 import { Icon } from '../../../shared/ui/icon';
 import { ThemeToggle } from '../../../shared/ui/theme-toggle/ThemeToggle';
 import { useAuthStore } from '../../../features/auth/store';
+import { useProjectStore } from '../../../features/projects/store';
 
 export interface NavItem {
     id: string;
@@ -32,6 +33,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     onClose,
 }) => {
     const { user, logout } = useAuthStore();
+    const { activeProject, isProjectMode, exitProject } = useProjectStore();
 
     return (
         <Sidebar
@@ -101,6 +103,26 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                             </div>
                         </div>
                     )}
+
+                    {isProjectMode && activeProject && (
+                        <div className="mx-2 p-3 rounded-2xl bg-brand/5 border border-brand/10 flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                                <Icon name="project" size={14} className="text-brand" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-brand">Active Project</span>
+                            </div>
+                            <div className="text-xs font-bold text-[var(--text-main)] truncate px-1">
+                                {activeProject.name}
+                            </div>
+                            <button
+                                onClick={exitProject}
+                                className="w-full mt-1 py-1.5 rounded-xl bg-brand text-[10px] font-black uppercase tracking-widest text-white hover:bg-brand-hover transition-colors active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <Icon name="close" size={12} />
+                                Exit Project
+                            </button>
+                        </div>
+                    )}
+
                     <div className="flex gap-2">
                         <button
                             className="flex-1 px-4 py-3 rounded-2xl text-xs font-bold text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 border border-[var(--border-base)] hover:border-red-500/20 transition-all flex items-center justify-center gap-2 active:scale-95"
