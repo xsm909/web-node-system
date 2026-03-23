@@ -38,6 +38,7 @@ interface ClientMetadataManagementProps {
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
     hideHeader?: boolean;
+    onHeaderActionsChange?: (actions: React.ReactNode) => void;
 }
 
 const SortableRow = ({
@@ -101,8 +102,7 @@ const SortableRow = ({
                                 placeholder=""
                                 icon="add_circle"
                                 variant="brand"
-                                triggerClassName="!w-7 !h-7 rounded-full shadow-sm !bg-[#10b981] !text-white !p-0"
-                                iconSize={14}
+                                size="small"
                                 hideChevron
                             />
                         </div>
@@ -167,7 +167,8 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     activeClientId,
     onToggleSidebar,
     isSidebarOpen,
-    hideHeader = false
+    hideHeader = false,
+    onHeaderActionsChange
 }) => {
     const { user } = useAuthStore();
     const { data: schemas = [], isLoading: isSchemasLoading } = useSchemas();
@@ -417,6 +418,28 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
         if (open) setNestingParentId(itemId);
     };
 
+    const addMetadataButton = useMemo(() => {
+        if (!isAdmin || !activeClientId) return null;
+        return (
+            <div onClick={(e) => { e.stopPropagation(); setNestingParentId(null); }}>
+                <ComboBox
+                    data={comboData}
+                    onSelect={handleSchemaSelect}
+                    placeholder=""
+                    icon="add_circle"
+                    variant="brand"
+                    size="normal"
+                    title="Assign Metadata"
+                    hideChevron
+                />
+            </div>
+        );
+    }, [isAdmin, activeClientId, comboData, handleSchemaSelect]);
+
+    useEffect(() => {
+        onHeaderActionsChange?.(addMetadataButton);
+    }, [addMetadataButton, onHeaderActionsChange]);
+
     if (isLoading && assignments.length === 0) {
         return (
             <div className="flex justify-center items-center h-64 bg-surface-800 rounded-3xl border border-[var(--border-base)] shadow-2xl">
@@ -439,22 +462,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                     </div>
                 )}
 
-                {isAdmin && activeClientId && (
-                    <div className="flex justify-start px-10 pt-4">
-                        <div onClick={(e) => { e.stopPropagation(); setNestingParentId(null); }}>
-                            <ComboBox
-                                data={comboData}
-                                onSelect={handleSchemaSelect}
-                                placeholder=""
-                                icon="add_circle"
-                                variant="brand"
-                                triggerClassName="!w-10 !h-10 rounded-full !bg-[#10b981] !text-white !p-0"
-                                title="Assign Metadata"
-                                iconSize={20}
-                            />
-                        </div>
-                    </div>
-                )}
+                {/* Metadata actions moved to AppHeader */}
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     <div className="overflow-x-auto">
@@ -622,6 +630,8 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 }
                 rightContent={
                     <div className="flex items-center gap-2">
+                        {addMetadataButton}
+                        <div className="w-px h-6 bg-[var(--border-base)] mx-1 opacity-20" />
                         <button
                             onClick={collapseAll}
                             className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-widest"

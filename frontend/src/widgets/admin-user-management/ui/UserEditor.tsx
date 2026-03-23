@@ -16,6 +16,7 @@ interface UserEditorProps {
     activeTab?: 'common' | 'metadata' | 'prompts';
     onDirtyChange?: (isDirty: boolean) => void;
     isLocked?: boolean;
+    onHeaderActionsChange?: (actions: React.ReactNode) => void;
 }
 
 export interface UserEditorRef {
@@ -23,7 +24,7 @@ export interface UserEditorRef {
     isSaving: boolean;
 }
 
-export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, onSaveSuccess, activeTab = 'common', onDirtyChange, isLocked }, ref) => {
+export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, onSaveSuccess, activeTab = 'common', onDirtyChange, isLocked, onHeaderActionsChange }, ref) => {
     const queryClient = useQueryClient();
     const [selectedManagerId, setSelectedManagerId] = useState<string>('');
 
@@ -165,7 +166,7 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
             )}
 
             {activeTab === 'metadata' && (
-                <ClientMetadataManagement activeClientId={user.id} hideHeader={true} />
+                <ClientMetadataManagement activeClientId={user.id} hideHeader={true} onHeaderActionsChange={onHeaderActionsChange} />
             )}
 
             {activeTab === 'prompts' && (

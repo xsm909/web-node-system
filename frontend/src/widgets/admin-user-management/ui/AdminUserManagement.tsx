@@ -28,6 +28,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
     const [activeTab, setActiveTab] = useState<'common' | 'metadata' | 'prompts'>('common');
     const [isFormDirty, setIsFormDirty] = useState(false);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
+    const [metadataActions, setMetadataActions] = useState<React.ReactNode>(null);
     const editorRef = useRef<UserEditorRef>(null);
 
     const { data: users = [], isLoading, refetch } = useQuery({
@@ -173,15 +174,18 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 onTabChange={(id) => setActiveTab(id as 'common' | 'metadata' | 'prompts')}
                 saveLabel="Save User"
                 headerRightContent={
-                    <AppLockToggle 
-                        entityId={selectedUser.id} 
-                        entityType="users" 
-                        initialLocked={selectedUser.is_locked}
-                        onToggle={(locked) => {
-                            setSelectedUser({ ...selectedUser, is_locked: locked });
-                            refetch();
-                        }}
-                    />
+                    <div className="flex items-center gap-2">
+                        {activeTab === 'metadata' && metadataActions}
+                        <AppLockToggle 
+                            entityId={selectedUser.id} 
+                            entityType="users" 
+                            initialLocked={selectedUser.is_locked}
+                            onToggle={(locked) => {
+                                setSelectedUser({ ...selectedUser, is_locked: locked });
+                                refetch();
+                            }}
+                        />
+                    </div>
                 }
                 noPadding={activeTab === 'prompts' || activeTab === 'metadata'}
                 fullHeight={activeTab === 'prompts' || activeTab === 'metadata'}
@@ -194,6 +198,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                         activeTab={activeTab}
                         onDirtyChange={setIsFormDirty}
                         isLocked={selectedUser.is_locked}
+                        onHeaderActionsChange={setMetadataActions}
                     />
                 </div>
             </AppFormView>
@@ -222,7 +227,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                         icon="add"
                         variant="brand"
                         title="Add User"
-                        iconSize={20}
                     />
                 }
                 searchQuery={searchQuery}

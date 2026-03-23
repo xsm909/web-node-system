@@ -3,17 +3,18 @@ import { Icon } from '../icon';
 
 interface AppRoundButtonProps {
     icon: string;
-    onClick?: () => void;
+    onClick?: (e: React.MouseEvent) => void;
     variant?: 'brand' | 'outline' | 'ghost';
     isLoading?: boolean;
     isDisabled?: boolean;
     title?: string;
     className?: string;
     iconSize?: number;
+    size?: 'normal' | 'small';
     type?: 'button' | 'submit' | 'reset';
 }
 
-export const AppRoundButton: React.FC<AppRoundButtonProps> = ({
+export const AppRoundButton = React.forwardRef<HTMLButtonElement, AppRoundButtonProps>(({
     icon,
     onClick,
     variant = 'brand',
@@ -21,10 +22,14 @@ export const AppRoundButton: React.FC<AppRoundButtonProps> = ({
     isDisabled = false,
     title,
     className = '',
-    iconSize = 20,
+    iconSize,
+    size = 'normal',
     type = 'button'
-}) => {
-    const baseStyles = "flex items-center justify-center w-10 h-10 rounded-full transition-all shadow-lg active:scale-95 shrink-0";
+}, ref) => {
+    const isSmall = size === 'small';
+    const computedIconSize = iconSize || (isSmall ? 14 : 20);
+    
+    const baseStyles = `flex items-center justify-center rounded-full transition-all shadow-lg active:scale-95 shrink-0 ${isSmall ? 'w-7 h-7' : 'w-10 h-10'}`;
     
     const variantStyles = {
         brand: "bg-brand text-white hover:brightness-110 shadow-brand/20",
@@ -36,6 +41,7 @@ export const AppRoundButton: React.FC<AppRoundButtonProps> = ({
 
     return (
         <button
+            ref={ref}
             type={type}
             onClick={onClick}
             disabled={isDisabled || isLoading}
@@ -44,9 +50,11 @@ export const AppRoundButton: React.FC<AppRoundButtonProps> = ({
         >
             <Icon 
                 name={isLoading ? 'sync' : icon} 
-                size={iconSize} 
+                size={computedIconSize} 
                 className={isLoading ? 'animate-spin' : ''} 
             />
         </button>
     );
-};
+});
+
+AppRoundButton.displayName = 'AppRoundButton';

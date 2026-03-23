@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Icon } from '../icon';
 import { SelectionList, type SelectionGroup, type SelectionItem, type SelectionAction, type SelectionListConfig } from '../selection-list';
 import { AppFormFieldRect } from '../app-input/AppFormFieldRect';
+import { AppRoundButton } from '../app-round-button/AppRoundButton';
 import { UI_CONSTANTS } from '../constants';
 
 interface ComboBoxProps {
@@ -27,6 +28,7 @@ interface ComboBoxProps {
     iconClassName?: string;
     title?: string;
     hideChevron?: boolean;
+    size?: 'normal' | 'small';
 }
 
 export const ComboBox: React.FC<ComboBoxProps> = ({
@@ -51,7 +53,11 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     iconClassName,
     title,
     hideChevron = false,
+    size = 'normal'
 }) => {
+    const isSmall = size === 'small';
+    const computedIconSize = iconSize || (isSmall ? 14 : 16);
+    
     const [isOpen, setIsOpen] = useState(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -82,56 +88,68 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
 
     return (
         <div className={`relative ${isSidebar ? 'w-full' : ''} ${className}`}>
-            <AppFormFieldRect
-                as="button"
-                type="button"
-                ref={triggerRef}
-                onClick={toggleOpen}
-                disabled={disabled}
-                isFocused={isOpen}
-                title={title}
-                className={`
-                    ${isIconOnly ? 'p-0 justify-center' : `justify-start ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}
-                    ${isSidebar ? 'w-full' : 'max-w-full'}
-                    ${triggerClassName.includes('rounded-full') ? 'rounded-full' : ''}
-                    ${isBrand ? 'bg-brand text-white shadow-md shadow-brand/10 border-transparent hover:brightness-110 active:scale-95' : ''}
-                    ${triggerClassName}
-                `}
-            >
-                <div className={`flex items-center gap-3 min-w-0 ${isIconOnly ? 'justify-center' : ''}`}>
-                    {icon && (
+            {isIconOnly ? (
+                <AppRoundButton
+                    ref={triggerRef}
+                    icon={icon || ''}
+                    onClick={toggleOpen}
+                    isDisabled={disabled}
+                    variant={isBrand ? 'brand' : 'outline'}
+                    size={size}
+                    iconSize={computedIconSize}
+                    title={title}
+                    className={triggerClassName}
+                />
+            ) : (
+                <AppFormFieldRect
+                    as="button"
+                    type="button"
+                    ref={triggerRef}
+                    onClick={toggleOpen}
+                    disabled={disabled}
+                    isFocused={isOpen}
+                    title={title}
+                    className={`
+                        justify-start ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}
+                        ${isSidebar ? 'w-full' : 'max-w-full'}
+                        ${triggerClassName}
+                    `}
+                >
+                    <div className="flex items-center gap-3 min-w-0">
+                        {icon && (
+                            <Icon
+                                name={icon}
+                                size={computedIconSize}
+                                className={`${isBrand ? 'text-white' : (isOpen || value ? 'text-brand' : '')} ${iconClassName || ''}`}
+                            />
+                        )}
+                        {(label || subLabel || (placeholder && !isIconOnly)) && (
+                            <div className="flex flex-col items-start min-w-0">
+                                {label && (
+                                    <span className={`text-xs font-normal truncate w-full ${labelClassName}`}>
+                                        {label}
+                                    </span>
+                                )}
+                                {!label && placeholder && (
+                                    <span className="text-[10px] opacity-50">{placeholder}</span>
+                                )}
+                                {subLabel && (
+                                    <span className="text-[10px] text-[var(--text-muted)] font-normal opacity-60">
+                                        {subLabel}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    {!hideChevron && (
                         <Icon
-                            name={icon}
-                            size={iconSize}
-                            className={`${isBrand ? 'text-white' : (isOpen || value ? 'text-brand' : '')} ${iconClassName || ''}`}
+                            name="chevron_down"
+                            size={14}
+                            className={`transition-transform duration-200 ml-auto ${isOpen ? 'rotate-180' : 'opacity-30 group-hover:opacity-60'}`}
                         />
                     )}
-                    {(label || subLabel || (placeholder && !isIconOnly)) && (
-                        <div className="flex flex-col items-start min-w-0">
-                            {label && (
-                                <span className={`text-xs font-normal truncate w-full ${labelClassName}`}>
-                                    {label}
-                                </span>
-                            )}
-                            {!label && placeholder && (
-                                <span className="text-[10px] opacity-50">{placeholder}</span>
-                            )}
-                            {subLabel && (
-                                <span className="text-[10px] text-[var(--text-muted)] font-normal opacity-60">
-                                    {subLabel}
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
-                {!hideChevron && !isIconOnly && (
-                    <Icon
-                        name="chevron_down"
-                        size={14}
-                        className={`transition-transform duration-200 ml-auto ${isOpen ? 'rotate-180' : 'opacity-30 group-hover:opacity-60'}`}
-                    />
-                )}
-            </AppFormFieldRect>
+                </AppFormFieldRect>
+            )}
 
             {isOpen && (
                 <SelectionList

@@ -211,7 +211,8 @@ Agent hints - lightbulb_circle.svg
 Node type - function.svg
 metadata - metadata.svg
 
-#### UI icons rules
+#### 9.3.1 UI icons rules
+export/download - download.svg
 play/run/generate - play.svg
 save - save.svg
 add elements - add_circle.svg
