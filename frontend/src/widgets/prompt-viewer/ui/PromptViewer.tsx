@@ -3,6 +3,7 @@ import { apiClient } from '../../../shared/api/client';
 import { AppTable } from '../../../shared/ui/app-table/AppTable';
 import { Icon } from '../../../shared/ui/icon';
 import type { ColumnDef } from '@tanstack/react-table';
+import { useProjectStore } from '../../../features/projects/store';
 
 interface Prompt {
     id: string;
@@ -106,6 +107,7 @@ const MinimalistPromptView: React.FC<{ content: any, meta?: any }> = ({ content,
 };
 
 export const PromptViewer: React.FC<PromptViewerProps> = ({ referenceId }) => {
+    const { isProjectMode, activeProject } = useProjectStore();
     const [prompts, setPrompts] = useState<Prompt[]>([]);
     const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
     const [isPromptsLoading, setIsPromptsLoading] = useState(false);
@@ -122,11 +124,13 @@ export const PromptViewer: React.FC<PromptViewerProps> = ({ referenceId }) => {
                 setPrompts(sorted);
                 if (sorted.length > 0 && !selectedPrompt) {
                     setSelectedPrompt(sorted[0]);
+                } else if (sorted.length === 0) {
+                    setSelectedPrompt(null);
                 }
             })
             .catch(err => console.error('Failed to fetch prompts:', err))
             .finally(() => setIsPromptsLoading(false));
-    }, [referenceId]);
+    }, [referenceId, isProjectMode, activeProject?.id]);
 
     const columns = useMemo<ColumnDef<Prompt>[]>(() => [
         {

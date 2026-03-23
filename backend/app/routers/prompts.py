@@ -29,6 +29,15 @@ def list_prompts(
     ))).scalar_subquery()
     
     results = db.query(Prompt, is_locked_subquery.label("is_locked"))
+    
+    # Filter by project context
+    from ..internal_libs.projects_lib import get_project_id
+    project_id = get_project_id()
+    if project_id:
+        results = results.filter(Prompt.project_id == project_id)
+    else:
+        results = results.filter(Prompt.project_id == None)
+        
     if entity_id:
         results = results.filter(Prompt.entity_id == entity_id)
     if entity_type:
