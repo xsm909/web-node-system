@@ -150,4 +150,23 @@ Implemented project-based filtering and isolation for Agent Hints. This includes
 ### Verification Results
 - **Dynamic List Refetching**: Verified that exiting a project triggers an immediate refetch of agent hints.
 - **Automatic Scoping**: Verified that new hints created in project mode are correctly associated with the active project.
-- **UI Source Visibility**: Confirmed that the "Source" column clearly identifies the origin of each hint.
+- [x] UI Source Visibility: Confirmed that the "Source" column clearly identifies the origin of each hint.
+- [x] Verified that agent hints list and metadata list refresh automatically when exiting or entering projects.
+
+## Phase 6: Robustness & Bug Fixes
+
+### Summary
+Addressed critical backend issues related to object creation and Pydantic validation to ensure reliable saving of Schemas, Reports, and Workflows.
+
+### Backend Details
+- **Redundant Parameter Fix**:
+    - Resolved `TypeError: got multiple values for keyword argument 'project_id'` in `schemas.py` and `report.py` routers.
+    - Updated `create_schema` and `create_report` to exclude `project_id` from the Pydantic `model_dump()` before passing it to the model constructor.
+- **Timestamp Validation Fix**:
+    - Resolved `ValidationError` for `updated_at` field in `ReportOut` and `SchemaResponse`.
+    - Updated `Report` and `Workflow` models to include `server_default=func.now()` for `updated_at`.
+    - Made `updated_at` optional in Pydantic output schemas to handle the case where the database hasn't returned the timestamp immediately after creation.
+
+### Verification Results
+- **Creation Cycle**: Verified that new schemas and reports are saved successfully in both project and general modes.
+- **Validation**: Confirmed that output schemas correctly handle `None` values for `updated_at` during the refresh phase of the creation process.

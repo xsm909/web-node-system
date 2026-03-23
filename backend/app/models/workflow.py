@@ -28,7 +28,7 @@ class Workflow(Base):
     status = Column(Enum(WorkflowStatus), default=WorkflowStatus.draft)
     workflow_data = Column(JSON, nullable=True, default={})
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     owner = relationship(
         "User", 

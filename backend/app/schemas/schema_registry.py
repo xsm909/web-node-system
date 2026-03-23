@@ -36,7 +36,7 @@ class SchemaResponse(SchemaBase):
     id: UUID
     project_id: Optional[UUID] = None
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     is_locked: bool = False
 
     class Config:

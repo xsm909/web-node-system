@@ -49,6 +49,7 @@ class ReportStyleUpdate(BaseModel):
 
 class ReportStyleOut(ReportStyleBase):
     id: uuid.UUID
+    updated_at: Optional[datetime] = None
     is_locked: bool = False
 
     class Config:
@@ -86,7 +87,7 @@ class ReportOut(ReportBase):
     project_id: Optional[uuid.UUID] = None
     created_by: uuid.UUID
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     parameters: List[ObjectParameterOut] = []
     is_locked: bool = False
 
@@ -246,7 +247,7 @@ def get_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user
 def create_report(data: ReportCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=admin_access):
     
     db_report = Report(
-        **data.model_dump(exclude={"parameters"}),
+        **data.model_dump(exclude={"parameters", "project_id"}),
         created_by=current_user.id,
         project_id=data.project_id or projects_lib.get_project_id()
     )

@@ -55,7 +55,7 @@ def create_schema(
         raise HTTPException(status_code=400, detail="Schema key already exists")
     
     new_schema = Schema(
-        **schema_in.model_dump(),
+        **schema_in.model_dump(exclude={"project_id"}),
         project_id=schema_in.project_id or projects_lib.get_project_id()
     )
     db.add(new_schema)

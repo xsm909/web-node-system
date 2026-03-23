@@ -35,7 +35,7 @@ class Report(Base):
     meta = Column(JSON, nullable=True, default={})
     category = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     style = relationship("ReportStyle", back_populates="reports")
