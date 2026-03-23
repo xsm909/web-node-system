@@ -195,7 +195,7 @@ export const WorkflowEditorProvider = ({ children, onEditNode: onEditNodeProp, r
         loadWorkflow,
         setActiveWorkflow,
         setWorkflows,
-        handleCreateWorkflow: (name: string, category: string) => handleCreateWorkflow(name, category, creationProjectId || activeProject?.id),
+        handleCreateWorkflow: (name: string, category: string) => handleCreateWorkflow(name, category, creationProjectId || activeProject?.id, 'common'),
         confirmDeleteWorkflow,
         handleDuplicateWorkflow,
         handleRenameWorkflow,
@@ -274,7 +274,6 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
         handleNodesChange,
         handleEdgesChange,
         nodesRef,
-        edgesRef,
         onEditNode,
         notifyChange,
         isDirty,
@@ -622,7 +621,6 @@ const AdminWorkflowsTab = () => {
         isSidebarOpen,
         loadWorkflow,
         activeProjectId,
-        creationProjectId,
         setCreationProjectId
     } = useWorkflowEditor();
     

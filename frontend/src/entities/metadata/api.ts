@@ -6,6 +6,7 @@ import type { Schema } from '../schema/api';
 export interface Metadata {
     id: string;
     schema_id: string;
+    project_id: string | null;
     parent_id: string | null;
     entity_id: string | null;
     entity_type: string | null;
@@ -20,6 +21,7 @@ export interface Metadata {
 
 export interface CreateMetadataDto {
     schema_id: string;
+    project_id?: string | null;
     parent_id?: string | null;
     entity_id?: string | null;
     entity_type?: string | null;
@@ -47,8 +49,9 @@ export const useMetadataList = () => {
 
 // --- Entity Metadata ---
 export const useEntityMetadata = (entityType: string, entityId: string) => {
+  const { activeProject, isProjectMode } = useProjectStore();
   return useQuery({
-    queryKey: ['metadata', 'entity', entityType, entityId],
+    queryKey: ['metadata', 'entity', entityType, entityId, isProjectMode, activeProject?.id],
     queryFn: async () => {
       const response = await apiClient.get<Metadata[]>(`/metadata/entity/${entityType}/${entityId}`);
       return response.data;

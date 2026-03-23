@@ -58,8 +58,8 @@ class WorkflowRename(BaseModel):
 class WorkflowOut(WorkflowBase):
     id: uuid.UUID
     project_id: Optional[uuid.UUID] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     parameters: List[ObjectParameterOut] = []
     is_locked: bool = False
 
@@ -196,21 +196,21 @@ def get_user_workflows(user_id: str, current_user: User = Depends(get_current_us
              raise HTTPException(status_code=403, detail="Access denied")
     
     current_project_id = projects_lib.get_project_id()
-    
+
     is_locked_subquery = db.query(LockData.id).filter(
         LockData.entity_id == Workflow.id,
         LockData.entity_type == "workflows"
     ).exists()
-    
+
     query = db.query(Workflow, is_locked_subquery.label("is_locked")).filter(Workflow.owner_id == user_id)
-    
+
     if current_project_id:
         # In project mode: see ONLY project items
         query = query.filter(Workflow.project_id == current_project_id)
     else:
         # Outside project mode: see ONLY general items
         query = query.filter(Workflow.project_id == None)
-        
+
     results = query.all()
     
     response = []

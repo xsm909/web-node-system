@@ -46,6 +46,7 @@ class SchemaResponse(SchemaBase):
 # --- Metadata (Validated Data Payloads) ---
 class MetadataBase(BaseModel):
     schema_id: UUID
+    project_id: Optional[UUID] = None
     parent_id: Optional[UUID] = None
     entity_id: Optional[UUID] = None
     entity_type: Optional[str] = None

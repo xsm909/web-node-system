@@ -32,47 +32,65 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         }
     }, [activeClientId, activeWorkflow, currentUser?.id]);
 
-    const loadWorkflowsForUser = useCallback(async (userId: string) => {
-        try {
-            const { data } = await apiClient.get(`/workflows/users/${userId.toLowerCase()}/workflows`);
-
-            setWorkflows(prev => {
-                // Remove existing workflows for this user to avoid duplicates on refresh
-                const otherUsersWorkflows = prev.filter(w => w.owner_id.toLowerCase() !== userId.toLowerCase());
-                return [...otherUsersWorkflows, ...data];
-            });
-        } catch (e) {
-            console.error(`Failed to load workflows for user ${userId}`, e);
-        }
-    }, []);
-
     useEffect(() => {
         const init = async () => {
             try {
-                const nodeTypesRes = await apiClient.get('/workflows/node-types');
-                setNodeTypes(nodeTypesRes.data);
+                // Clear state when switching project/mode to ensure isolation
+                setWorkflows([]);
+                setActiveWorkflow(null);
 
-                const usersRes = await apiClient.get('/workflows/users');
+                const [nodeTypesRes, usersRes] = await Promise.all([
+                    apiClient.get('/workflows/node-types'),
+                    apiClient.get('/workflows/users')
+                ]);
+                
+                setNodeTypes(nodeTypesRes.data);
                 const users = usersRes.data;
-                setAssignedUsersState(users);
+                setAssignedUsersState(users); // Keep this to update local state
                 setAssignedUsers(users);
 
-                // Load workflows for current user
-                if (currentUser?.id) {
-                    await loadWorkflowsForUser(currentUser.id);
+                // Collect all workflows locally to avoid race conditions with multiple setWorkflows
+                let allWfs: Workflow[] = [];
+
+                // 1. Load common workflows
+                try {
+                    const commonRes = await apiClient.get('/workflows/common');
+                    allWfs = [...commonRes.data];
+                } catch (e) {
+                    console.error("Failed to load common workflows", e);
                 }
 
-                // Load workflows for all assigned clients (if admin or manager)
-                for (const user of users) {
-                    if (user.id.toLowerCase() === currentUser?.id?.toLowerCase()) continue;
-                    await loadWorkflowsForUser(user.id);
+                // 2. Load workflows for current user
+                if (currentUser?.id) {
+                    try {
+                        const myWfsRes = await apiClient.get(`/workflows/users/${currentUser.id.toLowerCase()}/workflows`);
+                        allWfs = [...allWfs, ...myWfsRes.data];
+                    } catch (e) {
+                        console.error(`Failed to load workflows for user ${currentUser.id}`, e);
+                    }
                 }
+
+                // 3. Load workflows for clients
+                // Use Promise.all to load concurrently but merge correctly
+                const clientPromises = users
+                    .filter((u: AssignedUser) => u.id.toLowerCase() !== currentUser?.id?.toLowerCase())
+                    .map((u: AssignedUser) => apiClient.get(`/workflows/users/${u.id.toLowerCase()}/workflows`).catch(() => ({ data: [] })));
+                
+                const clientResults = await Promise.all(clientPromises);
+                clientResults.forEach((res: any) => {
+                    allWfs = [...allWfs, ...res.data];
+                });
+
+                setWorkflows(allWfs);
             } catch (e) {
                 console.error("Initialization failed", e);
             }
         };
-        init();
-    }, [currentUser?.id, loadWorkflowsForUser, setAssignedUsers, isProjectMode, activeProject?.id]);
+
+        if (currentUser?.id) {
+            init();
+        }
+    }, [currentUser?.id, setAssignedUsers, isProjectMode, activeProject?.id]);
 
     useEffect(() => {
         if (refreshTrigger !== undefined && refreshTrigger > 0) {
@@ -93,20 +111,22 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         }
     };
 
-    const handleCreateWorkflow = async (name: string, category: string = 'general', project_id?: string | null) => {
+    const handleCreateWorkflow = async (name: string, category: string = 'general', project_id?: string | null, owner_id?: string | null) => {
         if (!currentUser?.id) return;
 
         setIsCreating(true);
         try {
+            const finalOwnerId = owner_id || activeClientId || currentUser.id;
             const { data } = await apiClient.post('/workflows/workflows', {
                 name,
                 category,
-                owner_id: activeClientId || currentUser.id,
+                owner_id: finalOwnerId,
                 project_id: project_id || activeProject?.id || null
             });
 
             setWorkflows((prev) => [...prev, data]);
             loadWorkflow(data);
+            return data;
         } finally {
             setIsCreating(false);
         }

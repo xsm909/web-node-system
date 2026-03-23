@@ -116,13 +116,19 @@ export const ClientMetadataEditor = React.forwardRef<ClientMetadataEditorRef, Cl
         }
 
         setSaveError(null);
-        updateMetadataMutation.mutate({ id: assignment.id, data }, {
+        updateMetadataMutation.mutate({ id: assignment.id, data: { data } }, {
             onSuccess: () => onSave?.(data),
             onError: (err: any) => {
                 const detail = err?.response?.data?.detail
                     || err?.message
                     || 'Failed to save. Please check all required fields.';
-                setSaveError(String(detail));
+                
+                // Handle structured error details from FastAPI
+                const errorMessage = typeof detail === 'object' 
+                    ? JSON.stringify(detail, null, 2) 
+                    : String(detail);
+                    
+                setSaveError(errorMessage);
             },
         });
     };

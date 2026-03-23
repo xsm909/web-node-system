@@ -15,6 +15,7 @@ from ..schemas.schema_registry import (
 )
 from ..services.validator import validate_json_data
 from ..internal_libs.logger_lib import system_log
+from ..internal_libs.projects_lib import get_project_id, is_project_mode
 
 router = APIRouter(prefix="/metadata", tags=["metadata"])
 
@@ -29,7 +30,18 @@ def get_metadata_records(db: Session = Depends(get_db), current_user: User = Dep
         LockData.entity_type == "metadata"
     ).exists()
     
-    results = db.query(MetadataRecord, is_locked_subquery.label("is_locked")).all()
+    query = db.query(MetadataRecord, is_locked_subquery.label("is_locked"))
+    
+    # Project filtering
+    active_project_id = get_project_id()
+    if is_project_mode():
+        query = query.filter(
+            (MetadataRecord.parent_id == None) | (MetadataRecord.project_id == active_project_id)
+        )
+    else:
+        query = query.filter(MetadataRecord.project_id == None)
+
+    results = query.all()
     
     response = []
     for record, is_locked in results:
@@ -76,7 +88,8 @@ def create_metadata_record(
         entity_id=entity_id,
         entity_type=entity_type,
         data=record_in.data,
-        order=order
+        order=order,
+        project_id=get_project_id() if is_project_mode() else record_in.project_id
     )
     db.add(new_record)
     db.commit()
@@ -159,12 +172,23 @@ def get_entity_metadata(
 ):
     # Returns all metadata records assigned to a specific entity
     # (Removed root-only filter to allow frontend tree building)
-    records = db.query(MetadataRecord).filter(
+    query = db.query(MetadataRecord).filter(
         MetadataRecord.entity_type == entity_type,
         MetadataRecord.entity_id == entity_id
     ).options(
         joinedload(MetadataRecord.schema)
-    ).order_by(MetadataRecord.order).all()
+    )
+
+    # Project filtering
+    active_project_id = get_project_id()
+    if is_project_mode():
+        query = query.filter(
+            (MetadataRecord.parent_id == None) | (MetadataRecord.project_id == active_project_id)
+        )
+    else:
+        query = query.filter(MetadataRecord.project_id == None)
+
+    records = query.order_by(MetadataRecord.order).all()
     
     # Check locks once for all records
     record_ids = [r.id for r in records]
