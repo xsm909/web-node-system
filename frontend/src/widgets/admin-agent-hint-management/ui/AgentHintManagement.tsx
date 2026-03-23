@@ -13,6 +13,7 @@ import { AppInput } from '../../../shared/ui/app-input';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { createColumnHelper } from '@tanstack/react-table';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 import { marked } from 'marked';
 
@@ -41,7 +42,8 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
     const [key, setKey] = useState('');
     const [category, setCategory] = useState('');
     const [hintContent, setHintContent] = useState('');
-    const [initialFormState, setInitialFormState] = useState({ key: '', category: '', hintContent: '' });
+    const [systemHints, setSystemHints] = useState(false);
+    const [initialFormState, setInitialFormState] = useState({ key: '', category: '', hintContent: '', systemHints: false });
 
     const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(hints), [hints]);
 
@@ -50,11 +52,13 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
         const data = {
             key: hint.key,
             category: hint.category || '',
-            hintContent: hint.hint
+            hintContent: hint.hint,
+            systemHints: hint.system_hints || false
         };
         setKey(data.key);
         setCategory(data.category);
         setHintContent(data.hintContent);
+        setSystemHints(data.systemHints);
         setInitialFormState(data);
         setIsEditing(true);
         setIsPreview(false);
@@ -65,11 +69,13 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
         const data = {
             key: '',
             category: '',
-            hintContent: ''
+            hintContent: '',
+            systemHints: false
         };
         setKey(data.key);
         setCategory(data.category);
         setHintContent(data.hintContent);
+        setSystemHints(data.systemHints);
         setInitialFormState(data);
         setIsEditing(true);
         setIsPreview(false);
@@ -80,6 +86,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
             key,
             hint: hintContent,
             category: category.trim() || null,
+            system_hints: systemHints
         };
 
         if (selectedHint) {
@@ -88,7 +95,8 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                     setInitialFormState({
                         key: savedHint.key,
                         category: savedHint.category || '',
-                        hintContent: savedHint.hint
+                        hintContent: savedHint.hint,
+                        systemHints: savedHint.system_hints
                     });
                 }
             });
@@ -99,7 +107,8 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                     setInitialFormState({
                         key: savedHint.key,
                         category: savedHint.category || '',
-                        hintContent: savedHint.hint
+                        hintContent: savedHint.hint,
+                        systemHints: savedHint.system_hints
                     });
                 }
             });
@@ -108,7 +117,8 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
 
     const isDirty = key !== initialFormState.key ||
                     category !== initialFormState.category ||
-                    hintContent !== initialFormState.hintContent;
+                    hintContent !== initialFormState.hintContent ||
+                    systemHints !== initialFormState.systemHints;
 
     const filteredHints = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -214,6 +224,24 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                                 allPaths={allCategoryPaths}
                                 disabled={selectedHint?.is_locked}
                             />
+                        </div>
+                    )}
+
+                    {!isPreview && (
+                        <div className="grid grid-cols-2 gap-8 mb-2">
+                            <div className="space-y-3">
+                                <label className="text-xs font-normal text-[var(--text-main)] tracking-widest ml-1">Hint Type</label>
+                                <div
+                                    className={`flex items-center gap-3 ${UI_CONSTANTS.FORM_CONTROL_PX} rounded-lg border transition-all select-none ${UI_CONSTANTS.FORM_CONTROL_HEIGHT} ${systemHints ? 'bg-brand/10 border-brand/50 text-brand' : 'bg-[var(--bg-app)] border-[var(--border-base)] text-[var(--text-muted)]'} ${selectedHint?.is_locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                    onClick={selectedHint?.is_locked ? undefined : () => setSystemHints(!systemHints)}
+                                >
+                                    <Icon name={systemHints ? 'verified' : 'lightbulb_circle'} size={14} />
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-normal whitespace-nowrap">{systemHints ? 'System Hint' : 'User Hint'}</span>
+                                        <span className="text-[10px] opacity-50 hidden sm:inline">{systemHints ? '(Internal)' : '(General)'}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
 

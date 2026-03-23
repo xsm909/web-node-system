@@ -32,6 +32,7 @@ def verify():
             "key": hint_key,
             "category": "Test",
             "hint": "## Test Hint\nThis is a *test* hint.",
+            "system_hints": True,
             "meta": {"version": "1.0"}
         }
         
@@ -48,14 +49,17 @@ def verify():
         # Here we just verify the data is correct
         assert db_hint.key == hint_key
         assert db_hint.category == "Test"
+        assert db_hint.system_hints == True
         assert "test" in db_hint.hint
 
         # 4. Update hint
         db_hint.category = "Updated Category"
+        db_hint.system_hints = False
         db.commit()
         db.refresh(db_hint)
         assert db_hint.category == "Updated Category"
-        print("✅ Updated hint category")
+        assert db_hint.system_hints == False
+        print("✅ Updated hint category and system_hints")
 
         # 5. List hints
         hints = db.query(AgentHint).filter(AgentHint.category == "Updated Category").all()

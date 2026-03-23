@@ -6,6 +6,7 @@ from typing import Optional, Dict, Any
 class AgentHintBase(BaseModel):
     category: Optional[str] = None
     hint: str
+    system_hints: bool = False
     meta: Optional[Dict[str, Any]] = None
 
 class AgentHintCreate(AgentHintBase):
@@ -14,6 +15,7 @@ class AgentHintCreate(AgentHintBase):
 class AgentHintUpdate(BaseModel):
     category: Optional[str] = None
     hint: Optional[str] = None
+    system_hints: Optional[bool] = None
     meta: Optional[Dict[str, Any]] = None
 
 class AgentHintInDB(AgentHintBase):

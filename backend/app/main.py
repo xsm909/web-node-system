@@ -58,6 +58,16 @@ async def lifespan(app: FastAPI):
         except:
             db.rollback()
 
+        # Migrations for agent_hints
+        try:
+            if dialect == 'postgresql':
+                db.execute(text("ALTER TABLE agent_hints ADD COLUMN IF NOT EXISTS system_hints BOOLEAN DEFAULT FALSE;"))
+            else:
+                db.execute(text("ALTER TABLE agent_hints ADD COLUMN system_hints BOOLEAN DEFAULT FALSE;"))
+            db.commit()
+        except:
+            db.rollback()
+
         # Migrations for object_parameters
         try:
             if dialect == 'postgresql':

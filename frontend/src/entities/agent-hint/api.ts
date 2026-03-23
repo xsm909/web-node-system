@@ -11,18 +11,21 @@ export interface AgentHint {
     created_at: string;
     updated_at: string;
     is_locked: boolean;
+    system_hints: boolean;
 }
 
 export interface CreateAgentHintDto {
     key: string;
     category?: string | null;
     hint: string;
+    system_hints?: boolean;
     meta?: any;
 }
 
 export interface UpdateAgentHintDto {
     category?: string | null;
     hint?: string;
+    system_hints?: boolean;
     meta?: any;
 }
 

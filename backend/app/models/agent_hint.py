@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, JSON, Text, UUID, ForeignKey
+from sqlalchemy import Column, String, DateTime, JSON, Text, UUID, ForeignKey, Boolean
 from sqlalchemy.sql import func
 import uuid
 from ..core.database import Base
@@ -12,6 +12,7 @@ class AgentHint(Base):
     key = Column(String(100), unique=True, nullable=False, index=True) # Unique identifier, immutable after creation
     category = Column(String(100), nullable=True, index=True) # e.g., 'Sql', 'Extraction'
     hint = Column(Text, nullable=False) # Markdown content
+    system_hints = Column(Boolean, default=False)
     meta = Column(JSON, nullable=True) # Additional metadata
     
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
