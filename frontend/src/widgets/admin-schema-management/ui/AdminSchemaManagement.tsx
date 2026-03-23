@@ -305,9 +305,12 @@ export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminS
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
                 leftContent={
-                    <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
-                        Schema Registry
-                    </h1>
+                    <div className="flex items-center gap-3 px-2 lg:px-0">
+                        <Icon name="schema" size={24} className="text-brand" />
+                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
+                            Schema Registry
+                        </h1>
+                    </div>
                 }
                 rightContent={
                     <button

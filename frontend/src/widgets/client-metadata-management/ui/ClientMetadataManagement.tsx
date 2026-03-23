@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Icon } from '../../../shared/ui/icon';
 import { useAuthStore } from '../../../features/auth/store';
 import { useEntityMetadata, useCreateRecord, useDeleteRecord } from '../../../entities/record/api';
@@ -48,7 +48,10 @@ const SortableRow = ({
     openSubMenuId,
     onOpenSubMenu,
     comboData,
-    onSchemaSelect
+    onSchemaSelect,
+    isExpanded,
+    onToggleExpand,
+    hasChildren
 }: any) => {
     const {
         attributes,
@@ -95,8 +98,9 @@ const SortableRow = ({
                                 onSelect={onSchemaSelect}
                                 onOpenChange={(open) => onOpenSubMenu(open, item.id)}
                                 placeholder=""
-                                icon="add"
-                                triggerClassName="flex items-center justify-center w-7 h-7 rounded-full bg-brand text-white hover:brightness-110 shadow-sm active:scale-95 transition-all"
+                                icon="add_circle"
+                                variant="brand"
+                                triggerClassName="!w-7 !h-7 rounded-full shadow-sm !bg-[#10b981] !text-white !p-0"
                                 iconSize={14}
                                 hideChevron
                             />
@@ -104,12 +108,25 @@ const SortableRow = ({
                     )}
                 </div>
             </td>
-            <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + depth * 2}rem` }}>
+            <td className="px-6 py-4" style={{ paddingLeft: '1.5rem' }}>
                 <div className="flex items-center gap-3">
                     {depth > 0 && (
                         <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
                     )}
+                    {hasChildren && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleExpand(item.id);
+                            }}
+                            className="p-1 rounded hover:bg-surface-600/50 transition-colors text-[var(--text-muted)]"
+                        >
+                            <Icon name={isExpanded ? "expand_more" : "chevron_right"} size={16} />
+                        </button>
+                    )}
+                    <Icon name="metadata" size={16} className="text-[var(--text-muted)] opacity-60 shrink-0" />
                     <span className={`px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 ${item.is_locked ? 'ring-1 ring-amber-500/20 text-amber-400/80' : ''}`}>
+                        <Icon name="schema" size={12} className="opacity-70" />
                         {depth > 0 && <Icon name="arrow_split" size={12} />}
                         {item.schema?.key || 'Unknown'}
                     </span>
@@ -160,6 +177,30 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     const [assignmentToDelete, setAssignmentToDelete] = useState<any | null>(null);
     const [nestingParentId, setNestingParentId] = useState<string | null>(null);
     const [openSubMenuId, setOpenSubMenuId] = useState<string | null>(null);
+    const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+
+    const toggleRow = useCallback((id: string) => {
+        setCollapsedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    }, []);
+
+    const getAllRecordIdsWithChildren = useCallback((recs: any[]): string[] => {
+        let ids: string[] = [];
+        recs.forEach(r => {
+            if (r.children && r.children.length > 0) {
+                ids.push(r.id);
+                ids = [...ids, ...getAllRecordIdsWithChildren(r.children)];
+            }
+        });
+        return ids;
+    }, []);
 
     const editorRef = useRef<ClientMetadataEditorRef>(null);
 
@@ -277,10 +318,34 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
         return result;
     }, [schemas]);
 
+    const buildRecordTree = (records: any[]): any[] => {
+        const recordMap = new Map<string, any>();
+        const roots: any[] = [];
+
+        // First pass: create deep copies with children field initialized
+        records.forEach(record => {
+            recordMap.set(record.id, { ...record, children: [] });
+        });
+
+        // Second pass: build the hierarchy
+        records.forEach(record => {
+            const mappedRecord = recordMap.get(record.id)!;
+            if (record.parent_id && recordMap.has(record.parent_id)) {
+                recordMap.get(record.parent_id)!.children.push(mappedRecord);
+            } else {
+                roots.push(mappedRecord);
+            }
+        });
+
+        return roots;
+    };
+
     const enrichWithSchemas = (items: any[]): any[] => {
         return items.map(item => {
             const schema = schemas.find(s => s.id === item.schema_id);
-            const children = item.children ? enrichWithSchemas(item.children) : [];
+            const children = item.children && item.children.length > 0 
+                ? enrichWithSchemas(item.children) 
+                : [];
 
             return {
                 ...item,
@@ -290,7 +355,19 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
         });
     };
 
-    const enrichedAssignments = useMemo(() => enrichWithSchemas(assignments), [assignments, schemas]);
+    const enrichedAssignments = useMemo(() => {
+        const tree = buildRecordTree(assignments);
+        return enrichWithSchemas(tree);
+    }, [assignments, schemas]);
+
+    const expandAll = useCallback(() => {
+        setCollapsedIds(new Set());
+    }, []);
+
+    const collapseAll = useCallback(() => {
+        const allIds = getAllRecordIdsWithChildren(enrichedAssignments);
+        setCollapsedIds(new Set(allIds));
+    }, [enrichedAssignments, getAllRecordIdsWithChildren]);
 
     const handleRowClick = (item: any) => {
         if (!item.schema) {
@@ -368,9 +445,9 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                 data={comboData}
                                 onSelect={handleSchemaSelect}
                                 placeholder=""
-                                icon="add"
+                                icon="add_circle"
                                 variant="brand"
-                                triggerClassName="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95"
+                                triggerClassName="!w-10 !h-10 rounded-full !bg-[#10b981] !text-white !p-0"
                                 title="Assign Metadata"
                                 iconSize={20}
                             />
@@ -422,8 +499,11 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                                                             onOpenSubMenu={handleOpenSubMenu}
                                                             comboData={comboData}
                                                             onSchemaSelect={handleSchemaSelect}
+                                                            isExpanded={!collapsedIds.has(item.id)}
+                                                            onToggleExpand={toggleRow}
+                                                            hasChildren={item.children && item.children.length > 0}
                                                         />
-                                                        {item.children && item.children.length > 0 && (
+                                                        {item.children && item.children.length > 0 && !collapsedIds.has(item.id) && (
                                                             <tr key={`${item.id}-children`}>
                                                                 <td colSpan={4} className="p-0">
                                                                     <table className="w-full border-collapse">
@@ -531,9 +611,32 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
                 leftContent={
-                    <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
-                        Client Metadata
-                    </h1>
+                    <div className="flex items-center gap-3 px-2 lg:px-0">
+                        <Icon name="metadata" size={24} className="text-brand" />
+                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
+                            Client Metadata
+                        </h1>
+                    </div>
+                }
+                rightContent={
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={collapseAll}
+                            className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-widest"
+                            title="Collapse All"
+                        >
+                            <Icon name="collapse_all" size={18} />
+                            <span className="hidden sm:inline">Collapse</span>
+                        </button>
+                        <button
+                            onClick={expandAll}
+                            className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-widest"
+                            title="Expand All"
+                        >
+                            <Icon name="expand_all" size={18} />
+                            <span className="hidden sm:inline">Expand</span>
+                        </button>
+                    </div>
                 }
             />
             {content}

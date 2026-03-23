@@ -157,31 +157,28 @@ def get_entity_metadata(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Returns metadata assigned to a specific entity
-    # Fetch root records (parent_id is null) for this entity
+    # Returns all metadata records assigned to a specific entity
+    # (Removed root-only filter to allow frontend tree building)
     records = db.query(Record).filter(
         Record.entity_type == entity_type,
-        Record.entity_id == entity_id,
-        Record.parent_id == None
+        Record.entity_id == entity_id
     ).options(
-        joinedload(Record.schema),
-        selectinload(Record.children)
+        joinedload(Record.schema)
     ).order_by(Record.order).all()
     
-    # Recursively load descendants for each root
+    # Check locks once for all records
+    record_ids = [r.id for r in records]
+    locked_ids = {
+        row.entity_id for row in db.query(LockData.entity_id).filter(
+            LockData.entity_id.in_(record_ids),
+            LockData.entity_type == "records"
+        ).all()
+    }
+    
     results = []
     for record in records:
-        get_recursive_record(db, record.id)
-        
-        is_locked = db.query(exists().where(and_(
-            LockData.entity_id == record.id,
-            LockData.entity_type == "records"
-        ))).scalar()
-        
         record_dict = {c.name: getattr(record, c.name) for c in record.__table__.columns}
-        record_dict["is_locked"] = is_locked
-        # We also need to add is_locked to children if we want full depth, 
-        # but for now let's just do root.
+        record_dict["is_locked"] = record.id in locked_ids
         results.append(record_dict)
         
     return results

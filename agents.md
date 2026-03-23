@@ -209,7 +209,9 @@ Workflow - automation.png
 Schema - schema.svg
 Agent hints - lightbulb_circle.svg
 Node type - function.svg
+metadata - metadata.svg
 
+add elements - add_circle.svg
 collapse all  - collapse_all.svg
 expand all - expand_all.svg
 

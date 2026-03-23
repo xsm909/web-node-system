@@ -39,9 +39,23 @@ export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, clas
                 }
                 const rootFill = svgElement.getAttribute('fill');
                 setSourceFill(rootFill);
-                let content = svgElement.innerHTML;
-                content = content.replace(/fill="#(000000|0F1729|1f1f1f|333333)"/gi, 'fill="currentColor"');
-                content = content.replace(/stroke="#(000000|0F1729|1f1f1f|333333)"/gi, 'stroke="currentColor"');
+                
+                // Use XMLSerializer to get all internal content properly
+                const serializer = new XMLSerializer();
+                let content = "";
+                for (let i = 0; i < svgElement.childNodes.length; i++) {
+                    content += serializer.serializeToString(svgElement.childNodes[i]);
+                }
+
+                // More robust color replacement (handles spaces, quotes, and more colors)
+                content = content.replace(/(fill|stroke)="#([0-9a-fA-F]{3,6})"/gi, (match, type, color) => {
+                    const c = color.toLowerCase();
+                    if (['000000', '0f1729', '1f1f1f', '333333', '000'].includes(c)) {
+                        return `${type}="currentColor"`;
+                    }
+                    return match;
+                });
+                
                 setSvgContent(content);
                 setImageUrl(null);
             }
