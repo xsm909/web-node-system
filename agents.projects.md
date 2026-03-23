@@ -170,3 +170,25 @@ Addressed critical backend issues related to object creation and Pydantic valida
 ### Verification Results
 - **Creation Cycle**: Verified that new schemas and reports are saved successfully in both project and general modes.
 - **Validation**: Confirmed that output schemas correctly handle `None` values for `updated_at` during the refresh phase of the creation process.
+
+## Phase 7: System Parameters
+
+### Summary
+Introduced a centralized system for "System Parameters" — reserved variables that are automatically resolved from the application context (e.g., active project). These parameters are prefixed with `system_` and are available in SQL queries and Python code editors.
+
+### Backend Details
+- **Core Library** ([system_parameters.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/core/system_parameters.py)):
+    - `SYSTEM_PARAMETER_RESOLVERS`: Registry of parameter names and their resolver functions.
+    - `system_project_id`: Automatically resolves to the current active `project_id`.
+    - `inject_system_params`: Merges system parameters into user-provided parameter dictionaries, allowing system values to be used as defaults or overrides.
+- **Workflow Execution**: Integrated into `run_workflow` to ensure all node executions have access to project context.
+
+### Frontend Details
+- **Constants** ([constants.ts](file:///Users/Shared/Work/Web/web-node-system/frontend/src/entities/report/model/constants.ts)):
+    - `SYSTEM_PARAMETERS`: Centralized registry of system parameters for UI usage.
+- **Query Builder**: Updated the SQL parameter dropdown to include system parameters, making them easily discoverable for report and node development.
+- **Code Editor**: Included system parameters in the autocompletion registry for Python and SQL editors.
+
+### Verification Results
+- **Auto-Resolution**: Verified that `:system_project_id` in SQL queries correctly resolves to the active project UUID.
+- **Discovery**: Confirmed system parameters appear in the parameter selection UI across the platform.

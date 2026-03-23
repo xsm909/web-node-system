@@ -479,3 +479,18 @@ The platform implements a global data locking mechanism to prevent accidental de
 - **Lock Management**:
     - Administrators can toggle the lock status via the `AppLockToggle` component located in the `AppHeader` of the entity's editing view.
     - The toggle state must be synchronized with the backend in real-time.
+
+## 16. System Parameters
+
+The platform supports **System Parameters**—reserved, context-aware variables that are automatically resolved by the backend. These parameters are primarily used in SQL queries (reports) and Python node executions.
+
+### 16.1 Naming Convention
+All system parameters must be prefixed with `system_` (e.g., `system_project_id`). This prefix distinguishes them from user-defined parameters.
+
+### 16.2 Available System Parameters
+- **`system_project_id`**: Automatically resolves to the UUID of the currently active project. If no project is active, it may resolve to `null` or a default value depending on the execution context.
+
+### 16.3 Usage in Editors
+- **SQL Query Builder**: System parameters appear in the parameters dropdown for easy insertion into queries.
+- **Python Editor**: Available in the parameter registry and autocompletion.
+- **Auto-Resolution**: When executing a workflow or report, the system automatically injects these values. User-provided values with the same name will be ignored if the system can resolve them from the current session context.

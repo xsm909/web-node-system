@@ -6,6 +6,7 @@ from ..core.database import get_db
 from ..core.security import require_role
 from sqlalchemy import text
 from pydantic import BaseModel
+from ..core import system_parameters
 
 router = APIRouter(prefix="/database-metadata", tags=["database-metadata"])
 
@@ -100,7 +101,8 @@ def execute_query(request: ExecuteQueryRequest, db: Session = Depends(get_db), _
         if "limit" not in sql.lower():
             sql = f"SELECT * FROM ({sql}) AS subquery_limit LIMIT 1000"
             
-        result = db.execute(text(sql), request.params or {})
+        full_params = system_parameters.inject_system_params(request.params or {})
+        result = db.execute(text(sql), full_params)
         columns = result.keys()
         rows = [dict(zip(columns, row)) for row in result.fetchall()]
         return rows

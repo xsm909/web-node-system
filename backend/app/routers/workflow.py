@@ -25,6 +25,7 @@ admin_access = Depends(require_role("admin"))
 
 from ..schemas.object_parameter import ObjectParameterCreate, ObjectParameterOut
 from sqlalchemy import text
+from ..core.system_parameters import inject_system_params, get_system_parameters
 import re
 
 
@@ -236,11 +237,26 @@ def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_curre
         if owner_id not in client_ids:
              raise HTTPException(status_code=403, detail="Access denied")
 
-    wf = Workflow(
+    current_project_id = projects_lib.get_project_id()
+    current_project_owner = projects_lib.get_project_owner()
+    
+    final_owner_id = data.owner_id
+    
+    if current_project_id and current_project_owner:
+        # In project mode: force ownership to project owner if currently common or missing
+        if not final_owner_id or final_owner_id == "common":
+            final_owner_id = str(current_project_owner)
+    else:
+        # Not in project mode: default to current user if missing or common
+        if not final_owner_id or final_owner_id == "common":
+            final_owner_id = str(current_user.id)
+
+    new_wf = Workflow(
         name=data.name,
-        owner_id=owner_id,
+        category=data.category,
+        owner_id=final_owner_id,
+        project_id=data.project_id or current_project_id,
         created_by=current_user.id,
-        category=data.category or "general",
         graph=data.graph or {
             "nodes": [
                 {
@@ -254,12 +270,11 @@ def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_curre
             "edges": []
         },
         workflow_data=data.workflow_data or {},
-        status=WorkflowStatus.draft,
-        project_id=data.project_id or projects_lib.get_project_id()
+        status=WorkflowStatus.draft
     )
-    db.add(wf)
+    db.add(new_wf)
     db.commit()
-    db.refresh(wf)
+    db.refresh(new_wf)
     
     if data.parameters is not None:
         for p in data.parameters:
@@ -267,12 +282,12 @@ def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_curre
             param_data.pop('id', None)
             param_data.pop('object_id', None)
             param_data.pop('object_name', None)
-            param = ObjectParameter(**param_data, object_id=wf.id, object_name="workflows")
+            param = ObjectParameter(**param_data, object_id=new_wf.id, object_name="workflows")
             db.add(param)
         db.commit()
-        db.refresh(wf)
+        db.refresh(new_wf)
         
-    wf_dict = WorkflowOut.model_validate(wf).model_dump()
+    wf_dict = WorkflowOut.model_validate(new_wf).model_dump()
     wf_dict["is_locked"] = False
     return wf_dict
 
@@ -288,8 +303,11 @@ def get_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_curren
         LockData.entity_type == "workflows"
     ))).scalar()
 
-    # Enforce strict ownership: only creator/owner or admin
-    if current_user.role != "admin" and wf.owner_id != str(current_user.id):
+    # Enforce strict ownership: only creator/owner, admin, or if project matches current context
+    current_project_id = projects_lib.get_project_id()
+    is_project_match = current_project_id and wf.project_id == current_project_id
+
+    if current_user.role != "admin" and wf.owner_id != str(current_user.id) and not is_project_match:
         client_ids = [str(u.id) for u in current_user.assigned_clients]
         if wf.owner_id not in client_ids:
              raise HTTPException(status_code=403, detail="Access denied")
@@ -469,12 +487,14 @@ def get_workflow_parameter_options(workflow_id: uuid.UUID, db: Session = Depends
                     options[param.parameter_name] = []
                     continue
 
-                result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 1000"))
+                system_params = get_system_parameters()
+                result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 1000"), system_params)
                 options[param.parameter_name] = [
                     {"value": str(row[0]), "label": str(row[1])} for row in [tuple(r) for r in result.fetchall()]
                 ]
             elif source.lower().startswith("select"):
-                result = db.execute(text(source))
+                system_params = get_system_parameters()
+                result = db.execute(text(source), system_params)
                 val_field = param.value_field or "value"
                 lbl_field = param.label_field or "label"
                 columns = result.keys()
@@ -517,14 +537,16 @@ def test_parameter_source(data: SourceTestRequest, db: Session = Depends(get_db)
             if not re.match(r'^\w+$', table_name) or not re.match(r'^\w+$', val_field) or not re.match(r'^\w+$', lbl_field):
                 return {"options": [], "error": "Invalid table or field names"}
 
-            result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 100"))
+            system_params = get_system_parameters()
+            result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 100"), system_params)
             options = [
                 {"value": str(row[0]), "label": str(row[1])} for row in [tuple(r) for r in result.fetchall()]
             ]
             return {"options": options, "error": None}
             
         elif source.lower().startswith("select"):
-            result = db.execute(text(source))
+            system_params = get_system_parameters()
+            result = db.execute(text(source), system_params)
             val_field = data.value_field or "value"
             lbl_field = data.label_field or "label"
             columns = result.keys()
@@ -562,7 +584,7 @@ def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = No
             raise HTTPException(status_code=403, detail="Access denied")
 
     # Store target client and passed parameters in runtime data
-    runtime_data = data.parameters or {} if data else {}
+    runtime_data = inject_system_params(data.parameters or {} if data else {})
     if data and data.target_client_id:
         runtime_data["_active_client_id"] = str(data.target_client_id)
 

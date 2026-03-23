@@ -25,8 +25,9 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         if (activeWorkflow) {
             const isPersonal = activeWorkflow.owner_id === currentUser?.id;
             const belongsToActiveClient = activeClientId && activeWorkflow.owner_id === activeClientId;
+            const belongsToActiveProject = isProjectMode && activeProject && activeWorkflow.project_id === activeProject.id;
 
-            if (!isPersonal && !belongsToActiveClient) {
+            if (!isPersonal && !belongsToActiveClient && !belongsToActiveProject) {
                 setActiveWorkflow(null);
             }
         }
@@ -51,14 +52,6 @@ export function useWorkflowManagement(refreshTrigger?: number) {
 
                 // Collect all workflows locally to avoid race conditions with multiple setWorkflows
                 let allWfs: Workflow[] = [];
-
-                // 1. Load common workflows
-                try {
-                    const commonRes = await apiClient.get('/workflows/common');
-                    allWfs = [...commonRes.data];
-                } catch (e) {
-                    console.error("Failed to load common workflows", e);
-                }
 
                 // 2. Load workflows for current user
                 if (currentUser?.id) {
@@ -116,7 +109,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
 
         setIsCreating(true);
         try {
-            const finalOwnerId = owner_id || activeClientId || currentUser.id;
+            const finalOwnerId = owner_id || (isProjectMode ? activeProject?.owner_id : activeClientId) || currentUser.id;
             const { data } = await apiClient.post('/workflows/workflows', {
                 name,
                 category,

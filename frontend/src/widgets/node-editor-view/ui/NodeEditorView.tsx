@@ -11,6 +11,7 @@ import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppInput } from '../../../shared/ui/app-input';
 import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { SYSTEM_PARAMETERS } from '../../../entities/report/model/constants';
 
 interface NodeEditorViewProps {
     node: Node | null;
@@ -370,11 +371,9 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                     }
                     setSqlEditorParam(null);
                 }}
-                parameters={workflowParameters}
+                parameters={[...(workflowParameters || []), ...SYSTEM_PARAMETERS]}
             />
         </div>
     );
 };
-
-
 

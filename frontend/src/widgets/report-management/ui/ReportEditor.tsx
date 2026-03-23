@@ -18,6 +18,7 @@ import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
 import { AppConsole, AppConsoleLogLine } from "../../../shared/ui/app-console";
 import { QueryBuilderModal } from "../../../features/query-builder/ui/QueryBuilderModal";
 import { AppParameterSelectByTamplate } from "../../../shared/ui/app-parameter-select-by-tamplate";
+import { SYSTEM_PARAMETERS } from "../../../entities/report/model/constants";
 
 
 interface ReportEditorProps {
@@ -110,6 +111,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                             }),
                             { label: 'report_parameters', type: 'variable', detail: 'Report parameters (subscriptable)' },
                             { label: 'ReportParameters', type: 'variable', detail: 'Report parameters (alias)' },
+                            { label: 'system_project_id', type: 'variable', detail: 'Current project ID (System Parameter)' },
                             { label: 'UserExecutor', type: 'variable', detail: 'Current user context (id, username, role)' },
                             { label: 'ReportExecutor', type: 'variable', detail: 'Report execution context (id)' },
                             { label: 'rows', type: 'variable', detail: 'Report data rows' },
@@ -709,7 +711,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                             }
                             setIsQueryBuilderOpen(false);
                         }}
-                        parameters={parameters}
+                        parameters={[...parameters, ...SYSTEM_PARAMETERS]}
                     />
 
                     <AppConsole

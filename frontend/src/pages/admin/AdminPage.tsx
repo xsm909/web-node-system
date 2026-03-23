@@ -15,6 +15,55 @@ import { AdminSchemaManagement } from '../../widgets/admin-schema-management/ui/
 import { AgentHintManagement } from '../../widgets/admin-agent-hint-management/ui/AgentHintManagement';
 import { Navigator, useNavigator } from '../../shared/ui/navigator';
 
+const WorkflowsTabWithNavigator = ({
+    refreshCount,
+    setRefreshCount,
+    allNodes,
+    isSidebarOpen,
+    setIsSidebarOpen
+}: {
+    refreshCount: number;
+    setRefreshCount: React.Dispatch<React.SetStateAction<number>>;
+    allNodes: NodeType[];
+    isSidebarOpen: boolean;
+    setIsSidebarOpen: (v: boolean) => void;
+}) => {
+    const nav = useNavigator();
+
+    const {
+        handleOpenModal: prepareNodeEdit,
+        handleSave
+    } = useNodeTypeManagement();
+
+    const handleEditNode = (node: NodeType) => {
+        // This is called when double-clicking a node in the graph
+        prepareNodeEdit(node);
+        nav.push(
+            <NodeTypeFormView
+                onClose={() => nav.pop()}
+                editingNode={node}
+                onSave={(data) => {
+                    return handleSave(data, data.id || node.id, () => {
+                        setRefreshCount(r => r + 1);
+                    });
+                }}
+                onRefresh={() => setRefreshCount(r => r + 1)}
+                allNodes={allNodes}
+                defaultTab="code"
+            />
+        );
+    };
+
+    return (
+        <AdminCommonWorkflowManagement
+            onToggleSidebar={() => setIsSidebarOpen(true)}
+            isSidebarOpen={isSidebarOpen}
+            onEditNode={handleEditNode}
+            refreshTrigger={refreshCount}
+        />
+    );
+};
+
 const NodesTabWithNavigator = ({
     setRefreshCount,
     allNodes,
@@ -81,54 +130,6 @@ const NodesTabWithNavigator = ({
     );
 };
 
-const WorkflowsTabWithNavigator = ({
-    refreshCount,
-    setRefreshCount,
-    allNodes,
-    isSidebarOpen,
-    setIsSidebarOpen
-}: {
-    refreshCount: number;
-    setRefreshCount: React.Dispatch<React.SetStateAction<number>>;
-    allNodes: NodeType[];
-    isSidebarOpen: boolean;
-    setIsSidebarOpen: (v: boolean) => void;
-}) => {
-    const nav = useNavigator();
-
-    const {
-        handleOpenModal: prepareNodeEdit,
-        handleSave
-    } = useNodeTypeManagement();
-
-    const handleEditNode = (node: NodeType) => {
-        // This is called when double-clicking a node in the graph
-        prepareNodeEdit(node);
-        nav.push(
-            <NodeTypeFormView
-                onClose={() => nav.pop()}
-                editingNode={node}
-                onSave={(data) => {
-                    return handleSave(data, data.id || node.id, () => {
-                        setRefreshCount(r => r + 1);
-                    });
-                }}
-                onRefresh={() => setRefreshCount(r => r + 1)}
-                allNodes={allNodes}
-                defaultTab="code"
-            />
-        );
-    };
-
-    return (
-        <AdminCommonWorkflowManagement
-            onToggleSidebar={() => setIsSidebarOpen(true)}
-            isSidebarOpen={isSidebarOpen}
-            onEditNode={handleEditNode}
-            refreshTrigger={refreshCount}
-        />
-    );
-};
 
 
 import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
@@ -148,8 +149,8 @@ export default function AdminPage() {
         handleIntercept,
         confirmSave,
         confirmDiscard,
-        cancel,
-        isSaving: isInterceptSaving
+        isSaving: isInterceptSaving,
+        cancel
     } = useNavigationIntercept();
 
     const setActiveTab = (tab: 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') => {

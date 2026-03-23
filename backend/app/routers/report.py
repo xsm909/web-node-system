@@ -22,6 +22,8 @@ import re
 import io
 import csv
 from fastapi.responses import Response, StreamingResponse
+from ..core.system_parameters import inject_system_params, get_system_parameters
+
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -319,8 +321,9 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
         raise HTTPException(status_code=404, detail="Report not found")
         
     # Inject default values if missing
-    final_params = params.copy()
+    final_params = inject_system_params(params.copy())
     for param_config in report.parameters:
+
         p_name = param_config.parameter_name
         if p_name not in final_params or final_params[p_name] is None or (isinstance(final_params[p_name], str) and not final_params[p_name].strip()):
             if param_config.default_value is not None:
@@ -498,8 +501,9 @@ def generate_report_csv(report_id: uuid.UUID, data: ReportGenerateRequest, db: S
         
     try:
         # Inject default values for consistency
-        final_params = data.parameters.copy()
+        final_params = inject_system_params(data.parameters.copy())
         for param_config in report.parameters:
+
             p_name = param_config.parameter_name
             if p_name not in final_params or final_params[p_name] is None or (isinstance(final_params[p_name], str) and not final_params[p_name].strip()):
                 if param_config.default_value is not None:
@@ -647,6 +651,8 @@ def compile_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_
         elif "date" in param_config.parameter_type:
              test_params[param_config.parameter_name] = datetime.now().strftime("%Y-%m-%d")
 
+    test_params = inject_system_params(test_params)
+
     executor = ReportExecutor(report.code)
     # Use injected defaults for design mode compilation test
     user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
@@ -702,12 +708,14 @@ def get_report_parameter_options(report_id: uuid.UUID, db: Session = Depends(get
                     options[param.parameter_name] = []
                     continue
 
-                result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 1000"))
+                system_params = get_system_parameters()
+                result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 1000"), system_params)
                 options[param.parameter_name] = [
                     {"value": str(row[0]), "label": str(row[1])} for row in [tuple(r) for r in result.fetchall()]
                 ]
             elif source.lower().startswith("select"):
-                result = db.execute(text(source))
+                system_params = get_system_parameters()
+                result = db.execute(text(source), system_params)
                 val_field = param.value_field or "value"
                 lbl_field = param.label_field or "label"
                 columns = result.keys()
@@ -747,14 +755,16 @@ def test_parameter_source(data: SourceTestRequest, db: Session = Depends(get_db)
             if not re.match(r'^\w+$', table_name) or not re.match(r'^\w+$', val_field) or not re.match(r'^\w+$', lbl_field):
                 return {"options": [], "error": "Invalid table or field names"}
 
-            result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 100"))
+            system_params = get_system_parameters()
+            result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 100"), system_params)
             options = [
                 {"value": str(row[0]), "label": str(row[1])} for row in [tuple(r) for r in result.fetchall()]
             ]
             return {"options": options, "error": None}
             
         elif source.lower().startswith("select"):
-            result = db.execute(text(source))
+            system_params = get_system_parameters()
+            result = db.execute(text(source), system_params)
             val_field = data.value_field or "value"
             lbl_field = data.label_field or "label"
             columns = result.keys()

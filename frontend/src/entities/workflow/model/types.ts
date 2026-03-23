@@ -5,6 +5,7 @@ export interface Workflow {
     name: string;
     status?: string;
     owner_id: string;
+    project_id?: string | null;
     workflow_data?: any;
     runtime_data?: any;
     graph?: any;
