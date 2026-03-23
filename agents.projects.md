@@ -70,3 +70,25 @@ Introduced "Project Mode," a system-wide state where the application context is 
 - **Persistence**: Project mode state persists across page refreshes via `localStorage`.
 - **Sidebar UX**: Verified visibility of active project block and exit functionality.
 - **Backend Sync**: Verified that `projects_lib.py` correctly reports project state based on request headers.
+
+## Phase 3: Project-Aware Libraries
+
+### Summary
+Updated core internal libraries (`prompt_lib` and `response_lib`) to automatically handle project-specific data. This ensures that when a project is active, all prompt and response operations are strictly scoped to that project without requiring explicit `project_id` arguments from callers.
+
+### Backend Details
+- **Prompt Library** ([prompt_lib.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/internal_libs/prompt_lib.py)):
+    - `add_prompt`: Automatically includes `project_id` from the current project context.
+    - `get_prompts_by_category_with_reference_id`: Filters by `project_id` if in project mode.
+    - `get_prompts_by_category_with_id`: Filters by `project_id` if in project mode.
+    - `delete_prompts_by_period_and_entity`: Filters by `project_id` if in project mode.
+    - `delete_prompts_by_period_and_reference_id`: Filters by `project_id` if in project mode.
+- **Response Library** ([response_lib.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/internal_libs/response_lib.py)):
+    - `add_response`: Automatically includes `project_id` from the current project context.
+    - `clear_recent_records_by_entity_and_category`: Filters by `project_id` if in project mode.
+    - `get_responses_by_period_and_category`: Filters by `project_id` if in project mode.
+
+### Verification Results
+- **Auto-Scoping**: Verified that new prompts/responses are created with the correct `project_id`.
+- **Query Filtering**: Verified that retrieval operations only return data for the active project.
+- **Retro-Compatibility**: Verified that operations still work correctly for "global" data (where `project_id` is null) when no project is active.

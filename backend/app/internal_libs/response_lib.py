@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 from ..core.database import SessionLocal
 from ..models.response import Response
 from .logger_lib import system_log
+from .projects_lib import get_project_id
 
 def clear_recent_records_by_entity_and_category(
     reference_id: Union[str, uuid.UUID],
@@ -49,6 +50,7 @@ def clear_recent_records_by_entity_and_category(
         
         # Perform deletion
         delete_query = db.query(Response).filter(
+            Response.project_id == get_project_id(),
             Response.reference_id == ref_uuid,
             Response.entity_id == e_uuid,
             Response.category == category,
@@ -137,6 +139,7 @@ def add_response(
             raw = str(raw)
 
         new_record = Response(
+            project_id=get_project_id(),
             entity_id=e_uuid,
             entity_type=entity_type,
             category=category,
@@ -360,6 +363,7 @@ def get_responses_by_period_and_category(
             end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
 
         query = db.query(Response).filter(
+            Response.project_id == get_project_id(),
             Response.category.like(category_pattern),
             Response.created_at >= start_date,
             Response.created_at <= end_date

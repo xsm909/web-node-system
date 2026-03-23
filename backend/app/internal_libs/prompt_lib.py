@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 from ..core.database import SessionLocal
 from ..models.prompt import Prompt
 from .logger_lib import system_log
+from .projects_lib import get_project_id
 
 def _make_serializable(data: Any) -> Any:
     """Recursively converts objects to JSON-serializable types."""
@@ -80,6 +81,7 @@ def add_prompt(
                 serializable_raw = json.dumps(serializable_raw, ensure_ascii=False)
 
         new_prompt = Prompt(
+            project_id=get_project_id(),
             entity_id=e_uuid,
             entity_type=entity_type,
             category=category,
@@ -119,6 +121,7 @@ def get_prompts_by_category_with_reference_id(category: str, reference_id: str) 
     try:
         ref_uuid = uuid.UUID(reference_id) if isinstance(reference_id, str) else reference_id
         prompts = db.query(Prompt).filter(
+            Prompt.project_id == get_project_id(),
             Prompt.category == category,
             Prompt.reference_id == ref_uuid
         ).all()
@@ -160,6 +163,7 @@ def get_prompts_by_category_with_id(category: str, entity_id: str) -> list:
     try:
         e_uuid = uuid.UUID(entity_id) if isinstance(entity_id, str) else entity_id
         prompts = db.query(Prompt).filter(
+            Prompt.project_id == get_project_id(),
             Prompt.category == category,
             Prompt.entity_id == e_uuid
         ).all()
@@ -228,6 +232,7 @@ def delete_prompts_by_period_and_entity(
 
         # Perform deletion
         delete_query = db.query(Prompt).filter(
+            Prompt.project_id == get_project_id(),
             Prompt.entity_id == e_uuid,
             Prompt.category == category,
             Prompt.created_at >= data_start,
@@ -298,6 +303,7 @@ def delete_prompts_by_period_and_reference_id(
 
         # Perform deletion
         delete_query = db.query(Prompt).filter(
+            Prompt.project_id == get_project_id(),
             Prompt.reference_id == r_uuid,
             Prompt.category == category,
             Prompt.created_at >= data_start,
