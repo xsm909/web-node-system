@@ -210,6 +210,7 @@ Schema - schema.svg
 Agent hints - lightbulb_circle.svg
 Node type - function.svg
 metadata - metadata.svg
+projects - project.svg
 
 #### 9.3.1 UI icons rules
 export/download - download.svg

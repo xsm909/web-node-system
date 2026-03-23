@@ -8,12 +8,14 @@ import { ClientMetadataManagement } from '../../client-metadata-management/ui/Cl
 import { PromptViewer } from '../../prompt-viewer/ui/PromptViewer';
 import { AppInput, AppFormFieldRect } from "../../../shared/ui/app-input";
 import { FormField } from '../../../shared/ui/form-field';
+import { AdminProjectManagement } from '../../admin-project-management/ui/AdminProjectManagement';
+
 
 
 interface UserEditorProps {
     user: User;
     onSaveSuccess?: () => void;
-    activeTab?: 'common' | 'metadata' | 'prompts';
+    activeTab?: 'common' | 'projects' | 'metadata' | 'prompts';
     onDirtyChange?: (isDirty: boolean) => void;
     isLocked?: boolean;
     onHeaderActionsChange?: (actions: React.ReactNode) => void;
@@ -163,6 +165,10 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                         </div>
                     )}
                 </div>
+            )}
+
+            {activeTab === 'projects' && (
+                <AdminProjectManagement ownerId={user.id} onHeaderActionsChange={onHeaderActionsChange} />
             )}
 
             {activeTab === 'metadata' && (

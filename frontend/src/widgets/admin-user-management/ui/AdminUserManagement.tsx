@@ -24,7 +24,7 @@ interface AdminUserManagementProps {
 export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onToggleSidebar, isSidebarOpen }) => {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [view, setView] = useState<'list' | 'edit'>('list');
-    const [activeTab, setActiveTab] = useState<'common' | 'metadata' | 'prompts'>('common');
+    const [activeTab, setActiveTab] = useState<'common' | 'projects' | 'metadata' | 'prompts'>('common');
     const [isFormDirty, setIsFormDirty] = useState(false);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
     const [metadataActions, setMetadataActions] = useState<React.ReactNode>(null);
@@ -165,12 +165,13 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 onSave={() => editorRef.current?.handleSave()}
                 onCancel={handleBack}
                 tabs={[
-                    { id: 'common', label: 'Common Profile' },
-                    { id: 'metadata', label: 'Metadata' },
+                    { id: 'common', label: 'Common', icon: 'person' },
+                    { id: 'projects', label: 'Projects', icon: 'project' },
+                    { id: 'metadata', label: 'Metadata', icon: 'metadata' },
                     ...(selectedUser.role === 'client' ? [{ id: 'prompts', label: 'Prompt Viewer' }] : [])
                 ]}
                 activeTab={activeTab}
-                onTabChange={(id) => setActiveTab(id as 'common' | 'metadata' | 'prompts')}
+                onTabChange={(id) => setActiveTab(id as 'common' | 'projects' | 'metadata' | 'prompts')}
                 saveLabel="Save User"
                 entityId={selectedUser.id}
                 entityType="users"
@@ -184,10 +185,10 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                         {activeTab === 'metadata' && metadataActions}
                     </div>
                 }
-                noPadding={activeTab === 'prompts' || activeTab === 'metadata'}
-                fullHeight={activeTab === 'prompts' || activeTab === 'metadata'}
+                noPadding={activeTab === 'prompts' || activeTab === 'metadata' || activeTab === 'projects'}
+                fullHeight={activeTab === 'prompts' || activeTab === 'metadata' || activeTab === 'projects'}
             >
-                <div className={(activeTab === 'prompts' || activeTab === 'metadata') ? 'flex-1 h-full min-h-0 w-full flex flex-col' : 'max-w-5xl mx-auto w-full'}>
+                <div className={(activeTab === 'prompts' || activeTab === 'metadata' || activeTab === 'projects') ? 'flex-1 h-full min-h-0 w-full flex flex-col' : 'max-w-5xl mx-auto w-full'}>
                     <UserEditor
                         ref={editorRef}
                         user={selectedUser}
