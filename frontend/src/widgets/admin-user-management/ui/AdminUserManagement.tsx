@@ -12,6 +12,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
+import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
 const columnHelper = createColumnHelper<User>();
@@ -212,17 +213,17 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                     </div>
                 }
                 rightContent={
-                    <button
+                    <AppRoundButton
                         onClick={() => {
                             setSelectedUser(null);
                             setView('edit');
                             setActiveTab('common');
                         }}
-                        className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
+                        icon="add"
+                        variant="brand"
                         title="Add User"
-                    >
-                        <Icon name="add" size={20} />
-                    </button>
+                        iconSize={20}
+                    />
                 }
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}

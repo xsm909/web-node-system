@@ -202,7 +202,7 @@ design like  - https://protocol.tailwindui.com/pagination
 ### 9.2 icons rule
 separate name in fillename using underscore and use lowercase
 
-### 9.3 icons and objects
+### 9.3 icons for database records (objects)
 Credentials - verified.svg
 Report - article.svg
 Workflow - automation.png
@@ -211,6 +211,9 @@ Agent hints - lightbulb_circle.svg
 Node type - function.svg
 metadata - metadata.svg
 
+#### UI icons rules
+play/run/generate - play.svg
+save - save.svg
 add elements - add_circle.svg
 collapse all  - collapse_all.svg
 expand all - expand_all.svg

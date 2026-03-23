@@ -13,6 +13,7 @@ import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { SlidePanel } from '../../../shared/ui/slide-panel';
 import { AppHeader } from '../../app-header';
+import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import {
     DndContext,
     closestCenter,
@@ -579,14 +580,15 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                         {selectedAssignment?.is_locked && (
                              <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 opacity-60">Read Only Mode</span>
                         )}
-                        <button
+                        <AppRoundButton
                             onClick={() => editorRef.current?.handleSave()}
-                            disabled={editorRef.current?.isSaving || selectedAssignment?.is_locked}
-                            className={`flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 shadow-lg shadow-brand/20 active:scale-95 shrink-0 transition-all ${editorRef.current?.isSaving || selectedAssignment?.is_locked ? "opacity-50 pointer-events-none" : ""}`}
+                            isLoading={editorRef.current?.isSaving}
+                            isDisabled={selectedAssignment?.is_locked}
+                            icon="save"
+                            variant="brand"
                             title={selectedAssignment?.is_locked ? "Locked" : (editorRef.current?.isSaving ? "Saving..." : "Save Changes")}
-                        >
-                            <Icon name={editorRef.current?.isSaving ? "sync" : "save"} size={20} className={editorRef.current?.isSaving ? "animate-spin" : ""} />
-                        </button>
+                            iconSize={20}
+                        />
                     </div>
                 }
             >

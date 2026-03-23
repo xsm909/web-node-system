@@ -9,6 +9,7 @@ import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppTabs } from '../../../shared/ui/app-tabs';
+import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 
 import { ReportList } from './ReportList';
 import { ReportEditor, type ReportEditorRef } from './ReportEditor';
@@ -343,23 +344,23 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                             />
                         )}
                         {activeTab === 'code' && (
-                            <button
+                            <AppRoundButton
+                                icon={isCompiling ? "refresh" : "code"}
                                 onClick={handleHeaderCompile}
-                                disabled={isCompiling}
-                                className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] hover:bg-[var(--bg-hover)] transition-all shadow-lg active:scale-95 disabled:opacity-50 shrink-0"
+                                isLoading={isCompiling}
+                                variant="outline"
                                 title="Compile (F5)"
-                            >
-                                <Icon name={isCompiling ? "refresh" : "code"} size={18} className={isCompiling ? "animate-spin" : ""} />
-                            </button>
+                                iconSize={18}
+                            />
                         )}
-                        <button
+                        <AppRoundButton
+                            icon={isGenerating ? "refresh" : "play"}
                             onClick={handleHeaderGenerate}
-                            disabled={isGenerating}
-                            className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 disabled:opacity-50 shrink-0"
+                            isLoading={isGenerating}
+                            variant="brand"
                             title="Generate (F9)"
-                        >
-                            <Icon name={isGenerating ? "refresh" : "play"} size={18} className={isGenerating ? "animate-spin" : ""} />
-                        </button>
+                            iconSize={18}
+                        />
                     </div>
                 }
             >
@@ -403,13 +404,12 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 rightContent={
                     <div className="flex items-center gap-3">
                         {view === 'list' && isAdmin && (
-                            <button
+                            <AppRoundButton
+                                icon="add"
                                 onClick={topTab === 'reports' ? handleCreate : handleCreateStyle}
-                                className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
+                                variant="brand"
                                 title={topTab === 'reports' ? "Add Report" : "Add Style"}
-                            >
-                                <Icon name="add" size={20} />
-                            </button>
+                            />
                         )}
                         {view === 'view' && (
                             <button

@@ -9,6 +9,7 @@ import { AppHeader } from '../../app-header';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
+import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { AITaskEditModal } from './AITaskEditModal';
 
 const columnHelper = createColumnHelper<AITask>();
@@ -173,16 +174,16 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
                     </div>
                 }
                 rightContent={
-                    <button
+                    <AppRoundButton
                         onClick={() => {
                             setSelectedTask(null);
                             setIsModalOpen(true);
                         }}
-                        className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
+                        icon="add"
+                        variant="brand"
                         title="Create Task"
-                    >
-                        <Icon name="add" size={20} />
-                    </button>
+                        iconSize={20}
+                    />
                 }
                 searchQuery={""} // Placeholder if we want search later
                 onSearchChange={() => {}}

@@ -11,6 +11,7 @@ import { AppInput, AppFormFieldRect } from '../../../shared/ui/app-input';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
 import { createColumnHelper } from '@tanstack/react-table';
 import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
+import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 
 const columnHelper = createColumnHelper<Credential>();
 
@@ -284,13 +285,13 @@ export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Ad
                     </div>
                 }
                 rightContent={
-                    <button
+                    <AppRoundButton
                         onClick={handleOpenCreate}
-                        className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
+                        icon="add"
+                        variant="brand"
                         title="Add Access Key"
-                    >
-                        <Icon name="add" size={20} />
-                    </button>
+                        iconSize={20}
+                    />
                 }
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}

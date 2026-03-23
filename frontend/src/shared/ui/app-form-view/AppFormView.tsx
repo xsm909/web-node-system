@@ -7,6 +7,7 @@ import { useRegisterBlocker } from '../../lib/navigation-guard/useNavigationGuar
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 
 import { AppTabs, type AppTab } from '../app-tabs';
+import { AppRoundButton } from '../app-round-button/AppRoundButton';
 
 export type { AppTab as AppFormTab };
 
@@ -163,15 +164,14 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                             />
                         )}
                         {headerRightContent}
-                        <button
-                            type="button"
+                        <AppRoundButton
+                            icon="save"
                             onClick={onSave}
-                            disabled={isSaving || isLocked}
-                            className={`flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0 ${isSaving || isLocked ? 'opacity-50 pointer-events-none' : ''}`}
+                            isLoading={isSaving}
+                            isDisabled={isLocked}
+                            variant="brand"
                             title={isLocked ? 'Locked' : saveLabel}
-                        >
-                            <Icon name={isSaving ? 'sync' : 'save'} size={20} className={isSaving ? 'animate-spin' : ''} />
-                        </button>
+                        />
                     </div>
                 }
             />

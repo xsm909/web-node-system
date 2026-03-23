@@ -7,6 +7,7 @@ import { getCookie, setCookie, eraseCookie } from '../../../shared/lib/cookieUti
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppHeader } from '../../app-header';
+import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { createColumnHelper } from '@tanstack/react-table';
 
 const columnHelper = createColumnHelper<NodeType>();
@@ -132,13 +133,13 @@ export const AdminNodeLibrary = ({
                     </h1>
                 }
                 rightContent={
-                    <button
+                    <AppRoundButton
                         onClick={() => onEditNode({} as NodeType)}
-                        className="flex items-center justify-center w-10 h-10 rounded-full bg-brand text-white hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 shrink-0"
+                        icon="add"
+                        variant="brand"
                         title="Add Node Type"
-                    >
-                        <Icon name="add" size={20} />
-                    </button>
+                        iconSize={20}
+                    />
                 }
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
