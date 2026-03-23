@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from '../../../entities/project/api';
 import type { Project } from '../../../entities/project/model/types';
+import { createPortal } from 'react-dom';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
@@ -14,6 +15,34 @@ import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { useProjectStore } from '../../../features/projects/store';
 
+const hslToHex = (h: number, s: number, l: number) => {
+    l /= 100;
+    const a = s * Math.min(l, 1 - l) / 100;
+    const f = (n: number) => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+};
+
+const generateDarkPalette = () => {
+    const colors: string[] = [];
+    const hues = 16;
+    const levels = 10;
+    
+    for (let l = 0; l < levels; l++) {
+        const lightness = 15 + (l * 3); // 15% to 42% lightness
+        for (let h = 0; h < hues; h++) {
+            const hue = h * (360 / hues);
+            colors.push(hslToHex(hue, 70, lightness));
+        }
+    }
+    return colors;
+};
+
+const PRESET_COLORS = generateDarkPalette();
+ 
 const columnHelper = createColumnHelper<Project>();
 
 interface AdminProjectManagementProps {
@@ -42,6 +71,10 @@ export const AdminProjectManagement: React.FC<AdminProjectManagementProps> = ({ 
     const [category, setCategory] = useState('general');
     const [themeColor, setThemeColor] = useState('#3b82f6');
     const [initialFormState, setInitialFormState] = useState({ key: '', name: '', description: '', category: 'general', themeColor: '#3b82f6' });
+    const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
+    const colorPickerTriggerRef = useRef<HTMLDivElement>(null);
+    const colorPickerDropdownRef = useRef<HTMLDivElement>(null);
+    const [pickerCoords, setPickerCoords] = useState({ top: 0, left: 0 });
 
     const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(projects), [projects]);
 
@@ -79,6 +112,61 @@ export const AdminProjectManagement: React.FC<AdminProjectManagementProps> = ({ 
         setThemeColor(data.themeColor);
         setInitialFormState(data);
         setIsEditing(true);
+    };
+
+    const updatePickerCoords = () => {
+        if (colorPickerTriggerRef.current) {
+            const rect = colorPickerTriggerRef.current.getBoundingClientRect();
+            setPickerCoords({ top: rect.top + rect.height + 4, left: rect.left });
+        }
+    };
+
+    useLayoutEffect(() => {
+        if (isColorPickerOpen) {
+            updatePickerCoords();
+            window.addEventListener('resize', updatePickerCoords);
+            window.addEventListener('scroll', updatePickerCoords, true);
+        }
+        return () => {
+            window.removeEventListener('resize', updatePickerCoords);
+            window.removeEventListener('scroll', updatePickerCoords, true);
+        };
+    }, [isColorPickerOpen]);
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            const isInsideTrigger = colorPickerTriggerRef.current?.contains(e.target as Node);
+            const isInsideDropdown = colorPickerDropdownRef.current?.contains(e.target as Node);
+            
+            if (isColorPickerOpen && !isInsideTrigger && !isInsideDropdown) {
+                setIsColorPickerOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [isColorPickerOpen]);
+
+    const handleThemeColorChange = (newColor: string) => {
+        let finalColor = newColor;
+        
+        // Only enforce brightness on valid hex colors
+        if (/^#[0-9A-Fa-f]{6}$/.test(newColor)) {
+            const r = parseInt(newColor.slice(1, 3), 16);
+            const g = parseInt(newColor.slice(3, 5), 16);
+            const b = parseInt(newColor.slice(5, 7), 16);
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+            if (brightness > 120) { // Keep brightness below ~47% (120/255)
+                const factor = 110 / brightness; // Aim a bit lower for safety
+                const dr = Math.floor(r * factor);
+                const dg = Math.floor(g * factor);
+                const db = Math.floor(b * factor);
+                const toHex = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
+                finalColor = `#${toHex(dr)}${toHex(dg)}${toHex(db)}`;
+            }
+        }
+        
+        setThemeColor(finalColor);
     };
 
     const handleSave = () => {
@@ -191,7 +279,7 @@ export const AdminProjectManagement: React.FC<AdminProjectManagementProps> = ({ 
                 );
             }
         })
-    ], []);
+    ], [currentActiveProject]);
 
     React.useEffect(() => {
         onHeaderActionsChange?.(null);
@@ -245,23 +333,57 @@ export const AdminProjectManagement: React.FC<AdminProjectManagementProps> = ({ 
                             allPaths={allCategoryPaths}
                             disabled={selectedProject?.is_locked}
                         />
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-sm font-normal text-[var(--text-main)] ml-1">Theme Color</label>
-                            <div className="flex items-center gap-3">
-                                <input
-                                    type="color"
-                                    value={themeColor}
-                                    onChange={(e) => setThemeColor(e.target.value)}
-                                    disabled={selectedProject?.is_locked}
-                                    className="w-10 h-10 rounded-lg overflow-hidden border-2 border-[var(--border-base)] cursor-pointer bg-transparent"
-                                />
-                                <AppInput
-                                    value={themeColor}
-                                    onChange={setThemeColor}
-                                    disabled={selectedProject?.is_locked}
-                                    className="flex-1"
-                                />
-                            </div>
+                        <div className="relative" ref={colorPickerTriggerRef}>
+                            <AppInput
+                                label="Theme Color"
+                                value={themeColor}
+                                onChange={handleThemeColorChange}
+                                disabled={selectedProject?.is_locked}
+                                leftActions={[
+                                    {
+                                        onClick: () => {
+                                            if (!isColorPickerOpen) updatePickerCoords();
+                                            setIsColorPickerOpen(!isColorPickerOpen);
+                                        },
+                                        disabled: selectedProject?.is_locked,
+                                        title: "Pick Color",
+                                        render: () => (
+                                            <div 
+                                                className="w-5 h-5 rounded-md border border-[var(--border-base)] shadow-sm transition-transform active:scale-90"
+                                                style={{ backgroundColor: themeColor }}
+                                            />
+                                        )
+                                    }
+                                ]}
+                            />
+ 
+                            {isColorPickerOpen && !selectedProject?.is_locked && createPortal(
+                                <div 
+                                    ref={colorPickerDropdownRef}
+                                    className="fixed z-[9999] p-2 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-2xl animate-in fade-in duration-200 ease-in-out"
+                                    style={{ top: pickerCoords.top, left: pickerCoords.left }}
+                                >
+                                    <div 
+                                        className="grid gap-1"
+                                        style={{ gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}
+                                    >
+                                        {PRESET_COLORS.map(color => (
+                                            <button
+                                                key={color}
+                                                type="button"
+                                                onClick={() => {
+                                                    handleThemeColorChange(color);
+                                                    setIsColorPickerOpen(false);
+                                                }}
+                                                className={`w-3.5 h-3.5 rounded-sm border border-white/5 transition-all hover:scale-125 hover:z-10 hover:shadow-lg active:scale-90 ${themeColor === color ? 'ring-1 ring-brand ring-offset-1 ring-offset-[var(--bg-app)]' : ''}`}
+                                                style={{ backgroundColor: color }}
+                                                title={color}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>,
+                                document.body
+                            )}
                         </div>
                     </div>
 
