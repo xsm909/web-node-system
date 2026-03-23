@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, JSON, UUID, func, text
+from sqlalchemy import Column, String, DateTime, JSON, UUID, func, text, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from ..core.database import Base
 import uuid
@@ -7,6 +7,7 @@ class Response(Base):
     __tablename__ = "response"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True, index=True)
     entity_id = Column(UUID(as_uuid=True), nullable=False)
     # regclass is a postgres internal type, we'll map it to string for SQLAlchemy compatibility
     entity_type = Column(String, nullable=False) 

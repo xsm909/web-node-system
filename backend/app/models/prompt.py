@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, UUID, JSON
+from sqlalchemy import Column, String, DateTime, UUID, JSON, ForeignKey
 from sqlalchemy.sql import func
 import uuid
 from ..core.database import Base
@@ -8,6 +8,7 @@ class Prompt(Base):
     __tablename__ = "prompts"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True, index=True)
     entity_id = Column(UUID(as_uuid=True), nullable=False, index=True) # ID of the client or record
     entity_type = Column(String, nullable=False, index=True) # 'client' or 'record'
     content = Column(JSON, nullable=False) # The actual prompt data

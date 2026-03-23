@@ -10,6 +10,7 @@ from .schema import Schema, MetadataRecord, ExternalSchemaCache
 from .agent_hint import AgentHint
 from .prompt import Prompt
 from .lock import LockData
+from .project import Project
 
 __all__ = [
     "User",
@@ -34,4 +35,5 @@ __all__ = [
     "AgentHint",
     "Prompt",
     "LockData",
+    "Project",
 ]

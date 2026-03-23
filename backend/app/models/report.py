@@ -24,6 +24,7 @@ class Report(Base):
     __tablename__ = "reports"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True, index=True)
     name = Column(String(255), nullable=False)
     type = Column(Enum(ReportTypeEnum), nullable=False, default=ReportTypeEnum.global_type)
     description = Column(Text, nullable=True)

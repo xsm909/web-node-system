@@ -9,6 +9,7 @@ class Schema(Base):
     __tablename__ = "schemas"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True, index=True)
     key = Column(String, unique=True, nullable=False, index=True) # Unique identifier like 'client-profile'
     content = Column(JSON, nullable=False) # The actual JSON Schema
     category = Column(String, nullable=True, index=True) # Groups like 'Common|Info'
@@ -27,6 +28,7 @@ class MetadataRecord(Base):
     __tablename__ = "metadata"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True, index=True)
     schema_id = Column(UUID(as_uuid=True), ForeignKey('schemas.id', ondelete='CASCADE'), nullable=False, index=True)
     parent_id = Column(UUID(as_uuid=True), ForeignKey('metadata.id', ondelete='CASCADE'), nullable=True, index=True)
     entity_id = Column(UUID(as_uuid=True), nullable=True, index=True)

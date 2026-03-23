@@ -23,27 +23,106 @@ from .core.database import SessionLocal
 async def lifespan(app: FastAPI):
     # Cleanup hanging executions on startup
     db = SessionLocal()
+    dialect = engine.dialect.name
     try:
-        # Emergency migration for category column
-        db.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS category VARCHAR(255);"))
-        
+        # Migrations for reports
+        try:
+            if dialect == 'postgresql':
+                db.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS category VARCHAR(255);"))
+            else:
+                db.execute(text("ALTER TABLE reports ADD COLUMN category VARCHAR(255);"))
+            db.commit()
+        except:
+            db.rollback()
+
         # Migrations for object_parameters
-        db.execute(text("ALTER TABLE object_parameters ADD COLUMN IF NOT EXISTS parameter_type VARCHAR(50) DEFAULT 'text';"))
-        db.execute(text("ALTER TABLE object_parameters ADD COLUMN IF NOT EXISTS default_value TEXT;"))
-        # SQLite doesn't support ALTER COLUMN DROP NOT NULL easily, but our migration script handled it.
-        # These PG-style migrations might fail on SQLite but they are wrapped in try-except.
+        try:
+            if dialect == 'postgresql':
+                db.execute(text("ALTER TABLE object_parameters ADD COLUMN IF NOT EXISTS parameter_type VARCHAR(50) DEFAULT 'text';"))
+                db.execute(text("ALTER TABLE object_parameters ADD COLUMN IF NOT EXISTS default_value TEXT;"))
+            else:
+                db.execute(text("ALTER TABLE object_parameters ADD COLUMN parameter_type VARCHAR(50) DEFAULT 'text';"))
+                db.execute(text("ALTER TABLE object_parameters ADD COLUMN default_value TEXT;"))
+            db.commit()
+        except:
+            db.rollback()
 
         # Migrations for node_types
-        db.execute(text("ALTER TABLE node_types ADD COLUMN IF NOT EXISTS is_async BOOLEAN DEFAULT FALSE;"))
-        db.execute(text("ALTER TABLE node_types ADD COLUMN IF NOT EXISTS icon VARCHAR(100) DEFAULT 'task';"))
-        db.execute(text("ALTER TABLE node_types ALTER COLUMN input_schema SET NOT NULL;"))
-        db.execute(text("ALTER TABLE node_types ALTER COLUMN output_schema SET NOT NULL;"))
-        db.execute(text("ALTER TABLE node_types ALTER COLUMN parameters SET NOT NULL;"))
+        try:
+            if dialect == 'postgresql':
+                db.execute(text("ALTER TABLE node_types ADD COLUMN IF NOT EXISTS is_async BOOLEAN DEFAULT FALSE;"))
+                db.execute(text("ALTER TABLE node_types ADD COLUMN IF NOT EXISTS icon VARCHAR(100) DEFAULT 'task';"))
+                # Using ALTER COLUMN without IF EXISTS as PG supports it, but might fail if already NOT NULL
+                try:
+                    db.execute(text("ALTER TABLE node_types ALTER COLUMN input_schema SET NOT NULL;"))
+                    db.execute(text("ALTER TABLE node_types ALTER COLUMN output_schema SET NOT NULL;"))
+                    db.execute(text("ALTER TABLE node_types ALTER COLUMN parameters SET NOT NULL;"))
+                except:
+                    pass
+            else:
+                db.execute(text("ALTER TABLE node_types ADD COLUMN is_async BOOLEAN DEFAULT FALSE;"))
+                db.execute(text("ALTER TABLE node_types ADD COLUMN icon VARCHAR(100) DEFAULT 'task';"))
+            db.commit()
+        except:
+            db.rollback()
         
         # Migrations for prompts
-        db.execute(text("ALTER TABLE prompts ALTER COLUMN content TYPE JSONB USING content::jsonb;"))
-        db.execute(text("ALTER TABLE prompts ADD COLUMN IF NOT EXISTS raw TEXT;"))
-        db.execute(text("ALTER TABLE prompts ADD COLUMN IF NOT EXISTS meta JSONB;"))
+        try:
+            if dialect == 'postgresql':
+                db.execute(text("ALTER TABLE prompts ALTER COLUMN content TYPE JSONB USING content::jsonb;"))
+                db.execute(text("ALTER TABLE prompts ADD COLUMN IF NOT EXISTS raw TEXT;"))
+                db.execute(text("ALTER TABLE prompts ADD COLUMN IF NOT EXISTS meta JSONB;"))
+            else:
+                db.execute(text("ALTER TABLE prompts ADD COLUMN raw TEXT;"))
+                db.execute(text("ALTER TABLE prompts ADD COLUMN meta JSON;"))
+            db.commit()
+        except:
+            db.rollback()
+
+        # Project system migrations - Ensure project_id exists in relevant tables
+        project_table_mapping = {
+            'metadata': ['metadata', 'records'],
+            'agent_hints': ['agent_hints'],
+            'workflows': ['workflows'],
+            'schemas': ['schemas'],
+            'reports': ['reports'],
+            'prompts': ['prompts'],
+            'response': ['response']
+        }
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+
+        for requested_name, possible_names in project_table_mapping.items():
+            actual_table = next((t for t in possible_names if t in existing_tables), None)
+            if not actual_table:
+                continue
+            
+            try:
+                # Add column if not exists
+                if dialect == 'postgresql':
+                    print(f"Migrating {actual_table} (PostgreSQL)...")
+                    db.execute(text(f"ALTER TABLE {actual_table} ADD COLUMN IF NOT EXISTS project_id UUID;"))
+                    # FK might fail if already exists or constraint name differs, so we wrap it
+                    try:
+                        db.execute(text(f"ALTER TABLE {actual_table} ADD CONSTRAINT fk_{actual_table}_project_id FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;"))
+                    except Exception as fk_e:
+                        print(f"Note: FK constraint for {actual_table} already exists or failed: {fk_e}")
+                    db.execute(text(f"CREATE INDEX IF NOT EXISTS idx_{actual_table}_project_id ON {actual_table}(project_id);"))
+                else:
+                    # SQLite fallback
+                    print(f"Migrating {actual_table} (SQLite)...")
+                    try:
+                        db.execute(text(f"ALTER TABLE {actual_table} ADD COLUMN project_id CHAR(36);"))
+                        db.execute(text(f"CREATE INDEX idx_{actual_table}_project_id ON {actual_table}(project_id);"))
+                    except:
+                        pass # Column already exists
+                db.commit()
+                print(f"Successfully migrated table {actual_table}")
+            except Exception as migrate_e:
+                db.rollback()
+                print(f"Error migrating table {actual_table}: {migrate_e}")
+
 
         # Add date_bucket_floor function
         db.execute(text("""

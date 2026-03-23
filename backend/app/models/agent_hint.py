@@ -8,6 +8,7 @@ class AgentHint(Base):
     __tablename__ = "agent_hints"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True, index=True)
     key = Column(String(100), unique=True, nullable=False, index=True) # Unique identifier, immutable after creation
     category = Column(String(100), nullable=True, index=True) # e.g., 'Sql', 'Extraction'
     hint = Column(Text, nullable=False) # Markdown content

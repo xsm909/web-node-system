@@ -19,6 +19,7 @@ class Workflow(Base):
     __tablename__ = "workflows"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True, index=True)
     name = Column(String(255), nullable=False)
     owner_id = Column(String(50), nullable=False, index=True) # Changed from UUID/FK to String to allow "common"
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
