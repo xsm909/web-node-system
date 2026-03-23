@@ -3,11 +3,11 @@ import uuid
 from typing import Any, List, Optional, Dict, Union
 from sqlalchemy.orm import joinedload, selectinload
 from ..core.database import SessionLocal
-from ..models.schema import Record, Schema
+from ..models.schema import MetadataRecord, Schema
 from .logger_lib import system_log
 
-def _serialize_record(record: Record) -> Dict[str, Any]:
-    """Helper to convert Record and its children to a hierarchical dictionary."""
+def _serialize_record(record: MetadataRecord) -> Dict[str, Any]:
+    """Helper to convert MetadataRecord and its children to a hierarchical dictionary."""
     raw_data = record.data if record.data is not None else {}
     
     # If the data is not a dictionary (e.g., a list or basic type),
@@ -23,14 +23,14 @@ def _serialize_record(record: Record) -> Dict[str, Any]:
     if record.schema:
         data["__schema__"] = record.schema.key
     data["__id__"] = str(record.id)
-    data["__lock__"] = record.lock
+    # data["__lock__"] = record.lock # Removed as it's handled via LockData table now
     
     if record.children:
         data["children"] = [_serialize_record(child) for child in record.children]
     
     return data
 
-def _find_records_by_schema_recursive(record: Record, schema_key: str, results: List[Dict[str, Any]]):
+def _find_records_by_schema_recursive(record: MetadataRecord, schema_key: str, results: List[Dict[str, Any]]):
     """Recursively finds all records matching a schema key within a hierarchy."""
     if record.schema and record.schema.key == schema_key:
         results.append(_serialize_record(record))
@@ -55,14 +55,14 @@ def get_metadata(entity_type: str, entity_id: str, key: str) -> Any:
         
         # Query records directly, loading schema and children
         records = (
-            db.query(Record)
+            db.query(MetadataRecord)
             .options(
-                joinedload(Record.schema),
-                selectinload(Record.children)
+                joinedload(MetadataRecord.schema),
+                selectinload(MetadataRecord.children)
             )
             .filter(
-                Record.entity_type == entity_type,
-                Record.entity_id == entity_uuid
+                MetadataRecord.entity_type == entity_type,
+                MetadataRecord.entity_id == entity_uuid
             )
             .all()
         )
@@ -110,12 +110,12 @@ def get_metadata_by_id(metadata_id: str) -> Any:
         m_uuid = uuid.UUID(metadata_id) if isinstance(metadata_id, str) else metadata_id
         
         record = (
-            db.query(Record)
+            db.query(MetadataRecord)
             .options(
-                joinedload(Record.schema),
-                selectinload(Record.children)
+                joinedload(MetadataRecord.schema),
+                selectinload(MetadataRecord.children)
             )
-            .filter(Record.id == m_uuid)
+            .filter(MetadataRecord.id == m_uuid)
             .first()
         )
         
@@ -147,14 +147,14 @@ def get_all_metadata(entity_type: str, entity_id: str) -> Any:
         
         # Query all records for this entity
         records = (
-            db.query(Record)
+            db.query(MetadataRecord)
             .options(
-                joinedload(Record.schema),
-                selectinload(Record.children)
+                joinedload(MetadataRecord.schema),
+                selectinload(MetadataRecord.children)
             )
             .filter(
-                Record.entity_type == entity_type,
-                Record.entity_id == entity_uuid
+                MetadataRecord.entity_type == entity_type,
+                MetadataRecord.entity_id == entity_uuid
             )
             .all()
         )
@@ -191,11 +191,11 @@ def get_metadata_by_schema(schema_key: str) -> Any:
     try:
         # Query records joined with schema and filtered by schema key
         records = (
-            db.query(Record)
+            db.query(MetadataRecord)
             .join(Schema)
             .options(
-                joinedload(Record.schema),
-                selectinload(Record.children)
+                joinedload(MetadataRecord.schema),
+                selectinload(MetadataRecord.children)
             )
             .filter(Schema.key == schema_key)
             .all()
@@ -227,14 +227,14 @@ def get_client_metadata_by_schema(client_id: str, schema_key: str) -> Any:
         
         # Query ALL records for this client
         records = (
-            db.query(Record)
+            db.query(MetadataRecord)
             .options(
-                joinedload(Record.schema),
-                selectinload(Record.children)
+                joinedload(MetadataRecord.schema),
+                selectinload(MetadataRecord.children)
             )
             .filter(
-                Record.entity_type == "users",
-                Record.entity_id == client_uuid
+                MetadataRecord.entity_type == "users",
+                MetadataRecord.entity_id == client_uuid
             )
             .all()
         )
@@ -271,12 +271,12 @@ def get_owner_metadata_by_schema(owner_id: str, schema_key: str) -> Any:
         # If owner_id logic is still needed, it should have been migrated to entity_id 
         # or entity_type should be handled.
         records = (
-            db.query(Record)
+            db.query(MetadataRecord)
             .options(
-                joinedload(Record.schema),
-                selectinload(Record.children)
+                joinedload(MetadataRecord.schema),
+                selectinload(MetadataRecord.children)
             )
-            .filter(Record.entity_id == owner_uuid)
+            .filter(MetadataRecord.entity_id == owner_uuid)
             .all()
         )
         

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSchemas } from '../../../entities/schema/api';
-import { useCreateRecord } from '../../../entities/record/api';
+import { useCreateMetadata } from '../../../entities/metadata/api';
 import { Icon } from '../../../shared/ui/icon';
 import { AppFormFieldRect } from '../../../shared/ui/app-input';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
@@ -17,7 +17,7 @@ export const AssignSchemaModal: React.FC<AssignSchemaModalProps> = ({
     activeClientId
 }) => {
     const { data: schemas, isLoading } = useSchemas();
-    const createRecordMutation = useCreateRecord();
+    const createMetadataMutation = useCreateMetadata();
     const [selectedSchemaId, setSelectedSchemaId] = useState<string>('');
 
     if (!isOpen) return null;
@@ -26,8 +26,8 @@ export const AssignSchemaModal: React.FC<AssignSchemaModalProps> = ({
         if (!selectedSchemaId) return;
 
         try {
-            // Create record directly attached to the client
-            await createRecordMutation.mutateAsync({
+            // Create metadata record directly attached to the client
+            await createMetadataMutation.mutateAsync({
                 schema_id: selectedSchemaId,
                 entity_type: 'users',
                 entity_id: activeClientId,
@@ -94,10 +94,10 @@ export const AssignSchemaModal: React.FC<AssignSchemaModalProps> = ({
                     </button>
                     <button
                         onClick={handleAssign}
-                        disabled={!selectedSchemaId || createRecordMutation.isPending}
+                        disabled={!selectedSchemaId || createMetadataMutation.isPending}
                         className="px-5 py-2 rounded-xl text-sm font-bold bg-brand text-white hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center gap-2 shadow-lg shadow-brand/20"
                     >
-                        {createRecordMutation.isPending ? 'Assigning...' : 'Assign'}
+                        {createMetadataMutation.isPending ? 'Assigning...' : 'Assign'}
                     </button>
                 </div>
             </div>

@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
-import { useUpdateRecord } from '../../../entities/record/api';
+import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
+import { useUpdateMetadata } from '../../../entities/metadata/api';
+import type { Metadata } from '../../../entities/metadata/api';
 import { useSchemas } from '../../../entities/schema/api';
 import { RjsfForm } from '../../../features/data-editor/RjsfForm';
-import { Icon } from '../../../shared/ui/icon/Icon';
 
 interface ClientMetadataEditorProps {
-    assignment: any; // Record object containing optional nested schema
-    assignments: any[]; // Full list of assignments for the client
-    activeClientId?: string;
-    onSaveSuccess?: () => void;
+    assignment: Metadata | null;
+    assignments: Metadata[]; // Added back as it's used by RjsfForm
+    activeClientId?: string | null;
+    onSave?: (data: any) => void;
 }
 
 export interface ClientMetadataEditorRef {
@@ -17,13 +17,13 @@ export interface ClientMetadataEditorRef {
     isValid: boolean;
 }
 
-export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMetadataEditorProps>(({
+export const ClientMetadataEditor = React.forwardRef<ClientMetadataEditorRef, ClientMetadataEditorProps>(({
     assignment,
     assignments,
     activeClientId,
-    onSaveSuccess,
+    onSave
 }, ref) => {
-    const updateMutation = useUpdateRecord();
+    const updateMetadataMutation = useUpdateMetadata();
     const { data: schemas, isLoading: isSchemasLoading } = useSchemas();
     const [formData, setFormData] = useState<any>(undefined);
     const [isValid, setIsValid] = useState(true);
@@ -86,7 +86,7 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
         if (currentRecordId !== seededRecordId.current) {
             seededRecordId.current = currentRecordId;
             const rawData = assignment?.data;
-            let data = safeParse(rawData);
+            let data = typeof rawData === 'string' ? safeParse(rawData) : rawData;
 
             const isEmpty = data === null || data === undefined || (typeof data === 'object' && Object.keys(data).length === 0);
 
@@ -104,14 +104,10 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
             }
 
             setFormData(data);
-            // Default to true and let RjsfForm prove it otherwise if there are errors.
             setIsValid(true); 
             setSaveError(null);
-            console.log("[ClientMetadataEditor] SEEDED:", {
-                recordId: currentRecordId,
-            });
         }
-    }, [assignment?.id, schemaType]);
+    }, [assignment?.id, schemaType, schemaContent]);
 
     const handleFormSubmit = (data: any) => {
         if (!assignment?.id) {
@@ -120,8 +116,8 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
         }
 
         setSaveError(null);
-        updateMutation.mutate({ id: assignment.id, data: { data } }, {
-            onSuccess: () => onSaveSuccess?.(),
+        updateMetadataMutation.mutate({ id: assignment.id, data }, {
+            onSuccess: () => onSave?.(data),
             onError: (err: any) => {
                 const detail = err?.response?.data?.detail
                     || err?.message
@@ -132,9 +128,6 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
     };
 
     const handleSaveInternal = () => {
-        // We always trigger the form's submit() logic.
-        // It will validate first. If valid, it triggers onSubmit handlers.
-        // If invalid, it highlights the errors in the UI.
         const isLocked = !!assignment?.is_locked;
         if (isLocked) return;
 
@@ -146,7 +139,7 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
 
     useImperativeHandle(ref, () => ({
         handleSave: handleSaveInternal,
-        isSaving: updateMutation.isPending,
+        isSaving: updateMetadataMutation.isPending,
         isValid
     }));
 
@@ -160,52 +153,49 @@ export const ClientMetadataEditor = forwardRef<ClientMetadataEditorRef, ClientMe
         }, {});
     }, [schemas]);
 
-    return (
-        <div className="flex flex-col h-full">
-            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-surface-950/20 rounded-3xl border border-[var(--border-base)]">
-                <div className="max-w-5xl mx-auto w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 p-2">
-                    {saveError && (
-                        <div className="mb-6 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-medium flex flex-col gap-2 shadow-sm animate-in fade-in zoom-in-95 duration-200">
-                            <div className="flex items-center gap-3">
-                                <span className="text-lg">⚠</span> {saveError}
-                            </div>
-                            {validationErrors.length > 0 && (
-                                <ul className="list-disc list-inside ml-7 mt-1 space-y-1 opacity-80">
-                                    {validationErrors.map((err, i) => (
-                                        <li key={i}>{err.stack || err.message || String(err)}</li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-                    )}
+    if (!assignment) return null;
 
-                    {isLoading ? (
-                        <div className="flex flex-col items-center justify-center h-64 gap-4">
-                            <div className="w-10 h-10 border-4 border-brand/20 border-t-brand rounded-full animate-spin" />
-                            <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest animate-pulse">
-                                Loading Schemas...
-                            </p>
+    return (
+        <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+                {saveError && (
+                    <div className="mb-4 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                        <div className="font-bold flex items-center gap-1.5 mb-1 text-red-300">
+                            <span className="text-sm">⚠</span> {saveError}
                         </div>
-                    ) : (
-                        <RjsfForm
-                            ref={rjsfRef}
-                            schema={schemaContent}
-                            formData={formData}
-                            onChange={(data, valid, errors) => {
-                                setFormData(data);
-                                setIsValid(valid);
-                                setValidationErrors(errors || []);
-                                if (valid) setSaveError(null);
-                            }}
-                            onSubmit={handleFormSubmit}
-                            extraSchemas={extraSchemas}
-                            activeClientId={activeClientId}
-                            assignments={assignments}
-                            recordId={assignment?.id}
-                            readOnly={!!assignment?.is_locked}
-                        />
-                    )}
-                </div>
+                        {validationErrors.length > 0 && (
+                            <ul className="list-disc list-inside mt-1 opacity-80 space-y-0.5">
+                                {validationErrors.map((err, i) => (
+                                    <li key={i}>{err.stack || err.message || String(err)}</li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                )}
+
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-32">
+                        <div className="w-6 h-6 border-2 border-brand/20 border-t-brand rounded-full animate-spin" />
+                    </div>
+                ) : (
+                    <RjsfForm
+                        ref={rjsfRef}
+                        schema={schemaContent}
+                        formData={formData}
+                        onChange={(data, valid, errors) => {
+                            setFormData(data);
+                            setIsValid(valid);
+                            setValidationErrors(errors || []);
+                            if (valid) setSaveError(null);
+                        }}
+                        onSubmit={handleFormSubmit}
+                        extraSchemas={extraSchemas}
+                        activeClientId={activeClientId || undefined}
+                        assignments={assignments}
+                        metadataId={assignment.id}
+                        readOnly={!!assignment.is_locked}
+                    />
+                )}
             </div>
         </div>
     );

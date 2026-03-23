@@ -42,8 +42,8 @@ class SchemaResponse(SchemaBase):
         from_attributes = True
 
 
-# --- Records (Validated Data Payloads) ---
-class RecordBase(BaseModel):
+# --- Metadata (Validated Data Payloads) ---
+class MetadataBase(BaseModel):
     schema_id: UUID
     parent_id: Optional[UUID] = None
     entity_id: Optional[UUID] = None
@@ -51,24 +51,24 @@ class RecordBase(BaseModel):
     data: Any
     order: int = 0
 
-class RecordCreate(RecordBase):
+class MetadataCreate(MetadataBase):
     pass
 
-class RecordUpdate(BaseModel):
+class MetadataUpdate(BaseModel):
     data: Optional[Any] = None
 
-class RecordResponse(RecordBase):
+class MetadataResponse(MetadataBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
     is_locked: bool = False
-    children: Optional[List['RecordResponse']] = []
+    children: Optional[List['MetadataResponse']] = []
 
     class Config:
         from_attributes = True
 
 
-class RecordWithSchemaResponse(RecordResponse):
+class MetadataWithSchemaResponse(MetadataResponse):
     schema_: SchemaResponse = Field(alias="schema")
 
     class Config:

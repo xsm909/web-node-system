@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Icon } from '../../../shared/ui/icon';
 import { useAuthStore } from '../../../features/auth/store';
-import { useEntityMetadata, useCreateRecord, useDeleteRecord } from '../../../entities/record/api';
+import { useEntityMetadata, useCreateMetadata, useDeleteMetadata, useReorderMetadata } from '../../../entities/metadata/api';
 import { useSchemas } from '../../../entities/schema/api';
 import type { Schema } from '../../../entities/schema/api';
 import { ClientMetadataEditor, type ClientMetadataEditorRef } from './ClientMetadataEditor';
@@ -30,7 +30,6 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useReorderRecords } from '../../../entities/record/api';
 
 interface ClientMetadataManagementProps {
     activeClientId?: string | null;
@@ -205,9 +204,9 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
 
     const editorRef = useRef<ClientMetadataEditorRef>(null);
 
-    const deleteRecordMutation = useDeleteRecord();
-    const createRecordMutation = useCreateRecord();
-    const reorderMutation = useReorderRecords();
+    const deleteMetadataMutation = useDeleteMetadata();
+    const createMetadataMutation = useCreateMetadata();
+    const reorderMutation = useReorderMetadata();
 
     // Fetch assignments for this specific client
     const { data: assignments = [], isLoading: isAssignmentsLoading, refetch } = useEntityMetadata('users', activeClientId || '');
@@ -389,7 +388,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
         if (!activeClientId) return;
 
         try {
-            const newRecord = await createRecordMutation.mutateAsync({
+            const newRecord = await createMetadataMutation.mutateAsync({
                 schema_id: schemaItem.id,
                 parent_id: nestingParentId || undefined,
                 entity_type: nestingParentId ? undefined : 'users',
@@ -545,10 +544,10 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                     title="Remove Schema"
                     description={`Are you sure you want to remove the '${assignmentToDelete?.schema?.key}' schema from this client?`}
                     confirmLabel="Remove"
-                    isLoading={deleteRecordMutation.isPending}
+                    isLoading={deleteMetadataMutation.isPending}
                     onConfirm={() => {
                         if (assignmentToDelete) {
-                            deleteRecordMutation.mutate(
+                            deleteMetadataMutation.mutate(
                                 assignmentToDelete.id,
                                 {
                                     onSuccess: () => {
@@ -571,7 +570,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 headerRightContent={
                     <AppLockToggle 
                         entityId={selectedAssignment?.id}
-                        entityType="records"
+                        entityType="metadata"
                         initialLocked={!!selectedAssignment?.is_locked}
                         onToggle={(locked) => {
                             setSelectedAssignment((prev: any) => prev ? { ...prev, is_locked: locked } : prev);
@@ -600,7 +599,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                         assignment={selectedAssignment}
                         assignments={assignments}
                         activeClientId={activeClientId || undefined}
-                        onSaveSuccess={handleBack}
+                        onSave={handleBack}
                     />
                 )}
             </SlidePanel>

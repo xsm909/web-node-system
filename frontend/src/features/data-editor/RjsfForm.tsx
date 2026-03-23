@@ -89,7 +89,7 @@ function TextareaWidget(props: WidgetProps) {
 // ─── Reference Widget ────────────────────────────────────────────────────────
 function ReferenceWidget(props: WidgetProps) {
     const { value, onChange, schema, formContext, registry, disabled, readonly, placeholder, rawErrors } = props;
-    const recordId = formContext?.recordId || (registry as any)?.formContext?.recordId;
+    const metadataId = formContext?.metadataId || (registry as any)?.formContext?.metadataId;
 
     const schemaKey = (schema as any)['x-schema-key'];
     const displayField = (schema as any)['x-display'] || 'id';
@@ -99,13 +99,13 @@ function ReferenceWidget(props: WidgetProps) {
     const [isLoading, setIsLoading] = React.useState(false);
 
     const fetchReferences = React.useCallback(async () => {
-        if (!recordId || !schemaKey) {
+        if (!metadataId || !schemaKey) {
             return;
         }
 
         setIsLoading(true);
         try {
-            const response = await apiClient.get(`/records/references/${recordId}`, {
+            const response = await apiClient.get(`/metadata/references/${metadataId}`, {
                 params: { schema_key: schemaKey }
             });
             setReferences(response.data || []);
@@ -113,7 +113,7 @@ function ReferenceWidget(props: WidgetProps) {
         } finally {
             setIsLoading(false);
         }
-    }, [recordId, schemaKey]);
+    }, [metadataId, schemaKey]);
 
     const handleOpenChange = (open: boolean) => {
         if (open && references.length === 0) {
@@ -162,7 +162,7 @@ function ReferenceWidget(props: WidgetProps) {
                 value={value ? String(value) : undefined}
                 label={selectedItem?.name}
                 placeholder={isLoadingState ? "Loading..." : placeholder || "Select reference..."}
-                searchPlaceholder="Search records..."
+                searchPlaceholder="Search metadata..."
                 icon="link"
                 className={`w-full ${rawErrors && rawErrors.length > 0 ? 'border-red-500 ring-1 ring-red-500/20 rounded-lg' : ''}`}
                 disabled={disabled || readonly}
@@ -502,14 +502,14 @@ function inlineRefs(
 }
 
 /**
- * Traverses the schema and collects ui:widget for properties that have x-reference: "record".
+ * Traverses the schema and collects ui:widget for properties that have x-reference: "metadata" or "record".
  */
 function extractUiSchema(schema: any): any {
     if (!schema || typeof schema !== 'object') return {};
 
     let uiSchema: any = {};
 
-    if (schema['x-reference'] === 'record') {
+    if (schema['x-reference'] === 'record' || schema['x-reference'] === 'metadata') {
         uiSchema['ui:widget'] = 'ReferenceWidget';
     }
 
@@ -543,7 +543,7 @@ interface RjsfFormProps {
     extraSchemas?: Record<string, any>;
     activeClientId?: string;
     assignments?: any[];
-    recordId?: string;
+    metadataId?: string;
     onSubmit?: (data: any) => void;
 }
 
@@ -557,7 +557,7 @@ export const RjsfForm = React.forwardRef<any, RjsfFormProps>((props, ref) => {
         extraSchemas = {},
         activeClientId,
         assignments = [],
-        recordId,
+        metadataId,
     } = props;
 
     const formRef = React.useRef<any>(null);
@@ -635,7 +635,7 @@ export const RjsfForm = React.forwardRef<any, RjsfFormProps>((props, ref) => {
             formContext={{
                 activeClientId,
                 assignments,
-                recordId
+                metadataId
             }}
             onChange={(e: any) => {
                 const errors = e.errors ?? [];
