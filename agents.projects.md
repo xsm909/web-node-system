@@ -121,3 +121,33 @@ Implemented strict data isolation and project context persistence for Schemas, W
 - **Data Isolation**: Verified that project-specific workflows and reports are hidden when no project is active, and vice versa.
 - **UI Consistency**: Confirmed that all lists refresh instantly upon project activation/deactivation.
 - **Persistence**: Validated that items created within a project context are correctly saved with the `project_id` even if the project is exited before clicking "Save".
+
+## Phase 5: Agent Hints Project Isolation
+
+### Summary
+Implemented project-based filtering and isolation for Agent Hints. This includes a clear UI distinction between different hint sources (System, Project, Global) and automatic project association during creation.
+
+### Backend Details
+- **Model & Schema** ([agent_hint.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/models/agent_hint.py), [agent_hint.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/schemas/agent_hint.py)):
+    - Added `project_id` to Agent Hint model and schemas.
+- **Router** ([agent_hints.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/routers/agent_hints.py)):
+    - `list_agent_hints`:
+        - **Project Mode ON**: Returns `(system_hints == True) | (project_id == active_project_id)`.
+        - **Project Mode OFF**: Returns `(system_hints == True) | (project_id == None)`.
+    - `create_agent_hint`: Automatically assigns `project_id` from the current project context if the hint is not a system hint.
+
+### Frontend Details
+- **Infrastructure**:
+    - Updated `useAgentHints` React Query hook to include `isProjectMode` and `activeProject.id` in its `queryKey`. This ensures the list is instantly refreshed when entering or exiting a project.
+    - Updated `useMetadataList` with the same project-reactive query key to prevent stale data.
+- **Widget** ([AgentHintManagement.tsx](file:///Users/Shared/Work/Web/web-node-system/frontend/src/widgets/admin-agent-hint-management/ui/AgentHintManagement.tsx)):
+    - Added a **Source** column to the table with custom icons and labels:
+        - `verified.svg` (System) — Internal hints.
+        - `project.svg` (Project) — Hints specific to the active project.
+        - `public.svg` (Global) — General hints.
+    - Updated row icons to distinguish between System (`verified.svg`) and User hints (`lightbulb_circle.svg`).
+
+### Verification Results
+- **Dynamic List Refetching**: Verified that exiting a project triggers an immediate refetch of agent hints.
+- **Automatic Scoping**: Verified that new hints created in project mode are correctly associated with the active project.
+- **UI Source Visibility**: Confirmed that the "Source" column clearly identifies the origin of each hint.

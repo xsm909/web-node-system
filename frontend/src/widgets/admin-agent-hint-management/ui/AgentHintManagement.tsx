@@ -139,10 +139,39 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 const hint = info.row.original;
                 return (
                     <AppTableStandardCell
-                        icon="lightbulb_circle"
+                        icon={hint.system_hints ? "verified" : "lightbulb_circle"}
                         label={hint.key}
                         isLocked={hint.is_locked}
                     />
+                );
+            }
+        }),
+        columnHelper.display({
+            id: 'source',
+            header: 'Source',
+            cell: info => {
+                const hint = info.row.original;
+                if (hint.system_hints) {
+                    return (
+                        <div className="flex items-center gap-1.5 text-[var(--brand)]">
+                            <Icon name="verified" size={12} />
+                            <span className="text-[10px] font-medium uppercase tracking-wider">System</span>
+                        </div>
+                    );
+                }
+                if (hint.project_id) {
+                    return (
+                        <div className="flex items-center gap-1.5 text-amber-500/80">
+                            <Icon name="project" size={12} />
+                            <span className="text-[10px] font-medium uppercase tracking-wider">Project</span>
+                        </div>
+                    );
+                }
+                return (
+                    <div className="flex items-center gap-1.5 text-gray-400">
+                        <Icon name="public" size={12} />
+                        <span className="text-[10px] font-medium uppercase tracking-wider">Global</span>
+                    </div>
                 );
             }
         }),

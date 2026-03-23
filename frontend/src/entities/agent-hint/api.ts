@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
+import { useProjectStore } from '../../features/projects/store';
 
 export interface AgentHint {
     id: string;
@@ -12,6 +13,7 @@ export interface AgentHint {
     updated_at: string;
     is_locked: boolean;
     system_hints: boolean;
+    project_id?: string | null;
 }
 
 export interface CreateAgentHintDto {
@@ -19,6 +21,7 @@ export interface CreateAgentHintDto {
     category?: string | null;
     hint: string;
     system_hints?: boolean;
+    project_id?: string | null;
     meta?: any;
 }
 
@@ -31,8 +34,9 @@ export interface UpdateAgentHintDto {
 
 // Queries
 export const useAgentHints = () => {
+    const { activeProject, isProjectMode } = useProjectStore();
     return useQuery({
-        queryKey: ['agent-hints'],
+        queryKey: ['agent-hints', isProjectMode, activeProject?.id],
         queryFn: async () => {
             const response = await apiClient.get<AgentHint[]>('/agent-hints');
             return response.data;

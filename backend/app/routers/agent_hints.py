@@ -10,6 +10,7 @@ from ..routers.auth import get_current_user
 from sqlalchemy import exists, and_
 from ..models import LockData
 from ..core.locks import raise_if_locked, check_is_locked
+from ..internal_libs.projects_lib import get_project_id, is_project_mode
 
 router = APIRouter(prefix="/agent-hints", tags=["Agent Hints"])
 
@@ -25,6 +26,13 @@ def list_agent_hints(
     ).exists()
     
     results = db.query(AgentHint, is_locked_subquery.label("is_locked"))
+    
+    project_id = get_project_id()
+    if is_project_mode():
+        results = results.filter((AgentHint.system_hints == True) | (AgentHint.project_id == project_id))
+    else:
+        results = results.filter((AgentHint.system_hints == True) | (AgentHint.project_id == None))
+
     if category:
         results = results.filter(AgentHint.category == category)
     
@@ -61,8 +69,16 @@ def create_agent_hint(
     if existing:
         raise HTTPException(status_code=400, detail="Key already exists")
     
+    # Automatically set project_id from context if not a system hint
+    project_id = get_project_id()
+    hint_data = hint_in.model_dump()
+    
+    # If in project mode and project_id not explicitly provided, set it
+    if is_project_mode() and not hint_data.get("system_hints"):
+        hint_data["project_id"] = project_id
+
     db_hint = AgentHint(
-        **hint_in.model_dump(),
+        **hint_data,
         created_by=current_user.id
     )
     db.add(db_hint)

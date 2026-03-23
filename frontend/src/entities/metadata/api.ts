@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../shared/api/client';
+import { useProjectStore } from '../../features/projects/store';
 import type { Schema } from '../schema/api';
 
 export interface Metadata {
@@ -34,8 +35,9 @@ export interface UpdateMetadataDto {
 
 // Queries
 export const useMetadataList = () => {
+    const { activeProject, isProjectMode } = useProjectStore();
     return useQuery({
-        queryKey: ['metadata'],
+        queryKey: ['metadata', isProjectMode, activeProject?.id],
         queryFn: async () => {
             const response = await apiClient.get<Metadata[]>('/metadata');
             return response.data;
