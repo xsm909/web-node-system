@@ -175,7 +175,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 saveLabel="Save User"
                 headerRightContent={
                     <div className="flex items-center gap-2">
-                        {activeTab === 'metadata' && metadataActions}
                         <AppLockToggle 
                             entityId={selectedUser.id} 
                             entityType="users" 
@@ -185,6 +184,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                                 refetch();
                             }}
                         />
+                        {activeTab === 'metadata' && metadataActions}
                     </div>
                 }
                 noPadding={activeTab === 'prompts' || activeTab === 'metadata'}
