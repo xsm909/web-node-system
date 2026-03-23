@@ -142,7 +142,7 @@ export const AppFooter: React.FC = () => {
 
     return (
         <div 
-            className={`fixed bottom-0 h-8 bg-[var(--bg-footer)] border-t border-[var(--border-footer)] z-40 flex items-center px-4 shadow-xl select-none transition-all duration-500 ease-in-out
+            className={`fixed bottom-0 h-8 bg-[var(--bg-footer)] border-t border-[var(--border-footer)] z-[90] flex items-center px-4 shadow-xl select-none transition-all duration-500 ease-in-out
                 ${isVisible ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
             style={{
                 left: 'var(--sidebar-width, 0px)',

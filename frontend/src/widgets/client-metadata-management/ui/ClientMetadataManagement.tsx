@@ -581,6 +581,11 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                         isSaving={editorRef.current?.isSaving}
                     />
                 }
+                onSave={() => editorRef.current?.handleSave()}
+                onSaveAndClose={() => {
+                    editorRef.current?.handleSave();
+                    handleBack();
+                }}
                 footer={
                     selectedAssignment?.is_locked ? (
                         <div className="flex items-center justify-end px-4">
