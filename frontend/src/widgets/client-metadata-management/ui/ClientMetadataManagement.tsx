@@ -443,6 +443,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                     size="normal"
                     title="Assign Metadata"
                     hideChevron
+                    align="right"
                 />
             </div>
         );

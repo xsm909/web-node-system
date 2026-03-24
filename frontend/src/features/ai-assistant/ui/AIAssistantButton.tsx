@@ -14,6 +14,7 @@ interface AIAssistantButtonProps {
     modelData: Record<string, SelectionGroup>;
     initialPrompt?: string;
     disabled?: boolean;
+    align?: 'left' | 'right';
 }
 
 export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
@@ -25,6 +26,7 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
     modelData,
     initialPrompt = '',
     disabled = false,
+    align = 'left'
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -91,6 +93,7 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({
                     variant="brand"
                     className="!py-0"
                     disabled={isGenerating || disabled}
+                    align={align}
                 />
             )}
 

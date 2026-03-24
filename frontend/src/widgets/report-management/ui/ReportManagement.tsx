@@ -441,6 +441,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                                 variant="brand"
                                 triggerClassName="px-6 py-2 shadow-lg shadow-brand/20"
                                 labelClassName="font-bold text-sm"
+                                align="right"
                             />
                         )}
                     </div>

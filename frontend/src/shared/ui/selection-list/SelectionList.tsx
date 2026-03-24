@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../icon';
 
@@ -46,6 +46,7 @@ interface SelectionListProps {
     onClose?: () => void;
     searchPlaceholder?: string;
     position?: { x: number, y: number };
+    align?: 'left' | 'right';
 }
 
 // --- Unified Selection List Content ---
@@ -211,13 +212,21 @@ export const SelectionList: React.FC<SelectionListProps> = ({
     onAction,
     onClose,
     searchPlaceholder = "Search...",
-    position
+    position,
+    align = 'left'
 }) => {
-    console.log("[SelectionList] Render - data keys:", Object.keys(data), "items count:", items.length);
     const [searchQuery, setSearchQuery] = useState('');
     const [highlightedIndex, setHighlightedIndex] = useState(0);
     const [hoveredPath, setHoveredPath] = useState<string[]>([]);
     const [hoveredTops, setHoveredTops] = useState<number[]>([]);
+    const navigateTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (navigateTimeout.current) clearTimeout(navigateTimeout.current);
+        };
+    }, []);
     const inputRef = useRef<HTMLInputElement>(null);
     const searchResultsRef = useRef<HTMLDivElement>(null);
 
@@ -273,13 +282,31 @@ export const SelectionList: React.FC<SelectionListProps> = ({
     }, [highlightedIndex, isSearching]);
 
     const handleNavigate = (path: string[], top: number) => {
-        setHoveredPath(path);
-        // depth is path.length. But we need to store top for each depth
-        setHoveredTops(prev => {
-            const next = [...prev];
-            next[path.length - 1] = top;
-            return next;
-        });
+        if (navigateTimeout.current) {
+            clearTimeout(navigateTimeout.current);
+            navigateTimeout.current = null;
+        }
+
+        const isClearing = path.length === 0 || (path.length > 0 && path[path.length - 1] === '');
+
+        if (isClearing) {
+            navigateTimeout.current = setTimeout(() => {
+                setHoveredPath(path);
+                setHoveredTops(prev => {
+                    const next = [...prev];
+                    next[path.length - 1] = top;
+                    return next;
+                });
+                navigateTimeout.current = null;
+            }, 300);
+        } else {
+            setHoveredPath(path);
+            setHoveredTops(prev => {
+                const next = [...prev];
+                next[path.length - 1] = top;
+                return next;
+            });
+        }
     };
 
 
@@ -298,12 +325,15 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                     onClose?.();
                 }}
             />
-
             <div
-                className="absolute flex items-start h-full pointer-events-none selection-list-inner"
+                className={`absolute flex items-start h-full pointer-events-none selection-list-inner ${align === 'right' ? 'flex-row-reverse text-right' : ''}`}
                 style={{
                     height: 'fit-content',
-                    left: position?.x ?? 'auto',
+                    ...(align === 'right' ? {
+                        right: position ? window.innerWidth - position.x : 'auto'
+                    } : {
+                        left: position?.x ?? 'auto'
+                    }),
                     top: (() => {
                         if (!position) return 'auto';
                         const menuHeight = isSearching ? 400 : 360; // Approximate max heights
@@ -415,8 +445,12 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                         const topOffset = hoveredTops[depth - 1] || 0;
                         const panelStyle = {
                             position: 'absolute' as const,
-                            left: `${depth * 150}px`,
-                            top: `${topOffset + 30}px`,
+                            ...(align === 'right' ? {
+                                right: `${depth * 110}px`,
+                            } : {
+                                left: `${depth * 110}px`,
+                            }),
+                            top: `${topOffset + 48}px`,
                             zIndex: depth + 1,
                         };
 
@@ -428,13 +462,13 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                                 <div
                                     key={`panel-${depth}`}
                                     style={panelStyle}
-                                    className="pointer-events-auto border border-[var(--border-base)] rounded-2xl p-2 flex flex-col gap-1 backdrop-blur-xl bg-[var(--bg-app)]/80 shadow-2xl animate-in slide-in-from-left-2 duration-200"
+                                    className={`pointer-events-auto border border-[var(--border-base)] rounded-2xl p-2 flex flex-col gap-1 backdrop-blur-xl bg-[var(--bg-app)]/80 shadow-2xl animate-in ${align === 'right' ? 'slide-in-from-right-2' : 'slide-in-from-left-2'} duration-200`}
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <SelectionListContent
                                         groups={group.children}
                                         items={group.items}
-                                        breadcrumb={hoveredPath.slice(0, depth)}
+                                        breadcrumb={[hoveredPath[depth - 1]]}
                                         config={config}
                                         activeDescendant={hoveredPath}
                                         activeItemId={activeItemId}

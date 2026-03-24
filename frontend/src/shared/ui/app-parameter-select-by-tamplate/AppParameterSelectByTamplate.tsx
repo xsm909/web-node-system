@@ -20,6 +20,7 @@ interface AppParameterSelectByTamplateProps {
     className?: string;
     variant?: 'primary' | 'ghost';
     disabled?: boolean;
+    align?: 'left' | 'right';
 }
 
 export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplateProps> = ({
@@ -35,6 +36,7 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
     className = '',
     variant = 'primary',
     disabled = false,
+    align = 'left'
 }) => {
     if (parameter.parameter_type === 'select') {
         const errorOption = options.find(o => String(o.value) === 'error');
@@ -63,6 +65,7 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
                 variant={variant}
                 className={className}
                 disabled={disabled}
+                align={align}
             />
         );
     }

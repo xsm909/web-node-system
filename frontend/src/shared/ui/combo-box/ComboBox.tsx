@@ -29,6 +29,7 @@ interface ComboBoxProps {
     title?: string;
     hideChevron?: boolean;
     size?: 'normal' | 'small';
+    align?: 'left' | 'right';
 }
 
 export const ComboBox: React.FC<ComboBoxProps> = ({
@@ -53,7 +54,8 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     iconClassName,
     title,
     hideChevron = false,
-    size = 'normal'
+    size = 'normal',
+    align = 'left'
 }) => {
     const isSmall = size === 'small';
     const computedIconSize = iconSize || (isSmall ? 14 : 16);
@@ -164,8 +166,11 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
                         if (onOpenChange) onOpenChange(false);
                     }}
                     searchPlaceholder={searchPlaceholder}
+                    align={align}
                     position={triggerRef.current ? {
-                        x: triggerRef.current.getBoundingClientRect().left,
+                        x: align === 'right' 
+                            ? triggerRef.current.getBoundingClientRect().right 
+                            : triggerRef.current.getBoundingClientRect().left,
                         y: triggerRef.current.getBoundingClientRect().bottom + 8
                     } : undefined}
                 />
