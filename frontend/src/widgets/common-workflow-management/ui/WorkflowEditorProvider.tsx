@@ -71,7 +71,7 @@ export const WorkflowEditorProvider: React.FC<{
     isSidebarOpen?: boolean;
     onEditNode?: (node: NodeType) => void;
     refreshTrigger?: number;
-}> = ({ children, onToggleSidebar, isSidebarOpen = false, onEditNode: onEditNodeProp }) => {
+}> = ({ children, onToggleSidebar, isSidebarOpen = false, onEditNode: onEditNodeProp, refreshTrigger }) => {
     const {
         workflows,
         activeWorkflow,
@@ -87,7 +87,7 @@ export const WorkflowEditorProvider: React.FC<{
         handleDuplicateWorkflow,
         handleRenameWorkflow,
         setActiveWorkflow
-    } = useWorkflowManagement();
+    } = useWorkflowManagement(refreshTrigger);
 
     const nodesRef = useRef<Node[]>([]);
     const edgesRef = useRef<Edge[]>([]);
