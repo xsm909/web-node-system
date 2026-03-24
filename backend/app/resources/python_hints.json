@@ -252,6 +252,42 @@
         "boost": 4
     },
     {
+        "label": "grok",
+        "type": "variable",
+        "detail": "grok namespace",
+        "boost": 3
+    },
+    {
+        "label": "grok.create_new_conversation",
+        "type": "function",
+        "detail": "grok.create_new_conversation function",
+        "boost": 4
+    },
+    {
+        "label": "grok.set_prompt",
+        "type": "function",
+        "detail": "grok.set_prompt function",
+        "boost": 4
+    },
+    {
+        "label": "grok.ask_chat",
+        "type": "function",
+        "detail": "grok.ask_chat function",
+        "boost": 4
+    },
+    {
+        "label": "grok.ask_single",
+        "type": "function",
+        "detail": "grok.ask_single function",
+        "boost": 4
+    },
+    {
+        "label": "grok.perform_web_search",
+        "type": "function",
+        "detail": "grok.perform_web_search function",
+        "boost": 4
+    },
+    {
         "label": "common",
         "type": "variable",
         "detail": "common namespace",
@@ -441,6 +477,12 @@
         "label": "agent.get_agent_hint_by_key",
         "type": "function",
         "detail": "agent.get_agent_hint_by_key function",
+        "boost": 4
+    },
+    {
+        "label": "agent.get_agent_hint_and_id_by_key",
+        "type": "function",
+        "detail": "agent.get_agent_hint_and_id_by_key function",
         "boost": 4
     },
     {
@@ -658,6 +700,30 @@
         "type": "function",
         "detail": "workflow.runtime.get_value function",
         "boost": 4
+    },
+    {
+        "label": "pandas",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "numpy",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
+        "label": "pd",
+        "type": "variable",
+        "detail": "pd variable",
+        "boost": 3
+    },
+    {
+        "label": "np",
+        "type": "variable",
+        "detail": "np variable",
+        "boost": 3
     },
     {
         "label": "run",

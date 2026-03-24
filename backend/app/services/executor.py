@@ -214,7 +214,8 @@ SAFE_GLOBALS = {
     ),
     "agent": SimpleNamespace(
         run=agent_lib.run,
-        get_agent_hint_by_key=agent_hints_lib.get_agent_hint_by_key
+        get_agent_hint_by_key=agent_hints_lib.get_agent_hint_by_key,
+        get_agent_hint_and_id_by_key=agent_hints_lib.get_agent_hint_and_id_by_key
     ),
     "prompts": SimpleNamespace(
         add_prompt=prompt_lib.add_prompt,
@@ -717,7 +718,8 @@ class WorkflowExecutor:
                 ),
                 "agent": SimpleNamespace(
                     run=agent_lib.run,
-                    get_agent_hint_by_key=agent_hints_lib.get_agent_hint_by_key
+                    get_agent_hint_by_key=agent_hints_lib.get_agent_hint_by_key,
+                    get_agent_hint_and_id_by_key=agent_hints_lib.get_agent_hint_and_id_by_key
                 ),
                 "prompts": SimpleNamespace(
                     add_prompt=prompt_lib.add_prompt,
