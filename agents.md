@@ -213,6 +213,7 @@ metadata - metadata.svg
 projects - project.svg
 
 #### 9.3.1 UI icons rules
+parameters - parameters.svg
 for system marker - system.svg
 export/download - download.svg
 play/run/generate - play.svg

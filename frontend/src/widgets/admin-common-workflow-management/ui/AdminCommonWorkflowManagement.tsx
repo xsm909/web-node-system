@@ -24,6 +24,7 @@ import { AppParameterListEditor } from '../../../shared/ui/app-parameter-list-ed
 import { AppParameterSelectByTamplate } from '../../../shared/ui/app-parameter-select-by-tamplate';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { useProjectStore } from '../../../features/projects/store';
+import { WorkflowActions } from '../../../features/workflow-operations/ui/WorkflowActions';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -422,36 +423,12 @@ const AdminWorkflowEditorView = ({ onBack }: { onBack: () => void }) => {
             }}
             headerRightContent={
                 <div className="flex items-center gap-2">
-                    <button
-                        className="h-10 px-4 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-alt)] transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed group"
-                        onClick={onOpenParameters}
-                        disabled={isSaving}
-                        title="Workflow Parameters"
-                    >
-                        <Icon name="tune" size={18} className="group-active:scale-95 transition-transform" />
-                    </button>
-
-                    <button
-                        className={`h-10 px-6 rounded-xl flex items-center gap-2 font-bold text-xs transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed
-                            ${isRunning
-                                ? 'bg-brand/10 text-brand ring-1 ring-inset ring-brand/30 cursor-default'
-                                : 'bg-brand hover:brightness-110 text-white shadow-lg shadow-brand/20'
-                            }`}
-                        onClick={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
-                        disabled={isSaving || isRunning}
-                    >
-                        {isRunning ? (
-                            <>
-                                <Icon name="bolt" size={14} className="animate-pulse" />
-                                <span>Running...</span>
-                            </>
-                        ) : (
-                            <>
-                                <Icon name="play" size={12} />
-                                <span>Run</span>
-                            </>
-                        )}
-                    </button>
+                    <WorkflowActions
+                        isRunning={isRunning}
+                        onRun={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
+                        onOpenParameters={onOpenParameters}
+                        isDisabled={isSaving}
+                    />
                 </div>
             }
         >
