@@ -95,20 +95,29 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
     }, [nodeTypes]);
 
     useEffect(() => {
-        if (isParamsExpanded && !selectedNode && activeWorkflow?.parameters?.length > 0) {
-            const dynamicParams = activeWorkflow.parameters.filter((p: any) => p.is_dynamic);
-            dynamicParams.forEach((param: any) => {
-                if (param.data_source && param.data_source.startsWith('@')) {
-                    const ds = param.data_source.substring(1);
-                    const [tableWithCond] = ds.split('->');
-                    const [tableName] = tableWithCond.split('[');
-                    apiClient.get(`/admin/reports/dynamic-options/${tableName}`).then(({ data }) => {
-                        setParamOptions(prev => ({ ...prev, [param.parameter_name]: data }));
-                    }).catch(() => {});
+        if (!isParamsExpanded && !isParametersModalOpen) return;
+
+        const paramsToFetch = [
+            ...(activeWorkflow?.parameters || []),
+            ...(isParametersModalOpen ? modalParams : [])
+        ].filter(p => p.parameter_type === 'select' && p.source);
+
+        paramsToFetch.forEach((param: any) => {
+            // Only fetch if not already in paramOptions or if it's from modalParams (where it might have changed)
+            // For simplicity, we can just fetch if not already present
+            if (paramOptions[param.parameter_name]) return;
+
+            apiClient.post('/workflows/test-source', {
+                source: param.source,
+                value_field: param.value_field,
+                label_field: param.label_field
+            }).then(({ data }) => {
+                if (data.options) {
+                    setParamOptions(prev => ({ ...prev, [param.parameter_name]: data.options }));
                 }
-            });
-        }
-    }, [isParamsExpanded, selectedNode, activeWorkflow?.parameters]);
+            }).catch(() => {});
+        });
+    }, [isParamsExpanded, isParametersModalOpen, activeWorkflow?.parameters, modalParams, paramOptions]);
 
     useHotkeys([
         {
