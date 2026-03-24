@@ -16,12 +16,12 @@ import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 
 const columnHelper = createColumnHelper<User>();
 
-interface AdminUserManagementProps {
+interface UserManagementProps {
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
 }
 
-export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onToggleSidebar, isSidebarOpen }) => {
+export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar, isSidebarOpen }) => {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [view, setView] = useState<'list' | 'edit'>('list');
     const [activeTab, setActiveTab] = useState<'common' | 'projects' | 'metadata' | 'prompts'>('common');

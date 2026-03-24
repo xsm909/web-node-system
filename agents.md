@@ -17,7 +17,7 @@ Key characteristics:
 | Role              | Access Paths                  | Main Permissions                                                                                      |
 |-------------------|-------------------------------|-------------------------------------------------------------------------------------------------------|
 | **Administrator** | /admin                        | - Define and manage global node library<br>- Assign users to managers<br>- Full user & role management<br>- View all data |
-| **Manager**       | /manager                      | - View only users assigned by admin<br>- Create/edit/save workflows for assigned users<br>- Execute workflows ("Play")<br>- View execution status & results for own users |
+| **Manager**       | /manager                      | - View simplified workspace placeholder<br>- (Management functionality centralized in Administrator dashboard) |
 | **End-user (Client)** | /client                   | - View results of workflows assigned to them<br>- Read-only access (no editing)                      |
 
 ## 3. Architecture & Technology Stack
@@ -259,7 +259,7 @@ The system supports 4 static node types and 1 dynamic behavior based on graph co
     - **Full-Height Layout**: Tables and their containers must be configured to occupy the full available screen height (`h-full` or `flex-1` within a flex container) to prevent layout jumping and ensure independent scrolling.
     - **Category Grouping**: Tables with categorizable data must implement collapsible grouping using the `categoryExtractor` pattern.
     - **Interactive Rows**: Use the `onRowClick` pattern for primary interactions like opening edit modals or detail views.
-- **Reference**: Use **Schema Registry** (`AdminSchemaManagement`) and **User Management** (`AdminUserManagement`) as the visual and functional reference for table layouts, header integration, and full-height implementation.
+- **Reference**: Use **Schema Registry** (`SchemaManagement`) and **User Management** (`UserManagement`) as the visual and functional reference for table layouts, header integration, and full-height implementation.
 
 ### 11.1 Centralized UI Constants (`UI_CONSTANTS`)
 
@@ -524,5 +524,5 @@ The `WorkflowManagement` widget implements a "Navigator" pattern:
 3.  **Back Navigation**: Users return to the list via a standardized "Back" button in the `AppHeader`, which triggers a confirmation modal if there are unsaved changes.
 
 ### 17.4 Manager vs. Administrator Views
-- **Administrator**: Full CRUD access to all workflows across all clients. Can edit node technical definitions.
-- **Manager**: Access restricted to assigned clients' workflows. Uses the same unified components but with enforced role-based filters in the data layer.
+- **Administrator**: Full CRUD access to all workflows across all clients. Manages node technical definitions and global library.
+- **Manager**: Access currently restricted to viewing results. Full management functionality is being centralized in the Administrator dashboard to ensure consistent governance and simplified architecture.

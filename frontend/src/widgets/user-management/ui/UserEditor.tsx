@@ -8,7 +8,7 @@ import { ClientMetadataManagement } from '../../client-metadata-management/ui/Cl
 import { PromptViewer } from '../../prompt-viewer/ui/PromptViewer';
 import { AppInput, AppFormFieldRect } from "../../../shared/ui/app-input";
 import { FormField } from '../../../shared/ui/form-field';
-import { AdminProjectManagement } from '../../admin-project-management/ui/AdminProjectManagement';
+import { ProjectManagement } from '../../project-management/ui/ProjectManagement';
 
 
 
@@ -168,7 +168,7 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
             )}
 
             {activeTab === 'projects' && (
-                <AdminProjectManagement ownerId={user.id} onHeaderActionsChange={onHeaderActionsChange} />
+                <ProjectManagement ownerId={user.id} onHeaderActionsChange={onHeaderActionsChange} />
             )}
 
             {activeTab === 'metadata' && (

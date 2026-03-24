@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { AppSidebar } from '../../widgets/app-sidebar';
-import { AdminUserManagement } from '../../widgets/admin-user-management';
-import { AdminNodeLibrary } from '../../widgets/admin-node-library';
-import { AdminCredentialManagement } from '../../widgets/admin-credential-management';
+import { UserManagement } from '../../widgets/user-management';
+import { NodeLibraryManagement } from '../../widgets/node-library-management';
+import { CredentialManagement } from '../../widgets/credential-management';
 import { NodeTypeFormView } from '../../widgets/node-type-form-modal';
 import { WorkflowManagement } from '../../widgets/common-workflow-management';
 import { useNodeTypeManagement } from '../../features/node-type-management';
@@ -11,8 +11,8 @@ import type { NodeType } from '../../entities/node-type/model/types';
 import { getCookie, setCookie } from '../../shared/lib/cookieUtils';
 import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskManagement';
 import { ReportManagement } from '../../widgets/report-management';
-import { AdminSchemaManagement } from '../../widgets/admin-schema-management/ui/AdminSchemaManagement';
-import { AgentHintManagement } from '../../widgets/admin-agent-hint-management/ui/AgentHintManagement';
+import { SchemaManagement } from '../../widgets/schema-management/ui/SchemaManagement';
+import { AgentHintManagement } from '../../widgets/agent-hint-management/ui/AgentHintManagement';
 import { Navigator, useNavigator } from '../../shared/ui/navigator';
 
 const WorkflowsTabWithNavigator = ({
@@ -119,7 +119,7 @@ const NodesTabWithNavigator = ({
     };
 
     return (
-        <AdminNodeLibrary
+        <NodeLibraryManagement
             nodes={allNodes}
             onEditNode={handleEditNode}
             onDuplicateNode={handleDuplicateNode}
@@ -189,7 +189,7 @@ export default function AdminPage() {
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--bg-app)]">
                 <div className="flex-1 flex flex-col min-h-0 w-full relative">
                     {activeTab === 'users' ? (
-                        <AdminUserManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                        <UserManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
                     ) : activeTab === 'nodes' ? (
                         <Navigator
                             key={`nodes-${resetNonce}`}
@@ -216,7 +216,7 @@ export default function AdminPage() {
                             }
                         />
                     ) : activeTab === 'schemas' ? (
-                        <AdminSchemaManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                        <SchemaManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
                     ) : activeTab === 'ai-tasks' ? (
                         <AITaskManagement activeClientId={null} onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
                     ) : activeTab === 'reports' ? (
@@ -224,7 +224,7 @@ export default function AdminPage() {
                     ) : activeTab === 'agent-hints' ? (
                         <AgentHintManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
                     ) : (
-                        <AdminCredentialManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                        <CredentialManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
                     )}
                 </div>
             </main>

@@ -45,12 +45,12 @@ const PRESET_COLORS = generateDarkPalette();
  
 const columnHelper = createColumnHelper<Project>();
 
-interface AdminProjectManagementProps {
+interface ProjectManagementProps {
     ownerId: string;
     onHeaderActionsChange?: (actions: React.ReactNode) => void;
 }
 
-export const AdminProjectManagement: React.FC<AdminProjectManagementProps> = ({ ownerId, onHeaderActionsChange }) => {
+export const ProjectManagement: React.FC<ProjectManagementProps> = ({ ownerId, onHeaderActionsChange }) => {
     const { data: projects = [], isLoading } = useProjects(ownerId);
     const createMutation = useCreateProject();
     const updateMutation = useUpdateProject();

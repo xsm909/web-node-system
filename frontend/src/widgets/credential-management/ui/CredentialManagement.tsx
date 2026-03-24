@@ -14,12 +14,12 @@ import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButt
 
 const columnHelper = createColumnHelper<Credential>();
 
-interface AdminCredentialManagementProps {
+interface CredentialManagementProps {
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
 }
 
-export const AdminCredentialManagement = ({ onToggleSidebar, isSidebarOpen }: AdminCredentialManagementProps) => {
+export const CredentialManagement = ({ onToggleSidebar, isSidebarOpen }: CredentialManagementProps) => {
     const [credentials, setCredentials] = useState<Credential[]>([]);
     const [loading, setLoading] = useState(true);
 

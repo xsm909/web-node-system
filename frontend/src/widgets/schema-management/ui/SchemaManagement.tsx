@@ -17,12 +17,12 @@ import { createColumnHelper } from '@tanstack/react-table';
 
 const columnHelper = createColumnHelper<Schema>();
 
-interface AdminSchemaManagementProps {
+interface SchemaManagementProps {
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
 }
 
-export const AdminSchemaManagement = ({ onToggleSidebar, isSidebarOpen }: AdminSchemaManagementProps) => {
+export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen }: SchemaManagementProps) => {
     const { data: schemas = [], isLoading } = useSchemas();
     const createMutation = useCreateSchema();
     const updateMutation = useUpdateSchema();

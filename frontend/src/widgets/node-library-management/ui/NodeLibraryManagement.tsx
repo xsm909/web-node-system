@@ -12,7 +12,7 @@ import { createColumnHelper } from '@tanstack/react-table';
 
 const columnHelper = createColumnHelper<NodeType>();
 
-interface AdminNodeLibraryProps {
+interface NodeLibraryManagementProps {
     nodes: NodeType[];
     onEditNode: (node: NodeType) => void;
     onDuplicateNode: (node: NodeType) => void;
@@ -21,14 +21,14 @@ interface AdminNodeLibraryProps {
     isSidebarOpen?: boolean;
 }
 
-export const AdminNodeLibrary = ({ 
+export const NodeLibraryManagement = ({ 
     nodes,
     onEditNode, 
     onDuplicateNode, 
     onDelete,
     onToggleSidebar,
     isSidebarOpen
-}: AdminNodeLibraryProps) => {
+}: NodeLibraryManagementProps) => {
     const [nodeToDelete, setNodeToDelete] = useState<NodeType | null>(null);
     const [searchQuery, setSearchQueryState] = useState(getCookie('admin_node_search') || '');
 
