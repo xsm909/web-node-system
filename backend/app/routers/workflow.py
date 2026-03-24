@@ -138,6 +138,7 @@ class NodeTypeOut(BaseModel):
     category: Optional[str] = None
     icon: Optional[str] = "task"
     is_async: bool
+    is_locked: bool = False
 
     class Config:
         from_attributes = True

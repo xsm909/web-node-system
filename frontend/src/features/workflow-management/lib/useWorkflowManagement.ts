@@ -42,7 +42,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
                 setActiveWorkflow(null);
 
                 const [nodeTypesRes, usersRes] = await Promise.all([
-                    apiClient.get('/workflows/node-types'),
+                    apiClient.get(`/workflows/node-types?t=${Date.now()}`),
                     apiClient.get('/workflows/users')
                 ]);
                 
@@ -88,7 +88,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
 
     useEffect(() => {
         if (refreshTrigger !== undefined && refreshTrigger > 0) {
-            apiClient.get('/workflows/node-types').then(res => setNodeTypes(res.data)).catch(console.error);
+            apiClient.get(`/workflows/node-types?t=${Date.now()}`).then(res => setNodeTypes(res.data)).catch(console.error);
         }
     }, [refreshTrigger]);
 

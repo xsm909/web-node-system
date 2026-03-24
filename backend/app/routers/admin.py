@@ -380,7 +380,9 @@ def create_node_type(data: NodeTypeCreate, db: Session = Depends(get_db), _=admi
         db.add(node)
         db.commit()
         db.refresh(node)
-        return {**NodeTypeOut.model_validate(node).model_dump(), "is_locked": False}
+        node_dict = NodeTypeOut.model_validate(node).model_dump()
+        node_dict["is_locked"] = False
+        return node_dict
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
@@ -414,7 +416,10 @@ def update_node_type(node_id: uuid.UUID, data: NodeTypeCreate, db: Session = Dep
             
         db.commit()
         db.refresh(node)
-        return {**NodeTypeOut.model_validate(node).model_dump(), "is_locked": False}
+        is_locked = check_is_locked(db, node_id, "node_types")
+        node_dict = NodeTypeOut.model_validate(node).model_dump()
+        node_dict["is_locked"] = is_locked
+        return node_dict
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))

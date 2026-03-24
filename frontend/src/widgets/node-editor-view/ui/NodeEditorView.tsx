@@ -137,6 +137,7 @@ const ParameterRow: React.FC<{
                             });
                         }}
                         className="w-full"
+                        disabled={isReadOnly}
                     />
                 ) : param.is_sql_query_constructor ? (
                     <AppInput
@@ -189,10 +190,13 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
     // Capture initial parameters when node is first opened to detect changes
     const [initialParams] = useState(() => JSON.stringify(node?.data.params || {}));
 
-    const nodeTypeData = nodeTypes.find(t => t.name === node?.data.label);
+    const nodeTypeData = nodeTypes.find(t => 
+        (node?.data.nodeTypeId && t.id === node.data.nodeTypeId) || 
+        t.name === node?.data.label
+    );
     const allParameters = nodeTypeData?.parameters || [];
-    // Relaxed locking: isLocked (workflow lock) no longer prevents parameter editing, only structural changes
-    const effectiveReadOnly = isReadOnly;
+    // Strict locking: isLocked (workflow lock) or explicit isReadOnly prevents parameter editing
+    const effectiveReadOnly = isReadOnly || _isLocked;
 
     // Technical param logic 
     const isTechnicalParam = (p: any) => /^[A-Z0-9_]+$/.test(p.name) && !p.options_source;

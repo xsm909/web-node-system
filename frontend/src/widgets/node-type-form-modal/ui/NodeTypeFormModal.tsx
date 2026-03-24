@@ -114,28 +114,32 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             parameters: currentNode?.parameters || [],
         },
         onSubmit: async ({ value }) => {
-            // Include ID in submission if we have it
-            const payload = { ...value, id: currentNode?.id };
-            const result = await onSave(payload as Partial<NodeType>);
-            
-            // If onSave returns the newly saved node, we update our baseline
-            if (result) {
-                const updatedNode = result as NodeType;
-                setCurrentNode(updatedNode);
-                form.reset({
-                    name: updatedNode.name || '',
-                    version: updatedNode.version || '1.0',
-                    description: updatedNode.description || '',
-                    category: updatedNode.category || '',
-                    icon: updatedNode.icon || 'function',
-                    code: updatedNode.code || '',
-                    is_async: !!updatedNode.is_async,
-                    input_schema: updatedNode.input_schema || {},
-                    output_schema: updatedNode.output_schema || {},
-                    parameters: updatedNode.parameters || [],
-                });
-            } else {
-                form.reset(value);
+            try {
+                // Include ID in submission if we have it
+                const payload = { ...value, id: currentNode?.id };
+                const result = await onSave(payload as Partial<NodeType>);
+                
+                // If onSave returns the newly saved node, we update our baseline
+                if (result) {
+                    const updatedNode = result as NodeType;
+                    setCurrentNode(updatedNode);
+                    form.reset({
+                        name: updatedNode.name || '',
+                        version: updatedNode.version || '1.0',
+                        description: updatedNode.description || '',
+                        category: updatedNode.category || '',
+                        icon: updatedNode.icon || 'function',
+                        code: updatedNode.code || '',
+                        is_async: !!updatedNode.is_async,
+                        input_schema: updatedNode.input_schema || {},
+                        output_schema: updatedNode.output_schema || {},
+                        parameters: updatedNode.parameters || [],
+                    });
+                } else {
+                    form.reset(value);
+                }
+            } catch (err: any) {
+                console.error('[NodeTypeFormView] Submit failed:', err);
             }
         },
     });
@@ -258,6 +262,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                             placeholder="Display Name"
                                             className="text-lg font-normal"
                                             showCopy={!!editingNode}
+                                            disabled={currentNode?.is_locked}
                                         />
                                     )}
                                 />
