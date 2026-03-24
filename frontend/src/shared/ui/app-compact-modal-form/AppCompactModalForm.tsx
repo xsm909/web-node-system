@@ -20,6 +20,12 @@ interface AppCompactModalFormProps {
     headerRightContent?: React.ReactNode;
     allowedShortcuts?: string[];
     error?: string;
+    
+    // Dirty State Support
+    isDirty?: boolean;
+    onConfirmSave?: () => void;
+    onDiscard?: () => void;
+    discardLabel?: string;
 }
 
 export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
@@ -39,7 +45,12 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     headerRightContent,
     allowedShortcuts = [],
     error,
+    isDirty = false,
+    onConfirmSave,
+    onDiscard,
+    discardLabel = 'Discard Changes',
 }) => {
+    const [showDirtyConfirm, setShowDirtyConfirm] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -88,11 +99,19 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
         };
     }, [isDragging, dragStart]);
 
+    const handleClose = useCallback(() => {
+        if (isDirty) {
+            setShowDirtyConfirm(true);
+        } else {
+            onClose();
+        }
+    }, [isDirty, onClose]);
+
     useHotkeys([
         {
             key: 'Escape',
             description: 'Close Modal',
-            handler: () => onClose(),
+            handler: handleClose,
         },
         {
             key: 'Enter',
@@ -158,7 +177,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                         )}
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/5 transition-all flex-shrink-0"
                         >
                             <Icon name="close" size={14} />
@@ -180,9 +199,18 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                 </div>
 
                 <div className="px-4 py-2 bg-[var(--bg-alt)] border-t border-[var(--border-base)] flex items-center justify-end gap-2">
+                    {onDiscard && (
+                        <button
+                            type="button"
+                            onClick={onDiscard}
+                            className="mr-auto px-3 py-1 rounded-lg text-[10px] font-bold text-red-500 hover:bg-red-500/10 transition-all border border-transparent"
+                        >
+                            {discardLabel}
+                        </button>
+                    )}
                     <button
                         type="button"
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="px-3 py-1 rounded-lg text-[10px] font-normal border border-[var(--border-base)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/5 transition-all"
                     >
                         {cancelLabel}
@@ -196,9 +224,42 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                     </button>
                 </div>
             </div>
+
+            <AppCompactModalForm
+                isOpen={showDirtyConfirm}
+                title="Unsaved Changes"
+                onClose={() => setShowDirtyConfirm(false)}
+                onSubmit={() => {
+                    setShowDirtyConfirm(false);
+                    if (onConfirmSave) {
+                        onConfirmSave();
+                    } else {
+                        onSubmit();
+                    }
+                }}
+                onDiscard={() => {
+                    setShowDirtyConfirm(false);
+                    if (onDiscard) {
+                        onDiscard();
+                    } else {
+                        onClose();
+                    }
+                }}
+                submitLabel="Save Changes"
+                discardLabel="Discard Changes"
+                cancelLabel="Stay and Edit"
+                icon="warning"
+                width="max-w-md"
+            >
+                <div className="py-2">
+                    <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                        You have unsaved changes in this constructor. Do you want to save them before leaving?
+                    </p>
+                </div>
+            </AppCompactModalForm>
         </div>
     );
 
-    if (typeof document === 'undefined') return null;
+    if (typeof document === 'undefined' || !document.body) return null;
     return createPortal(modalContent, document.body);
 };

@@ -273,6 +273,15 @@ export const generateSQL = (state: MultiQueryState, options?: { isForPreview?: b
         sql += '\n';
     }
     
-    sql += generateBlockSQL(state.mainQuery, options);
+    const mainSql = generateBlockSQL(state.mainQuery, options);
+    if (!mainSql && sql) {
+        // If we have CTEs but no main query, the SQL would be invalid.
+        // We add a default SELECT from the last CTE to make it valid for preview/save.
+        const lastCte = state.ctes[state.ctes.length - 1];
+        sql += `\nSELECT * FROM ${q(lastCte.alias)}`;
+    } else {
+        sql += mainSql;
+    }
+    
     return sql;
 };

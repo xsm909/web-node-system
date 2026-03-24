@@ -152,9 +152,27 @@ To render the chart, use the `| safe` filter to inject the raw SVG.
 </div>
 ```
 
-## 7. File Manifest
+## 7. SQL Query Builder (Standardized Editor)
+
+The platform includes a specialized **SQL Query Builder** (Visual Constructor) integrated into Report and Node editors.
+
+### 7.1 State Management
+- **Structural Integrity**: The builder parses SQL into a `MultiQueryState` object. 
+- **Dirty State Tracking**: Changes are detected by comparing the current state against the initial state using a deep structural comparison.
+- **ID Stripping**: To prevent false positives, auto-generated `id` fields (used for UI keys) are stripped during the comparison, ensuring only actual structural changes (tables, joins, logic) trigger the "unsaved changes" warning.
+
+### 7.2 Standardized 3-Way Confirmation
+All constructor-like modals (Query Builder, Node Parameter Editor) implement a mandatory 3-way confirmation via `AppCompactModalForm` when closing with unsaved changes:
+
+1.  **Save Changes (Yes)**: Applies the current constructor state to the parent editor and closes the modal.
+2.  **Discard Changes (No)**: Aborts the editing session and reverts to the original state.
+3.  **Stay and Edit (Cancel)**: Closes the confirmation dialog and returns focus to the constructor to continue editing.
+
+## 8. File Manifest
 - `/backend/app/routers/report.py`: API endpoints and rendering logic.
 - `/backend/app/services/report_executor.py`: Sandboxed execution engine.
-- `/backend/app/internal_libs/charts.py`: **[NEW]** Matplotlib-based chart wrapper.
+- `/backend/app/internal_libs/charts.py`: Matplotlib-based chart wrapper.
 - `/backend/app/internal_libs/database_lib.py`: Modified for report-aware resolution.
 - `/frontend/src/widgets/report-management/`: UI components for the professional report editor.
+- `/frontend/src/features/query-builder/`: Core SQL parsing and constructor logic.
+- `/frontend/src/shared/ui/app-compact-modal-form/`: Standardized modal container with 3-way dirty checking.

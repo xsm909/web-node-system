@@ -991,6 +991,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         prevIsOpenRef.current = isOpen;
 
         if (isOpening) {
+            setActiveBlockId('main');
             if (initialSql && initialSql.trim() !== "") {
                 // Only re-parse if it's a different SQL than what we last parsed
                 // or if we're explicitly opening it for the first time/re-opening.
@@ -1059,7 +1060,6 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const isModalLayerActive = isResultsOpen || isRecursiveModalOpen || isRenameModalOpen || !!editingField || !!editingCTE || isDeleteConfirmOpen;
 
     useHotkeys([
-        { key: 'Escape', description: 'Close', handler: () => onClose() },
         { key: 'F5', description: 'Execute Query', preventDefault: true, handler: () => handleExecuteQuery() },
         { key: 'cmd+r', description: 'Execute Query', preventDefault: true, handler: () => handleExecuteQuery() },
         { key: 'ctrl+r', description: 'Execute Query', preventDefault: true, handler: () => handleExecuteQuery() }
@@ -1575,7 +1575,55 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }
     ], []);
 
+    const isDirty = useMemo(() => {
+        if (!isOpen) return false;
+        try {
+            // Compare structural state via JSON.stringify to be independent of formatting
+            const initialParsedState = parseSQL(initialSql || '');
+            
+            // Helper to remove any volatile properties and focus on business logic
+            const cleanQuery = (q: any) => ({
+                tables: (q.tables || []).map((t: any) => ({ alias: t.alias, name: t.name })),
+                selectedFields: (q.selectedFields || []).map((f: any) => ({ tableAlias: f.tableAlias, columnName: f.columnName, alias: f.alias, aggregate: f.aggregate })),
+                joins: (q.joins || []).map((j: any) => ({ leftTableAlias: j.leftTableAlias, leftColumn: j.leftColumn, rightTableAlias: j.rightTableAlias, rightColumn: j.rightColumn, type: j.type })),
+                where: (q.where || []).map((w: any) => ({ tableAlias: w.tableAlias, columnName: w.columnName, operator: w.operator, value: w.value, logic: w.logic })),
+                groupBy: (q.groupBy || []).map((g: any) => ({ tableAlias: g.tableAlias, columnName: g.columnName })),
+                orderBy: (q.orderBy || []).map((o: any) => ({ tableAlias: o.tableAlias, columnName: o.columnName, direction: o.direction })),
+                limit: q.limit,
+                useLimit: q.useLimit
+            });
+
+            const cleanMulti = (state: any) => ({
+                mainQuery: cleanQuery(state.mainQuery),
+                ctes: (state.ctes || []).map((c: any) => ({
+                    alias: c.alias,
+                    isRecursive: c.isRecursive,
+                    state: cleanQuery(c.state)
+                }))
+            });
+
+            const current = JSON.stringify(cleanMulti(fullState));
+            const original = JSON.stringify(cleanMulti(initialParsedState));
+            
+            return current !== original;
+        } catch (e) {
+            return false;
+        }
+    }, [fullState, initialSql, isOpen]);
+
     if (!isOpen) return null;
+
+    const handleFinalSubmit = () => {
+        // If we are in a CTE tab and the main query is empty, switch to main query
+        // to remind the user to use the CTE they just built.
+        if (activeBlockId !== 'main' && fullState.mainQuery.tables.length === 0) {
+            setActiveBlockId('main');
+            return;
+        }
+        
+        const finalSql = generateSQL(fullState, { isForPreview: false });
+        onDone(finalSql);
+    };
 
     return (
         <AppCompactModalForm
@@ -1587,12 +1635,11 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             noPadding
             width="w-[95vw] max-w-[1400px]"
             submitLabel="Ready"
-            cancelLabel="Cancel"
             allowedShortcuts={['f5', 'cmd+r', 'ctrl+r']}
-            onSubmit={() => {
-                const finalSql = generateSQL(fullState, { isForPreview: false });
-                onDone(finalSql);
-            }}
+            isDirty={isDirty}
+            onConfirmSave={handleFinalSubmit}
+            onDiscard={onClose}
+            onSubmit={handleFinalSubmit}
             className="flex flex-col"
             headerRightContent={
                 <>

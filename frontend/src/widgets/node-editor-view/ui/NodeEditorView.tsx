@@ -7,9 +7,9 @@ import type { SelectionItem } from '../../../shared/ui/selection-list/SelectionL
 import { apiClient } from '../../../shared/api/client';
 import { AppHeader } from '../../app-header';
 import { useForm } from '@tanstack/react-form';
-import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppInput } from '../../../shared/ui/app-input';
 import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
+import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { SYSTEM_PARAMETERS } from '../../../entities/report/model/constants';
 
@@ -342,18 +342,30 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                 </form>
             </div>
 
-            <ConfirmModal
+            <AppCompactModalForm
                 isOpen={showConfirmBack}
                 title="Unsaved Changes"
-                description="You have modified parameters for this node. Do you want to discard your changes?"
-                confirmLabel="Discard Changes"
-                cancelLabel="Stay and Edit"
-                onConfirm={() => {
+                onClose={() => setShowConfirmBack(false)}
+                onSubmit={() => {
+                    setShowConfirmBack(false);
+                    form.handleSubmit(); // Save and back (handled by form.onSubmit)
+                }}
+                onDiscard={() => {
                     setShowConfirmBack(false);
                     onBack();
                 }}
-                onCancel={() => setShowConfirmBack(false)}
-            />
+                submitLabel="Save and Back"
+                cancelLabel="Stay and Edit"
+                discardLabel="Discard Changes"
+                icon="warning"
+                width="max-w-md"
+            >
+                <div className="py-2">
+                    <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                        You have modified parameters for this node. Do you want to save them before leaving?
+                    </p>
+                </div>
+            </AppCompactModalForm>
 
             <QueryBuilderModal
                 isOpen={sqlEditorParam !== null}

@@ -228,7 +228,16 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
 
     useEffect(() => {
         if (report && !initialRef.current) {
-            // ... (existing initialRef logic)
+            initialRef.current = {
+                name: report.name || '',
+                type: report.type || 'global',
+                description: report.description || '',
+                code: report.code || '',
+                template: report.template || '',
+                styleId: report.style_id || '',
+                category: report.category || '',
+                parameters: JSON.stringify(report.parameters || []),
+            };
         }
     }, [report]);
 
