@@ -4,7 +4,7 @@ import { AdminUserManagement } from '../../widgets/admin-user-management';
 import { AdminNodeLibrary } from '../../widgets/admin-node-library';
 import { AdminCredentialManagement } from '../../widgets/admin-credential-management';
 import { NodeTypeFormView } from '../../widgets/node-type-form-modal';
-import { AdminCommonWorkflowManagement } from '../../widgets/admin-common-workflow-management';
+import { WorkflowManagement } from '../../widgets/common-workflow-management';
 import { useNodeTypeManagement } from '../../features/node-type-management';
 import { apiClient } from '../../shared/api/client';
 import type { NodeType } from '../../entities/node-type/model/types';
@@ -55,7 +55,7 @@ const WorkflowsTabWithNavigator = ({
     };
 
     return (
-        <AdminCommonWorkflowManagement
+        <WorkflowManagement
             onToggleSidebar={() => setIsSidebarOpen(true)}
             isSidebarOpen={isSidebarOpen}
             onEditNode={handleEditNode}

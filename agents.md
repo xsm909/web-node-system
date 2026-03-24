@@ -221,6 +221,8 @@ save - save.svg
 add elements - add_circle.svg
 collapse all  - collapse_all.svg
 expand all - expand_all.svg
+back - arrow_back.svg
+stop/interrupt - stop.svg
 
 ## 10. Types of Nodes
 
@@ -495,3 +497,29 @@ All system parameters must be prefixed with `system_` (e.g., `system_project_id`
 - **SQL Query Builder**: System parameters appear in the parameters dropdown for easy insertion into queries.
 - **Python Editor**: Available in the parameter registry and autocompletion.
 - **Auto-Resolution**: When executing a workflow or report, the system automatically injects these values. User-provided values with the same name will be ignored if the system can resolve them from the current session context.
+
+## 17. Workflow Management Architecture
+
+The platform uses a unified architecture for workflow management to ensure consistency across Administrator and Manager interfaces.
+
+### 17.1 Unified Widget (`WorkflowManagement`)
+All workflow management views must use the centralized `WorkflowManagement` widget. This widget encapsulates:
+- **`WorkflowEditorProvider`**: A centralized context that manages the editor state, including the active workflow, nodes, edges, execution logs, and live runtime data.
+- **`WorkflowEditorView`**: The primary UI for the graph editor, parameters panel, and console.
+- **`WorkflowListTab`**: A standardized tab for listing and managing workflows (CRUD operations).
+
+### 17.2 Shared Action System (`WorkflowActions`)
+Primary workflow actions (Run, Save, Parameters) are managed via the `WorkflowActions` component.
+- **Run Button**: Triggers the `runWorkflow` operation. Uses `play.svg` when idle and `stop.svg` when running.
+- **Save Button**: Triggers the `saveWorkflow` operation. Uses `save.svg`.
+- **Parameters Button**: Opens the workflow parameters overlay. Uses `AppRoundButton` with `brand` variant and `parameters.svg` icon.
+
+### 17.3 Navigation Pattern
+The `WorkflowManagement` widget implements a "Navigator" pattern:
+1.  **List Mode**: Displays the list of available workflows.
+2.  **Editor Mode**: When a workflow is selected, the list is replaced by the `WorkflowEditorView` in the navigation stack.
+3.  **Back Navigation**: Users return to the list via a standardized "Back" button in the `AppHeader`, which triggers a confirmation modal if there are unsaved changes.
+
+### 17.4 Manager vs. Administrator Views
+- **Administrator**: Full CRUD access to all workflows across all clients. Can edit node technical definitions.
+- **Manager**: Access restricted to assigned clients' workflows. Uses the same unified components but with enforced role-based filters in the data layer.
