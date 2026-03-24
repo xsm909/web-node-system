@@ -12,6 +12,9 @@ from types import SimpleNamespace
 from RestrictedPython import compile_restricted, safe_globals, safe_builtins, Guards, RestrictingNodeTransformer
 import ast
 from typing import Any, Dict, Union, List
+import pandas as pd
+import numpy as np
+
 
 class SubscriptableNamespace(SimpleNamespace):
     """SimpleNamespace that supports bracket access and dict-like repr."""
@@ -263,13 +266,20 @@ SAFE_GLOBALS = {
         get_responses_by_period_and_category=response_lib.get_responses_by_period_and_category
     ),
     "charts": charts,
+    "pd": pd,
+    "np": np,
+    "pandas": pd,
+    "numpy": np,
 }
+
 
 ALLOWED_MODULES = [
     "math", "json", "datetime", "re", "random", 
     "base64", "hashlib", "time", "collections", 
-    "itertools", "functools", "decimal", "statistics"
+    "itertools", "functools", "decimal", "statistics",
+    "pandas", "numpy"
 ]
+
 
 def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
     if name in ALLOWED_MODULES:
