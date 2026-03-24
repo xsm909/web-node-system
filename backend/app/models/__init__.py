@@ -11,6 +11,7 @@ from .agent_hint import AgentHint
 from .prompt import Prompt
 from .lock import LockData
 from .project import Project
+from .preset import Preset
 
 __all__ = [
     "User",
@@ -36,4 +37,5 @@ __all__ = [
     "Prompt",
     "LockData",
     "Project",
+    "Preset",
 ]
