@@ -8,11 +8,13 @@ interface ClientMetadataEditorProps {
     assignment: Metadata | null;
     assignments: Metadata[]; // Added back as it's used by RjsfForm
     activeClientId?: string | null;
-    onSave?: (data: any) => void;
+    onSave?: (data: any, isManual?: boolean) => void;
+    onDirtyChange?: (isDirty: boolean) => void;
 }
 
 export interface ClientMetadataEditorRef {
     handleSave: () => void;
+    handleSaveAndClose: () => void;
     isSaving: boolean;
     isValid: boolean;
 }
@@ -21,7 +23,8 @@ export const ClientMetadataEditor = React.forwardRef<ClientMetadataEditorRef, Cl
     assignment,
     assignments,
     activeClientId,
-    onSave
+    onSave,
+    onDirtyChange
 }, ref) => {
     const updateMetadataMutation = useUpdateMetadata();
     const { data: schemas, isLoading: isSchemasLoading } = useSchemas();
@@ -31,6 +34,7 @@ export const ClientMetadataEditor = React.forwardRef<ClientMetadataEditorRef, Cl
     const [saveError, setSaveError] = useState<string | null>(null);
     const seededRecordId = useRef<string | null>(null);
     const rjsfRef = useRef<any>(null);
+    const isManualSave = useRef(false);
 
     const safeParse = (val: any) => {
         if (val === null || val === undefined) return val;
@@ -108,6 +112,17 @@ export const ClientMetadataEditor = React.forwardRef<ClientMetadataEditorRef, Cl
             setSaveError(null);
         }
     }, [assignment?.id, schemaType, schemaContent]);
+    
+    const isDirty = React.useMemo(() => {
+        if (!assignment || !formData) return false;
+        const initialData = typeof assignment.data === 'string' ? safeParse(assignment.data) : assignment.data;
+        // Compare stringified objects to detect changes
+        return JSON.stringify(formData) !== JSON.stringify(initialData || {});
+    }, [formData, assignment]);
+
+    useEffect(() => {
+        onDirtyChange?.(isDirty);
+    }, [isDirty, onDirtyChange]);
 
     const handleFormSubmit = (data: any) => {
         if (!assignment?.id) {
@@ -117,7 +132,10 @@ export const ClientMetadataEditor = React.forwardRef<ClientMetadataEditorRef, Cl
 
         setSaveError(null);
         updateMetadataMutation.mutate({ id: assignment.id, data: { data } }, {
-            onSuccess: () => onSave?.(data),
+            onSuccess: () => {
+                onSave?.(data, isManualSave.current);
+                isManualSave.current = false;
+            },
             onError: (err: any) => {
                 const detail = err?.response?.data?.detail
                     || err?.message
@@ -133,18 +151,20 @@ export const ClientMetadataEditor = React.forwardRef<ClientMetadataEditorRef, Cl
         });
     };
 
-    const handleSaveInternal = () => {
+    const handleSaveInternal = (isManual: boolean) => {
         const isLocked = !!assignment?.is_locked;
         if (isLocked) return;
 
         if (!isValid) {
             setSaveError("Form has validation errors. Please check all fields.");
         }
+        isManualSave.current = isManual;
         rjsfRef.current?.submit();
     };
 
     useImperativeHandle(ref, () => ({
-        handleSave: handleSaveInternal,
+        handleSave: () => handleSaveInternal(true),
+        handleSaveAndClose: () => handleSaveInternal(false),
         isSaving: updateMetadataMutation.isPending,
         isValid
     }));

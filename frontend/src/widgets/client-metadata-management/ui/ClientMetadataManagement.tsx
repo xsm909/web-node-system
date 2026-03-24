@@ -178,6 +178,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     const [nestingParentId, setNestingParentId] = useState<string | null>(null);
     const [openSubMenuId, setOpenSubMenuId] = useState<string | null>(null);
     const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+    const [isEditorDirty, setIsEditorDirty] = useState(false);
 
     const toggleRow = useCallback((id: string) => {
         setCollapsedIds(prev => {
@@ -210,6 +211,18 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
 
     // Fetch assignments for this specific client
     const { data: assignments = [], isLoading: isAssignmentsLoading, refetch } = useEntityMetadata('users', activeClientId || '');
+
+    const activeAssignment = useMemo(() => {
+        if (!selectedAssignment) return null;
+        // Find latest version of the record in the current list
+        const assignment = assignments.find((a: any) => a.id === selectedAssignment.id) || selectedAssignment;
+        // Also ensure schema is joined as raw assignments list doesn't have it
+        const schema = schemas.find(s => s.id === assignment.schema_id);
+        return {
+            ...assignment,
+            schema: schema || assignment.schema
+        };
+    }, [assignments, selectedAssignment, schemas]);
 
     const isLoading = isSchemasLoading || isAssignmentsLoading;
 
@@ -381,6 +394,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     const handleBack = () => {
         setView('list');
         setSelectedAssignment(null);
+        setIsEditorDirty(false);
         refetch();
     };
 
@@ -565,28 +579,26 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
             <SlidePanel
                 isOpen={view === 'edit' && !!selectedAssignment}
                 onClose={handleBack}
-                title={selectedAssignment?.schema?.key || 'Metadata'}
+                title={activeAssignment?.schema?.key || 'Metadata'}
                 subtitle="Configure and save detailed metadata for this record."
                 headerRightContent={
                     <AppLockToggle 
-                        entityId={selectedAssignment?.id}
+                        entityId={activeAssignment?.id}
                         entityType="metadata"
-                        initialLocked={!!selectedAssignment?.is_locked}
+                        initialLocked={!!activeAssignment?.is_locked}
                         onToggle={(locked) => {
                             setSelectedAssignment((prev: any) => prev ? { ...prev, is_locked: locked } : prev);
                             refetch();
                         }}
                         onSave={() => editorRef.current?.handleSave()}
                         isSaving={editorRef.current?.isSaving}
+                        isDirty={isEditorDirty}
                     />
                 }
                 onSave={() => editorRef.current?.handleSave()}
-                onSaveAndClose={() => {
-                    editorRef.current?.handleSave();
-                    handleBack();
-                }}
+                onSaveAndClose={() => editorRef.current?.handleSaveAndClose()}
                 footer={
-                    selectedAssignment?.is_locked ? (
+                    activeAssignment?.is_locked ? (
                         <div className="flex items-center justify-end px-4">
                              <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 opacity-60">Read Only Mode</span>
                         </div>
@@ -596,10 +608,16 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 {selectedAssignment && (
                     <ClientMetadataEditor
                         ref={editorRef}
-                        assignment={selectedAssignment}
+                        assignment={activeAssignment}
                         assignments={assignments}
                         activeClientId={activeClientId || undefined}
-                        onSave={handleBack}
+                        onSave={(_, isManual) => {
+                            refetch();
+                            if (!isManual) {
+                                handleBack();
+                            }
+                        }}
+                        onDirtyChange={setIsEditorDirty}
                     />
                 )}
             </SlidePanel>

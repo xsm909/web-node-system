@@ -192,7 +192,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar,
                     <UserEditor
                         ref={editorRef}
                         user={selectedUser}
-                        onSaveSuccess={handleBack}
+                        onSaveSuccess={() => { refetch(); setIsFormDirty(false); }}
                         activeTab={activeTab}
                         onDirtyChange={setIsFormDirty}
                         isLocked={selectedUser.is_locked}
