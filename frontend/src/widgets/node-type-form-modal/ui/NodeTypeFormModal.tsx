@@ -61,6 +61,26 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         fetchHints();
     }, []);
 
+    // Sync state with props if they change
+    useEffect(() => {
+        if (editingNode || initialData) {
+            const data = editingNode || initialData || {};
+            setCurrentNode(data);
+            form.reset({
+                name: data.name || '',
+                version: data.version || '1.0',
+                description: data.description || '',
+                category: data.category || '',
+                icon: data.icon || 'function',
+                code: data.code || 'def run(inputs, params):\n    return {}',
+                is_async: !!data.is_async,
+                input_schema: data.input_schema || {},
+                output_schema: data.output_schema || {},
+                parameters: data.parameters || [],
+            });
+        }
+    }, [editingNode, initialData]);
+
     // Load saved cursor position on mount
     useEffect(() => {
         if (currentNode?.id) {
@@ -121,6 +141,11 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     });
 
     const [isDirty, setIsDirty] = useState(false);
+    
+    console.log('[NodeTypeFormView] currentNode:', currentNode);
+    console.log('[NodeTypeFormView] editingNode prop:', editingNode);
+    console.log('[NodeTypeFormView] form values:', form.state.values);
+
     // Subscribe to form's baseStore to get reactive dirty state
     useEffect(() => {
         // Subscribe to form's store to get immediate updates
@@ -189,7 +214,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
 
     return (
         <AppFormView
-            title={currentNode?.name || 'New Node Structure'}
+            title={currentNode?.name || editingNode?.name || 'Node Structure'}
             parentTitle="Node Library"
             icon="function"
             isDirty={isDirty}
@@ -219,7 +244,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                 className="h-full"
             >
                 {activeTab === 'info' && (
-                    <div className="space-y-10 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="space-y-10 max-w-5xl mx-auto py-4">
                         <div className="grid grid-cols-12 gap-8 items-end">
                             <div className="col-span-6">
                                 <form.Field
@@ -322,37 +347,46 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                 )}
 
                 {activeTab === 'code' && (
-                    <div className="h-full w-full mx-auto flex flex-col group animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="h-full w-full mx-auto flex flex-col group">
                         <div className="flex-1 rounded-xl border border-[var(--border-base)] overflow-hidden focus-within:border-brand transition-all shadow-sm min-h-[500px]">
                             <form.Field
                                 name="code"
-                                children={(field) => (
-                                    <CodeMirror
-                                        value={field.state.value}
-                                        height="100%"
-                                        theme={editorTheme}
-                                        autoFocus
-                                        extensions={codeMirrorExtensions}
-                                        selection={cursorPosition || undefined}
-                                        onUpdate={(update) => {
-                                            if (update.selectionSet && currentNode?.id) {
-                                                const sel = update.state.selection.main;
-                                                const pos = { anchor: sel.anchor, head: sel.head };
-                                                
-                                                // Only save if it's different from what we already have in state
-                                                // (to avoid unnecessary localStorage writes)
-                                                if (JSON.stringify(pos) !== JSON.stringify(cursorPosition)) {
-                                                    localStorage.setItem(`cursor_pos_${currentNode.id}`, JSON.stringify(pos));
-                                                    setCursorPosition(pos);
+                                children={(field) => {
+                                    const codeValue = field.state.value || '';
+                                    // Safety check for selection: ensure anchor/head are within bounds
+                                    const len = codeValue.length;
+                                    const safeSelection = cursorPosition ? {
+                                        anchor: Math.min(cursorPosition.anchor, len),
+                                        head: Math.min(cursorPosition.head, len)
+                                    } : undefined;
+
+                                    return (
+                                        <CodeMirror
+                                            value={codeValue}
+                                            height="100%"
+                                            theme={editorTheme}
+                                            autoFocus
+                                            extensions={codeMirrorExtensions}
+                                            selection={safeSelection}
+                                            onUpdate={(update) => {
+                                                if (update.selectionSet && currentNode?.id) {
+                                                    const sel = update.state.selection.main;
+                                                    const pos = { anchor: sel.anchor, head: sel.head };
+                                                    
+                                                    // Only update state if significantly different to avoid feedback loops
+                                                    if (!cursorPosition || cursorPosition.anchor !== pos.anchor || cursorPosition.head !== pos.head) {
+                                                        localStorage.setItem(`cursor_pos_${currentNode.id}`, JSON.stringify(pos));
+                                                        setCursorPosition(pos);
+                                                    }
                                                 }
-                                            }
-                                        }}
-                                        onChange={(value) => field.handleChange(value)}
-                                        className="h-full text-sm font-mono"
-                                        placeholder="# Define your executive logic here..."
-                                        readOnly={currentNode?.is_locked}
-                                    />
-                                )}
+                                            }}
+                                            onChange={(value) => field.handleChange(value)}
+                                            className="h-full text-sm font-mono"
+                                            placeholder="# Define your executive logic here..."
+                                            readOnly={currentNode?.is_locked}
+                                        />
+                                    );
+                                }}
                             />
                         </div>
                         <div className="mt-4 text-[10px] text-[var(--text-muted)] flex justify-between px-4 font-normal uppercase tracking-widest opacity-40">

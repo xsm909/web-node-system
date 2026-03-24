@@ -131,6 +131,7 @@ class NodeTypeOut(BaseModel):
     name: str
     version: str
     description: str
+    code: str
     input_schema: dict
     output_schema: dict
     parameters: list
