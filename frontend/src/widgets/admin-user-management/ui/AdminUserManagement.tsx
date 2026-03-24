@@ -45,7 +45,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 const user = info.row.original;
                 return (
                     <AppTableStandardCell
-                        icon="person"
+                        icon="user"
                         label={user.username}
                         isLocked={user.is_locked}
                     />
@@ -144,7 +144,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
                 <AppFormView
                     title="Add User"
                     parentTitle="User Management"
-                    icon="person"
+                    icon="user"
                     isDirty={isFormDirty}
                     isSaving={isSaving}
                     onSave={() => {}}
@@ -159,13 +159,13 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ onTogg
             <AppFormView
                 title={selectedUser.username}
                 parentTitle="User Management"
-                icon="person"
+                icon="user"
                 isDirty={isFormDirty}
                 isSaving={isSaving}
                 onSave={() => editorRef.current?.handleSave()}
                 onCancel={handleBack}
                 tabs={[
-                    { id: 'common', label: 'Common', icon: 'person' },
+                    { id: 'common', label: 'Common', icon: 'user' },
                     { id: 'projects', label: 'Projects', icon: 'project' },
                     { id: 'metadata', label: 'Metadata', icon: 'metadata' },
                     ...(selectedUser.role === 'client' ? [{ id: 'prompts', label: 'Prompt Viewer' }] : [])

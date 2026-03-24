@@ -19,7 +19,7 @@ export const ClientSelector = () => {
                 id: u.id,
                 name: u.username,
                 selectable: true,
-                icon: 'person',
+                icon: 'user',
                 items: [],
                 children: {}
             };
@@ -39,7 +39,7 @@ export const ClientSelector = () => {
                 variant="sidebar"
                 value={activeClientId || 'all'}
                 label={activeClient?.username || 'Not selected'}
-                icon={activeClient ? 'person' : 'group'}
+                icon={activeClient ? 'user' : 'group'}
                 data={selectionData}
                 onSelect={handleSelect}
                 searchPlaceholder="Find client..."

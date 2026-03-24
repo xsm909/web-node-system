@@ -176,7 +176,7 @@ export default function AdminPage() {
                 isOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
                 navItems={[
-                    { id: 'users', label: 'Users', icon: 'people', isActive: activeTab === 'users', onClick: () => setActiveTab('users') },
+                    { id: 'users', label: 'Users', icon: 'user', isActive: activeTab === 'users', onClick: () => setActiveTab('users') },
                     { id: 'credentials', label: 'Credentials', icon: 'verified', isActive: activeTab === 'credentials', onClick: () => setActiveTab('credentials') },
                     { id: 'reports', label: 'Reports', icon: 'article', isActive: activeTab === 'reports', onClick: () => setActiveTab('reports') },
                     { id: 'schemas', label: 'Schemas', icon: 'schema', isActive: activeTab === 'schemas', onClick: () => setActiveTab('schemas') },

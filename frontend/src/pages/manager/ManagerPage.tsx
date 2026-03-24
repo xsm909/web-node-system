@@ -33,14 +33,14 @@ export default function ManagerPage() {
         {
             id: 'workflows',
             label: 'Workflows',
-            icon: 'conversion',
+            icon: 'automation',
             isActive: activeTab === 'workflows',
             onClick: () => setActiveTab('workflows'),
         },
         {
             id: 'reports',
             label: 'Reports',
-            icon: 'docs',
+            icon: 'article',
             isActive: activeTab === 'reports',
             onClick: () => setActiveTab('reports'),
         },
@@ -57,7 +57,7 @@ export default function ManagerPage() {
             {
                 id: 'client-metadata',
                 label: 'Client Metadata',
-                icon: 'info',
+                icon: 'metadata',
                 isActive: activeTab === 'client-metadata',
                 onClick: () => setActiveTab('client-metadata'),
             },

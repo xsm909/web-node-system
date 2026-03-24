@@ -211,8 +211,11 @@ Agent hints - lightbulb_circle.svg
 Node type - function.svg
 metadata - metadata.svg
 projects - project.svg
+Users - user.svg
+User management - user.svg
 
 #### 9.3.1 UI icons rules
+users/users - user.svg
 parameters - parameters.svg
 for system marker - system.svg
 export/download - download.svg

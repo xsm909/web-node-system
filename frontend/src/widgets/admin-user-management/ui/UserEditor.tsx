@@ -63,7 +63,7 @@ export const UserEditor = forwardRef<UserEditorRef, UserEditorProps>(({ user, on
                 id: m.id,
                 name: m.username,
                 selectable: true,
-                icon: 'person',
+                icon: 'user',
                 items: [],
                 children: {}
             };
