@@ -34,6 +34,7 @@ import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { usePresets, type Preset } from '../../../entities/preset';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { AppFormButton } from '../../../shared/ui/app-form-button/AppFormButton';
+import { useProjectStore } from '../../../features/projects/store';
 
 // Note: copyToClipboard is now handled inside QueryBuilderModal component to manage local state feedback
 
@@ -460,7 +461,9 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                                     >
                                         <option value="">Param...</option>
                                         {parameters.map(p => (
-                                            <option key={p.parameter_name} value={p.parameter_name}>{p.parameter_name}</option>
+                                            <option key={p.parameter_name} value={p.parameter_name}>
+                                                {p.parameter_name.toUpperCase()}
+                                            </option>
                                         ))}
                                     </select>
                                 </AppFormFieldRect>
@@ -884,6 +887,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
 
 export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, onClose, onDone, initialSql, onError, parameters = [] }) => {
     const { tables, essentialTables, loading, getColumns } = useDatabaseMetadata();
+    const { activeProject } = useProjectStore();
 
     const [fullState, setFullState] = useState<MultiQueryState>({
         ctes: [],
@@ -1033,14 +1037,22 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             setParameterValues(prev => {
                 const next = { ...prev };
                 parameters.forEach(p => {
-                    if (next[p.parameter_name] === undefined) {
-                        next[p.parameter_name] = p.default_value === null ? '' : p.default_value;
+                    const name = p.parameter_name;
+                    if (name === 'system_project_id') {
+                        next[name] = activeProject?.id || '';
+                    } else {
+                        const val = (p as any).default_value || (p as any).defaultValue || (p as any).value || (p as any).default || '';
+                        if (val && val !== '') {
+                            next[name] = val;
+                        } else if (next[name] === undefined) {
+                            next[name] = '';
+                        }
                     }
                 });
                 return next;
             });
         }
-    }, [parameters]);
+    }, [parameters, activeProject?.id, isOpen]);
     
     useEffect(() => {
         if (isOpen) {
@@ -2098,29 +2110,29 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             />
                                         </div>
 
-                                        {parameters && parameters.length > 0 && (
+                                         {parameters && parameters.length > 0 && (
                                             <div className="shrink-0 p-6 border-t border-[var(--border-base)] bg-[var(--bg-alt)]/30 backdrop-blur-sm">
                                                 <div className="flex items-center gap-3 mb-4">
                                                     <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
-                                                        <Icon name="tune" size={16} />
+                                                        <Icon name="parameters" size={16} />
                                                     </div>
                                                     <div>
                                                         <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-main)]">Execution Parameters</h3>
                                                         <p className="text-[9px] text-[var(--text-muted)] font-normal">Provide test values for query preview</p>
                                                     </div>
                                                 </div>
-                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                                    {parameters.map(p => (
-                                                        <div key={p.parameter_name} className="space-y-1.5">
-                                                            <label className="text-[10px] font-normal uppercase tracking-tighter text-[var(--text-muted)] ml-1">
-                                                                {p.parameter_name}
-                                                            </label>
-                                                            <input
-                                                                value={parameterValues[p.parameter_name] || ''}
-                                                                onChange={e => setParameterValues(prev => ({ ...prev, [p.parameter_name]: e.target.value }))}
-                                                                placeholder={p.parameter_type}
-                                                                className="w-full bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl px-3 py-2 text-xs font-normal outline-none focus:border-brand focus:ring-4 focus:ring-brand/5 transition-all"
-                                                            />
+                                                <div className="space-y-1 mt-2">
+                                                    {[...parameters].sort((a, b) => a.parameter_name.localeCompare(b.parameter_name)).map(p => (
+                                                        <div key={p.parameter_name} className="flex items-center gap-2 px-2 py-0.5 hover:bg-brand/5 rounded transition-colors group">
+                                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                <span className="text-[10px] font-bold uppercase tracking-tight text-[var(--text-main)] shrink-0">
+                                                                    {p.parameter_name.toUpperCase()}
+                                                                </span>
+                                                                <span className="text-[10px] text-[var(--text-muted)] shrink-0">—</span>
+                                                                <span className="text-[11px] font-medium text-[var(--text-main)] truncate">
+                                                                    {(p as any).default_value || (p as any).defaultValue || (p as any).value || (p as any).default || parameterValues[p.parameter_name] || <span className="text-[var(--text-muted)] italic opacity-30">(not set)</span>}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
