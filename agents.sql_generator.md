@@ -202,5 +202,16 @@ The parser implements industrial-strength tokenization and recursive analysis:
 - **Nesting Awareness**: Uses `findTopLevelToken` to find major clauses (`SELECT`, `FROM`, etc.) only at the current nesting level.
 - **JSON Function Detection**: Automatically detects both `json_` and `jsonb_` aggregation functions to restore JSON tree structures.
 
+### 17.4 Structural Report Integration
+The JSON structure defined in the builder serves as the **Data Schema** for AI-powered report template generation.
+- **Structural Layout**: When "Structural (Nested)" is selected in the Report Template Generator, the AI uses the `JSON_BUILDER_STATE` to traverse nested aggregates (e.g., `row.Models[0].modeldata.items`).
+- **Semantic HTML**: The generator automatically maps Object nodes to `<dl>` or `<section>` tags and Array nodes to `<ul>` or `<table>` tags based on nesting depth.
+
+### 17.5 Markdown & Rich Text Support
+The system provides special handling for rich text within JSON field values:
+- **Post-processing**: The report engine scans for `<md>...</md>` tags in the rendered output.
+- **Conversion**: Any content wrapped in these tags is converted from Markdown to HTML using the `markdown2` library.
+- **AI Formatting**: The template generator is instructed to wrap text-heavy fields (like AI responses or long descriptions) in `<md>` tags to preserve formatting (lists, bold text, code blocks).
+
 ---
 *Last Updated: 2026-03-25*

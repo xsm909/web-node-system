@@ -168,7 +168,22 @@ All constructor-like modals (Query Builder, Node Parameter Editor) implement a m
 2.  **Discard Changes (No)**: Aborts the editing session and reverts to the original state.
 3.  **Stay and Edit (Cancel)**: Closes the confirmation dialog and returns focus to the constructor to continue editing.
 
-## 8. File Manifest
+## 9. AI-Powered Template Generation
+The system features a **"Generate Template"** button that uses AI to draft Jinja2 templates from the result schema and SQL query.
+- **Layout Choices**:
+    - **Table (Flat)**: Standard `<table>` or `<ul>` layout for primitive rows.
+    - **Structural (Nested)**: Hierarchical layout using `<section>`, `<dl>`, and nested `<ul>` to handle complex objects from the JSON Builder.
+- **Schema Mapping**: The AI scans the `schema_json` (synced after every code compile) to identify nested structures (`row.field[0...].subfield`).
+
+## 10. Markdown & Rich Text Rendering
+Reports natively support Markdown rendering via the `markdown2` library.
+- **Post-processing**: The engine performs the following steps:
+    1. Renders the Jinja2 template into an HTML string.
+    2. Scans the resulting HTML for `<md>...</md>` tags.
+    3. Converts content *inside* those tags into formatted HTML (replaces the tags).
+- **Filter Support**: A `| markdown` Jinja2 filter is also available (e.g., `{{ var | markdown }}`).
+
+## 11. File Manifest
 - `/backend/app/routers/report.py`: API endpoints and rendering logic.
 - `/backend/app/services/report_executor.py`: Sandboxed execution engine.
 - `/backend/app/internal_libs/charts.py`: Matplotlib-based chart wrapper.

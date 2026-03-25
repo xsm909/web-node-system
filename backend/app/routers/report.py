@@ -21,6 +21,7 @@ from ..internal_libs.openai.openai_lib import openai_ask_single
 import re
 import io
 import csv
+import markdown2
 from fastapi.responses import Response, StreamingResponse
 from ..core.system_parameters import inject_system_params, get_system_parameters
 
@@ -391,7 +392,18 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
 
     # Jinja2 Rendering
     try:
-        jinja_template = Template(report.template)
+        # Create environment for custom filters
+        env = Environment()
+        
+        def jinja_markdown_filter(text):
+            if not text:
+                return ""
+            return markdown2.markdown(str(text), extras=["tables", "fenced-code-blocks", "task_list"]).strip()
+        
+        env.filters['markdown'] = jinja_markdown_filter
+        
+        jinja_template = env.from_string(report.template)
+        
         # context: 'data', 'params', 'rows', 'items' and all keys from data if it's a dict
         data_val = exec_result["data"]
         render_context = {
@@ -412,6 +424,17 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
              executor.log(f"Data is a dictionary. Keys unpacked: {', '.join(data_val.keys())}")
 
         rendered_html = jinja_template.render(**render_context)
+        
+        # Markdown Support: Process <md>...</md> tags
+        if '<md>' in rendered_html:
+            def md_replacer(match):
+                md_content = match.group(1)
+                # Convert markdown to html, removing wrapping <p> if it's a single line to avoid breaking layouts
+                html_rendered = markdown2.markdown(md_content, extras=["tables", "fenced-code-blocks", "task_list"])
+                return html_rendered.strip()
+            
+            rendered_html = re.sub(r'<md>(.*?)</md>', md_replacer, rendered_html, flags=re.DOTALL)
+            
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error rendering template: {str(e)}")
         
@@ -656,12 +679,17 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
          - Hierarchical headers (<h1>-<h3>) for categories.
          - Definition lists (<dl>) or sections for objects.
          - Nested lists (<ul>/<li>) for arrays.
+         - **DEEP NESTING**: If the data structure has multiple levels (e.g. `row.Models[0].modeldata.items`), ensure you write nested loops and paths to traverse the ENTIRE hierarchy provided in the schema. Dig as deep as needed.
     2. CLEANLINESS: The report MUST BE CLEAN AND MINIMAL. Use semantic HTML. 
     3. NO INLINE STYLES: DO NOT USE ANY INLINE CSS OR STYLE ATTRIBUTES. CSS is handled separately.
-    4. DATA ACCESS: 
+    4. DATA ACCESS (IMPORTANT): 
        - If the result is a single row with a complex JSON column (e.g., named 'result'), access it as `rows[0].result`.
-       - Example for nested iteration: `{{% for model in rows[0].result.Models %}}...{{% endfor %}}`.
-    5. SAFETY: Use the `default` filter for potential `None` values (e.g., `{{ item.val | default(0) }}`).
+       - **RESERVED NAMES**: Jinja2 uses `.items`, `.keys`, and `.values` as built-in dictionary methods. If the schema contains fields with these names (e.g. `row.items`), YOU MUST USE BRACKET NOTATION: `{{{{ row['items'] }}}}` or `{{% for x in row['items'] %}}`. 
+       - Example for nested iteration with reserved names: `{{% for model in rows[0]['result']['Models'] %}}...{{% endfor %}}`.
+    5. SAFETY: Use the `default` filter for potential `None` values (e.g., `{{{{ item.val | default(0) }}}}`).
+    6. MARKDOWN SUPPORT: If a field contains Markdown content (e.g., from an AI response), you can render it in two ways:
+       - Wrap it in a tag: `<md>{{{{ item.markdown_field | default('') }}}}</md>`
+       - Use a filter: `{{{{ item.markdown_field | markdown | default('') }}}}` (Note: The tag is preferred for complex multi-line blocks).
 
     {data.additional_info if data.additional_info else ""}
     """

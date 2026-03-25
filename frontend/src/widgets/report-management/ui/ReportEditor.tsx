@@ -336,9 +336,11 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
 
     const handleGenerateTemplate = async (layout?: 'table' | 'structural') => {
         // 1. Compile first to get the latest schema
-        await handleCompile();
+        const freshSchema = await handleCompile();
         
-        if (!schemaJson || Object.keys(schemaJson).length === 0) {
+        const effectiveSchema = freshSchema || schemaJson;
+        
+        if (!effectiveSchema || Object.keys(effectiveSchema).length === 0) {
             alert("Could not generate template: Schema is empty. Please check your SQL query and Compile again.");
             return;
         }
@@ -346,7 +348,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
         try {
             const res = await apiClient.post('/reports/generate-template', {
                 report_id: report?.id,
-                schema_json: schemaJson,
+                schema_json: effectiveSchema,
                 query: code, // Pass the whole code as context
                 additional_info: layout === 'table' 
                     ? 'LAYOUT REQUIREMENT: Use a FLAT <table> layout for all data.' 
@@ -357,6 +359,8 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             
             if (res.data.template) {
                 setTemplate(res.data.template);
+            } else {
+                alert("AI returned an empty template. Try again or check your query.");
             }
         } catch (error: any) {
             console.error("Failed to generate AI template", error);
@@ -424,10 +428,10 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
         }
     };
 
-    const handleCompile = async () => {
+    const handleCompile = async (): Promise<any | null> => {
         if (!report?.id) {
             alert("Please save the report first to compile (or implementation can be updated to support unsaved code)");
-            return;
+            return null;
         }
         setIsCompiling(true);
         setConsoleOutput(''); // Clear console before starting
@@ -442,14 +446,19 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             setConsoleOutput(res.data.console || '');
             if (res.data.success) {
                 setSchemaJson(res.data.schema);
+                return res.data.schema;
             } else {
                 if (res.data.validation_reason) {
                     setConsoleOutput(prev => `[VALIDATION FAILED] ${res.data.validation_reason}\n\n${prev}`);
                 }
+                setActiveOutputTab('console');
+                return null;
             }
         } catch (error: any) {
-            setConsoleOutput(error.response?.data?.detail || error.message);
+            const errorMsg = error.response?.data?.detail || error.message;
+            setConsoleOutput(prev => `[CONNECTION ERROR] ${errorMsg}\n\n${prev}`);
             setActiveOutputTab('console');
+            return null;
         } finally {
             setIsCompiling(false);
         }

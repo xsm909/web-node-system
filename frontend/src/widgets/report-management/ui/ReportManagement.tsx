@@ -3,11 +3,12 @@ import { apiClient } from '../../../shared/api/client';
 import type { Report, ReportStyle } from '../../../entities/report/model/types';
 import { useAuthStore } from '../../../features/auth/store';
 import { AppHeader } from '../../app-header';
-import { Icon } from '../../../shared/ui/icon';
+import { Icon } from '../../../shared/ui/icon/Icon';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
-import { ConfirmModal } from '../../../shared/ui/confirm-modal';
-import { AppFormView } from '../../../shared/ui/app-form-view';
-import { AppTabs } from '../../../shared/ui/app-tabs';
+import { ConfirmModal } from '../../../shared/ui/confirm-modal/ConfirmModal';
+import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
+import { AppFormView } from '../../../shared/ui/app-form-view/AppFormView';
+import { AppTabs } from '../../../shared/ui/app-tabs/AppTabs';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 
 import { ReportList } from './ReportList';
@@ -287,256 +288,256 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         return <div className="p-8 text-center text-[var(--text-muted)]">Loading reports...</div>;
     }
 
-    if (view === 'edit' && isAdmin && topTab === 'styles') {
-        return (
-            <AppFormView
-                title={selectedStyle?.name || 'New Style'}
-                parentTitle="Styles Management"
-                icon="palette"
-                isDirty={styleEditorIsDirty}
-                isSaving={isSaving}
-                onSave={() => {
-                    setIsSaving(true);
-                    styleEditorRef.current?.handleSave()
-                        .then((savedStyle: ReportStyle | void) => {
-                            if (savedStyle) {
-                                setSelectedStyle(savedStyle);
-                            }
-                        })
-                        .finally(() => setIsSaving(false));
-                }}
-                onCancel={handleBack}
-                saveLabel="Save Style"
-                entityId={selectedStyle?.id}
-                entityType="report_styles"
-                isLocked={selectedStyle?.is_locked}
-                onLockToggle={(locked) => {
-                    setSelectedStyle(prev => prev ? { ...prev, is_locked: locked } : null);
-                    setRefreshTrigger(prev => prev + 1);
-                }}
-            >
-                <StyleEditor
-                    ref={styleEditorRef}
-                    style={selectedStyle}
-                    allStyles={styles}
-                    onDirtyChange={setStyleEditorIsDirty}
-                    isLocked={selectedStyle?.is_locked}
-                />
-            </AppFormView>
-        );
-    }
-
-    if (view === 'edit' && isAdmin) {
-        return (
-            <AppFormView
-                title={selectedReport?.name || 'New Report'}
-                parentTitle="Reports Management"
-                icon="article"
-                isDirty={reportEditorIsDirty}
-                isSaving={isSaving}
-                onSave={() => {
-                    setIsSaving(true);
-                    // Pass creationProjectId for new reports to ensure project association even if project mode was exited
-                    const saveParams = !selectedReport && creationProjectId ? { project_id: creationProjectId } : {};
-                    reportEditorRef.current?.handleSave(saveParams)
-                        .then((savedReport) => {
-                            if (savedReport) {
-                                setSelectedReport(savedReport);
-                            }
-                        })
-                        .finally(() => setIsSaving(false));
-                }}
-                onCancel={handleBack}
-                tabs={[
-                    { id: 'general', label: 'General' },
-                    { id: 'code', label: 'Code (Python)' },
-                    { id: 'template', label: 'HTML Template' },
-                    { id: 'preview', label: 'Preview' }
-                ]}
-                activeTab={activeTab}
-                onTabChange={(id) => setActiveTab(id as any)}
-                saveLabel="Save Report"
-                allowedShortcuts={['f1', 'f4', 'f5', 'f9']}
-                entityId={selectedReport?.id}
-                entityType="reports"
-                isLocked={selectedReport?.is_locked}
-                onLockToggle={(locked) => {
-                    setSelectedReport(prev => prev ? { ...prev, is_locked: locked } : null);
-                    setRefreshTrigger(prev => prev + 1);
-                }}
-                headerRightContent={
-                    <div className="flex gap-2">
-                        {activeTab === 'code' && (
-                            <AppRoundButton
-                                icon={isCompiling ? "refresh" : "code"}
-                                onClick={handleHeaderCompile}
-                                isLoading={isCompiling}
-                                variant="outline"
-                                title="Compile (F5)"
-                                iconSize={18}
-                            />
-                        )}
-                        {activeTab === 'template' && (
-                            <AppRoundButton
-                                icon={isGeneratingTemplate ? "refresh" : "wizard"}
-                                onClick={handleHeaderGenerateTemplate}
-                                isLoading={isGeneratingTemplate}
-                                variant="outline"
-                                title="Generate Template"
-                                iconSize={18}
-                            />
-                        )}
-                        <AppRoundButton
-                            icon={isGenerating ? "refresh" : "play"}
-                            onClick={handleHeaderGenerate}
-                            isLoading={isGenerating}
-                            variant="brand"
-                            title="Generate (F9)"
-                            iconSize={18}
-                        />
-                    </div>
-                }
-            >
-                <ReportEditor
-                    ref={reportEditorRef}
-                    report={selectedReport}
-                    reports={reports}
-                    styles={styles}
+    // Render Logic
+    return (
+        <>
+            {view === 'edit' && isAdmin && topTab === 'reports' && (
+                <AppFormView
+                    title={selectedReport?.name || 'New Report'}
+                    parentTitle="Reports Management"
+                    icon="article"
+                    isDirty={reportEditorIsDirty}
+                    isSaving={isSaving}
+                    onSave={() => {
+                        setIsSaving(true);
+                        const saveParams = !selectedReport && creationProjectId ? { project_id: creationProjectId } : {};
+                        reportEditorRef.current?.handleSave(saveParams)
+                            .then((savedReport) => {
+                                if (savedReport) {
+                                    setSelectedReport(savedReport);
+                                }
+                            })
+                            .finally(() => setIsSaving(false));
+                    }}
+                    onCancel={handleBack}
+                    tabs={[
+                        { id: 'general', label: 'General' },
+                        { id: 'code', label: 'Code (Python)' },
+                        { id: 'template', label: 'HTML Template' },
+                        { id: 'preview', label: 'Preview' }
+                    ]}
                     activeTab={activeTab}
                     onTabChange={(id) => setActiveTab(id as any)}
-                    onDirtyChange={setReportEditorIsDirty}
+                    saveLabel="Save Report"
+                    allowedShortcuts={['f1', 'f4', 'f5', 'f9']}
+                    entityId={selectedReport?.id}
+                    entityType="reports"
                     isLocked={selectedReport?.is_locked}
-                />
-            </AppFormView>
-        );
-    }
-
-    return (
-        <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden relative">
-            <AppHeader
-                onToggleSidebar={onToggleSidebar || (() => { })}
-                isSidebarOpen={isSidebarOpen}
-                leftContent={
-                    <div className="flex items-center gap-3">
-                        {view !== 'list' && (
-                            <button
-                                onClick={handleBack}
-                                className="p-2 -ml-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors"
-                                title="Go back (Esc)"
-                            >
-                                <Icon name="back" size={24} />
-                            </button>
-                        )}
-                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
-                            {view === 'list' ? 'Reports Management' : (
-                                <span><span className="opacity-50 font-normal">Reports / </span>{selectedReport?.name || 'New Report'}</span>
+                    onLockToggle={(locked) => {
+                        setSelectedReport(prev => prev ? { ...prev, is_locked: locked } : null);
+                        setRefreshTrigger(prev => prev + 1);
+                    }}
+                    headerRightContent={
+                        <div className="flex gap-2">
+                            {activeTab === 'code' && (
+                                <AppRoundButton
+                                    icon={isCompiling ? "refresh" : "code"}
+                                    onClick={handleHeaderCompile}
+                                    isLoading={isCompiling}
+                                    variant="outline"
+                                    title="Compile (F5)"
+                                    iconSize={18}
+                                />
                             )}
-                        </h1>
-                    </div>
-                }
-                rightContent={
-                    <div className="flex items-center gap-3">
-                        {view === 'list' && isAdmin && (
+                            {activeTab === 'template' && (
+                                <AppRoundButton
+                                    icon={isGeneratingTemplate ? "refresh" : "wizard"}
+                                    onClick={handleHeaderGenerateTemplate}
+                                    isLoading={isGeneratingTemplate}
+                                    variant="outline"
+                                    title="Generate Template"
+                                    iconSize={18}
+                                />
+                            )}
                             <AppRoundButton
-                                icon="add"
-                                onClick={topTab === 'reports' ? handleCreate : handleCreateStyle}
+                                icon={isGenerating ? "refresh" : "play"}
+                                onClick={handleHeaderGenerate}
+                                isLoading={isGenerating}
                                 variant="brand"
-                                title={topTab === 'reports' ? "Add Report" : "Add Style"}
-                            />
-                        )}
-                        {view === 'view' && (
-                            <button
-                                onClick={() => reportViewerRef.current?.handleGenerate()}
-                                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
-                            >
-                                <Icon name="play" size={16} className="-ml-1" />
-                                Generate Report
-                            </button>
-                        )}
-                        {view === 'view' && isGenerated && (
-                            <ComboBox
-                                label="Export"
-                                icon="article"
+                                title="Generate (F9)"
                                 iconSize={18}
-                                data={{
-                                    items: {
-                                        id: 'formats',
-                                        name: 'Export Format',
-                                        items: [
-                                            { id: 'pdf', name: 'Save as PDF' },
-                                            { id: 'csv', name: 'Save as CSV' },
-                                            { id: 'html', name: 'Save as HTML' }
-                                        ],
-                                        children: {}
-                                    }
+                            />
+                        </div>
+                    }
+                >
+                    <ReportEditor
+                        ref={reportEditorRef}
+                        report={selectedReport}
+                        reports={reports}
+                        styles={styles}
+                        activeTab={activeTab}
+                        onTabChange={(id) => setActiveTab(id as any)}
+                        onDirtyChange={setReportEditorIsDirty}
+                        isLocked={selectedReport?.is_locked}
+                    />
+                </AppFormView>
+            )}
+
+            {view === 'edit' && isAdmin && topTab === 'styles' && (
+                <AppFormView
+                    title={selectedStyle?.name || 'New Style'}
+                    parentTitle="Styles Management"
+                    icon="palette"
+                    isDirty={styleEditorIsDirty}
+                    isSaving={isSaving}
+                    onSave={() => {
+                        setIsSaving(true);
+                        styleEditorRef.current?.handleSave()
+                            .then((savedStyle: ReportStyle | void) => {
+                                if (savedStyle) {
+                                    setSelectedStyle(savedStyle);
+                                }
+                            })
+                            .finally(() => setIsSaving(false));
+                    }}
+                    onCancel={handleBack}
+                    saveLabel="Save Style"
+                    entityId={selectedStyle?.id}
+                    entityType="report_styles"
+                    isLocked={selectedStyle?.is_locked}
+                    onLockToggle={(locked) => {
+                        setSelectedStyle(prev => prev ? { ...prev, is_locked: locked } : null);
+                        setRefreshTrigger(prev => prev + 1);
+                    }}
+                >
+                    <StyleEditor
+                        ref={styleEditorRef}
+                        style={selectedStyle}
+                        allStyles={styles}
+                        onDirtyChange={setStyleEditorIsDirty}
+                        isLocked={selectedStyle?.is_locked}
+                    />
+                </AppFormView>
+            )}
+
+            {(view === 'list' || view === 'view') && (
+                <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden relative">
+                    <AppHeader
+                        onToggleSidebar={onToggleSidebar || (() => { })}
+                        isSidebarOpen={isSidebarOpen}
+                        leftContent={
+                            <div className="flex items-center gap-3">
+                                {view !== 'list' && (
+                                    <button
+                                        onClick={handleBack}
+                                        className="p-2 -ml-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors"
+                                        title="Go back (Esc)"
+                                    >
+                                        <Icon name="back" size={24} />
+                                    </button>
+                                )}
+                                <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
+                                    {view === 'list' ? 'Reports Management' : (
+                                        <span><span className="opacity-50 font-normal">Reports / </span>{selectedReport?.name || 'New Report'}</span>
+                                    )}
+                                </h1>
+                            </div>
+                        }
+                        rightContent={
+                            <div className="flex items-center gap-3">
+                                {view === 'list' && isAdmin && (
+                                    <AppRoundButton
+                                        icon="add"
+                                        onClick={topTab === 'reports' ? handleCreate : handleCreateStyle}
+                                        variant="brand"
+                                        title={topTab === 'reports' ? "Add Report" : "Add Style"}
+                                    />
+                                )}
+                                {view === 'view' && (
+                                    <button
+                                        onClick={() => reportViewerRef.current?.handleGenerate()}
+                                        className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
+                                    >
+                                        <Icon name="play" size={16} className="-ml-1" />
+                                        Generate Report
+                                    </button>
+                                )}
+                                {view === 'view' && isGenerated && (
+                                    <ComboBox
+                                        label="Export"
+                                        icon="article"
+                                        iconSize={18}
+                                        data={{
+                                            items: {
+                                                id: 'formats',
+                                                name: 'Export Format',
+                                                items: [
+                                                    { id: 'pdf', name: 'Save as PDF' },
+                                                    { id: 'csv', name: 'Save as CSV' },
+                                                    { id: 'html', name: 'Save as HTML' }
+                                                ],
+                                                children: {}
+                                            }
+                                        }}
+                                        onSelect={(item) => {
+                                            if (item.id === 'pdf') handleDownloadPdf();
+                                            else if (item.id === 'csv') handleDownloadCsv();
+                                            else if (item.id === 'html') handleDownloadHtml();
+                                        }}
+                                        variant="brand"
+                                        triggerClassName="px-6 py-2 shadow-lg shadow-brand/20"
+                                        labelClassName="font-bold text-sm"
+                                        align="right"
+                                    />
+                                )}
+                            </div>
+                        }
+                        searchQuery={view === 'list' ? searchQuery : undefined}
+                        onSearchChange={view === 'list' ? setSearchQuery : undefined}
+                        searchPlaceholder="Search reports by name, description or category..."
+                    />
+
+                    <div className="flex-1 overflow-hidden flex flex-col">
+                        {view === 'list' && isAdmin && (
+                            <div className="px-8 border-b border-[var(--border-base)] bg-[var(--bg-app)]">
+                                <AppTabs
+                                    tabs={[
+                                        { id: 'reports', label: 'Reports', icon: 'article' },
+                                        { id: 'styles', label: 'Styles', icon: 'palette' },
+                                    ]}
+                                    activeTab={topTab}
+                                    onTabChange={(id) => setTopTab(id as 'reports' | 'styles')}
+                                    variant="underline"
+                                />
+                            </div>
+                        )}
+
+                        {view === 'list' && topTab === 'reports' && (
+                            <ReportList
+                                reports={reports}
+                                isAdmin={isAdmin}
+                                onEdit={handleEdit}
+                                onView={handleView}
+                                onDelete={handleDelete}
+                                onDuplicate={handleDuplicate}
+                                searchQuery={searchQuery}
+                            />
+                        )}
+
+                        {view === 'list' && topTab === 'styles' && isAdmin && (
+                            <StyleList
+                                styles={styles}
+                                isAdmin={isAdmin}
+                                onEdit={handleEditStyle}
+                                onDelete={handleDeleteStyle}
+                                searchQuery={searchQuery}
+                            />
+                        )}
+
+                        {view === 'view' && (
+                            <ReportViewer
+                                ref={reportViewerRef}
+                                report={selectedReport!}
+                                onLoadingChange={() => { }}
+                                onGenerated={(generated: boolean, params: Record<string, any>) => {
+                                    setIsGenerated(generated);
+                                    setCurrentParams(params);
                                 }}
-                                onSelect={(item) => {
-                                    if (item.id === 'pdf') handleDownloadPdf();
-                                    else if (item.id === 'csv') handleDownloadCsv();
-                                    else if (item.id === 'html') handleDownloadHtml();
-                                }}
-                                variant="brand"
-                                triggerClassName="px-6 py-2 shadow-lg shadow-brand/20"
-                                labelClassName="font-bold text-sm"
-                                align="right"
                             />
                         )}
                     </div>
-                }
-                searchQuery={view === 'list' ? searchQuery : undefined}
-                onSearchChange={view === 'list' ? setSearchQuery : undefined}
-                searchPlaceholder="Search reports by name, description or category..."
-            />
-
-            <div className="flex-1 overflow-hidden flex flex-col">
-                {view === 'list' && isAdmin && (
-                    <div className="px-8 border-b border-[var(--border-base)] bg-[var(--bg-app)]">
-                        <AppTabs
-                            tabs={[
-                                { id: 'reports', label: 'Reports', icon: 'article' },
-                                { id: 'styles', label: 'Styles', icon: 'palette' },
-                            ]}
-                            activeTab={topTab}
-                            onTabChange={(id) => setTopTab(id as 'reports' | 'styles')}
-                            variant="underline"
-                        />
-                    </div>
-                )}
-
-                {view === 'list' && topTab === 'reports' && (
-                    <ReportList
-                        reports={reports}
-                        isAdmin={isAdmin}
-                        onEdit={handleEdit}
-                        onView={handleView}
-                        onDelete={handleDelete}
-                        onDuplicate={handleDuplicate}
-                        searchQuery={searchQuery}
-                    />
-                )}
-
-                {view === 'list' && topTab === 'styles' && isAdmin && (
-                    <StyleList
-                        styles={styles}
-                        isAdmin={isAdmin}
-                        onEdit={handleEditStyle}
-                        onDelete={handleDeleteStyle}
-                        searchQuery={searchQuery}
-                    />
-                )}
-
-                {view === 'view' && (
-                    <ReportViewer
-                        ref={reportViewerRef}
-                        report={selectedReport!}
-                        onLoadingChange={() => { }}
-                        onGenerated={(generated: boolean, params: Record<string, any>) => {
-                            setIsGenerated(generated);
-                            setCurrentParams(params);
-                        }}
-                    />
-                )}
-            </div>
+                </div>
+            )}
 
             <ConfirmModal
                 isOpen={!!idToDelete}
@@ -548,58 +549,49 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 onCancel={() => setIdToDelete(null)}
             />
 
-            {showLayoutModal && (
-                <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-                    <div 
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-                        onClick={() => setShowLayoutModal(false)}
-                    />
-                    <div className="relative w-full max-w-sm bg-surface-800 border border-[var(--border-base)] rounded-[2rem] p-10 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-                        <div className="w-16 h-16 rounded-3xl bg-brand-500/10 flex items-center justify-center mb-6 border border-brand-500/20">
-                            <Icon name="play" size={28} className="text-brand-500" />
-                        </div>
-                        <h2 className="text-2xl font-black text-[var(--text-main)] mb-3 tracking-tight">Generate Template</h2>
-                        <p className="text-sm text-[var(--text-muted)] leading-relaxed mb-8 opacity-70 font-medium">
-                            Choose how you want to structure your report based on your data.
-                        </p>
-                        
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={() => handleSelectLayout('table')}
-                                className="flex items-center gap-4 p-4 rounded-2xl bg-surface-700 hover:bg-surface-600 border border-[var(--border-base)] transition-all group text-left"
-                            >
-                                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 group-hover:bg-blue-500/20">
-                                    <Icon name="play" size={20} className="text-blue-500" />
-                                </div>
-                                <div>
-                                    <div className="font-bold text-[var(--text-main)] transition-colors group-hover:text-brand-400">Table (Flat)</div>
-                                    <div className="text-[var(--text-muted)] text-xs">Best for simple lists and grids</div>
-                                </div>
-                            </button>
-                            
-                            <button
-                                onClick={() => handleSelectLayout('structural')}
-                                className="flex items-center gap-4 p-4 rounded-2xl bg-surface-700 hover:bg-surface-600 border border-[var(--border-base)] transition-all group text-left"
-                            >
-                                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 group-hover:bg-amber-500/20">
-                                    <Icon name="article" size={20} className="text-amber-500" />
-                                </div>
-                                <div>
-                                    <div className="font-bold text-[var(--text-main)] transition-colors group-hover:text-brand-400">Structural (Nested)</div>
-                                    <div className="text-[var(--text-muted)] text-xs">Best for complex, hierarchical data</div>
-                                </div>
-                            </button>
-                        </div>
-                        
+            <AppCompactModalForm
+                isOpen={showLayoutModal}
+                onClose={() => setShowLayoutModal(false)}
+                onSubmit={() => { }} // No default submit, handled via buttons
+                title="Generate Template"
+                icon="play"
+                width="max-w-sm"
+                headerRightContent={null}
+            >
+                <div className="py-2">
+                    <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mb-6 opacity-70 font-medium uppercase tracking-widest">
+                        Choose how you want to structure your report based on your data.
+                    </p>
+
+                    <div className="flex flex-col gap-2">
                         <button
-                            onClick={() => setShowLayoutModal(false)}
-                            className="w-full mt-6 py-3 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors uppercase tracking-widest active:scale-95"
+                            onClick={() => handleSelectLayout('table')}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-alt)] hover:bg-[var(--border-base)] border border-[var(--border-base)] transition-all group text-left"
                         >
-                            Cancel
+                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 group-hover:bg-blue-500/20 transition-colors">
+                                <Icon name="play" size={16} className="text-blue-500" />
+                            </div>
+                            <div>
+                                <div className="text-[11px] font-bold text-[var(--text-main)] transition-colors group-hover:text-brand-400">Table (Flat)</div>
+                                <div className="text-[9px] text-[var(--text-muted)] mt-0.5">Best for simple lists and grids</div>
+                            </div>
+                        </button>
+
+                        <button
+                            onClick={() => handleSelectLayout('structural')}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-alt)] hover:bg-[var(--border-base)] border border-[var(--border-base)] transition-all group text-left"
+                        >
+                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20 group-hover:bg-amber-500/20 transition-colors">
+                                <Icon name="article" size={16} className="text-amber-500" />
+                            </div>
+                            <div>
+                                <div className="text-[11px] font-bold text-[var(--text-main)] transition-colors group-hover:text-brand-400">Structural (Nested)</div>
+                                <div className="text-[9px] text-[var(--text-muted)] mt-0.5">Best for complex hierarchy</div>
+                            </div>
                         </button>
                     </div>
                 </div>
-            )}
-        </div>
+            </AppCompactModalForm>
+        </>
     );
 }
