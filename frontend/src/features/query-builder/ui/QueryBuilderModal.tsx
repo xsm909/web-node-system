@@ -921,7 +921,10 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [isDraggingInProgress, setIsDraggingInProgress] = useState(false);
     const [isSavePresetModalOpen, setIsSavePresetModalOpen] = useState(false);
     const [presetName, setPresetName] = useState('');
-    const { presets, fetchPresets, savePreset } = usePresets('query');
+    const { presets, fetchPresets, savePreset, renamePreset, deletePreset } = usePresets('query');
+    const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
+    const [deletingPreset, setDeletingPreset] = useState<Preset | null>(null);
+    const [newPresetName, setNewPresetName] = useState('');
     const lastParsedSqlRef = useRef<string | null>(null);
     const prevIsOpenRef = useRef(false);
     const [isEssentialOnly, setIsEssentialOnly] = useState(true);
@@ -1707,6 +1710,10 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         size="small"
                         hideChevron
                         align="right"
+                        config={{
+                            allowRename: true,
+                            allowDelete: true
+                        }}
                         items={presets.map(p => ({
                             id: p.id,
                             label: p.name,
@@ -1716,6 +1723,16 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         onSelect={(item) => {
                             const preset = presets.find(p => p.id === item.id);
                             if (preset) handleLoadPreset(preset);
+                        }}
+                        onAction={(action, item) => {
+                            const preset = presets.find(p => p.id === item.id);
+                            if (!preset) return;
+                            if (action === 'rename') {
+                                setEditingPreset(preset);
+                                setNewPresetName(preset.name);
+                            } else if (action === 'delete') {
+                                setDeletingPreset(preset);
+                            }
                         }}
                     />
                 </>
@@ -2300,6 +2317,55 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     </div>
                 </div>
             </AppCompactModalForm>
+            <AppCompactModalForm
+                isOpen={!!editingPreset}
+                onClose={() => setEditingPreset(null)}
+                onSubmit={async () => {
+                    if (editingPreset && newPresetName.trim()) {
+                        await renamePreset(editingPreset.id, newPresetName.trim());
+                        setEditingPreset(null);
+                    }
+                }}
+                title="Rename Preset"
+                icon="drive_file_rename_outline"
+                submitLabel="Save"
+            >
+                <div className="space-y-4 py-2">
+                    <p className="text-xs text-[var(--text-muted)]">Enter a new name for the preset:</p>
+                    <AppFormFieldRect>
+                        <input
+                            autoFocus
+                            value={newPresetName}
+                            onChange={(e) => setNewPresetName(e.target.value)}
+                            className="w-full bg-transparent outline-none h-full text-xs"
+                            placeholder="Preset name"
+                        />
+                    </AppFormFieldRect>
+                </div>
+            </AppCompactModalForm>
+
+            <AppCompactModalForm
+                isOpen={!!deletingPreset}
+                onClose={() => setDeletingPreset(null)}
+                onSubmit={async () => {
+                    if (deletingPreset) {
+                        await deletePreset(deletingPreset.id);
+                        setDeletingPreset(null);
+                    }
+                }}
+                title="Delete Preset"
+                icon="delete"
+                submitLabel="Delete"
+                cancelLabel="Cancel"
+            >
+                <div className="py-2">
+                    <p className="text-xs text-[var(--text-muted)]">
+                        Are you sure you want to delete preset <strong className="text-[var(--text-main)]">"{deletingPreset?.name}"</strong>?
+                    </p>
+                    <p className="text-[10px] text-red-500 mt-2">This action cannot be undone.</p>
+                </div>
+            </AppCompactModalForm>
         </>
     );
 };
+

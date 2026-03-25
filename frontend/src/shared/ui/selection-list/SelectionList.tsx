@@ -181,6 +181,28 @@ const SelectionListContent: React.FC<SelectionListContentProps> = ({
                                         <Icon name={item.icon || "data_object"} dir={item.iconDir || 'icons'} size={14} className={isActive ? 'text-brand' : 'text-brand/50'} />
                                         <span className={`truncate ${isActive ? 'text-brand' : 'text-[var(--text-main)] group-hover/item:text-brand'}`}>{item.name}</span>
                                     </div>
+                                    <div className="flex items-center gap-1">
+                                        {config.allowRename && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); onAction?.('rename', item); }}
+                                                className="p-1 hover:bg-brand/10 rounded-md transition-all opacity-0 group-hover/item:opacity-100"
+                                                title="Rename"
+                                            >
+                                                <Icon name="drive_file_rename_outline" size={12} className="text-brand" />
+                                            </button>
+                                        )}
+                                        {config.allowDelete && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); onAction?.('delete', item); }}
+                                                className="p-1 hover:bg-red-500/10 rounded-md transition-all opacity-0 group-hover/item:opacity-100"
+                                                title="Delete"
+                                            >
+                                                <Icon name="delete" size={12} className="text-red-500" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                                 {item.description && (
                                     <div className="text-[10px] opacity-40 group-hover/item:opacity-60 font-mono mt-0.5 line-clamp-1 truncate max-w-full">

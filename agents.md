@@ -230,6 +230,7 @@ collapse all  - collapse_all.svg
 expand all - expand_all.svg
 back - arrow_back.svg
 stop/interrupt - stop.svg
+rename - drive_file_rename_outline.svg
 
 ## 10. Types of Nodes
 

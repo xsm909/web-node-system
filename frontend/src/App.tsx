@@ -4,6 +4,7 @@ import Router from './app/Router';
 import { useThemeStore } from './shared/lib/theme/store';
 import { HotkeysProvider } from './shared/lib/hotkeys/HotkeysContext';
 import { AppFooter } from './shared/ui/app-footer/AppFooter';
+import { PresetsProvider } from './entities/preset/model/PresetsContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,8 +29,10 @@ export default function App() {
   return (
     <HotkeysProvider>
       <QueryClientProvider client={queryClient}>
-        <Router />
-        <AppFooter />
+        <PresetsProvider>
+          <Router />
+          <AppFooter />
+        </PresetsProvider>
       </QueryClientProvider>
     </HotkeysProvider>
   );

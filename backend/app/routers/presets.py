@@ -49,3 +49,22 @@ def delete_preset(preset_id: UUID, db: Session = Depends(get_db)):
     db.delete(db_preset)
     db.commit()
     return {"message": "Preset deleted"}
+
+@router.patch("/{preset_id}", response_model=Preset)
+def update_preset(
+    preset_id: UUID,
+    preset_in: PresetUpdate,
+    db: Session = Depends(get_db)
+):
+    db_preset = db.query(PresetModel).filter(PresetModel.id == preset_id).first()
+    if not db_preset:
+        raise HTTPException(status_code=404, detail="Preset not found")
+    
+    update_data = preset_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_preset, field, value)
+    
+    db.commit()
+    db.refresh(db_preset)
+    return db_preset
+
