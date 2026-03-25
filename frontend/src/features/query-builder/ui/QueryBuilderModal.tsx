@@ -883,7 +883,7 @@ const RecursiveCteModal: React.FC<RecursiveCteModalProps> = ({ isOpen, onClose, 
 // Note: Rename logic now handled directly via states to ensure OK button works
 
 export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, onClose, onDone, initialSql, onError, parameters = [] }) => {
-    const { tables, getColumns, loading } = useDatabaseMetadata();
+    const { tables, essentialTables, loading, getColumns } = useDatabaseMetadata();
 
     const [fullState, setFullState] = useState<MultiQueryState>({
         ctes: [],
@@ -924,6 +924,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const { presets, fetchPresets, savePreset } = usePresets('query');
     const lastParsedSqlRef = useRef<string | null>(null);
     const prevIsOpenRef = useRef(false);
+    const [isEssentialOnly, setIsEssentialOnly] = useState(true);
 
     // DND Sensors
     const sensors = useSensors(
@@ -1843,6 +1844,14 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                 <Icon name="database" size={14} className="text-brand" />
                                 Available Tables
                             </h3>
+                            <AppFormButton 
+                                withFrame={false}
+                                toggled={!isEssentialOnly}
+                                icon={isEssentialOnly ? 'visibility_off' : 'visibility'}
+                                title={isEssentialOnly ? "Show All Tables" : "Show Essential Only"}
+                                onClick={() => setIsEssentialOnly(!isEssentialOnly)}
+                                className="!p-1"
+                            />
                         </div>
 
                         <div className="p-2 space-y-1">
@@ -1872,14 +1881,16 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                     )}
 
                                     {/* Database Tables */}
-                                    {tables.map(table => (
+                                    {tables
+                                        .filter(t => !isEssentialOnly || essentialTables.includes(t))
+                                        .map(tableName => (
                                         <DraggableTableSidebarItem
-                                            key={table}
-                                            id={table}
-                                            label={table}
+                                            key={tableName}
+                                            id={tableName}
+                                            label={tableName}
                                             onAdd={() => {
                                                 if (!isDraggingInProgress) {
-                                                    handleAddTable(table);
+                                                    handleAddTable(tableName, false);
                                                 }
                                             }}
                                         />

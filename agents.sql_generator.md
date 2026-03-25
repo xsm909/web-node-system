@@ -171,5 +171,17 @@ interface WhereCondition {
 ### 15.3 Recursive Anchors
 The `IS NULL` operator is critical for recursive queries, as it is often used in the anchor member to identify root nodes (e.g., `WHERE parent_id IS NULL`). The parser specifically handles these to ensure they are correctly restored when reopening a query.
 
+## 16. Table Visibility & Essential Filter
+
+The Query Builder sidebar includes a visibility toggle to filter between a curated list of "Essential" database tables and the full system catalog:
+
+- **Essential List**: Defined in `backend/app/resources/essential_tables.json`. Typically includes core business entities like `users`, `prompts`, `response`, `schemas`, and `metadata`.
+- **Toggle Button**: Located in the "Available Tables" header.
+- **Icons**:
+    - **visibility_off**: Shows only essential tables (Default state).
+    - **visibility**: Shows all available database tables.
+- **API Endpoint**: `GET /database-metadata/essential-tables` fetches the restricted list for frontend filtering.
+- **Refined Button State**: Uses the `toggled` property of the `AppFormButton` to provide visual feedback when the filter is active.
+
 ---
-*Last Updated: 2026-03-20*
+*Last Updated: 2026-03-25*

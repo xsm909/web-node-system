@@ -19,6 +19,19 @@ def get_tables(db: Session = Depends(get_db), _=manager_access):
     inspector = inspect(db.get_bind())
     return inspector.get_table_names()
 
+@router.get("/essential-tables", response_model=List[str])
+def get_essential_tables(_=manager_access):
+    """List names of essential tables."""
+    import json
+    import os
+    
+    file_path = os.path.join(os.path.dirname(__file__), "..", "resources", "essential_tables.json")
+    try:
+        with open(file_path, "r") as f:
+            return json.load(f)
+    except Exception:
+        return ["users", "prompts", "response", "schemas", "metadata"]
+
 @router.get("/tables/{table_name}/columns")
 def get_columns(table_name: str, db: Session = Depends(get_db), _=manager_access):
     """List columns for a specific table."""

@@ -4,6 +4,7 @@ import type { DbColumn, DbForeignKey, DbFunction } from '../model/types';
 
 export const useDatabaseMetadata = () => {
     const [tables, setTables] = useState<string[]>([]);
+    const [essentialTables, setEssentialTables] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -11,8 +12,12 @@ export const useDatabaseMetadata = () => {
         setLoading(true);
         setError(null);
         try {
-            const { data } = await apiClient.get<string[]>('/database-metadata/tables');
-            setTables(data);
+            const [tablesRes, essentialRes] = await Promise.all([
+                apiClient.get<string[]>('/database-metadata/tables'),
+                apiClient.get<string[]>('/database-metadata/essential-tables')
+            ]);
+            setTables(tablesRes.data);
+            setEssentialTables(essentialRes.data);
         } catch (err: any) {
             setError(err.message || 'Failed to fetch tables');
         } finally {
@@ -56,6 +61,7 @@ export const useDatabaseMetadata = () => {
 
     return {
         tables,
+        essentialTables,
         loading,
         error,
         fetchTables,

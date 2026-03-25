@@ -215,6 +215,8 @@ Users - user.svg
 User management - user.svg
 
 #### 9.3.1 UI icons rules
+visible - visibility.svg
+unvisible - visibility_off.svg
 save preset - bookmark_add.svg
 load preset - bookmark.svg
 users/users - user.svg

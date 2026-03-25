@@ -24,6 +24,8 @@ interface AppFormButtonProps {
     title?: string;
     /** Icon size override */
     iconSize?: number;
+    /** Toggle state (active/inactive) */
+    toggled?: boolean;
 }
 
 /**
@@ -41,7 +43,8 @@ export const AppFormButton = React.forwardRef<HTMLButtonElement, AppFormButtonPr
     isLoading = false,
     type = 'button',
     title,
-    iconSize = 14
+    iconSize = 14,
+    toggled = false
 }, ref) => {
     const baseStyles = 'flex items-center justify-center gap-2 rounded-lg transition-all active:scale-95 text-[10px] font-normal leading-none whitespace-nowrap overflow-hidden shrink-0';
     
@@ -51,7 +54,11 @@ export const AppFormButton = React.forwardRef<HTMLButtonElement, AppFormButtonPr
         : 'border border-[var(--border-base)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/5';
 
     // Ghost styles (No frame) - often used for toolbar icons
-    const ghostStyles = 'bg-transparent text-brand hover:bg-brand/10';
+    const ghostStyles = toggled 
+        ? 'bg-brand/10 text-brand' 
+        : 'bg-transparent text-[var(--text-muted)] hover:bg-brand/10 hover:text-brand';
+
+    const toggledStyles = withFrame && toggled ? '!bg-brand/10 !text-brand !border-brand/30' : '';
 
     const disabledStyles = 'opacity-40 pointer-events-none grayscale';
     
@@ -70,6 +77,7 @@ export const AppFormButton = React.forwardRef<HTMLButtonElement, AppFormButtonPr
                 ${baseStyles} 
                 ${padding}
                 ${withFrame ? frameStyles : ghostStyles}
+                ${toggledStyles}
                 ${isDisabled || isLoading ? disabledStyles : ''}
                 ${className}
             `}
