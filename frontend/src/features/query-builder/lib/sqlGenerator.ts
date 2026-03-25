@@ -1,4 +1,4 @@
-import type { MultiQueryState, QueryState, QueryCTE } from '../model/types';
+import type { MultiQueryState, QueryState, QueryCTE, JsonTreeNode } from '../model/types';
 
 const q = (id: string, tableAlias?: string): string => {
     if (!id || id === '*') return id;
@@ -284,4 +284,181 @@ export const generateSQL = (state: MultiQueryState, options?: { isForPreview?: b
     }
     
     return sql;
+};
+
+// ── JSON Builder SQL Generation ───────────────────────────────────────────────
+
+function getAllFieldRefs(nodes: import('../model/types').JsonTreeNode[]): string[] {
+    const refs = new Set<string>();
+    for (const node of nodes) {
+        if (node.type === 'field') {
+            refs.add((node.fieldRef || node.key).replace(/"/g, ''));
+        } else if (node.children) {
+            getAllFieldRefs(node.children).forEach(r => refs.add(r));
+        }
+    }
+    return Array.from(refs);
+}
+
+function getArrayDirectFields(arrayNode: import('../model/types').JsonTreeNode): string[] {
+    const refs = new Set<string>();
+    if (!arrayNode.children) return [];
+    for (const child of arrayNode.children) {
+        if (child.type === 'field') {
+            refs.add((child.fieldRef || child.key).replace(/"/g, ''));
+        } else if (child.type === 'object' && child.children) {
+            getArrayDirectFields(child).forEach(r => refs.add(r)); 
+        }
+    }
+    return Array.from(refs);
+}
+
+function collectArrays(nodes: import('../model/types').JsonTreeNode[], out: import('../model/types').JsonTreeNode[] = []): import('../model/types').JsonTreeNode[] {
+    for (const node of nodes) {
+        if (node.children) collectArrays(node.children, out);
+        if (node.type === 'array') out.push(node);
+    }
+    return out;
+}
+
+function getDirectChildArrayIds(nodes: import('../model/types').JsonTreeNode[]): string[] {
+    const ids: string[] = [];
+    for (const node of nodes) {
+        if (node.type === 'array') {
+            ids.push(node.id);
+        } else if (node.type === 'object' && node.children) {
+            ids.push(...getDirectChildArrayIds(node.children));
+        }
+    }
+    return ids;
+}
+
+function formatNodeAccess(node: import('../model/types').JsonTreeNode, indent: number, arrayAliases: Record<string, string>): string {
+    const innerPad = ' '.repeat(indent * 4);
+    if (node.type === 'field') {
+        return `"${(node.fieldRef || node.key).replace(/"/g, '')}"`;
+    }
+    if (node.type === 'object') {
+        if (!node.children || node.children.length === 0) return 'NULL';
+        const pairs = node.children.map(child =>
+            `${innerPad}'${child.key}', ${formatNodeAccess(child, indent + 1, arrayAliases)}`
+        ).join(',\n');
+        return `json_build_object(\n${pairs}\n${' '.repeat((indent - 1) * 4)})`;
+    }
+    if (node.type === 'array') {
+        const alias = arrayAliases[node.id];
+        return `"${alias}"`;
+    }
+    return 'NULL';
+}
+
+function groupArraysByLevel(arrays: import('../model/types').JsonTreeNode[]): import('../model/types').JsonTreeNode[][] {
+    const levels: import('../model/types').JsonTreeNode[][] = [];
+    const processedIds = new Set<string>();
+    
+    let remaining = [...arrays];
+    while (remaining.length > 0) {
+        const currentLevel = remaining.filter(arr => {
+            const childIds = getDirectChildArrayIds(arr.children || []);
+            return childIds.every(id => processedIds.has(id));
+        });
+        
+        if (currentLevel.length === 0) {
+            levels.push(remaining);
+            break;
+        }
+        
+        levels.push(currentLevel);
+        currentLevel.forEach(arr => processedIds.add(arr.id));
+        remaining = remaining.filter(arr => !processedIds.has(arr.id));
+    }
+    
+    return levels;
+}
+
+export const generateJsonSQL = (state: import('../model/types').MultiQueryState, options?: { isForPreview?: boolean }): string => {
+    const tree = state.jsonTree;
+    if (!tree || tree.length === 0) return generateSQL(state, options);
+
+    const stateComment = `/* JSON_BUILDER_STATE: ${JSON.stringify(tree)} */\n`;
+
+    const baseState = { 
+        ...state, 
+        jsonTree: [],
+        ctes: state.ctes.filter(c => {
+            const l = c.alias.toLowerCase();
+            return l !== 'meta' && !l.startsWith('sub_');
+        })
+    };
+    const innerSql = generateSQL(baseState, options);
+    
+    let fullSql = `${stateComment}WITH meta AS (\n${innerSql.split('\n').map(l => '    ' + l).join('\n')}\n)\n`;
+
+    const arraysList = collectArrays(tree);
+    const arrayLevels = groupArraysByLevel(arraysList);
+    const arrayAliases: Record<string, string> = {};
+    
+    let currentFields = new Set(getAllFieldRefs(tree));
+    let currentAggs = new Set<string>();
+    const subqueries: string[] = [];
+    let prevTable = 'meta';
+
+    for (let i = 0; i < arrayLevels.length; i++) {
+        const levelArrays = arrayLevels[i];
+        
+        levelArrays.forEach((arr, idx) => {
+            arrayAliases[arr.id] = `arr_${i}_${idx}`;
+        });
+
+        const levelDirectFields = new Set<string>();
+        const levelChildAggAliases = new Set<string>();
+        
+        levelArrays.forEach(arr => {
+            getArrayDirectFields(arr).forEach(f => levelDirectFields.add(f));
+            getDirectChildArrayIds(arr.children || []).forEach(id => {
+                if (arrayAliases[id]) levelChildAggAliases.add(arrayAliases[id]);
+            });
+        });
+
+        levelDirectFields.forEach(f => currentFields.delete(f));
+        currentAggs.forEach(a => { if (levelChildAggAliases.has(a)) currentAggs.delete(a); });
+
+        const groupByCols = [...Array.from(currentFields), ...Array.from(currentAggs)].map(c => `"${c}"`);
+        const selectCols = [...groupByCols];
+        
+        levelArrays.forEach(arr => {
+            const innerPairs = (arr.children || []).map(child =>
+                `                '${child.key}', ${formatNodeAccess(child, 4, arrayAliases)}`
+            ).join(',\n');
+            
+            const orderBy = arr.orderByRef ? ` ORDER BY "${arr.orderByRef.replace(/"/g, '')}"` : '';
+            const aggAlias = arrayAliases[arr.id];
+            const aggExpr = `json_agg(\n            json_build_object(\n${innerPairs}\n            )${orderBy}\n        ) AS "${aggAlias}"`;
+            selectCols.push(aggExpr);
+        });
+
+        const groupByClause = groupByCols.length > 0 ? `\n    GROUP BY ${groupByCols.join(', ')}` : '';
+        
+        const subSql = `    SELECT \n        ${selectCols.join(',\n        ')}\n    FROM ${prevTable}${groupByClause}`;
+        
+        subqueries.push(`sub_${i} AS (\n${subSql}\n)`);
+        prevTable = `sub_${i}`;
+        
+        levelArrays.forEach(arr => currentAggs.add(arrayAliases[arr.id]));
+    }
+    
+    if (subqueries.length > 0) {
+        const subList = subqueries.join(',\n');
+        fullSql = fullSql.replace(/\)\n$/, `),\n${subList}\n\n`);
+    } else {
+        fullSql += '\n';
+    }
+
+    const topPairs = tree.map(node =>
+        `    '${node.key}', ${formatNodeAccess(node, 1, arrayAliases)}`
+    ).join(',\n');
+    
+    fullSql += `SELECT json_build_object(\n${topPairs}\n) AS result\nFROM ${prevTable}`;
+    
+    return fullSql;
 };

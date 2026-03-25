@@ -93,7 +93,32 @@ export interface QueryCTE {
     recursiveConfig?: RecursiveCteConfig;
 }
 
+// ── JSON Builder ──────────────────────────────────────────────────────────────
+
+/** Discriminator for JSON tree node kinds */
+export type JsonNodeType = 'object' | 'array' | 'field';
+
+/**
+ * A node in the visual JSON-builder tree.
+ *
+ * - `field`  → leaf: maps to a column/alias from the SELECT list
+ * - `object` → `json_build_object(key, expr, …)`
+ * - `array`  → `json_agg(json_build_object(…))` — children are field / object nodes
+ */
+export interface JsonTreeNode {
+    id: string;
+    key: string;               // JSON key used in json_build_object
+    type: JsonNodeType;
+    fieldRef?: string;         // alias or "table.column" for leaf nodes
+    orderByRef?: string;       // optional ORDER BY column for array aggregation
+    children?: JsonTreeNode[]; // object / array containers
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface MultiQueryState {
     ctes: QueryCTE[];
     mainQuery: QueryState;
+    /** When non-empty, the report uses JSON-mode SQL instead of tabular SQL. */
+    jsonTree?: JsonTreeNode[];
 }

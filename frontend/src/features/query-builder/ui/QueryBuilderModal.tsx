@@ -21,10 +21,11 @@ import { AppTabs } from '../../../shared/ui/app-tabs';
 import { AppAreaHint } from '../../../shared/ui/app-area-hint';
 import { useDatabaseMetadata } from '../lib/useDatabaseMetadata';
 import type { MultiQueryState, QueryState, SelectedField, JoinCondition, WhereCondition } from '../model/types';
-import { generateSQL, generateBlockSQL } from '../lib/sqlGenerator';
+import { generateSQL, generateBlockSQL, generateJsonSQL } from '../lib/sqlGenerator';
 import { parseSQL } from '../lib/sqlParser';
 import { SelectedTablesTreeView } from './SelectedTablesTreeView';
 import { SelectedFieldsTreeView } from './SelectedFieldsTreeView';
+import { JsonBuilderView } from './JsonBuilderView';
 import { FieldExpressionModal } from './FieldExpressionModal';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { apiClient } from '../../../shared/api/client';
@@ -904,7 +905,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     });
 
     const [activeBlockId, setActiveBlockId] = useState('main');
-    const [activeTab, setActiveTab] = useState<'tables' | 'joins' | 'conditions' | 'grouping_sorting'>('tables');
+    const [activeTab, setActiveTab] = useState<'tables' | 'joins' | 'conditions' | 'grouping_sorting' | 'json_builder'>('tables');
     const [previewSql, setPreviewSql] = useState('');
     const [activeDragItem, setActiveDragItem] = useState<any>(null);
     const [parameterValues, setParameterValues] = useState<Record<string, any>>({});
@@ -975,7 +976,10 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
     const effectiveSql = useMemo(() => {
         if (activeBlockId === 'main') {
-            return { sql: generateSQL(fullState), canRun: !!generateSQL(fullState).trim() };
+            const sqlToRun = (fullState.jsonTree && fullState.jsonTree.length > 0) 
+                ? generateJsonSQL(fullState) 
+                : generateSQL(fullState);
+            return { sql: sqlToRun, canRun: !!sqlToRun.trim() };
         }
 
         const targetCte = fullState.ctes.find(c => c.id === activeBlockId);
@@ -1658,14 +1662,12 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     if (!isOpen) return null;
 
     const handleFinalSubmit = () => {
-        // If we are in a CTE tab and the main query is empty, switch to main query
-        // to remind the user to use the CTE they just built.
-        if (activeBlockId !== 'main' && fullState.mainQuery.tables.length === 0) {
-            setActiveBlockId('main');
-            return;
+        if (activeBlockId !== 'main' && !effectiveSql.canRun) {
+            return; // Can't submit from un-runnable CTE
         }
-        
-        const finalSql = generateSQL(fullState, { isForPreview: false });
+        const finalSql = (fullState.jsonTree && fullState.jsonTree.length > 0)
+            ? generateJsonSQL(fullState)
+            : generateSQL(fullState);
         onDone(finalSql);
     };
 
@@ -2054,7 +2056,12 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                         { id: 'tables', label: 'Selected Tables' },
                                         { id: 'joins', label: 'Joins' },
                                         { id: 'conditions', label: 'Conditions' },
-                                        { id: 'grouping_sorting', label: 'Grouping & Sorting' }
+                                        { id: 'grouping_sorting', label: 'Grouping & Sorting' },
+                                        { 
+                                            id: 'json_builder', 
+                                            label: fullState.jsonTree && fullState.jsonTree.length > 0 ? 'JSON Builder (Active)' : 'JSON Builder',
+                                            icon: fullState.jsonTree && fullState.jsonTree.length > 0 ? 'data_object' : undefined
+                                        }
                                     ]}
                                     activeTab={activeTab}
                                     onTabChange={(tabId: string) => setActiveTab(tabId as any)}
@@ -2157,6 +2164,16 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                             setState={updateActiveState}
                                             getColumns={getColumns}
                                             queryState={fullState}
+                                        />
+                                    </div>
+                                )}
+                                {activeTab === 'json_builder' && (
+                                    <div className="flex-1 overflow-hidden min-h-0 bg-[var(--bg-app)]">
+                                        <JsonBuilderView 
+                                            jsonTree={fullState.jsonTree || []}
+                                            onChange={(tree) => setFullState(prev => ({ ...prev, jsonTree: tree }))}
+                                            queryState={fullState}
+                                            availableFields={fullState.mainQuery.selectedFields.map(f => f.alias || f.columnName || '')}
                                         />
                                     </div>
                                 )}

@@ -95,9 +95,11 @@ def get_functions(db: Session = Depends(get_db), _=manager_access):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching functions: {str(e)}")
 
+from typing import List, Dict, Any, Optional
+
 class ExecuteQueryRequest(BaseModel):
     sql: str
-    params: Dict[str, Any] = None
+    params: Optional[Dict[str, Any]] = None
 
 @router.post("/execute")
 def execute_query(request: ExecuteQueryRequest, db: Session = Depends(get_db), _=manager_access):
@@ -106,12 +108,15 @@ def execute_query(request: ExecuteQueryRequest, db: Session = Depends(get_db), _
         # Basic SQL safety - though the user is an admin/manager
         # We limit to SELECT for safety if desired, but requirements say "Execute arbitrary SQL"
         # Let's enforce a limit if not present
+        import re
         sql = request.sql.strip()
-        if not sql.lower().startswith("select") and not sql.lower().startswith("with"):
+        sql_clean = re.sub(r'/\*.*?\*/', '', sql, flags=re.DOTALL).strip().lower()
+        if not sql_clean.startswith("select") and not sql_clean.startswith("with"):
              raise HTTPException(status_code=400, detail="Only SELECT or WITH queries are allowed.")
              
         # Add LIMIT if not present (simple heuristic)
         if "limit" not in sql.lower():
+            sql = sql.rstrip(';')
             sql = f"SELECT * FROM ({sql}) AS subquery_limit LIMIT 1000"
             
         full_params = system_parameters.inject_system_params(request.params or {})

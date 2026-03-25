@@ -171,17 +171,23 @@ interface WhereCondition {
 ### 15.3 Recursive Anchors
 The `IS NULL` operator is critical for recursive queries, as it is often used in the anchor member to identify root nodes (e.g., `WHERE parent_id IS NULL`). The parser specifically handles these to ensure they are correctly restored when reopening a query.
 
-## 16. Table Visibility & Essential Filter
+## 17. JSON Builder
 
-The Query Builder sidebar includes a visibility toggle to filter between a curated list of "Essential" database tables and the full system catalog:
+The Query Builder includes a dedicated **JSON Builder** tab that allows converting a standard tabular report into a hierarchical JSON document, driven entirely by the database engine via PostgreSQL JSON aggregation functions (`json_build_object`, `json_agg`).
 
-- **Essential List**: Defined in `backend/app/resources/essential_tables.json`. Typically includes core business entities like `users`, `prompts`, `response`, `schemas`, and `metadata`.
-- **Toggle Button**: Located in the "Available Tables" header.
-- **Icons**:
-    - **visibility_off**: Shows only essential tables (Default state).
-    - **visibility**: Shows all available database tables.
-- **API Endpoint**: `GET /database-metadata/essential-tables` fetches the restricted list for frontend filtering.
-- **Refined Button State**: Uses the `toggled` property of the `AppFormButton` to provide visual feedback when the filter is active.
+### 17.1 UI Features
+- **Visual Drag & Drop**: Users can drag any column or established alias from the "Available Fields" (left panel) into the "JSON Structure" tree (right panel).
+- **Tree Hierarchy**:
+  - **Object Node (`{}`)**: Represents a `json_build_object()`. Keys can be renamed.
+  - **Array Node (`[]`)**: Represents a `json_agg()`. Accumulates multiple records into a JSON array list.
+  - **Field Node (`val`)**: A leaf node representing a scalar database value.
+- **SQL Preview**: Generates a real-time preview of the nested JSON SQL expression.
+
+### 17.2 SQL Generation
+When the `jsonTree` array in `MultiQueryState` contains one or more nodes, the generator intercepts the standard output:
+1. **CTE Wrapping**: The entire normal query (with Joins, Where, Group By, CTEs) is shifted into a `WITH meta AS (...)` envelope.
+2. **Recursive JSON Tree**: The visual tree is recursively parsed to emit structured JSON aggregation SQL.
+3. **Execution Mode Switching**: If the tree is cleared (0 nodes), the generator seamlessly defaults back to the normal tabular standard query.
 
 ---
 *Last Updated: 2026-03-25*
