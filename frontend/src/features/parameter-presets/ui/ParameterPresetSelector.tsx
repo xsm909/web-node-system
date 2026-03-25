@@ -29,7 +29,7 @@ export const ParameterPresetSelector: React.FC<ParameterPresetSelectorProps> = (
             source: data.source || '',
             value_field: data.value_field || '',
             label_field: data.label_field || '',
-            default_value: ''
+            default_value: data.default_value ?? ''
         };
         onLoad(newParam);
     };

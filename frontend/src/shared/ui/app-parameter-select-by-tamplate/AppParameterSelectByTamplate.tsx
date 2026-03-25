@@ -114,7 +114,7 @@ export const AppParameterSelectByTamplate: React.FC<AppParameterSelectByTamplate
         <AppFormFieldRect className={`${UI_CONSTANTS.FORM_CONTROL_HEIGHT} ${className}`} disabled={disabled}>
             <input
                 type={parameter.parameter_type === 'number' ? 'number' : parameter.parameter_type === 'date' ? 'date' : 'text'}
-                value={value || ''}
+                value={value ?? ''}
                 onChange={(e) => onChange(e.target.value)}
                 className="w-full bg-transparent outline-none h-full text-xs font-normal"
                 placeholder={placeholder || `Enter ${parameter.parameter_name}...`}

@@ -436,7 +436,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             // Collect parameters from test values state
             const paramValues: Record<string, any> = {};
             parameters.forEach(p => {
-                paramValues[p.parameter_name] = p.default_value || '';
+                paramValues[p.parameter_name] = p.default_value ?? '';
             });
 
             const res = await apiClient.post(`/reports/${report.id}/generate`, { parameters: paramValues });

@@ -80,7 +80,7 @@ const ParameterRow: React.FC<{
     }, [param]);
 
     const getSelectedLabel = () => {
-        if (!value) return "";
+        if (value === undefined || value === null || value === "") return "";
         const item = options.find(i => i.id === String(value));
         if (item) return item.name;
         if (displayValue) return String(displayValue);
@@ -123,7 +123,7 @@ const ParameterRow: React.FC<{
             {param.type !== 'boolean' && (
                 param.options_source?.component === 'ComboBox' ? (
                     <ComboBox
-                        value={String(value || '')}
+                        value={String(value ?? '')}
                         label={getSelectedLabel()}
                         icon="bolt"
                         placeholder={isLoading ? "Loading..." : `Select ${param.label.toLowerCase()}...`}

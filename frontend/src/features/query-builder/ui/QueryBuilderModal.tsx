@@ -1041,8 +1041,8 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     if (name === 'system_project_id') {
                         next[name] = activeProject?.id || '';
                     } else {
-                        const val = (p as any).default_value || (p as any).defaultValue || (p as any).value || (p as any).default || '';
-                        if (val && val !== '') {
+                        const val = (p as any).default_value ?? (p as any).defaultValue ?? (p as any).value ?? (p as any).default;
+                        if (val !== undefined && val !== null && val !== '') {
                             next[name] = val;
                         } else if (next[name] === undefined) {
                             next[name] = '';
@@ -2130,7 +2130,17 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                                                 </span>
                                                                 <span className="text-[10px] text-[var(--text-muted)] shrink-0">—</span>
                                                                 <span className="text-[11px] font-medium text-[var(--text-main)] truncate">
-                                                                    {(p as any).default_value || (p as any).defaultValue || (p as any).value || (p as any).default || parameterValues[p.parameter_name] || <span className="text-[var(--text-muted)] italic opacity-30">(not set)</span>}
+                                                                    {(() => {
+                                                                        // Prioritize the live resolved state (parameterValues) first —
+                                                                        // it holds the project ID for system params and the initialized defaults.
+                                                                        const liveVal = parameterValues[p.parameter_name];
+                                                                        const defVal = (p as any).default_value ?? (p as any).defaultValue ?? (p as any).value ?? (p as any).default;
+                                                                        const val = (liveVal !== undefined && liveVal !== null && liveVal !== '')
+                                                                            ? liveVal
+                                                                            : defVal;
+                                                                        if (val === 0 || val === false) return val.toString();
+                                                                        return val || <span className="text-[var(--text-muted)] italic opacity-30">(not set)</span>;
+                                                                    })()}
                                                                 </span>
                                                             </div>
                                                         </div>
