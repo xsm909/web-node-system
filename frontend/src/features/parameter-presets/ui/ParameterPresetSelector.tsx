@@ -65,8 +65,7 @@ export const ParameterPresetSelector: React.FC<ParameterPresetSelectorProps> = (
             <ComboBox
                 icon="bookmark"
                 placeholder=""
-                title="Load Preset"
-                variant="ghost"
+                title="Add parameter from preset"
                 size="small"
                 hideChevron
                 align="right"
