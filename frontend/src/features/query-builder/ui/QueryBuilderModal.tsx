@@ -31,6 +31,7 @@ import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/A
 import { apiClient } from '../../../shared/api/client';
 import { AppContextMenu } from '../../../shared/ui/app-context-menu';
 import { AppTabulatorTable } from '../../../shared/ui/app-tabulator-table/AppTabulatorTable';
+import { AppJsonView } from '../../../shared/ui/app-json-view/AppJsonView';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { usePresets, type Preset } from '../../../entities/preset';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
@@ -2235,10 +2236,14 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         </div>
                     ) : queryResults.length > 0 ? (
                         <div className="flex-1 h-full min-h-0">
-                            <AppTabulatorTable
-                                data={queryResults}
-                                maxWidth={600}
-                            />
+                            {fullState.jsonTree && fullState.jsonTree.length > 0 ? (
+                                <AppJsonView data={queryResults} />
+                            ) : (
+                                <AppTabulatorTable
+                                    data={queryResults}
+                                    maxWidth={600}
+                                />
+                            )}
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center opacity-40">

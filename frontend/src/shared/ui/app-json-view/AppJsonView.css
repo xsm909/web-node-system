@@ -1,0 +1,118 @@
+.app-json-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-app);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-main);
+}
+
+.app-json-view-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border-base);
+    background: var(--bg-alt);
+}
+
+.json-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border-base);
+    background: var(--bg-app);
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.json-action-btn:hover {
+    color: var(--brand);
+    border-color: var(--brand-alpha);
+    background: var(--brand-alpha-low);
+}
+
+.app-json-view-content {
+    flex: 1;
+    overflow: auto;
+    padding: 16px;
+}
+
+.json-line {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    min-height: 24px;
+}
+
+.json-toggleable {
+    cursor: pointer;
+    user-select: none;
+    border-radius: 4px;
+    margin-left: -20px;
+}
+
+.json-toggleable:hover {
+    background: var(--brand-alpha-low);
+}
+
+.json-icon {
+    width: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+.json-key {
+    color: var(--brand);
+}
+
+.json-punc {
+    color: var(--text-muted);
+}
+
+.json-string {
+    color: #10b981; /* Emerald-500 */
+}
+
+.json-number {
+    color: #f59e0b; /* Amber-500 */
+}
+
+.json-boolean {
+    color: #8b5cf6; /* Violet-500 */
+}
+
+.json-null {
+    color: #ef4444; /* Red-500 */
+    font-style: italic;
+}
+
+.json-dots {
+    background: var(--border-base);
+    border-radius: 3px;
+    padding: 0 4px;
+    margin: 0 4px;
+    color: var(--text-muted);
+    font-size: 10px;
+}
+
+.json-children {
+    display: flex;
+    flex-direction: column;
+}
+
+.rotate-90 {
+    transform: rotate(90deg);
+}
+
+.transition-transform {
+    transition: transform 0.2s ease;
+}
