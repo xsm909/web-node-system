@@ -220,12 +220,36 @@ export const parseSQL = (sql: string): MultiQueryState => {
             }
         }
         
+        // Skip leading comments and whitespace to find the start of the query
+        let startIdx = 0;
+        let inBlockComment = false;
+        while (startIdx < sql.length) {
+            const char = sql[startIdx];
+            const nextChar = sql[startIdx + 1];
+            if (!inBlockComment && char === '/' && nextChar === '*') {
+                inBlockComment = true;
+                startIdx += 2;
+            } else if (inBlockComment && char === '*' && nextChar === '/') {
+                inBlockComment = false;
+                startIdx += 2;
+            } else if (inBlockComment) {
+                startIdx++;
+            } else if (/\s/.test(char)) {
+                startIdx++;
+            } else {
+                break;
+            }
+        }
+
+        const effectiveSql = sql.substring(startIdx);
+        const upperEffectiveSql = effectiveSql.toUpperCase();
+
         // Handle CTEs (WITH clause)
-        if (upperSql.startsWith('WITH ')) {
-            const isRecursive = upperSql.startsWith('WITH RECURSIVE');
-            const firstSelect = findTopLevelToken(sql, ['SELECT']);
+        if (upperEffectiveSql.startsWith('WITH ')) {
+            const isRecursive = upperEffectiveSql.startsWith('WITH RECURSIVE');
+            const firstSelect = findTopLevelToken(sql, ['SELECT'], startIdx);
             if (firstSelect) {
-                const withClause = sql.substring(0, firstSelect.index);
+                const withClause = sql.substring(startIdx, firstSelect.index);
                 const mainQueryContent = sql.substring(firstSelect.index);
                 const ctesContent = withClause.substring(isRecursive ? 15 : 5).trim(); 
                 
@@ -373,12 +397,15 @@ export const parseSQL = (sql: string): MultiQueryState => {
         }
         
         if (finalJsonTree && finalJsonTree.length > 0) {
-            const metaCteIndex = state.ctes.findIndex(c => c.alias.toLowerCase() === 'meta');
+            const metaCteIndex = state.ctes.findIndex(c => {
+                const al = c.alias.toLowerCase();
+                return al === 'meta' || al === '__base_query';
+            });
             if (metaCteIndex !== -1) {
                 state.mainQuery = state.ctes[metaCteIndex].state;
                 state.ctes = state.ctes.filter(c => {
                     const l = c.alias.toLowerCase();
-                    return l !== 'meta' && !l.startsWith('sub_');
+                    return l !== 'meta' && l !== '__base_query' && !l.startsWith('sub_');
                 });
             }
             state.jsonTree = finalJsonTree;
@@ -396,11 +423,26 @@ export const parseSQL = (sql: string): MultiQueryState => {
 const findTopLevelToken = (sql: string, tokens: string[], startPos: number = 0): { token: string, index: number } | null => {
     let parenCount = 0;
     let inString = false;
+    let inComment = false;
     const upperSql = sql.toUpperCase();
     
     for (let i = startPos; i < sql.length; i++) {
         const char = sql[i];
+        const nextChar = sql[i + 1];
         
+        // Handle block comments
+        if (!inString && !inComment && char === '/' && nextChar === '*') {
+            inComment = true;
+            i++;
+            continue;
+        }
+        if (inComment && char === '*' && nextChar === '/') {
+            inComment = false;
+            i++;
+            continue;
+        }
+        if (inComment) continue;
+
         // Handle strings
         if (char === "'" && (i === 0 || sql[i - 1] !== '\\')) {
             inString = !inString;
@@ -418,8 +460,8 @@ const findTopLevelToken = (sql: string, tokens: string[], startPos: number = 0):
                 const upperToken = token.toUpperCase();
                 if (remaining.startsWith(upperToken)) {
                     // Ensure it's a whole word
-                    const nextChar = remaining[upperToken.length];
-                    if (!nextChar || !/[A-Z0-9_]/.test(nextChar)) {
+                    const nextCharAfterToken = remaining[upperToken.length];
+                    if (!nextCharAfterToken || !/[A-Z0-9_]/.test(nextCharAfterToken)) {
                         return { token: upperToken, index: i };
                     }
                 }

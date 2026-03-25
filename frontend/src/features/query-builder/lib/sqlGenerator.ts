@@ -387,12 +387,12 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
         jsonTree: [],
         ctes: state.ctes.filter(c => {
             const l = c.alias.toLowerCase();
-            return l !== 'meta' && !l.startsWith('sub_');
+            return l !== 'meta' && l !== '__base_query' && !l.startsWith('sub_');
         })
     };
     const innerSql = generateSQL(baseState, options);
     
-    let fullSql = `${stateComment}WITH meta AS (\n${innerSql.split('\n').map(l => '    ' + l).join('\n')}\n)\n`;
+    let fullSql = `${stateComment}WITH __base_query AS (\n${innerSql.split('\n').map(l => '    ' + l).join('\n')}\n)\n`;
 
     const arraysList = collectArrays(tree);
     const arrayLevels = groupArraysByLevel(arraysList);
@@ -401,7 +401,7 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
     let currentFields = new Set(getAllFieldRefs(tree));
     let currentAggs = new Set<string>();
     const subqueries: string[] = [];
-    let prevTable = 'meta';
+    let prevTable = '__base_query';
 
     for (let i = 0; i < arrayLevels.length; i++) {
         const levelArrays = arrayLevels[i];
