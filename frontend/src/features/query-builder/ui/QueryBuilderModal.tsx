@@ -1006,6 +1006,14 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     }, [effectiveSql]);
 
     useEffect(() => {
+        // If we switch to a subquery/CTE while on the JSON Builder tab, 
+        // redirect to the 'tables' tab since JSON Builder is only for the main query.
+        if (activeBlockId !== 'main' && activeTab === 'json_builder') {
+            setActiveTab('tables');
+        }
+    }, [activeBlockId, activeTab]);
+
+    useEffect(() => {
         const isOpening = isOpen && !prevIsOpenRef.current;
         prevIsOpenRef.current = isOpen;
 
@@ -2058,11 +2066,11 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                         { id: 'joins', label: 'Joins' },
                                         { id: 'conditions', label: 'Conditions' },
                                         { id: 'grouping_sorting', label: 'Grouping & Sorting' },
-                                        { 
+                                        ...(activeBlockId === 'main' ? [{ 
                                             id: 'json_builder', 
                                             label: fullState.jsonTree && fullState.jsonTree.length > 0 ? 'JSON Builder (Active)' : 'JSON Builder',
                                             icon: fullState.jsonTree && fullState.jsonTree.length > 0 ? 'data_object' : undefined
-                                        }
+                                        }] : [])
                                     ]}
                                     activeTab={activeTab}
                                     onTabChange={(tabId: string) => setActiveTab(tabId as any)}
@@ -2236,7 +2244,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         </div>
                     ) : queryResults.length > 0 ? (
                         <div className="flex-1 h-full min-h-0">
-                            {fullState.jsonTree && fullState.jsonTree.length > 0 ? (
+                            {activeBlockId === 'main' && fullState.jsonTree && fullState.jsonTree.length > 0 ? (
                                 <AppJsonView data={queryResults} />
                             ) : (
                                 <AppTabulatorTable
