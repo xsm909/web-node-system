@@ -48,6 +48,8 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const [isSaving, setIsSaving] = useState(false);
     const [isCompiling, setIsCompiling] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
+    const [showLayoutModal, setShowLayoutModal] = useState(false);
     const [reportEditorIsDirty, setReportEditorIsDirty] = useState(false);
     const styleEditorRef = useRef<StyleEditorRef>(null);
     const [styleEditorIsDirty, setStyleEditorIsDirty] = useState(false);
@@ -70,6 +72,21 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
             setActiveTab('preview');
         } finally {
             setIsGenerating(false);
+        }
+    };
+
+    const handleHeaderGenerateTemplate = async () => {
+        if (isGeneratingTemplate || view !== 'edit') return;
+        setShowLayoutModal(true);
+    };
+
+    const handleSelectLayout = async (layout: 'table' | 'structural') => {
+        setShowLayoutModal(false);
+        setIsGeneratingTemplate(true);
+        try {
+            await reportEditorRef.current?.handleGenerateTemplate(layout);
+        } finally {
+            setIsGeneratingTemplate(false);
         }
     };
 
@@ -359,6 +376,16 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                                 iconSize={18}
                             />
                         )}
+                        {activeTab === 'template' && (
+                            <AppRoundButton
+                                icon={isGeneratingTemplate ? "refresh" : "wizard"}
+                                onClick={handleHeaderGenerateTemplate}
+                                isLoading={isGeneratingTemplate}
+                                variant="outline"
+                                title="Generate Template"
+                                iconSize={18}
+                            />
+                        )}
                         <AppRoundButton
                             icon={isGenerating ? "refresh" : "play"}
                             onClick={handleHeaderGenerate}
@@ -520,6 +547,59 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 onConfirm={confirmDelete}
                 onCancel={() => setIdToDelete(null)}
             />
+
+            {showLayoutModal && (
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                        onClick={() => setShowLayoutModal(false)}
+                    />
+                    <div className="relative w-full max-w-sm bg-surface-800 border border-[var(--border-base)] rounded-[2rem] p-10 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                        <div className="w-16 h-16 rounded-3xl bg-brand-500/10 flex items-center justify-center mb-6 border border-brand-500/20">
+                            <Icon name="play" size={28} className="text-brand-500" />
+                        </div>
+                        <h2 className="text-2xl font-black text-[var(--text-main)] mb-3 tracking-tight">Generate Template</h2>
+                        <p className="text-sm text-[var(--text-muted)] leading-relaxed mb-8 opacity-70 font-medium">
+                            Choose how you want to structure your report based on your data.
+                        </p>
+                        
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => handleSelectLayout('table')}
+                                className="flex items-center gap-4 p-4 rounded-2xl bg-surface-700 hover:bg-surface-600 border border-[var(--border-base)] transition-all group text-left"
+                            >
+                                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 group-hover:bg-blue-500/20">
+                                    <Icon name="play" size={20} className="text-blue-500" />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-[var(--text-main)] transition-colors group-hover:text-brand-400">Table (Flat)</div>
+                                    <div className="text-[var(--text-muted)] text-xs">Best for simple lists and grids</div>
+                                </div>
+                            </button>
+                            
+                            <button
+                                onClick={() => handleSelectLayout('structural')}
+                                className="flex items-center gap-4 p-4 rounded-2xl bg-surface-700 hover:bg-surface-600 border border-[var(--border-base)] transition-all group text-left"
+                            >
+                                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 group-hover:bg-amber-500/20">
+                                    <Icon name="article" size={20} className="text-amber-500" />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-[var(--text-main)] transition-colors group-hover:text-brand-400">Structural (Nested)</div>
+                                    <div className="text-[var(--text-muted)] text-xs">Best for complex, hierarchical data</div>
+                                </div>
+                            </button>
+                        </div>
+                        
+                        <button
+                            onClick={() => setShowLayoutModal(false)}
+                            className="w-full mt-6 py-3 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors uppercase tracking-widest active:scale-95"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -36,6 +36,7 @@ export interface ReportEditorRef {
     handleSave: (params?: { project_id?: string | null }) => Promise<Report | void>;
     handleCompile: () => Promise<void>;
     handleGenerate: () => Promise<void>;
+    handleGenerateTemplate: (layout?: 'table' | 'structural') => Promise<void>;
     handleOpenQueryBuilder: () => void;
     isSaving: boolean;
     isCompiling: boolean;
@@ -326,11 +327,42 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
         handleSave,
         handleCompile,
         handleGenerate,
+        handleGenerateTemplate,
         handleOpenQueryBuilder,
         isSaving,
         isCompiling,
         isGenerating
     }));
+
+    const handleGenerateTemplate = async (layout?: 'table' | 'structural') => {
+        // 1. Compile first to get the latest schema
+        await handleCompile();
+        
+        if (!schemaJson || Object.keys(schemaJson).length === 0) {
+            alert("Could not generate template: Schema is empty. Please check your SQL query and Compile again.");
+            return;
+        }
+
+        try {
+            const res = await apiClient.post('/reports/generate-template', {
+                report_id: report?.id,
+                schema_json: schemaJson,
+                query: code, // Pass the whole code as context
+                additional_info: layout === 'table' 
+                    ? 'LAYOUT REQUIREMENT: Use a FLAT <table> layout for all data.' 
+                    : layout === 'structural' 
+                    ? 'LAYOUT REQUIREMENT: Use a STRUCTURAL layout (headers, lists, sections) instead of a table.' 
+                    : undefined
+            });
+            
+            if (res.data.template) {
+                setTemplate(res.data.template);
+            }
+        } catch (error: any) {
+            console.error("Failed to generate AI template", error);
+            alert("Failed to generate AI template: " + (error.response?.data?.detail || error.message));
+        }
+    };
 
     const handleSave = async (params?: { project_id?: string | null }) => {
         if (!name || !code || !template) {

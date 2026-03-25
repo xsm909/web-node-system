@@ -114,6 +114,8 @@ class ReportCompileResponse(BaseModel):
 class ReportTemplateGenerateRequest(BaseModel):
     report_id: Optional[uuid.UUID] = None
     schema_json: Optional[Dict[str, Any]] = None
+    query: Optional[str] = None
+    additional_info: Optional[str] = None
 
 class ReportTemplateGenerateResponse(BaseModel):
     template: str
@@ -632,27 +634,36 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
 
     prompt = f"""
     You are an expert report template designer. 
-    Please create a Jinja2 template in HTML for the following SQL query. 
-    The context passed to your template will contain a variable called `data`, which is a list of dictionaries representing the rows of the SQL query result.
+    Please create a Jinja2 template in HTML for the following SQL query and its resulting data schema.
+    
+    The context passed to your template will contain:
+    - `rows`: A list of dictionaries representing the query result rows.
+    - `data`: (Alias) Same as `rows`. You can also access the first row as `rows[0]`.
+
     Provide ONLY the raw template code, without any markdown formatting or explanations.
-    If you use styling, prefer inline CSS or a clean `<style>` block.
     Ensure all text in the template is in English.
 
-    STYLE GUIDELINE:
-    {additional_context}
-    
     SQL Query:
     {query_text}
 
-    Important: 
-    - If the SQL query returned is a single row with a JSON column (e.g., using `json_agg` or `json_build_object`), make sure to iterate over the nested data correctly in Jinja2.
-    - The `data` variable is always a list of dictionaries (rows). If the entire result is encapsulated in one JSON field of the first row, you must access it as `data[0].field_name`.
-    - CRITICAL: When iterating over a list, check if the items are STRINGS or OBJECTS.
-      - If it's a list of strings: `{{% for item in list %}}{{{{ item }}}}{{% endfor %}}`.
-      - If it's a list of objects (dictionaries): `{{% for item in list %}}{{{{ item.property_name }}}}{{% endfor %}}`.
-    - Handle potential `None` or missing numeric values using the `default` filter before applying numeric filters like `round`. 
-    - CRITICAL: Use `{{{{ item.value | default(0) | round(2) }}}}` instead of `{{{{ item.value | round(2) }}}}` to avoid "Undefined doesn't define __round__ method" errors.
-    - Provide a clean, modern design with a focused structure.
+    Result Schema (JSON Schema):
+    {json.dumps(data.schema_json, indent=2) if data.schema_json else "Not provided"}
+
+    REPORT DESIGN GUIDELINES (CRITICAL):
+    1. SELECTION OF LAYOUT:
+       - FLAT DATA (Simple Rows): If the items in `rows` only contain primitive fields (strings, numbers, simple dates), USE A FLAT `<table>`.
+       - NESTED DATA (JSON-Builder Style): If the items in `rows` contain complex nested objects or arrays (e.g., `rows[0].result` or `rows[0].Models`), DO NOT use a flat table. Instead, use a **STRUCTURAL** approach:
+         - Hierarchical headers (<h1>-<h3>) for categories.
+         - Definition lists (<dl>) or sections for objects.
+         - Nested lists (<ul>/<li>) for arrays.
+    2. CLEANLINESS: The report MUST BE CLEAN AND MINIMAL. Use semantic HTML. 
+    3. NO INLINE STYLES: DO NOT USE ANY INLINE CSS OR STYLE ATTRIBUTES. CSS is handled separately.
+    4. DATA ACCESS: 
+       - If the result is a single row with a complex JSON column (e.g., named 'result'), access it as `rows[0].result`.
+       - Example for nested iteration: `{{% for model in rows[0].result.Models %}}...{{% endfor %}}`.
+    5. SAFETY: Use the `default` filter for potential `None` values (e.g., `{{ item.val | default(0) }}`).
+
+    {data.additional_info if data.additional_info else ""}
     """
     
     response_text = openai_ask_single(prompt, "gpt-4o")
@@ -663,6 +674,7 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     template_text = response_text
     template_text = re.sub(r'^```html\n', '', template_text, flags=re.MULTILINE)
     template_text = re.sub(r'^```jinja2\n', '', template_text, flags=re.MULTILINE)
+    template_text = re.sub(r'^```jinja\n', '', template_text, flags=re.MULTILINE)
     template_text = re.sub(r'^```j2\n', '', template_text, flags=re.MULTILINE)
     template_text = re.sub(r'^```\n', '', template_text, flags=re.MULTILINE)
     template_text = re.sub(r'```$', '', template_text, flags=re.MULTILINE)
