@@ -1,34 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Icon } from '../icon';
 import type { ObjectParameter } from '../../../entities/report/model/types';
 import { AppParameterSelectByTamplate } from '../app-parameter-select-by-tamplate';
 import { AppFormFieldRect } from '../app-input';
 import { UI_CONSTANTS } from '../constants';
-import { usePresets, type Preset } from '../../../features/query-builder/lib/usePresets';
-import { ComboBox } from '../combo-box/ComboBox';
 import { AppFormButton } from '../app-form-button/AppFormButton';
-import { AppCompactModalForm } from '../app-compact-modal-form/AppCompactModalForm';
 
 interface AppParameterListEditorProps {
     parameters: ObjectParameter[];
     onChange: (parameters: ObjectParameter[]) => void;
     options?: Record<string, { value: string, label: string }[]>;
+    renderHeaderActions?: () => React.ReactNode;
+    renderParameterActions?: (param: ObjectParameter) => React.ReactNode;
+    isLocked?: boolean;
 }
 
 export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
     parameters,
     onChange,
-    options = {}
+    options = {},
+    renderHeaderActions,
+    renderParameterActions,
+    isLocked = false
 }) => {
-    const { presets, fetchPresets, savePreset } = usePresets('parameter');
-    const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-    const [presetName, setPresetName] = useState('');
-    const [paramToSave, setParamToSave] = useState<ObjectParameter | null>(null);
-
-    useEffect(() => {
-        fetchPresets();
-    }, [fetchPresets]);
-
     const handleAdd = () => {
         const newParam: ObjectParameter = {
             id: `temp_${Date.now()}`,
@@ -54,76 +48,21 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
         onChange(newParams);
     };
 
-    const handleSavePresetClick = (param: ObjectParameter) => {
-        setParamToSave(param);
-        setPresetName(param.parameter_name || '');
-        setIsSaveModalOpen(true);
-    };
-
-    const onConfirmSavePreset = async () => {
-        if (!presetName.trim() || !paramToSave) return;
-        try {
-            // Save only relevant configuration fields for select type
-            const data = {
-                parameter_name: paramToSave.parameter_name,
-                parameter_type: paramToSave.parameter_type,
-                source: paramToSave.source,
-                value_field: paramToSave.value_field,
-                label_field: paramToSave.label_field,
-                default_value: paramToSave.default_value
-            };
-            await savePreset(presetName, data);
-            setIsSaveModalOpen(false);
-            setParamToSave(null);
-            setPresetName('');
-        } catch (err) {
-            console.error('Failed to save parameter preset:', err);
-        }
-    };
-
-    const handleLoadPreset = (preset: Preset) => {
-        const data = preset.preset_data;
-        const newParam: ObjectParameter = {
-            id: `preset_${Date.now()}`,
-            parameter_name: data.parameter_name || '',
-            parameter_type: data.parameter_type || 'select',
-            source: data.source || '',
-            value_field: data.value_field || '',
-            label_field: data.label_field || '',
-            default_value: data.default_value || ''
-        };
-        onChange([...parameters, newParam]);
-    };
-
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Parameters</h3>
                 <div className="flex items-center gap-2">
-                    <ComboBox
-                        icon="bookmark"
-                        placeholder=""
-                        title="Load Preset"
-                        variant="ghost"
-                        size="small"
-                        hideChevron
-                        align="right"
-                        items={presets.map(p => ({
-                            id: p.id,
-                            name: p.name
-                        }))}
-                        onSelect={(item) => {
-                            const preset = presets.find(p => p.id === item.id);
-                            if (preset) handleLoadPreset(preset);
-                        }}
-                    />
-                    <button
-                        onClick={handleAdd}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs font-normal hover:bg-[var(--bg-hover)] transition-all h-[32px]"
-                    >
-                        <Icon name="add" size={14} />
-                        Add Parameter
-                    </button>
+                    {renderHeaderActions?.()}
+                    {!isLocked && (
+                        <button
+                            onClick={handleAdd}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs font-normal hover:bg-[var(--bg-hover)] transition-all h-[32px]"
+                        >
+                            <Icon name="add" size={14} />
+                            Add Parameter
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -135,45 +74,41 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                                 <span>Parameter</span>
                             </div>
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                {param.parameter_type === 'select' && (
+                                {renderParameterActions?.(param)}
+                                {!isLocked && (
                                     <AppFormButton
-                                        icon="bookmark_add"
-                                        onClick={() => handleSavePresetClick(param)}
-                                        title="Save as Preset"
+                                        icon="delete"
+                                        onClick={() => handleRemove(index)}
+                                        title="Delete Parameter"
                                         withFrame={false}
-                                        className="!p-1"
+                                        className="!p-1 hover:text-red-500"
                                     />
                                 )}
-                                <AppFormButton
-                                    icon="delete"
-                                    onClick={() => handleRemove(index)}
-                                    title="Delete Parameter"
-                                    withFrame={false}
-                                    className="!p-1 hover:text-red-500"
-                                />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5 flex flex-col">
                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Parameter Name</label>
-                                <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
+                                <AppFormFieldRect disabled={isLocked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                     <input
                                         type="text"
                                         value={param.parameter_name}
                                         onChange={(e) => updateParam(index, { parameter_name: e.target.value })}
-                                        className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                                        className="w-full bg-transparent outline-none h-full text-xs font-normal disabled:opacity-50"
                                         placeholder="e.g. user_id"
+                                        disabled={isLocked}
                                     />
                                 </AppFormFieldRect>
                             </div>
                             <div className="space-y-1.5 flex flex-col">
                                 <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Type</label>
-                                <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
+                                <AppFormFieldRect disabled={isLocked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                     <select
                                         value={param.parameter_type}
                                         onChange={(e) => updateParam(index, { parameter_type: e.target.value as any })}
-                                        className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer"
+                                        className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer disabled:opacity-50"
+                                        disabled={isLocked}
                                     >
                                         <option value="text">Text</option>
                                         <option value="number">Number</option>
@@ -189,37 +124,40 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Source (@table or SQL)</label>
-                                    <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
+                                    <AppFormFieldRect disabled={isLocked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                         <input
                                             type="text"
                                             value={param.source}
                                             onChange={(e) => updateParam(index, { source: e.target.value })}
-                                            className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                                            className="w-full bg-transparent outline-none h-full text-xs font-normal disabled:opacity-50"
                                             placeholder="@users->id,name"
+                                            disabled={isLocked}
                                         />
                                     </AppFormFieldRect>
                                 </div>
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Value Field</label>
-                                    <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
+                                    <AppFormFieldRect disabled={isLocked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                         <input
                                             type="text"
                                             value={param.value_field}
                                             onChange={(e) => updateParam(index, { value_field: e.target.value })}
-                                            className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                                            className="w-full bg-transparent outline-none h-full text-xs font-normal disabled:opacity-50"
                                             placeholder="id"
+                                            disabled={isLocked}
                                         />
                                     </AppFormFieldRect>
                                 </div>
                                 <div className="space-y-1.5 flex flex-col">
                                     <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Label Field</label>
-                                    <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
+                                    <AppFormFieldRect disabled={isLocked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
                                         <input
                                             type="text"
                                             value={param.label_field}
                                             onChange={(e) => updateParam(index, { label_field: e.target.value })}
-                                            className="w-full bg-transparent outline-none h-full text-xs font-normal"
+                                            className="w-full bg-transparent outline-none h-full text-xs font-normal disabled:opacity-50"
                                             placeholder="name"
+                                            disabled={isLocked}
                                         />
                                     </AppFormFieldRect>
                                 </div>
@@ -233,6 +171,7 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                                 value={param.default_value}
                                 onChange={(val) => updateParam(index, { default_value: val })}
                                 options={options[param.parameter_name] || []}
+                                disabled={isLocked}
                             />
                         </div>
                     </div>
@@ -241,40 +180,18 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                 {parameters.length === 0 && (
                     <div className="py-12 border-2 border-dashed border-[var(--border-base)] rounded-2xl flex flex-col items-center justify-center text-[var(--text-muted)]">
                         <Icon name="tune" size={32} className="mb-3 opacity-20" />
-                        <p className="text-sm font-normal">No parameters defined for this workflow.</p>
-                        <button
-                            onClick={handleAdd}
-                            className="mt-4 text-xs font-normal text-brand hover:underline"
-                        >
-                            Add your first parameter
-                        </button>
+                        <p className="text-sm font-normal">No parameters defined.</p>
+                        {!isLocked && (
+                            <button
+                                onClick={handleAdd}
+                                className="mt-4 text-xs font-normal text-brand hover:underline"
+                            >
+                                Add your first parameter
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
-
-            <AppCompactModalForm
-                isOpen={isSaveModalOpen}
-                onClose={() => setIsSaveModalOpen(false)}
-                onSubmit={onConfirmSavePreset}
-                title="Save Parameter Preset"
-                icon="bookmark_add"
-            >
-                <div className="space-y-4">
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Preset Name</label>
-                        <AppFormFieldRect className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
-                            <input
-                                autoFocus
-                                type="text"
-                                value={presetName}
-                                onChange={(e) => setPresetName(e.target.value)}
-                                className="w-full bg-transparent outline-none h-full text-xs font-normal"
-                                placeholder="Enter preset name..."
-                            />
-                        </AppFormFieldRect>
-                    </div>
-                </div>
-            </AppCompactModalForm>
         </div>
     );
 };

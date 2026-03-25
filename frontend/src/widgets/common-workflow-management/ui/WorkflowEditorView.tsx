@@ -13,6 +13,8 @@ import { AppConsole, AppConsoleLogLine, type ConsoleLog } from '../../../shared/
 import { useWorkflowEditor } from './WorkflowEditorProvider';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { apiClient } from '../../../shared/api/client';
+import { ParameterPresetSelector, SaveParameterPresetButton } from '../../../features/parameter-presets';
+import type { ObjectParameter } from '../../../entities/report/model/types';
 
 interface WorkflowEditorViewProps {
     onBack: () => void;
@@ -260,6 +262,17 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
                                 parameters={modalParams}
                                 onChange={setModalParams}
                                 options={paramOptions}
+                                isLocked={activeWorkflow.is_locked}
+                                renderHeaderActions={() => (
+                                    <ParameterPresetSelector 
+                                        onLoad={(param) => setModalParams([...modalParams, param])} 
+                                    />
+                                )}
+                                renderParameterActions={(param: ObjectParameter) => (
+                                    param.parameter_type === 'select' && (
+                                        <SaveParameterPresetButton parameter={param} />
+                                    )
+                                )}
                             />
                         </AppCompactModalForm>
                     )}

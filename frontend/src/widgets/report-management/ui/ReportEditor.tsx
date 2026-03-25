@@ -17,8 +17,9 @@ import { AppCategoryInput } from "../../../shared/ui/app-category-input/AppCateg
 import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
 import { AppConsole, AppConsoleLogLine } from "../../../shared/ui/app-console";
 import { QueryBuilderModal } from "../../../features/query-builder/ui/QueryBuilderModal";
-import { AppParameterSelectByTamplate } from "../../../shared/ui/app-parameter-select-by-tamplate";
 import { SYSTEM_PARAMETERS } from "../../../entities/report/model/constants";
+import { AppParameterListEditor } from "../../../shared/ui/app-parameter-list-editor";
+import { ParameterPresetSelector, SaveParameterPresetButton } from "../../../features/parameter-presets";
 
 
 interface ReportEditorProps {
@@ -511,167 +512,22 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
 
                     {/* Parameter Management */}
                     <div className="pt-6 border-t border-[var(--border-base)]">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xs font-normal uppercase tracking-widest text-[var(--text-muted)]">Parameters</h3>
-                            {!isLocked && (
-                                <button
-                                    onClick={() => {
-                                        const newParam: any = {
-                                            id: `temp_${Date.now()}`,
-                                            parameter_name: '',
-                                            parameter_type: 'text',
-                                            default_value: '',
-                                            source: '',
-                                            value_field: '',
-                                            label_field: ''
-                                        };
-                                        setParameters([...parameters, newParam]);
-                                    }}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-base)] text-xs font-normal hover:bg-[var(--bg-hover)] transition-all"
-                                >
-                                    <Icon name="plus" size={14} />
-                                    Add Parameter
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="space-y-4">
-                            {parameters.map((param, index) => (
-                                <div key={param.id} className="p-4 rounded-xl border border-[var(--border-base)] bg-[var(--bg-app)] space-y-4 relative group">
-                                    {!isLocked && (
-                                        <button
-                                            onClick={() => {
-                                                const newParams = [...parameters];
-                                                newParams.splice(index, 1);
-                                                setParameters(newParams);
-                                            }}
-                                            className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                        >
-                                            <Icon name="delete" size={16} />
-                                        </button>
-                                    )}
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Parameter Name</label>
-                                            <AppFormFieldRect disabled={isLocked} className={`px-3 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
-                                                <input
-                                                    type="text"
-                                                    value={param.parameter_name}
-                                                    onChange={(e) => {
-                                                        const newParams = [...parameters];
-                                                        newParams[index].parameter_name = e.target.value;
-                                                        setParameters(newParams);
-                                                    }}
-                                                    className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal"
-                                                    placeholder="e.g. user_id"
-                                                    disabled={isLocked}
-                                                />
-                                            </AppFormFieldRect>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Type</label>
-                                            <AppFormFieldRect disabled={isLocked} className={`px-3 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
-                                                <select
-                                                    value={param.parameter_type}
-                                                    onChange={(e) => {
-                                                        const newParams = [...parameters];
-                                                        newParams[index].parameter_type = e.target.value as any;
-                                                        setParameters(newParams);
-                                                    }}
-                                                    className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal cursor-pointer"
-                                                    disabled={isLocked}
-                                                >
-                                                    <option value="text">Text</option>
-                                                    <option value="number">Number</option>
-                                                    <option value="date">Date</option>
-                                                    <option value="date_range">Date Range</option>
-                                                    <option value="select">Select (Dropdown)</option>
-                                                </select>
-                                            </AppFormFieldRect>
-                                        </div>
-                                    </div>
-
-                                    {param.parameter_type === 'select' && (
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Source (@table or SQL)</label>
-                                                <AppFormFieldRect disabled={isLocked} className={`px-3 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
-                                                    <input
-                                                        type="text"
-                                                        value={param.source}
-                                                        onChange={(e) => {
-                                                            const newParams = [...parameters];
-                                                            newParams[index].source = e.target.value;
-                                                            setParameters(newParams);
-                                                        }}
-                                                        className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal"
-                                                        placeholder="@users->id,name"
-                                                        disabled={isLocked}
-                                                    />
-                                                </AppFormFieldRect>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Value Field</label>
-                                                <AppFormFieldRect disabled={isLocked} className={`px-3 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
-                                                    <input
-                                                        type="text"
-                                                        value={param.value_field}
-                                                        onChange={(e) => {
-                                                            const newParams = [...parameters];
-                                                            newParams[index].value_field = e.target.value;
-                                                            setParameters(newParams);
-                                                        }}
-                                                        className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal"
-                                                        placeholder="id"
-                                                        disabled={isLocked}
-                                                    />
-                                                </AppFormFieldRect>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Label Field</label>
-                                                <AppFormFieldRect disabled={isLocked} className={`px-3 ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
-                                                    <input
-                                                        type="text"
-                                                        value={param.label_field}
-                                                        onChange={(e) => {
-                                                            const newParams = [...parameters];
-                                                            newParams[index].label_field = e.target.value;
-                                                            setParameters(newParams);
-                                                        }}
-                                                        className="w-full bg-transparent outline-none disabled:opacity-50 h-full text-xs font-normal"
-                                                        placeholder="name"
-                                                        disabled={isLocked}
-                                                    />
-                                                </AppFormFieldRect>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Default Value</label>
-                                        <AppParameterSelectByTamplate
-                                            parameter={param}
-                                            value={param.default_value}
-                                            onChange={(val) => {
-                                                const newParams = [...parameters];
-                                                newParams[index].default_value = val;
-                                                setParameters(newParams);
-                                            }}
-                                            options={paramOptions[param.parameter_name]}
-                                            disabled={isLocked}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-
-                            {parameters.length === 0 && (
-                                <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-[var(--border-base)] rounded-2xl opacity-40">
-                                    <Icon name="settings" size={32} className="mb-2 text-[var(--text-muted)]" />
-                                    <p className="text-xs font-medium">No parameters defined for this report.</p>
-                                </div>
-                            )}
-                        </div>
+                        <AppParameterListEditor
+                             parameters={parameters}
+                             onChange={setParameters}
+                             options={paramOptions}
+                             isLocked={isLocked}
+                             renderHeaderActions={() => (
+                                 <ParameterPresetSelector 
+                                     onLoad={(param) => setParameters([...parameters, param])} 
+                                 />
+                             )}
+                             renderParameterActions={(param) => (
+                                 param.parameter_type === 'select' && (
+                                     <SaveParameterPresetButton parameter={param} />
+                                 )
+                             )}
+                        />
                     </div>
                 </div>
             )}

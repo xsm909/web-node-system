@@ -31,7 +31,7 @@ import { apiClient } from '../../../shared/api/client';
 import { AppContextMenu } from '../../../shared/ui/app-context-menu';
 import { AppTabulatorTable } from '../../../shared/ui/app-tabulator-table/AppTabulatorTable';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
-import { usePresets, type Preset } from '../lib/usePresets';
+import { usePresets, type Preset } from '../../../entities/preset';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { AppFormButton } from '../../../shared/ui/app-form-button/AppFormButton';
 
