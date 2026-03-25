@@ -3,6 +3,14 @@ import type { MultiQueryState, QueryState, QueryCTE, JsonTreeNode } from '../mod
 const q = (id: string, tableAlias?: string): string => {
     if (!id || id === '*') return id;
     
+    // Handle dotted identifiers (e.g. "public.table" or "table.column")
+    if (id.includes('.') && !id.includes('"')) {
+        const parts = id.split('.');
+        // If we have table.column, we apply tableAlias to the table part if needed
+        // but usually id is already fully qualified or just a column.
+        return parts.map(p => q(p)).join('.');
+    }
+
     // Strip table prefix if it's redundant (e.g. users.users.id -> id)
     let cleanId = id;
     if (tableAlias) {
@@ -336,7 +344,7 @@ function getDirectChildArrayIds(nodes: import('../model/types').JsonTreeNode[]):
 function formatNodeAccess(node: import('../model/types').JsonTreeNode, indent: number, arrayAliases: Record<string, string>): string {
     const innerPad = ' '.repeat(indent * 4);
     if (node.type === 'field') {
-        return `"${(node.fieldRef || node.key).replace(/"/g, '')}"`;
+        return q(node.fieldRef || node.key);
     }
     if (node.type === 'object') {
         if (!node.children || node.children.length === 0) return 'NULL';
@@ -382,6 +390,7 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
 
     const stateComment = `/* JSON_BUILDER_STATE: ${JSON.stringify(tree)} */\n`;
 
+    // 1. Prepare base query state (extracting main query block)
     const baseState = { 
         ...state, 
         jsonTree: [],
@@ -390,75 +399,78 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
             return l !== 'meta' && l !== '__base_query' && !l.startsWith('sub_');
         })
     };
-    const innerSql = generateSQL(baseState, options);
     
-    let fullSql = `${stateComment}WITH __base_query AS (\n${innerSql.split('\n').map(l => '    ' + l).join('\n')}\n)\n`;
+    // 2. Generate the flat CTE block
+    const sortedCtes = sortCtesByDependency(baseState.ctes);
+    const hasRecursive = sortedCtes.some(c => c.isRecursive);
+    const cteParts: string[] = sortedCtes.map(cte => 
+        `${q(cte.alias)} AS (\n${generateBlockSQL(cte.state).split('\n').map(l => '    ' + l).join('\n')}\n)`
+    );
 
+    // Initial columns from base query for grouping context
+    let currentTableColumns = new Set(state.mainQuery.selectedFields.map(f => f.alias || f.columnName || ''));
+    if (currentTableColumns.has('*')) {
+        currentTableColumns.delete('*');
+        getAllFieldRefs(tree).forEach(f => currentTableColumns.add(f.split('.').pop() || ''));
+    }
+
+    // 3. Add __base_query to the CTE list
+    const mainBlockInnerSql = generateBlockSQL(baseState.mainQuery, options);
+    cteParts.push(`__base_query AS (\n${mainBlockInnerSql.split('\n').map(l => '    ' + l).join('\n')}\n)`);
+
+    const arrayCtes: { alias: string, sql: string }[] = [];
     const arraysList = collectArrays(tree);
     const arrayLevels = groupArraysByLevel(arraysList);
     const arrayAliases: Record<string, string> = {};
-    
-    let currentFields = new Set(getAllFieldRefs(tree));
-    let currentAggs = new Set<string>();
-    const subqueries: string[] = [];
     let prevTable = '__base_query';
 
+    // 4. Build subqueries from innermost levels out
     for (let i = 0; i < arrayLevels.length; i++) {
         const levelArrays = arrayLevels[i];
+        const subAlias = `sub_${i}`;
         
         levelArrays.forEach((arr, idx) => {
             arrayAliases[arr.id] = `arr_${i}_${idx}`;
         });
 
-        const levelDirectFields = new Set<string>();
-        const levelChildAggAliases = new Set<string>();
-        
-        levelArrays.forEach(arr => {
-            getArrayDirectFields(arr).forEach(f => levelDirectFields.add(f));
-            getDirectChildArrayIds(arr.children || []).forEach(id => {
-                if (arrayAliases[id]) levelChildAggAliases.add(arrayAliases[id]);
-            });
-        });
-
-        levelDirectFields.forEach(f => currentFields.delete(f));
-        currentAggs.forEach(a => { if (levelChildAggAliases.has(a)) currentAggs.delete(a); });
-
-        const groupByCols = [...Array.from(currentFields), ...Array.from(currentAggs)].map(c => `"${c}"`);
-        const selectCols = [...groupByCols];
+        const aggAliasesAtThisLevel = new Set(levelArrays.map(a => arrayAliases[a.id]));
+        const carryOverCols = Array.from(currentTableColumns).filter(c => !aggAliasesAtThisLevel.has(c));
+        const selectCols = carryOverCols.map(c => q(c));
         
         levelArrays.forEach(arr => {
             const innerPairs = (arr.children || []).map(child =>
-                `                '${child.key}', ${formatNodeAccess(child, 4, arrayAliases)}`
+                `                '${child.key || (child.type === 'field' ? child.fieldRef?.split('.').pop() : 'obj')}', ${formatNodeAccess(child, 4, arrayAliases)}`
             ).join(',\n');
             
-            const orderBy = arr.orderByRef ? ` ORDER BY "${arr.orderByRef.replace(/"/g, '')}"` : '';
+            const orderBy = arr.orderByRef ? ` ORDER BY ${q(arr.orderByRef)}` : '';
             const aggAlias = arrayAliases[arr.id];
-            const aggExpr = `json_agg(\n            json_build_object(\n${innerPairs}\n            )${orderBy}\n        ) AS "${aggAlias}"`;
+            const aggExpr = `json_agg(\n            json_build_object(\n${innerPairs}\n            )${orderBy}\n        ) AS ${q(aggAlias)}`;
             selectCols.push(aggExpr);
         });
 
-        const groupByClause = groupByCols.length > 0 ? `\n    GROUP BY ${groupByCols.join(', ')}` : '';
-        
+        const groupByClause = carryOverCols.length > 0 ? `\n    GROUP BY ${carryOverCols.map(c => q(c)).join(', ')}` : '';
         const subSql = `    SELECT \n        ${selectCols.join(',\n        ')}\n    FROM ${prevTable}${groupByClause}`;
         
-        subqueries.push(`sub_${i} AS (\n${subSql}\n)`);
-        prevTable = `sub_${i}`;
-        
-        levelArrays.forEach(arr => currentAggs.add(arrayAliases[arr.id]));
-    }
-    
-    if (subqueries.length > 0) {
-        const subList = subqueries.join(',\n');
-        fullSql = fullSql.replace(/\)\n$/, `),\n${subList}\n\n`);
-    } else {
-        fullSql += '\n';
+        arrayCtes.push({ alias: subAlias, sql: subSql });
+        currentTableColumns = new Set([...carryOverCols, ...Array.from(aggAliasesAtThisLevel)]);
+        prevTable = subAlias;
     }
 
-    const topPairs = tree.map(node =>
-        `    '${node.key}', ${formatNodeAccess(node, 1, arrayAliases)}`
+    // 5. Build final SELECT
+    const finalPairs = tree.map(node =>
+        `    '${node.key || (node.type === 'field' ? node.fieldRef?.split('.').pop() : 'obj')}', ${formatNodeAccess(node, 1, arrayAliases)}`
     ).join(',\n');
     
-    fullSql += `SELECT json_build_object(\n${topPairs}\n) AS result\nFROM ${prevTable}`;
-    
+    const bodySql = `SELECT json_build_object(\n${finalPairs}\n) AS result\nFROM ${prevTable}`;
+
+    // 6. Assemble the full result
+    let fullSql = stateComment;
+    fullSql += hasRecursive ? 'WITH RECURSIVE ' : 'WITH ';
+    fullSql += cteParts.join(',\n');
+    if (arrayCtes.length > 0) {
+        fullSql += ',\n' + arrayCtes.map(c => `${c.alias} AS (\n${c.sql}\n)`).join(',\n');
+    }
+    fullSql += `\n\n${bodySql}`;
+
     return fullSql;
 };

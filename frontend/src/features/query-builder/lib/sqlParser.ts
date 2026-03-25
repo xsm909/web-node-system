@@ -1,9 +1,8 @@
 import type { MultiQueryState, QueryState } from '../model/types';
+
 const stripQ = (s: string) => s ? s.replace(/"/g, '') : '';
 
 const splitIdentifier = (s: string): { table?: string, column: string } => {
-    // This handles: "table"."column", table.column, "column", column
-    // It also handles complex cases like "users.users.users.id" by taking the last part as column
     const parts = s.split('.').map(stripQ);
     if (parts.length > 1) {
         return { 
@@ -14,19 +13,107 @@ const splitIdentifier = (s: string): { table?: string, column: string } => {
     return { column: parts[0] };
 };
 
+const findTopLevelToken = (sql: string, tokens: string[], startPos: number = 0): { token: string, index: number } | null => {
+    let parenCount = 0;
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    let inBlockComment = false;
+    let inLineComment = false;
+    const upperSql = sql.toUpperCase();
+    
+    for (let i = startPos; i < sql.length; i++) {
+        const char = sql[i];
+        const nextChar = sql[i + 1];
+        
+        // Handle block comments
+        if (!inSingleQuote && !inDoubleQuote && !inLineComment) {
+            if (!inBlockComment && char === '/' && nextChar === '*') {
+                inBlockComment = true;
+                i++;
+                continue;
+            }
+            if (inBlockComment && char === '*' && nextChar === '/') {
+                inBlockComment = false;
+                i++;
+                continue;
+            }
+        }
+        if (inBlockComment) continue;
+
+        // Handle line comments
+        if (!inSingleQuote && !inDoubleQuote && !inBlockComment) {
+            if (!inLineComment && char === '-' && nextChar === '-') {
+                inLineComment = true;
+                i++;
+                continue;
+            }
+        }
+        if (inLineComment) {
+            if (char === '\n') inLineComment = false;
+            continue;
+        }
+
+        // Handle identifiers (double quotes)
+        if (!inSingleQuote && !inBlockComment && !inLineComment) {
+            if (char === '"' && (i === 0 || sql[i - 1] !== '\\')) {
+                inDoubleQuote = !inDoubleQuote;
+                continue;
+            }
+        }
+        if (inDoubleQuote) continue;
+
+        // Handle strings (single quotes)
+        if (!inDoubleQuote && !inBlockComment && !inLineComment) {
+            if (char === "'" && (i === 0 || sql[i - 1] !== '\\')) {
+                if (!inSingleQuote && nextChar === "'") {
+                    i++; 
+                    continue;
+                }
+                inSingleQuote = !inSingleQuote;
+                continue;
+            }
+        }
+        if (inSingleQuote) continue;
+
+        // Handle parentheses
+        if (char === '(') parenCount++;
+        else if (char === ')') parenCount--;
+
+        if (parenCount === 0) {
+            const remaining = upperSql.substring(i);
+            const found = tokens.find(t => remaining.startsWith(t.toUpperCase()));
+            if (found) {
+                const nextCharAfterToken = remaining[found.length];
+                if (!nextCharAfterToken || !/[A-Z0-9_]/.test(nextCharAfterToken)) {
+                    return { token: found.toUpperCase(), index: i };
+                }
+            }
+        }
+    }
+    return null;
+};
 
 function tokenizeJsonArgs(funcBody: string) {
     const args: string[] = [];
     let current = '';
     let p = 0;
-    let inStr = false;
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    
     for (let i = 0; i < funcBody.length; i++) {
         const c = funcBody[i];
-        if (c === "'" && (i === 0 || funcBody[i-1] !== '\\')) inStr = !inStr;
-        if (!inStr) {
+        
+        // Handle quotes
+        if (c === "'" && !inDoubleQuote && (i === 0 || funcBody[i - 1] !== '\\')) {
+            inSingleQuote = !inSingleQuote;
+        } else if (c === '"' && !inSingleQuote && (i === 0 || funcBody[i - 1] !== '\\')) {
+            inDoubleQuote = !inDoubleQuote;
+        }
+
+        if (!inSingleQuote && !inDoubleQuote) {
             if (c === '(') p++;
-            if (c === ')') p--;
-            if (c === ',' && p === 0) {
+            else if (c === ')') p--;
+            else if (c === ',' && p === 0) {
                 args.push(current.trim());
                 current = '';
                 continue;
@@ -82,10 +169,10 @@ function parseJsonAST(expr: string): import('../model/types').JsonTreeNode | imp
         const parsed = parseJsonAST(aggBody);
         let children: import('../model/types').JsonTreeNode[] = [];
         if (Array.isArray(parsed)) children = parsed;
-        else children = [parsed]; // fallback
+        else children = [parsed];
         
         return {
-            id: '',
+            id: 'node_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
             key: '',
             type: 'array',
             children: children,
@@ -95,7 +182,7 @@ function parseJsonAST(expr: string): import('../model/types').JsonTreeNode | imp
     
     // field
     return {
-        id: '',
+        id: 'node_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
         key: '',
         type: 'field',
         fieldRef: expr.replace(/"/g, '')
@@ -113,13 +200,16 @@ export function extractJsonTreeAST(fullSql: string): import('../model/types').Js
                 const start = match.index;
                 let parens = 0;
                 let end = -1;
-                let inString = false;
+                let inSingleIdx = false;
+                let inDoubleIdx = false;
                 for (let i = start; i < text.length; i++) {
                     const c = text[i];
-                    if (c === "'" && (i === 0 || text[i-1] !== '\\')) inString = !inString;
-                    if (!inString) {
+                    if (c === "'" && !inDoubleIdx && (i === 0 || text[i-1] !== '\\')) inSingleIdx = !inSingleIdx;
+                    else if (c === '"' && !inSingleIdx && (i === 0 || text[i-1] !== '\\')) inDoubleIdx = !inDoubleIdx;
+                    
+                    if (!inSingleIdx && !inDoubleIdx) {
                         if (c === '(') parens++;
-                        if (c === ')') {
+                        else if (c === ')') {
                             parens--;
                             if (parens === 0) {
                                 end = i;
@@ -141,18 +231,28 @@ export function extractJsonTreeAST(fullSql: string): import('../model/types').Js
         
         extractAggAliases(fullSql);
         
-        const mainSelectMatch = fullSql.match(/SELECT\s+(json_build_object\s*\([\s\S]+?)\s+FROM/i) || fullSql.match(/SELECT\s+(json_build_object\s*\([\s\S]+)$/i);
-        if (!mainSelectMatch) return undefined;
+        const firstSelect = findTopLevelToken(fullSql, ['SELECT']);
+        if (!firstSelect) return undefined;
         
-        const rootStart = fullSql.toUpperCase().indexOf('JSON_BUILD_OBJECT', mainSelectMatch.index);
+        const firstFrom = findTopLevelToken(fullSql, ['FROM'], firstSelect.index + 6);
+        if (!firstFrom) return undefined;
+
+        const mainSelectContent = fullSql.substring(firstSelect.index + 6, firstFrom.index);
+        const rootStartMatch = mainSelectContent.match(/json_build_object\s*\(/i);
+        if (!rootStartMatch) return undefined;
+
+        const rootStart = firstSelect.index + 6 + rootStartMatch.index!;
         let rootExpr = '';
-        let parens = 0, inString = false;
+        let parens = 0, inSingle = false, inDouble = false;
+        
         for (let i = rootStart; i < fullSql.length; i++) {
             const c = fullSql[i];
-            if (c === "'" && (i===0 || fullSql[i-1] !== '\\')) inString = !inString;
-            if (!inString) {
+            if (c === "'" && !inDouble && (i === 0 || fullSql[i-1] !== '\\')) inSingle = !inSingle;
+            else if (c === '"' && !inSingle && (i === 0 || fullSql[i-1] !== '\\')) inDouble = !inDouble;
+            
+            if (!inSingle && !inDouble) {
                 if (c === '(') parens++;
-                if (c === ')') {
+                else if (c === ')') {
                     parens--;
                     if (parens === 0) {
                         rootExpr = fullSql.substring(rootStart, i + 1);
@@ -176,10 +276,11 @@ export function extractJsonTreeAST(fullSql: string): import('../model/types').Js
                     expanded = expanded.split(searchStr).join(expr);
                     changed = true;
                 }
-                const wordRegex = new RegExp(`\\b${alias}\\b`, 'g');
+                
+                const wordRegex = new RegExp(`([^'"])\\b${alias}\\b([^'"])`, 'g');
                 if (wordRegex.test(expanded)) {
                     const before = expanded;
-                    expanded = expanded.replace(new RegExp(`([^'])(\\b${alias}\\b)([^']|$)`, 'g'), `$1${expr}$3`);
+                    expanded = expanded.replace(wordRegex, `$1${expr}$2`);
                     if (expanded !== before) changed = true;
                 }
             }
@@ -193,283 +294,6 @@ export function extractJsonTreeAST(fullSql: string): import('../model/types').Js
         return undefined;
     }
 }
-export const parseSQL = (sql: string): MultiQueryState => {
-    const state: MultiQueryState = {
-        ctes: [],
-        mainQuery: {
-            tables: [],
-            selectedFields: [],
-            joins: [],
-            where: [],
-            groupBy: [],
-            orderBy: []
-        }
-    };
-
-    if (!sql || sql.trim() === '') return state;
-
-    try {
-        const normalizedSql = sql.trim().replace(/\s+/g, ' ');
-        const upperSql = normalizedSql.toUpperCase();
-
-        // Reject unsupported commands
-        const unsupportedKeywords = ['EXPLAIN', 'UPDATE', 'DELETE', 'INSERT', 'DROP', 'CREATE', 'ALTER', 'TRUNCATE'];
-        for (const kw of unsupportedKeywords) {
-            if (upperSql.startsWith(kw)) {
-                throw new Error(`syntax error at or near "${kw}"`);
-            }
-        }
-        
-        // Skip leading comments and whitespace to find the start of the query
-        let startIdx = 0;
-        let inBlockComment = false;
-        while (startIdx < sql.length) {
-            const char = sql[startIdx];
-            const nextChar = sql[startIdx + 1];
-            if (!inBlockComment && char === '/' && nextChar === '*') {
-                inBlockComment = true;
-                startIdx += 2;
-            } else if (inBlockComment && char === '*' && nextChar === '/') {
-                inBlockComment = false;
-                startIdx += 2;
-            } else if (inBlockComment) {
-                startIdx++;
-            } else if (/\s/.test(char)) {
-                startIdx++;
-            } else {
-                break;
-            }
-        }
-
-        const effectiveSql = sql.substring(startIdx);
-        const upperEffectiveSql = effectiveSql.toUpperCase();
-
-        // Handle CTEs (WITH clause)
-        if (upperEffectiveSql.startsWith('WITH ')) {
-            const isRecursive = upperEffectiveSql.startsWith('WITH RECURSIVE');
-            const firstSelect = findTopLevelToken(sql, ['SELECT'], startIdx);
-            if (firstSelect) {
-                const withClause = sql.substring(startIdx, firstSelect.index);
-                const mainQueryContent = sql.substring(firstSelect.index);
-                const ctesContent = withClause.substring(isRecursive ? 15 : 5).trim(); 
-                
-                // Parse individual CTEs: alias AS ( content )
-                let currentPos = 0;
-                while (currentPos < ctesContent.length) {
-                    const remaining = ctesContent.substring(currentPos).trimStart();
-                    if (!remaining) break;
-                    
-                    const skipLength = ctesContent.substring(currentPos).length - remaining.length;
-                    currentPos += skipLength;
-                    
-                    if (ctesContent[currentPos] === ',') {
-                        currentPos++;
-                        continue;
-                    }
-
-                    const cteStartMatch = ctesContent.substring(currentPos).match(/^(["\w]+)\s+AS\s*\(/i);
-                    if (!cteStartMatch) {
-                         const stray = ctesContent.substring(currentPos).split(/\s+/)[0];
-                         if (stray) throw new Error(`Syntax error near "${stray}"`);
-                         break;
-                    }
-
-                    const alias = stripQ(cteStartMatch[1]);
-                    const contentStart = currentPos + cteStartMatch[0].length;
-                    
-                    // Find matching closing parenthesis
-                    let parenCount = 1;
-                    let contentEnd = contentStart;
-                    while (contentEnd < ctesContent.length && parenCount > 0) {
-                        if (ctesContent[contentEnd] === '(') parenCount++;
-                        else if (ctesContent[contentEnd] === ')') parenCount--;
-                        contentEnd++;
-                    }
-                    
-                    if (parenCount > 0) {
-                        throw new Error(`Syntax error: missing closing parenthesis for CTE "${alias}"`);
-                    }
-
-                    const content = ctesContent.substring(contentStart, contentEnd - 1);
-                    
-                    // Detect recursive pattern
-                    let isCteRecursive = false;
-                    let recursiveConfig: any = undefined;
-                    
-                    if (content.toUpperCase().includes('UNION ALL')) {
-                        const unionParts = content.split(/UNION ALL/i);
-                        if (unionParts.length === 2) {
-                            const anchorPart = unionParts[0].trim();
-                            const recursivePart = unionParts[1].trim();
-                            
-                            // 1. Detect recursion by JOIN onto the CTE itself (the alias)
-                            // Pattern: JOIN alias AS t ON ... or JOIN alias t ON ...
-                            const recursiveJoinRegex = new RegExp(`JOIN\\s+(?:"?)${alias}(?:"?)\\s+(?:AS\\s+)?(["\\w]+)\\s+ON\\s+`, 'i');
-                            const recursiveJoinMatch = recursivePart.match(recursiveJoinRegex);
-                            
-                            if (recursiveJoinMatch) {
-                                const cteAliasInRecursive = stripQ(recursiveJoinMatch[1]);
-                                
-                                // 2. Find the other table in the recursive part (the anchor table)
-                                const anchorTableMatch = recursivePart.match(/FROM\s+(?:"?)([\w\.]+)(?:"?)(?:\s+AS\s+(?:"?)([\w]+)(?:"?))?/i);
-                                
-                                // 3. Find the join condition: r.parent_id = t.id or t.id = r.parent_id
-                                const joinCondMatch = recursivePart.match(/ON\s+(?:"?)([\w\.]+)(?:"?)\.(?:"?)([\w\.]+)(?:"?)\s*=\s*(?:"?)([\w\.]+)(?:"?)\.(?:"?)([\w\.]+)(?:"?)/i);
-                                
-                                if (anchorTableMatch && joinCondMatch) {
-                                    const anchorTable = stripQ(anchorTableMatch[1]);
-                                    
-                                    const leftT = stripQ(joinCondMatch[1]);
-                                    const leftC = stripQ(joinCondMatch[2]);
-                                    const rightT = stripQ(joinCondMatch[3]);
-                                    const rightC = stripQ(joinCondMatch[4]);
-                                    
-                                    let primaryKey = '';
-                                    let parentKey = '';
-                                    
-                                    if (leftT === cteAliasInRecursive) {
-                                        primaryKey = leftC;
-                                        parentKey = rightC;
-                                    } else if (rightT === cteAliasInRecursive) {
-                                        primaryKey = rightC;
-                                        parentKey = leftC;
-                                    }
-                                    
-                                    if (primaryKey && parentKey) {
-                                        isCteRecursive = true;
-                                        recursiveConfig = {
-                                            anchorTable,
-                                            primaryKey,
-                                            parentKey
-                                        };
-                                        
-                                        // 4. Extract depth column if present
-                                        const depthMatch = anchorPart.match(/0\s+AS\s+(["\w]+)/i);
-                                        if (depthMatch) {
-                                            recursiveConfig.depthColumn = stripQ(depthMatch[1]);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    const anchorContent = isCteRecursive ? content.split(/UNION ALL/i)[0] : content;
-                    const blockState = parseBlock(anchorContent);
-                    
-                    if (isCteRecursive && recursiveConfig?.depthColumn) {
-                        blockState.selectedFields = blockState.selectedFields.filter(f => {
-                            const name = f.alias || f.columnName || '';
-                            return name.toLowerCase() !== recursiveConfig.depthColumn.toLowerCase();
-                        });
-                    }
-
-                    state.ctes.push({
-                        id: `cte_${Date.now()}_${state.ctes.length}`,
-                        alias,
-                        isRecursive: isCteRecursive,
-                        recursiveConfig,
-                        state: blockState
-                    });
-                    
-                    currentPos = contentEnd;
-                }
-                
-                state.mainQuery = parseBlock(mainQueryContent);
-            } else {
-                throw new Error('syntax error at or near "WITH"');
-            }
-        } else {
-            state.mainQuery = parseBlock(sql);
-        }
-
-        // Check for JSON Builder injections
-        const stateMatch = sql.match(/\/\*\s*JSON_BUILDER_STATE:\s*(\[.+?\])\s*\*\//);
-        let finalJsonTree: import('../model/types').JsonTreeNode[] | undefined;
-        
-        if (stateMatch) {
-            try { finalJsonTree = JSON.parse(stateMatch[1]); } catch(e){}
-        } else {
-            const upperSqlCheck = sql.toUpperCase();
-            if (upperSqlCheck.includes('JSON_BUILD_OBJECT') && upperSqlCheck.includes('JSON_AGG')) {
-                finalJsonTree = extractJsonTreeAST(sql);
-            }
-        }
-        
-        if (finalJsonTree && finalJsonTree.length > 0) {
-            const metaCteIndex = state.ctes.findIndex(c => {
-                const al = c.alias.toLowerCase();
-                return al === 'meta' || al === '__base_query';
-            });
-            if (metaCteIndex !== -1) {
-                state.mainQuery = state.ctes[metaCteIndex].state;
-                state.ctes = state.ctes.filter(c => {
-                    const l = c.alias.toLowerCase();
-                    return l !== 'meta' && l !== '__base_query' && !l.startsWith('sub_');
-                });
-            }
-            state.jsonTree = finalJsonTree;
-        }
-
-        return state;
-    } catch (err: any) {
-        if (err.message.includes('syntax error')) {
-            throw err;
-        }
-        throw new Error(`syntax error: ${err.message}`);
-    }
-};
-
-const findTopLevelToken = (sql: string, tokens: string[], startPos: number = 0): { token: string, index: number } | null => {
-    let parenCount = 0;
-    let inString = false;
-    let inComment = false;
-    const upperSql = sql.toUpperCase();
-    
-    for (let i = startPos; i < sql.length; i++) {
-        const char = sql[i];
-        const nextChar = sql[i + 1];
-        
-        // Handle block comments
-        if (!inString && !inComment && char === '/' && nextChar === '*') {
-            inComment = true;
-            i++;
-            continue;
-        }
-        if (inComment && char === '*' && nextChar === '/') {
-            inComment = false;
-            i++;
-            continue;
-        }
-        if (inComment) continue;
-
-        // Handle strings
-        if (char === "'" && (i === 0 || sql[i - 1] !== '\\')) {
-            inString = !inString;
-            continue;
-        }
-        if (inString) continue;
-
-        // Handle parentheses
-        if (char === '(') parenCount++;
-        else if (char === ')') parenCount--;
-
-        if (parenCount === 0) {
-            const remaining = upperSql.substring(i);
-            for (const token of tokens) {
-                const upperToken = token.toUpperCase();
-                if (remaining.startsWith(upperToken)) {
-                    // Ensure it's a whole word
-                    const nextCharAfterToken = remaining[upperToken.length];
-                    if (!nextCharAfterToken || !/[A-Z0-9_]/.test(nextCharAfterToken)) {
-                        return { token: upperToken, index: i };
-                    }
-                }
-            }
-        }
-    }
-    return null;
-};
 
 const parseBlock = (sql: string): QueryState => {
     const state: QueryState = {
@@ -485,13 +309,11 @@ const parseBlock = (sql: string): QueryState => {
     if (!firstSelect) throw new Error('syntax error: Missing SELECT');
     
     const firstFrom = findTopLevelToken(sql, ['FROM'], firstSelect.index + 6);
-    if (!firstFrom) throw new Error('syntax error: Missing FROM clause');
-
-    // Isolate clauses using findTopLevelToken
+    
     const clauseKeywords = ['WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT', 'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL JOIN', 'CROSS JOIN'];
     const clauses: { token: string, index: number }[] = [];
     
-    let searchPos = firstFrom.index;
+    let searchPos = firstFrom ? firstFrom.index : (firstSelect.index + 6);
     while (true) {
         const match = findTopLevelToken(sql, clauseKeywords, searchPos);
         if (!match) break;
@@ -506,31 +328,36 @@ const parseBlock = (sql: string): QueryState => {
     };
 
     // 1. FROM & JOINs (Table identification)
-    const fromEnd = clauses.length > 0 ? clauses[0].index : sql.length;
-    const fromContent = sql.substring(firstFrom.index + 4, fromEnd).trim();
-    
-    const tableParts = fromContent.split(',').map(s => s.trim());
-    for (const part of tableParts) {
-        const aliasMatch = part.match(/^(["\w\.]+)(?:\s+AS)?\s+(["\w\.]+)$/i) || part.match(/^(["\w\.]+)$/i);
-        if (aliasMatch) {
-            const tableName = stripQ(aliasMatch[1]);
-            const alias = stripQ(aliasMatch[2] || tableName);
-            if (!state.tables.find(t => t.alias === alias)) {
-                state.tables.push({ tableName, alias });
+    if (firstFrom) {
+        const fromEnd = clauses.length > 0 ? clauses[0].index : sql.length;
+        const fromContent = sql.substring(firstFrom.index + 4, fromEnd).trim();
+        
+        const tableParts = fromContent.split(',').map(s => s.trim());
+        for (const part of tableParts) {
+            const aliasMatch = part.match(/^(["\w\.]+)(?:\s+AS)?\s+(["\w\.]+)$/i) || part.match(/^(["\w\.]+)$/i);
+            if (aliasMatch) {
+                const tableName = stripQ(aliasMatch[1]);
+                const alias = stripQ(aliasMatch[2] || tableName);
+                if (!state.tables.find(t => t.alias === alias)) {
+                    state.tables.push({ tableName, alias });
+                }
             }
         }
     }
 
     // 2. SELECT (Fields)
-    const selectContent = sql.substring(firstSelect.index + 6, firstFrom.index).trim();
+    const selectEnd = firstFrom ? firstFrom.index : (clauses.length > 0 ? clauses[0].index : sql.length);
+    const selectContent = sql.substring(firstSelect.index + 6, selectEnd).trim();
     const fields: string[] = [];
     let curField = '';
     let p = 0;
     let s = false;
+    let d = false;
     for (let i = 0; i < selectContent.length; i++) {
         const c = selectContent[i];
-        if (c === "'" && (i === 0 || selectContent[i-1] !== '\\')) s = !s;
-        if (!s) {
+        if (c === "'" && !d && (i === 0 || selectContent[i-1] !== '\\')) s = !s;
+        if (c === '"' && !s && (i === 0 || selectContent[i-1] !== '\\')) d = !d;
+        if (!s && !d) {
             if (c === '(') p++;
             if (c === ')') p--;
             if (c === ',' && p === 0) {
@@ -567,7 +394,6 @@ const parseBlock = (sql: string): QueryState => {
         }
     }
 
-    // 3. Process remaining clauses
     for (let i = 0; i < clauses.length; i++) {
         const c = clauses[i];
         const content = getClauseContent(c, clauses[i+1]);
@@ -589,8 +415,9 @@ const parseBlock = (sql: string): QueryState => {
         } else if (c.token === 'WHERE') {
             const conditions = content.split(/\s+(AND|OR)\s+/gi);
             for (let j = 0; j < conditions.length; j += 2) {
+                if (!conditions[j]) continue;
                 const condStr = conditions[j].trim();
-                const logic = j > 0 ? conditions[j-1].toUpperCase() : 'AND';
+                const logic = j > 0 ? (conditions[j-1] || 'AND').toUpperCase() : 'AND';
                 const condMatch = condStr.match(/(["\w\.]+)(?:\.(["\w\.]+))?\s*(=|!=|>|<|>=|<=|LIKE|IN)\s*([\s\S]+)/i);
                 const nullMatch = condStr.match(/(["\w\.]+)(?:\.(["\w\.]+))?\s+(IS\s+NULL|IS\s+NOT\s+NULL)/i);
                 if (condMatch) {
@@ -622,4 +449,185 @@ const parseBlock = (sql: string): QueryState => {
     }
 
     return state;
+};
+
+export const parseSQL = (sql: string): MultiQueryState => {
+    const state: MultiQueryState = {
+        ctes: [],
+        mainQuery: {
+            tables: [],
+            selectedFields: [],
+            joins: [],
+            where: [],
+            groupBy: [],
+            orderBy: []
+        }
+    };
+
+    if (!sql || sql.trim() === '') return state;
+
+    try {
+        let startIdx = 0;
+        let inBlockComment = false;
+        while (startIdx < sql.length) {
+            const char = sql[startIdx];
+            const nextChar = sql[startIdx + 1];
+            if (!inBlockComment && char === '/' && nextChar === '*') {
+                inBlockComment = true;
+                startIdx += 2;
+            } else if (inBlockComment && char === '*' && nextChar === '/') {
+                inBlockComment = false;
+                startIdx += 2;
+            } else if (inBlockComment) {
+                startIdx++;
+            } else if (/\s/.test(char)) {
+                startIdx++;
+            } else {
+                break;
+            }
+        }
+
+        const effectiveSql = sql.substring(startIdx);
+        const upperEffectiveSql = effectiveSql.toUpperCase().trimStart();
+
+        if (upperEffectiveSql.startsWith('WITH ')) {
+            const isRecursive = upperEffectiveSql.startsWith('WITH RECURSIVE');
+            const firstSelect = findTopLevelToken(sql, ['SELECT'], startIdx);
+            if (firstSelect) {
+                const withClause = sql.substring(startIdx, firstSelect.index);
+                const mainQueryContent = sql.substring(firstSelect.index);
+                const ctesContent = withClause.substring(isRecursive ? 15 : 5).trim(); 
+                
+                let currentPos = 0;
+                while (currentPos < ctesContent.length) {
+                    const remaining = ctesContent.substring(currentPos).trimStart();
+                    if (!remaining) break;
+                    
+                    const skipLength = ctesContent.substring(currentPos).length - remaining.length;
+                    currentPos += skipLength;
+                    
+                    if (ctesContent[currentPos] === ',') {
+                        currentPos++;
+                        continue;
+                    }
+
+                    const cteStartMatch = ctesContent.substring(currentPos).match(/^(["\w]+)\s+AS\s*\(/i);
+                    if (!cteStartMatch) break;
+
+                    const alias = stripQ(cteStartMatch[1]);
+                    const contentStart = currentPos + cteStartMatch[0].length;
+                    
+                    let parenCount = 1;
+                    let contentEnd = contentStart;
+                    while (contentEnd < ctesContent.length && parenCount > 0) {
+                        if (ctesContent[contentEnd] === '(') parenCount++;
+                        else if (ctesContent[contentEnd] === ')') parenCount--;
+                        contentEnd++;
+                    }
+                    
+                    const content = ctesContent.substring(contentStart, contentEnd - 1);
+                    const innerRes = parseSQL(content);
+                    
+                    // Flatten inner CTEs into the outer state
+                    state.ctes.push(...innerRes.ctes);
+
+                    state.ctes.push({
+                        id: `cte_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                        alias,
+                        isRecursive: false,
+                        state: innerRes.mainQuery
+                    });
+                    
+                    currentPos = contentEnd;
+                }
+                
+                state.mainQuery = parseBlock(mainQueryContent);
+            } else {
+                throw new Error('syntax error at or near "WITH"');
+            }
+        } else {
+            state.mainQuery = parseBlock(sql);
+        }
+
+        const stateMatch = sql.match(/\/\*\s*JSON_BUILDER_STATE:\s*(\[.+?\])\s*\*\//);
+        let finalJsonTree: import('../model/types').JsonTreeNode[] | undefined;
+        
+        if (stateMatch) {
+            try { finalJsonTree = JSON.parse(stateMatch[1]); } catch(e){}
+        } else {
+            const upperSqlCheck = sql.toUpperCase();
+            if (upperSqlCheck.includes('JSON_BUILD_OBJECT')) {
+                finalJsonTree = extractJsonTreeAST(sql);
+            }
+        }
+        
+        if (finalJsonTree && finalJsonTree.length > 0) {
+            const metaCteIndex = state.ctes.findIndex(c => {
+                const al = c.alias.toLowerCase();
+                return al === 'meta' || al === '__base_query';
+            });
+            if (metaCteIndex !== -1) {
+                const promotedState = state.ctes[metaCteIndex].state;
+                const cteAlias = state.ctes[metaCteIndex].alias;
+                const targetAlias = promotedState.tables[0]?.alias || '';
+
+                // Aggressive Normalization: If the promoted state contains references to its own outer CTE alias
+                // OR the legacy fallback 'meta', remap them to the actual primary table alias.
+                if (targetAlias) {
+                    const knownAliases = new Set(promotedState.tables.map(t => t.alias));
+                    const fallbacks = ['meta', '__base_query', 'meta_data', 'meta_d']; // Common suspects
+                    if (cteAlias) fallbacks.push(cteAlias);
+                    
+                    const fix = (a: string) => {
+                        if (!a) return targetAlias;
+                        if (knownAliases.has(a)) return a;
+                        // If it's a known fallback OR there's only one table and the alias is unknown:
+                        if (fallbacks.includes(a) || knownAliases.size === 1) return targetAlias;
+                        return a;
+                    };
+                    
+                    promotedState.selectedFields.forEach(f => { f.tableAlias = fix(f.tableAlias); });
+                    promotedState.where.forEach(w => { w.tableAlias = fix(w.tableAlias); });
+                    promotedState.groupBy.forEach(g => { g.tableAlias = fix(g.tableAlias); });
+                    promotedState.orderBy.forEach(o => { o.tableAlias = fix(o.tableAlias); });
+                    promotedState.joins.forEach(j => {
+                        j.leftTableAlias = fix(j.leftTableAlias);
+                        j.rightTableAlias = fix(j.rightTableAlias);
+                    });
+
+                    // Also normalize JsonTree fieldRefs/orderByRefs
+                    const normalizeNodes = (nodes: import('../model/types').JsonTreeNode[]) => {
+                        nodes.forEach(n => {
+                            if (n.fieldRef) {
+                                const p = splitIdentifier(n.fieldRef);
+                                if (p.table && p.table !== targetAlias && (fallbacks.includes(p.table) || knownAliases.size === 1)) {
+                                    n.fieldRef = `${targetAlias}.${p.column}`;
+                                }
+                            }
+                            if (n.orderByRef) {
+                                const p = splitIdentifier(n.orderByRef);
+                                if (p.table && p.table !== targetAlias && (fallbacks.includes(p.table) || knownAliases.size === 1)) {
+                                    n.orderByRef = `${targetAlias}.${p.column}`;
+                                }
+                            }
+                            if (n.children) normalizeNodes(n.children);
+                        });
+                    };
+                    if (finalJsonTree) normalizeNodes(finalJsonTree);
+                }
+
+                state.mainQuery = promotedState;
+                state.ctes = state.ctes.filter(c => {
+                    const l = c.alias.toLowerCase();
+                    return l !== 'meta' && l !== '__base_query' && !l.startsWith('sub_');
+                });
+            }
+            state.jsonTree = finalJsonTree;
+        }
+
+        return state;
+    } catch (err: any) {
+        if (err.message.includes('syntax error')) throw err;
+        throw new Error(`syntax error: ${err.message}`);
+    }
 };
