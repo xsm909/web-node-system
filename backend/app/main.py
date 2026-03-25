@@ -1,13 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.database import Base, engine
-from .routers import auth, admin, workflow, client, ai_task, data_type, client_metadata, report, ai, schemas, metadata, agent_hints, prompts, python_hints, database_metadata, locks, projects
+from .routers import auth, admin, workflow, client, ai_task, data_type, client_metadata, report, ai, schemas, metadata, agent_hints, prompts, python_hints, database_metadata, locks, projects, presets
 from .models.intermediate_result import IntermediateResult  # noqa: F401 — registers table with Base
 from .models.ai_task import AI_Task  # noqa: F401 — registers table with Base
 from .models.client_metadata import ClientMetadata  # noqa: F401
 from .models.report import Report, ObjectParameter, ReportStyle, ReportRun # noqa: F401
 from .models.agent_hint import AgentHint # noqa: F401
 from .models.prompt import Prompt # noqa: F401
+from .models.preset import Preset # noqa: F401
 
 # Create all tables on startup
 Base.metadata.create_all(bind=engine)
@@ -251,6 +252,7 @@ app.include_router(python_hints.router)
 app.include_router(database_metadata.router)
 app.include_router(locks.router)
 app.include_router(projects.router)
+app.include_router(presets.router)
 
 @app.get("/")
 def root():

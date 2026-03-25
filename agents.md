@@ -215,6 +215,8 @@ Users - user.svg
 User management - user.svg
 
 #### 9.3.1 UI icons rules
+save preset - bookmark_add.svg
+load preset - bookmark.svg
 users/users - user.svg
 parameters - parameters.svg
 for system marker - system.svg

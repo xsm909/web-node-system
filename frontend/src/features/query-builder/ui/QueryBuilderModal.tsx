@@ -31,6 +31,8 @@ import { apiClient } from '../../../shared/api/client';
 import { AppContextMenu } from '../../../shared/ui/app-context-menu';
 import { AppTabulatorTable } from '../../../shared/ui/app-tabulator-table/AppTabulatorTable';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { usePresets, type Preset } from '../lib/usePresets';
+import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 
 // Note: copyToClipboard is now handled inside QueryBuilderModal component to manage local state feedback
 
@@ -916,6 +918,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [cteToRename, setCteToRename] = useState<{ id: string, alias: string } | null>(null);
     const [renameValue, setRenameValue] = useState('');
     const [isDraggingInProgress, setIsDraggingInProgress] = useState(false);
+    const [isSavePresetModalOpen, setIsSavePresetModalOpen] = useState(false);
+    const [presetName, setPresetName] = useState('');
+    const { presets, fetchPresets, savePreset } = usePresets('query');
     const lastParsedSqlRef = useRef<string | null>(null);
     const prevIsOpenRef = useRef(false);
 
@@ -1031,6 +1036,28 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             });
         }
     }, [parameters]);
+    
+    useEffect(() => {
+        if (isOpen) {
+            fetchPresets();
+        }
+    }, [isOpen, fetchPresets]);
+
+    const handleSavePreset = async () => {
+        if (!presetName.trim()) return;
+        try {
+            await savePreset(presetName, fullState);
+            setIsSavePresetModalOpen(false);
+            setPresetName('');
+        } catch (err) {
+            console.error('Failed to save preset:', err);
+        }
+    };
+
+    const handleLoadPreset = (preset: Preset) => {
+        setFullState(preset.preset_data);
+        setActiveBlockId('main');
+    };
 
     const handleExecuteQuery = useCallback(async () => {
         if (isExecuting || !effectiveSql.canRun) return;
@@ -1626,7 +1653,8 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     };
 
     return (
-        <AppCompactModalForm
+        <>
+            <AppCompactModalForm
             isOpen={isOpen}
             onClose={onClose}
             title="Query Builder"
@@ -1660,6 +1688,37 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                         <Icon name="play_arrow" size={14} />
                         Run (F5 / Cmd+R)
                     </button>
+                    <div className="w-px h-4 bg-[var(--border-base)] mx-1" />
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setPresetName('');
+                            setIsSavePresetModalOpen(true);
+                        }}
+                        className="p-1.5 hover:bg-brand/10 text-brand rounded-lg transition-all"
+                        title="Save as Preset"
+                    >
+                        <Icon name="bookmark_add" size={18} />
+                    </button>
+                    <ComboBox
+                        icon="bookmark"
+                        placeholder=""
+                        title="Load Preset"
+                        variant="ghost"
+                        size="small"
+                        hideChevron
+                        align="right"
+                        items={presets.map(p => ({
+                            id: p.id,
+                            label: p.name,
+                            name: p.name,
+                            icon: 'article'
+                        }))}
+                        onSelect={(item) => {
+                            const preset = presets.find(p => p.id === item.id);
+                            if (preset) handleLoadPreset(preset);
+                        }}
+                    />
                 </>
             }
         >
@@ -2080,8 +2139,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     </div>
                 </DndContext>
             </div>
+        </AppCompactModalForm>
 
-            <AppCompactModalForm
+        <AppCompactModalForm
                 isOpen={isResultsOpen}
                 onClose={() => setIsResultsOpen(false)}
                 onSubmit={executionError ? () => setIsResultsOpen(false) : handleCopyResults}
@@ -2204,6 +2264,33 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     </div>
                 )}
             </AppCompactModalForm>
-        </AppCompactModalForm>
+
+            <AppCompactModalForm
+                isOpen={isSavePresetModalOpen}
+                onClose={() => setIsSavePresetModalOpen(false)}
+                onSubmit={handleSavePreset}
+                title="Save Preset"
+                icon="bookmark_add"
+                width="max-w-md"
+            >
+                <div className="space-y-4">
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Preset Name</label>
+                        <AppFormFieldRect>
+                            <input
+                                autoFocus
+                                value={presetName}
+                                onChange={e => setPresetName(e.target.value)}
+                                placeholder="Enter preset name..."
+                                className="w-full bg-transparent outline-none h-full text-xs"
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') handleSavePreset();
+                                }}
+                            />
+                        </AppFormFieldRect>
+                    </div>
+                </div>
+            </AppCompactModalForm>
+        </>
     );
 };
