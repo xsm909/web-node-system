@@ -182,23 +182,25 @@ The Query Builder includes a dedicated **JSON Builder** tab that allows converti
   - **Array Node (`[]`)**: Represents `json_agg()`. Supports optional `orderByRef`.
   - **Field Node (`val`)**: Scalar database value.
 
-### 17.2 Hierarchical SQL Generation (Topological Leveling)
-To avoid "aggregate function calls cannot be nested" errors in PostgreSQL, the generator uses a multi-layered subquery approach:
-1. **CTE Partitioning**: The original query state (joins, where, etc.) is isolated into a `WITH meta AS (...)` CTE.
-2. **Topological Leveling**: The JSON tree is scanned to find all `Array` nodes. These are sorted into "levels" based on their dependencies.
-3. **Subquery Layering**: For each level (starting from the deepest), the generator emits a `sub_N` CTE that performs `json_agg` and `GROUP BY`.
-4. **Field Propagation**: Fields required by higher levels are automatically passed through lower subqueries via `GROUP BY`.
+### 17.2 Hierarchical SQL Generation (Precision Grouping)
+To avoid "aggregate function calls cannot be nested" errors and ensure correct JSON document convergence:
+1. **CTE Partitioning**: The original query state is isolated in a `__base_query` CTE (and any user-defined CTEs).
+2. **Topological Leveling**: The JSON tree is scanned to find all `Array` nodes, which are sorted into levels by dependency.
+3. **Precision Grouping**: For each aggregate level (`sub_N`), the system identifies **Dimension** columns (used outside the current level) and **Measure** columns (aggregated inside). Only dimension columns are included in `GROUP BY`, using positional notation (e.g., `GROUP BY 1, 2, 3`).
+4. **Universal Type Casting**: All passthrough columns and grouped columns are wrapped in `to_jsonb(column)`. This ensures PostgreSQL can identify equality operators for complex types like `UUID` or `json`.
+5. **Tabular JSON Output**: Instead of a single `result` object, each top-level node in the JSON builder tree is emitted as an independent SQL column. This allows for flatter, more manageable results that integrate naturally with tabular displays.
 
 ### 17.3 State Serialization (`JSON_BUILDER_STATE`)
 To guarantee perfect UI reconstruction:
 - **Metadata Comment**: The generator prepends a `/* JSON_BUILDER_STATE: [...] */` comment containing the serialized JSON tree.
 - **Backend Transparency**: The backend router automatically strips this block comment before executing or validating the SQL.
 
-## 18. Robust Parser (`sqlParser.ts`)
-The parser implements industrial-strength tokenization to handle complex manual queries:
-- **Nesting Awareness**: Uses `findTopLevelToken` to balance parentheses and ignore keywords inside subqueries or nested expressions.
-- **String/Comment Safety**: Correctly identifies single-quoted strings and block comments, ensuring parenthesis balancing doesn't break on characters like `')'`.
-- **Clause Isolation**: `SELECT`, `FROM`, `WHERE`, `GROUP BY`, and `ORDER BY` sections are isolated independently within each block level, preventing global regex collisions.
+## 18. Robust Recursive Parser (`sqlParser.ts`)
+The parser implements industrial-strength tokenization and recursive analysis:
+- **Recursive CTE Extraction**: The `parseSQL` function is recursive and correctly identifies nested `WITH` clauses inside subqueries, flattening them into a unified state.
+- **Parenthesis & String Balancing**: Uses a state-aware scanner to respect balanced parentheses while ignoring keywords or operators inside quoted identifiers, strings, or comments (`/*...*/`, `--`).
+- **Nesting Awareness**: Uses `findTopLevelToken` to find major clauses (`SELECT`, `FROM`, etc.) only at the current nesting level.
+- **JSON Function Detection**: Automatically detects both `json_` and `jsonb_` aggregation functions to restore JSON tree structures.
 
 ---
 *Last Updated: 2026-03-25*
