@@ -173,21 +173,32 @@ The `IS NULL` operator is critical for recursive queries, as it is often used in
 
 ## 17. JSON Builder
 
-The Query Builder includes a dedicated **JSON Builder** tab that allows converting a standard tabular report into a hierarchical JSON document, driven entirely by the database engine via PostgreSQL JSON aggregation functions (`json_build_object`, `json_agg`).
+The Query Builder includes a dedicated **JSON Builder** tab that allows converting a standard tabular report into a hierarchical JSON document via PostgreSQL JSON functions (`json_build_object`, `json_agg`).
 
 ### 17.1 UI Features
-- **Visual Drag & Drop**: Users can drag any column or established alias from the "Available Fields" (left panel) into the "JSON Structure" tree (right panel).
+- **Visual Drag & Drop**: Users can drag columns into the "JSON Structure" tree.
 - **Tree Hierarchy**:
-  - **Object Node (`{}`)**: Represents a `json_build_object()`. Keys can be renamed.
-  - **Array Node (`[]`)**: Represents a `json_agg()`. Accumulates multiple records into a JSON array list.
-  - **Field Node (`val`)**: A leaf node representing a scalar database value.
-- **SQL Preview**: Generates a real-time preview of the nested JSON SQL expression.
+  - **Object Node (`{}`)**: Represents `json_build_object()`.
+  - **Array Node (`[]`)**: Represents `json_agg()`. Supports optional `orderByRef`.
+  - **Field Node (`val`)**: Scalar database value.
 
-### 17.2 SQL Generation
-When the `jsonTree` array in `MultiQueryState` contains one or more nodes, the generator intercepts the standard output:
-1. **CTE Wrapping**: The entire normal query (with Joins, Where, Group By, CTEs) is shifted into a `WITH meta AS (...)` envelope.
-2. **Recursive JSON Tree**: The visual tree is recursively parsed to emit structured JSON aggregation SQL.
-3. **Execution Mode Switching**: If the tree is cleared (0 nodes), the generator seamlessly defaults back to the normal tabular standard query.
+### 17.2 Hierarchical SQL Generation (Topological Leveling)
+To avoid "aggregate function calls cannot be nested" errors in PostgreSQL, the generator uses a multi-layered subquery approach:
+1. **CTE Partitioning**: The original query state (joins, where, etc.) is isolated into a `WITH meta AS (...)` CTE.
+2. **Topological Leveling**: The JSON tree is scanned to find all `Array` nodes. These are sorted into "levels" based on their dependencies.
+3. **Subquery Layering**: For each level (starting from the deepest), the generator emits a `sub_N` CTE that performs `json_agg` and `GROUP BY`.
+4. **Field Propagation**: Fields required by higher levels are automatically passed through lower subqueries via `GROUP BY`.
+
+### 17.3 State Serialization (`JSON_BUILDER_STATE`)
+To guarantee perfect UI reconstruction:
+- **Metadata Comment**: The generator prepends a `/* JSON_BUILDER_STATE: [...] */` comment containing the serialized JSON tree.
+- **Backend Transparency**: The backend router automatically strips this block comment before executing or validating the SQL.
+
+## 18. Robust Parser (`sqlParser.ts`)
+The parser implements industrial-strength tokenization to handle complex manual queries:
+- **Nesting Awareness**: Uses `findTopLevelToken` to balance parentheses and ignore keywords inside subqueries or nested expressions.
+- **String/Comment Safety**: Correctly identifies single-quoted strings and block comments, ensuring parenthesis balancing doesn't break on characters like `')'`.
+- **Clause Isolation**: `SELECT`, `FROM`, `WHERE`, `GROUP BY`, and `ORDER BY` sections are isolated independently within each block level, preventing global regex collisions.
 
 ---
 *Last Updated: 2026-03-25*
