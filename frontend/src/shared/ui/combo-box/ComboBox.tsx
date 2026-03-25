@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Icon } from '../icon';
 import { SelectionList, type SelectionGroup, type SelectionItem, type SelectionAction, type SelectionListConfig } from '../selection-list';
 import { AppFormFieldRect } from '../app-input/AppFormFieldRect';
-import { AppRoundButton } from '../app-round-button/AppRoundButton';
+import { AppFormButton } from '../app-form-button/AppFormButton';
 import { UI_CONSTANTS } from '../constants';
 
 interface ComboBoxProps {
@@ -91,13 +91,13 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     return (
         <div className={`relative ${isSidebar ? 'w-full' : ''} ${className}`}>
             {isIconOnly ? (
-                <AppRoundButton
+                <AppFormButton
                     ref={triggerRef}
                     icon={icon || ''}
                     onClick={toggleOpen}
                     isDisabled={disabled}
-                    variant={isBrand ? 'brand' : 'outline'}
-                    size={size}
+                    isDefault={isBrand}
+                    withFrame={variant !== 'ghost'}
                     iconSize={computedIconSize}
                     title={title}
                     className={triggerClassName}

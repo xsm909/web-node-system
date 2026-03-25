@@ -33,6 +33,7 @@ import { AppTabulatorTable } from '../../../shared/ui/app-tabulator-table/AppTab
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { usePresets, type Preset } from '../lib/usePresets';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
+import { AppFormButton } from '../../../shared/ui/app-form-button/AppFormButton';
 
 // Note: copyToClipboard is now handled inside QueryBuilderModal component to manage local state feedback
 
@@ -1677,29 +1678,26 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                             Executing...
                         </div>
                     )}
-                    <button
-                        type="button"
+                    <AppFormButton
                         onClick={handleExecuteQuery}
-                        disabled={isExecuting || !effectiveSql.canRun}
-                        className={`px-4 py-1.5 bg-[var(--bg-alt)] border border-[var(--border-base)] text-brand text-[10px] font-normal rounded-lg transition-all shadow-sm flex items-center gap-2 ${(!effectiveSql.canRun && !isExecuting) ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-brand/5'
-                            }`}
+                        isDisabled={isExecuting || !effectiveSql.canRun}
+                        isDefault={false}
+                        icon="play_arrow"
+                        label="Run (F5 / Cmd+R)"
                         title={!effectiveSql.canRun ? effectiveSql.sql : "Shortcut: F5, Cmd+R or Ctrl+R"}
-                    >
-                        <Icon name="play_arrow" size={14} />
-                        Run (F5 / Cmd+R)
-                    </button>
+                        className="!text-[10px] !text-brand"
+                    />
                     <div className="w-px h-4 bg-[var(--border-base)] mx-1" />
-                    <button
-                        type="button"
+                    <AppFormButton
                         onClick={() => {
                             setPresetName('');
                             setIsSavePresetModalOpen(true);
                         }}
-                        className="p-1.5 hover:bg-brand/10 text-brand rounded-lg transition-all"
+                        icon="bookmark_add"
+                        withFrame={false}
                         title="Save as Preset"
-                    >
-                        <Icon name="bookmark_add" size={18} />
-                    </button>
+                        iconSize={18}
+                    />
                     <ComboBox
                         icon="bookmark"
                         placeholder=""
@@ -1950,17 +1948,17 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
 
                             {/* Add Button */}
                             <div className="relative ml-2 pb-px flex-shrink-0">
-                                <button
+                                <AppFormButton
                                     ref={addButtonRef}
                                     onClick={() => {
                                         setAddAnchorRect(addButtonRef.current?.getBoundingClientRect() || null);
                                         setIsAddMenuOpen(!isAddMenuOpen);
                                     }}
-                                    className={`p-2 rounded-xl transition-all ${isAddMenuOpen ? 'bg-brand text-white' : 'hover:bg-brand/10 text-brand'}`}
+                                    icon="add"
+                                    withFrame={false}
                                     title="Add new query block"
-                                >
-                                    <Icon name="add" size={16} />
-                                </button>
+                                    className={isAddMenuOpen ? '!bg-brand !text-white' : ''}
+                                />
 
                                 <AppContextMenu
                                     isOpen={isAddMenuOpen}

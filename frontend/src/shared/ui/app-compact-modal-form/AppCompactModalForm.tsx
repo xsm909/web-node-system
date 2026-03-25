@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../icon';
+import { AppFormButton } from '../app-form-button/AppFormButton';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 
 interface AppCompactModalFormProps {
@@ -200,28 +201,22 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
 
                 <div className="px-4 py-2 bg-[var(--bg-alt)] border-t border-[var(--border-base)] flex items-center justify-end gap-2">
                     {onDiscard && (
-                        <button
-                            type="button"
+                        <AppFormButton
+                            label={discardLabel}
                             onClick={onDiscard}
-                            className="mr-auto px-3 py-1 rounded-lg text-[10px] font-bold text-red-500 hover:bg-red-500/10 transition-all border border-transparent"
-                        >
-                            {discardLabel}
-                        </button>
+                            className="mr-auto text-red-500 hover:bg-red-500/10 font-bold border-red-500/20"
+                            withFrame={true}
+                        />
                     )}
-                    <button
-                        type="button"
+                    <AppFormButton
+                        label={cancelLabel}
                         onClick={handleClose}
-                        className="px-3 py-1 rounded-lg text-[10px] font-normal border border-[var(--border-base)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/5 transition-all"
-                    >
-                        {cancelLabel}
-                    </button>
-                    <button
-                        type="button"
+                    />
+                    <AppFormButton
+                        label={submitLabel}
+                        isDefault={true}
                         onClick={() => onSubmit()}
-                        className="px-4 py-1 rounded-lg bg-brand text-white text-[10px] font-normal hover:opacity-90 active:scale-95 transition-all shadow-sm"
-                    >
-                        {submitLabel}
-                    </button>
+                    />
                 </div>
             </div>
 
