@@ -126,8 +126,8 @@ function tokenizeJsonArgs(funcBody: string) {
 }
 
 function parseJsonAST(expr: string): import('../model/types').JsonTreeNode | import('../model/types').JsonTreeNode[] {
-    expr = expr.trim();
-    if (expr.toLowerCase().startsWith('json_build_object')) {
+    const lowerExpr = expr.toLowerCase();
+    if (lowerExpr.startsWith('json_build_object') || lowerExpr.startsWith('jsonb_build_object')) {
         const inner = expr.substring(expr.indexOf('(') + 1, expr.lastIndexOf(')'));
         const args = tokenizeJsonArgs(inner);
         const children: import('../model/types').JsonTreeNode[] = [];
@@ -156,7 +156,7 @@ function parseJsonAST(expr: string): import('../model/types').JsonTreeNode | imp
         return children;
     }
     
-    if (expr.toLowerCase().startsWith('json_agg')) {
+    if (lowerExpr.startsWith('json_agg') || lowerExpr.startsWith('jsonb_agg')) {
         const inner = expr.substring(expr.indexOf('(') + 1, expr.lastIndexOf(')'));
         let orderByRef: string | undefined;
         let aggBody = inner;
@@ -194,7 +194,7 @@ export function extractJsonTreeAST(fullSql: string): import('../model/types').Js
         const aliasMap: Record<string, string> = {};
         
         const extractAggAliases = (text: string) => {
-            const regex = /json(?:_agg|_build_object)\s*\(/gi;
+            const regex = /jsonb?(?:_agg|_build_object)\s*\(/gi;
             let match;
             while ((match = regex.exec(text)) !== null) {
                 const start = match.index;
@@ -238,7 +238,7 @@ export function extractJsonTreeAST(fullSql: string): import('../model/types').Js
         if (!firstFrom) return undefined;
 
         const mainSelectContent = fullSql.substring(firstSelect.index + 6, firstFrom.index);
-        const rootStartMatch = mainSelectContent.match(/json_build_object\s*\(/i);
+        const rootStartMatch = mainSelectContent.match(/jsonb?_build_object\s*\(/i);
         if (!rootStartMatch) return undefined;
 
         const rootStart = firstSelect.index + 6 + rootStartMatch.index!;
@@ -493,6 +493,7 @@ export const parseSQL = (sql: string): MultiQueryState => {
         if (upperEffectiveSql.startsWith('WITH ')) {
             const isRecursive = upperEffectiveSql.startsWith('WITH RECURSIVE');
             const firstSelect = findTopLevelToken(sql, ['SELECT'], startIdx);
+            
             if (firstSelect) {
                 const withClause = sql.substring(startIdx, firstSelect.index);
                 const mainQueryContent = sql.substring(firstSelect.index);
@@ -511,24 +512,55 @@ export const parseSQL = (sql: string): MultiQueryState => {
                         continue;
                     }
 
-                    const cteStartMatch = ctesContent.substring(currentPos).match(/^(["\w]+)\s+AS\s*\(/i);
+                    // Robust CTE name extraction (handle double quotes)
+                    const cteStartMatch = ctesContent.substring(currentPos).match(/^((?:"[^"]+")|[\w]+)\s+AS\s*\(/i);
                     if (!cteStartMatch) break;
 
                     const alias = stripQ(cteStartMatch[1]);
                     const contentStart = currentPos + cteStartMatch[0].length;
                     
+                    // Robust balanced parentheses extraction
                     let parenCount = 1;
                     let contentEnd = contentStart;
+                    let inSingle = false, inDouble = false, inBlock = false, inLine = false;
+
                     while (contentEnd < ctesContent.length && parenCount > 0) {
-                        if (ctesContent[contentEnd] === '(') parenCount++;
-                        else if (ctesContent[contentEnd] === ')') parenCount--;
+                        const c = ctesContent[contentEnd];
+                        const nc = ctesContent[contentEnd + 1];
+
+                        if (!inSingle && !inDouble && !inLine) {
+                            if (!inBlock && c === '/' && nc === '*') { inBlock = true; contentEnd += 2; continue; }
+                            if (inBlock && c === '*' && nc === '/') { inBlock = false; contentEnd += 2; continue; }
+                        }
+                        if (inBlock) { contentEnd++; continue; }
+
+                        if (!inSingle && !inDouble && !inBlock) {
+                            if (c === '-' && nc === '-') { inLine = true; contentEnd += 2; continue; }
+                        }
+                        if (inLine) { if (c === '\n') inLine = false; contentEnd++; continue; }
+
+                        if (!inSingle && !inBlock && !inLine) {
+                            if (c === '"') inDouble = !inDouble;
+                        }
+                        if (inDouble) { contentEnd++; continue; }
+
+                        if (!inDouble && !inBlock && !inLine) {
+                            if (c === "'") {
+                                if (!inSingle && nc === "'") { contentEnd += 2; continue; }
+                                inSingle = !inSingle;
+                            }
+                        }
+                        if (inSingle) { contentEnd++; continue; }
+
+                        if (c === '(') parenCount++;
+                        else if (c === ')') parenCount--;
                         contentEnd++;
                     }
                     
                     const content = ctesContent.substring(contentStart, contentEnd - 1);
                     const innerRes = parseSQL(content);
                     
-                    // Flatten inner CTEs into the outer state
+                    // Flatten inner CTEs
                     state.ctes.push(...innerRes.ctes);
 
                     state.ctes.push({
@@ -556,7 +588,7 @@ export const parseSQL = (sql: string): MultiQueryState => {
             try { finalJsonTree = JSON.parse(stateMatch[1]); } catch(e){}
         } else {
             const upperSqlCheck = sql.toUpperCase();
-            if (upperSqlCheck.includes('JSON_BUILD_OBJECT')) {
+            if (upperSqlCheck.includes('JSON_BUILD_OBJECT') || upperSqlCheck.includes('JSONB_BUILD_OBJECT')) {
                 finalJsonTree = extractJsonTreeAST(sql);
             }
         }

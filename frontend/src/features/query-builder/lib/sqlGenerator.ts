@@ -1,4 +1,4 @@
-import type { MultiQueryState, QueryState, QueryCTE, JsonTreeNode } from '../model/types';
+import type { QueryState, QueryCTE } from '../model/types';
 
 const q = (id: string, tableAlias?: string): string => {
     if (!id || id === '*') return id;
@@ -6,8 +6,6 @@ const q = (id: string, tableAlias?: string): string => {
     // Handle dotted identifiers (e.g. "public.table" or "table.column")
     if (id.includes('.') && !id.includes('"')) {
         const parts = id.split('.');
-        // If we have table.column, we apply tableAlias to the table part if needed
-        // but usually id is already fully qualified or just a column.
         return parts.map(p => q(p)).join('.');
     }
 
@@ -106,10 +104,6 @@ export const generateBlockSQL = (state: QueryState, options?: { isForPreview?: b
                 if (joinType === 'LEFT') joinType = 'RIGHT';
                 else if (joinType === 'RIGHT') joinType = 'LEFT';
                 
-                // Swap columns and aliases for the ON clause to match the flipped direction
-                // However, in "A JOIN B ON cond", B is the table being joined.
-                // If we have join(A, B) and we are joining A to processed B:
-                // SQL: ... FROM B [FLIPPED JOIN] A ON A.col = B.col
                 leftAlias = join.rightTableAlias;
                 leftCol = join.rightColumn;
                 rightAlias = join.leftTableAlias;
@@ -160,7 +154,7 @@ export const generateBlockSQL = (state: QueryState, options?: { isForPreview?: b
         sql += state.orderBy.map(o => `${q(o.columnName, o.tableAlias)} ${o.direction}`).join(', ');
     }
 
-    // 6. LIMIT clause with preview constraint
+    // LIMIT clause with preview constraint
     let effectiveLimit = state.useLimit ? state.limit : undefined;
     
     if (options?.isForPreview) {
@@ -184,19 +178,13 @@ const sortCtesByDependency = (ctes: QueryCTE[]): QueryCTE[] => {
 
     const visit = (cte: QueryCTE) => {
         if (visited.has(cte.id)) return;
-        if (processing.has(cte.id)) {
-            // Circular dependency detected. SQL doesn't support this without RECURSIVE
-            // and even then it's complex. We'll just stop here to prevent infinite loop.
-            return;
-        }
+        if (processing.has(cte.id)) return;
 
         processing.add(cte.id);
 
-        // A CTE A depends on B if any table in A's state or its anchorTable (if recursive)
-        // refers to B's alias.
         const ctasAliases = new Set(ctes.map(c => c.alias));
-        
         const dependentAliases = new Set<string>();
+
         cte.state.tables.forEach((t: any) => {
             if (ctasAliases.has(t.tableName) && t.tableName !== cte.alias) {
                 dependentAliases.add(t.tableName);
@@ -223,7 +211,7 @@ const sortCtesByDependency = (ctes: QueryCTE[]): QueryCTE[] => {
     return sorted;
 };
 
-export const generateSQL = (state: MultiQueryState, options?: { isForPreview?: boolean }): string => {
+export const generateSQL = (state: import('../model/types').MultiQueryState, options?: { isForPreview?: boolean }): string => {
     let sql = '';
     
     if (state.ctes.length > 0) {
@@ -234,7 +222,6 @@ export const generateSQL = (state: MultiQueryState, options?: { isForPreview?: b
             if (cte.isRecursive && cte.recursiveConfig) {
                 const { anchorTable, primaryKey, parentKey, depthColumn } = cte.recursiveConfig;
                 
-                // Fields for anchor and recursive parts must match
                 const fieldList = cte.state.selectedFields.map((f: any) => {
                     const base = f.expression || f.columnName || '';
                     const resAlias = f.alias;
@@ -244,20 +231,15 @@ export const generateSQL = (state: MultiQueryState, options?: { isForPreview?: b
 
                 let recursiveFields = fieldList.map((f: any) => {
                     if (f.base === '*') return `r.*`;
-                    
-                    // If it's from the anchor table, use 'r.' prefix
                     if (!f.tableAlias || f.tableAlias === anchorTable) {
                         const isSimpleCol = /^[a-zA-Z_][\w]*$/.test(f.base);
                         return isSimpleCol ? `r.${q(f.base)}` : f.base;
                     }
-                    
-                    // If it's from another table (joined in anchor member), it must be carried over from 't'
                     return `t.${q(f.alias || f.base)}`;
                 }).join(', ') || 'r.*';
 
                 let anchorSql = generateBlockSQL(cte.state, options);
                 if (depthColumn) {
-                    // Inject depth column into the anchor member's SELECT
                     anchorSql = anchorSql.replace(/SELECT\s+/i, `SELECT 0 AS ${q(depthColumn)}, `);
                     recursiveFields = `t.${q(depthColumn)} + 1, ${recursiveFields}`;
                 }
@@ -283,8 +265,6 @@ export const generateSQL = (state: MultiQueryState, options?: { isForPreview?: b
     
     const mainSql = generateBlockSQL(state.mainQuery, options);
     if (!mainSql && sql) {
-        // If we have CTEs but no main query, the SQL would be invalid.
-        // We add a default SELECT from the last CTE to make it valid for preview/save.
         const lastCte = state.ctes[state.ctes.length - 1];
         sql += `\nSELECT * FROM ${q(lastCte.alias)}`;
     } else {
@@ -300,22 +280,13 @@ function getAllFieldRefs(nodes: import('../model/types').JsonTreeNode[]): string
     const refs = new Set<string>();
     for (const node of nodes) {
         if (node.type === 'field') {
-            refs.add((node.fieldRef || node.key).replace(/"/g, ''));
-        } else if (node.children) {
-            getAllFieldRefs(node.children).forEach(r => refs.add(r));
+            refs.add((node.fieldRef || node.key).replace(/"/g, '').split('.').pop()!);
         }
-    }
-    return Array.from(refs);
-}
-
-function getArrayDirectFields(arrayNode: import('../model/types').JsonTreeNode): string[] {
-    const refs = new Set<string>();
-    if (!arrayNode.children) return [];
-    for (const child of arrayNode.children) {
-        if (child.type === 'field') {
-            refs.add((child.fieldRef || child.key).replace(/"/g, ''));
-        } else if (child.type === 'object' && child.children) {
-            getArrayDirectFields(child).forEach(r => refs.add(r)); 
+        if (node.orderByRef) {
+            refs.add(node.orderByRef.replace(/"/g, '').split('.').pop()!);
+        }
+        if (node.children) {
+            getAllFieldRefs(node.children).forEach(r => refs.add(r));
         }
     }
     return Array.from(refs);
@@ -323,10 +294,33 @@ function getArrayDirectFields(arrayNode: import('../model/types').JsonTreeNode):
 
 function collectArrays(nodes: import('../model/types').JsonTreeNode[], out: import('../model/types').JsonTreeNode[] = []): import('../model/types').JsonTreeNode[] {
     for (const node of nodes) {
-        if (node.children) collectArrays(node.children, out);
         if (node.type === 'array') out.push(node);
+        if (node.children) collectArrays(node.children, out);
     }
     return out;
+}
+
+function getFieldsUsedOutside(allNodes: import('../model/types').JsonTreeNode[], targetArrays: import('../model/types').JsonTreeNode[]): Set<string> {
+    const targetIds = new Set(targetArrays.map(a => a.id));
+    const outsideFields = new Set<string>();
+    
+    const walk = (ns: import('../model/types').JsonTreeNode[], isInsideTarget: boolean) => {
+        for (const n of ns) {
+            const nextInside = isInsideTarget || targetIds.has(n.id);
+            if (!nextInside && n.type === 'field') {
+                const baseName = (n.fieldRef || n.key).replace(/"/g, '').split('.').pop()!;
+                outsideFields.add(baseName);
+            }
+            if (!nextInside && n.orderByRef) {
+                const baseName = n.orderByRef.replace(/"/g, '').split('.').pop()!;
+                outsideFields.add(baseName);
+            }
+            if (n.children) walk(n.children, nextInside);
+        }
+    };
+    
+    walk(allNodes, false);
+    return outsideFields;
 }
 
 function getDirectChildArrayIds(nodes: import('../model/types').JsonTreeNode[]): string[] {
@@ -344,18 +338,19 @@ function getDirectChildArrayIds(nodes: import('../model/types').JsonTreeNode[]):
 function formatNodeAccess(node: import('../model/types').JsonTreeNode, indent: number, arrayAliases: Record<string, string>): string {
     const innerPad = ' '.repeat(indent * 4);
     if (node.type === 'field') {
-        return q(node.fieldRef || node.key);
+        const baseName = (node.fieldRef || node.key).replace(/"/g, '').split('.').pop()!;
+        return q(baseName);
     }
     if (node.type === 'object') {
         if (!node.children || node.children.length === 0) return 'NULL';
         const pairs = node.children.map(child =>
-            `${innerPad}'${child.key}', ${formatNodeAccess(child, indent + 1, arrayAliases)}`
+            `${innerPad}'${child.key || (child.type === 'field' ? child.fieldRef?.split('.').pop() : 'obj')}', ${formatNodeAccess(child, indent + 1, arrayAliases)}`
         ).join(',\n');
-        return `json_build_object(\n${pairs}\n${' '.repeat((indent - 1) * 4)})`;
+        return `jsonb_build_object(\n${pairs}\n${' '.repeat((indent - 1) * 4)})`;
     }
     if (node.type === 'array') {
         const alias = arrayAliases[node.id];
-        return `"${alias}"`;
+        return q(alias);
     }
     return 'NULL';
 }
@@ -390,7 +385,6 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
 
     const stateComment = `/* JSON_BUILDER_STATE: ${JSON.stringify(tree)} */\n`;
 
-    // 1. Prepare base query state (extracting main query block)
     const baseState = { 
         ...state, 
         jsonTree: [],
@@ -400,7 +394,6 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
         })
     };
     
-    // 2. Generate the flat CTE block
     const sortedCtes = sortCtesByDependency(baseState.ctes);
     const hasRecursive = sortedCtes.some(c => c.isRecursive);
     const cteParts: string[] = sortedCtes.map(cte => 
@@ -408,13 +401,8 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
     );
 
     // Initial columns from base query for grouping context
-    let currentTableColumns = new Set(state.mainQuery.selectedFields.map(f => f.alias || f.columnName || ''));
-    if (currentTableColumns.has('*')) {
-        currentTableColumns.delete('*');
-        getAllFieldRefs(tree).forEach(f => currentTableColumns.add(f.split('.').pop() || ''));
-    }
+    let currentTableColumns = new Set(getAllFieldRefs(tree));
 
-    // 3. Add __base_query to the CTE list
     const mainBlockInnerSql = generateBlockSQL(baseState.mainQuery, options);
     cteParts.push(`__base_query AS (\n${mainBlockInnerSql.split('\n').map(l => '    ' + l).join('\n')}\n)`);
 
@@ -424,7 +412,6 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
     const arrayAliases: Record<string, string> = {};
     let prevTable = '__base_query';
 
-    // 4. Build subqueries from innermost levels out
     for (let i = 0; i < arrayLevels.length; i++) {
         const levelArrays = arrayLevels[i];
         const subAlias = `sub_${i}`;
@@ -434,21 +421,32 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
         });
 
         const aggAliasesAtThisLevel = new Set(levelArrays.map(a => arrayAliases[a.id]));
-        const carryOverCols = Array.from(currentTableColumns).filter(c => !aggAliasesAtThisLevel.has(c));
-        const selectCols = carryOverCols.map(c => q(c));
+        const fieldsUsedHigher = getFieldsUsedOutside(tree, levelArrays);
+        
+        const carryOverCols = Array.from(currentTableColumns).filter(c => {
+            if (aggAliasesAtThisLevel.has(c)) return false;
+            
+            // Carry over any previous aggregation results that are referenced higher up.
+            const isPrevAgg = c.startsWith('arr_');
+            if (isPrevAgg) return true; 
+
+            return fieldsUsedHigher.has(c);
+        });
+
+        const selectCols = carryOverCols.map(c => `to_jsonb(${q(c)}) AS ${q(c)}`);
         
         levelArrays.forEach(arr => {
             const innerPairs = (arr.children || []).map(child =>
-                `                '${child.key || (child.type === 'field' ? child.fieldRef?.split('.').pop() : 'obj')}', ${formatNodeAccess(child, 4, arrayAliases)}`
+                `                '${child.key || (child.type === 'field' ? (child.fieldRef || child.key).split('.').pop() : 'obj')}', ${formatNodeAccess(child, 4, arrayAliases)}`
             ).join(',\n');
             
-            const orderBy = arr.orderByRef ? ` ORDER BY ${q(arr.orderByRef)}` : '';
+            const orderBy = arr.orderByRef ? ` ORDER BY ${q(arr.orderByRef.split('.').pop()!)}` : '';
             const aggAlias = arrayAliases[arr.id];
-            const aggExpr = `json_agg(\n            json_build_object(\n${innerPairs}\n            )${orderBy}\n        ) AS ${q(aggAlias)}`;
+            const aggExpr = `jsonb_agg(\n            jsonb_build_object(\n${innerPairs}\n            )${orderBy}\n        ) AS ${q(aggAlias)}`;
             selectCols.push(aggExpr);
         });
 
-        const groupByClause = carryOverCols.length > 0 ? `\n    GROUP BY ${carryOverCols.map(c => q(c)).join(', ')}` : '';
+        const groupByClause = carryOverCols.length > 0 ? `\n    GROUP BY ${carryOverCols.map((_, idx) => idx + 1).join(', ')}` : '';
         const subSql = `    SELECT \n        ${selectCols.join(',\n        ')}\n    FROM ${prevTable}${groupByClause}`;
         
         arrayCtes.push({ alias: subAlias, sql: subSql });
@@ -457,13 +455,12 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
     }
 
     // 5. Build final SELECT
-    const finalPairs = tree.map(node =>
-        `    '${node.key || (node.type === 'field' ? node.fieldRef?.split('.').pop() : 'obj')}', ${formatNodeAccess(node, 1, arrayAliases)}`
-    ).join(',\n');
-    
-    const bodySql = `SELECT json_build_object(\n${finalPairs}\n) AS result\nFROM ${prevTable}`;
+    const finalCols = tree.map(node => {
+        const key = node.key || (node.type === 'field' ? (node.fieldRef || node.key).split('.').pop()! : 'obj');
+        return `${formatNodeAccess(node, 1, arrayAliases)} AS ${q(key)}`;
+    });
+    const bodySql = `SELECT ${finalCols.join(', ')}\nFROM ${prevTable}`;
 
-    // 6. Assemble the full result
     let fullSql = stateComment;
     fullSql += hasRecursive ? 'WITH RECURSIVE ' : 'WITH ';
     fullSql += cteParts.join(',\n');
