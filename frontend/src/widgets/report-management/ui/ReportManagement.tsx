@@ -152,6 +152,16 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         setIdToDelete(report.id);
     };
 
+    const handleDuplicate = async (report: Report) => {
+        try {
+            await apiClient.post(`/reports/${report.id}/duplicate`);
+            setRefreshTrigger(prev => prev + 1);
+        } catch (err) {
+            console.error("Failed to duplicate report", err);
+            alert("Error duplicating report");
+        }
+    };
+
     const handleDeleteStyle = (style: ReportStyle) => {
         setIdToDelete(style.id);
     };
@@ -473,6 +483,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                         onEdit={handleEdit}
                         onView={handleView}
                         onDelete={handleDelete}
+                        onDuplicate={handleDuplicate}
                         searchQuery={searchQuery}
                     />
                 )}

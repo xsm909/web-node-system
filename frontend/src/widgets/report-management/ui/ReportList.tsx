@@ -15,10 +15,11 @@ interface ReportListProps {
     onEdit: (report: Report) => void;
     onView: (report: Report) => void;
     onDelete: (report: Report) => void;
+    onDuplicate: (report: Report) => void;
     searchQuery: string;
 }
 
-export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQuery }: ReportListProps) {
+export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, onDuplicate, searchQuery }: ReportListProps) {
 
     const columns = useMemo(() => [
         columnHelper.accessor('name', {
@@ -60,6 +61,15 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQ
                         </button>
                         {isAdmin && (
                             <button
+                                onClick={(e) => { e.stopPropagation(); onDuplicate(report); }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-500/10 transition-colors"
+                                title="Duplicate Report"
+                            >
+                                <Icon name="content_copy" size={16} />
+                            </button>
+                        )}
+                        {isAdmin && (
+                            <button
                                 onClick={(e) => { e.stopPropagation(); onDelete(report); }}
                                 className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
                                 title="Delete Report"
@@ -71,7 +81,7 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, searchQ
                 );
             },
         }),
-    ], [isAdmin, onView, onDelete]);
+    ], [isAdmin, onView, onDelete, onDuplicate]);
 
     const filteredReports = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();

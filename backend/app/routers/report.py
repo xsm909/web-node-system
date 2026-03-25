@@ -315,6 +315,50 @@ def delete_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_a
     db.commit()
     return {"status": "deleted"}
 
+@router.post("/{report_id}/duplicate", response_model=ReportOut)
+def duplicate_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=admin_access):
+    """Duplicate a report along with all its parameters."""
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    new_report = Report(
+        name=f"{report.name} (Copy)",
+        type=report.type,
+        description=report.description,
+        code=report.code,
+        schema_json=report.schema_json,
+        template=report.template,
+        style_id=report.style_id,
+        category=report.category,
+        meta=report.meta,
+        project_id=report.project_id,
+        created_by=current_user.id,
+    )
+    db.add(new_report)
+    db.flush()  # get new_report.id before committing
+
+    # Duplicate all parameters
+    for param in report.parameters:
+        new_param = ObjectParameter(
+            object_id=new_report.id,
+            object_name="reports",
+            parameter_name=param.parameter_name,
+            parameter_type=param.parameter_type,
+            default_value=param.default_value,
+            source=param.source,
+            value_field=param.value_field,
+            label_field=param.label_field,
+        )
+        db.add(new_param)
+
+    db.commit()
+    db.refresh(new_report)
+
+    new_report_dict = ReportOut.model_validate(new_report).model_dump()
+    new_report_dict["is_locked"] = False
+    return new_report_dict
+
 def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Session, user_context: Dict[str, Any] = None, for_pdf: bool = False) -> Dict[str, Any]:
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
