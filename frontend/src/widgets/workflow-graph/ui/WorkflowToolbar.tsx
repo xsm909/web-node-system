@@ -41,7 +41,7 @@ export const WorkflowToolbar: React.FC<WorkflowToolbarProps> = ({ nodeTypes }) =
                     draggable
                     // NO vertical padding/margin here to prevent buttons from overlapping
                     // ONLY massive horizontal expansion for the drag ghost snapshot
-                    className="relative group/item flex items-center justify-start h-8 pr-[240px] -mr-[240px] cursor-grab active:cursor-grabbing"
+                    className="relative group/item flex items-center justify-start h-8 pr-[0px] -mr-[0px] cursor-grab active:cursor-grabbing"
                 >
                     <div className="flex items-center justify-center w-8 h-8 hover:scale-110 active:scale-95 transition-transform duration-200">
                         <AppRoundButton
