@@ -27,7 +27,7 @@ import { StartNode } from '../../../entities/node-type/ui/StartNode';
 import { DefaultNode } from '../../../entities/node-type/ui/DefaultNode';
 import { AddNodeMenu } from '../../add-node-menu';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
-import { WorkflowToolbar } from './WorkflowToolbar';
+// import { WorkflowToolbar } from './WorkflowToolbar';
 
 const nodeTypesConfig = {
     start: StartNode,
@@ -742,7 +742,7 @@ export function WorkflowGraph({
                             </button>
                         </div>
                         
-                        {!isReadOnly && <WorkflowToolbar nodeTypes={nodeTypes} />}
+                        {/* {!isReadOnly && <WorkflowToolbar nodeTypes={nodeTypes} />} */}
                     </Panel>
                     <Background
                         variant={BackgroundVariant.Dots}

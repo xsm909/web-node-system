@@ -11,6 +11,28 @@ export const WorkflowToolbar: React.FC<WorkflowToolbarProps> = ({ nodeTypes }) =
     const [draggingNodeId, setDraggingNodeId] = React.useState<string | null>(null);
 
     const onDragStart = (event: React.DragEvent, nodeType: NodeType) => {
+        // Find the parent item container to use as drag image (contains icon + hint)
+        const ghost = (event.currentTarget as HTMLElement).parentElement;
+        if (ghost) {
+            // Temporarily expand the ghost container during the snapshot capture
+            // to ensure long hints are captured without being clipped by the bounding box.
+            const originalPadding = ghost.style.paddingRight;
+            const originalMargin = ghost.style.marginRight;
+
+            ghost.style.paddingRight = '480px';
+            ghost.style.marginRight = '-480px';
+
+            // Offset to center the ghost on the icon (icon is 32x32, so 16, 16)
+            event.dataTransfer.setDragImage(ghost, 16, 16);
+
+            // Revert the expansion immediately after the snapshot is requested.
+            // A micro-delay ensures browsers have processed the setDragImage request.
+            setTimeout(() => {
+                ghost.style.paddingRight = originalPadding;
+                ghost.style.marginRight = originalMargin;
+            }, 0);
+        }
+
         // Delay hiding in toolbar to ensure it's captured in the drag snapshot
         setTimeout(() => setDraggingNodeId(nodeType.id), 0);
         event.dataTransfer.setData('application/reactflow', JSON.stringify(nodeType));
@@ -36,14 +58,16 @@ export const WorkflowToolbar: React.FC<WorkflowToolbarProps> = ({ nodeTypes }) =
             {toolbarNodes.map((nt) => (
                 <div
                     key={nt.id}
-                    onDragStart={(event) => onDragStart(event, nt)}
-                    onDragEnd={onDragEnd}
-                    draggable
                     // NO vertical padding/margin here to prevent buttons from overlapping
-                    // ONLY massive horizontal expansion for the drag ghost snapshot
-                    className="relative group/item flex items-center justify-start h-8 pr-[0px] -mr-[0px] cursor-grab active:cursor-grabbing"
+                    // The row is kept narrow (w-fit) to avoid blocking workflow canvas interaction
+                    className="relative group/item flex items-center justify-start h-8"
                 >
-                    <div className="flex items-center justify-center w-8 h-8 hover:scale-110 active:scale-95 transition-transform duration-200">
+                    <div
+                        draggable
+                        onDragStart={(event) => onDragStart(event, nt)}
+                        onDragEnd={onDragEnd}
+                        className="flex items-center justify-center w-8 h-8 hover:scale-110 active:scale-95 transition-transform duration-200 cursor-grab active:cursor-grabbing z-10"
+                    >
                         <AppRoundButton
                             icon={nt.icon || 'function'}
                             iconDir="node_icons"
@@ -53,7 +77,7 @@ export const WorkflowToolbar: React.FC<WorkflowToolbarProps> = ({ nodeTypes }) =
                         />
                     </div>
 
-                    {/* Tooltip (Hint) positioned 12px to the right of the icon edge (icon is 40px wide here) */}
+                    {/* Tooltip (Hint) positioned 12px to the right of the icon edge (icon is 32px wide here) */}
                     {draggingNodeId !== nt.id && (
                         <div
                             className="absolute left-[44px] top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-2xl border border-white/40 opacity-0 invisible group-hover/item:opacity-100 group-hover/item:visible transition-all duration-300 whitespace-nowrap z-[100] translate-x-[-10px] group-hover/item:translate-x-0 pointer-events-none"
