@@ -99,6 +99,12 @@ def unsafe_request(sql_query: str, params: Optional[Dict[str, Any]] = None) -> L
                 pass
                 
         # Resolve parameters
+        if params and not isinstance(params, (dict, str)):
+            if hasattr(params, "to_dict"):
+                params = params.to_dict()
+            elif hasattr(params, "__dict__"):
+                params = vars(params)
+                
         final_params = (params if isinstance(params, dict) else {}).copy()
         
         # 1. Try to fill missing params from object_params_context
