@@ -27,6 +27,7 @@ import { StartNode } from '../../../entities/node-type/ui/StartNode';
 import { DefaultNode } from '../../../entities/node-type/ui/DefaultNode';
 import { AddNodeMenu } from '../../add-node-menu';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { WorkflowToolbar } from './WorkflowToolbar';
 
 const nodeTypesConfig = {
     start: StartNode,
@@ -611,39 +612,137 @@ export function WorkflowGraph({
                     selectionOnDrag={true}
                     selectionKeyCode={isSelectionMode ? null : 'Shift'}
                     multiSelectionKeyCode="Shift"
+                    onDragOver={(event) => {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = 'move';
+                    }}
+                    onDrop={(event) => {
+                        event.preventDefault();
+                        if (isReadOnly) return;
+
+                        const typeJson = event.dataTransfer.getData('application/reactflow');
+                        if (!typeJson) return;
+
+                        const type = JSON.parse(typeJson) as NodeType;
+                        
+                        // Get drop position in flow coordinates
+                        const flowPos = screenToFlowPosition({
+                            x: event.clientX,
+                            y: event.clientY,
+                        });
+
+                        // Check if dropped onto a node
+                        const nodeUnder = nodes.find(n => {
+                            const nodeWidth = n.width || 250;
+                            const nodeHeight = n.height || 100;
+                            return (
+                                flowPos.x >= n.position.x &&
+                                flowPos.x <= n.position.x + nodeWidth &&
+                                flowPos.y >= n.position.y &&
+                                flowPos.y <= n.position.y + nodeHeight
+                            );
+                        });
+
+                        const newNodeId = `node_${Date.now()}`;
+                        const initialParams: Record<string, any> = {};
+                        if (type.parameters) {
+                            type.parameters.forEach((param: any) => {
+                                if (param.default !== undefined && param.default !== null) {
+                                    initialParams[param.name] = param.default;
+                                }
+                            });
+                        }
+
+                        let newNode: Node;
+
+                        if (nodeUnder) {
+                            // Place under the target node
+                            const nodeHeight = nodeUnder.height || 100;
+                            const verticalGap = 60;
+                            
+                            newNode = {
+                                id: newNodeId,
+                                type: 'action',
+                                position: {
+                                    x: nodeUnder.position.x,
+                                    y: nodeUnder.position.y + nodeHeight + verticalGap
+                                },
+                                data: {
+                                    nodeTypeId: type.id,
+                                    label: type.name,
+                                    category: type.category,
+                                    params: initialParams,
+                                    icon: type.icon
+                                },
+                            };
+
+                            const newEdge: Edge = {
+                                id: `e_${nodeUnder.id}-${newNodeId}`,
+                                source: nodeUnder.id,
+                                sourceHandle: 'output',
+                                target: newNodeId,
+                                targetHandle: 'top',
+                            };
+
+                            setNodes((nds) => nds.concat(newNode));
+                            setEdges((eds) => addEdge(newEdge, eds));
+                        } else {
+                            // Place at drop position (centered)
+                            newNode = {
+                                id: newNodeId,
+                                type: 'action',
+                                position: {
+                                    x: Math.round((flowPos.x - 125) / 10) * 10,
+                                    y: Math.round((flowPos.y - 50) / 10) * 10
+                                },
+                                data: {
+                                    nodeTypeId: type.id,
+                                    label: type.name,
+                                    category: type.category,
+                                    params: initialParams,
+                                    icon: type.icon
+                                },
+                            };
+                            setNodes((nds) => nds.concat(newNode));
+                        }
+                    }}
                 >
-                    <Panel position="top-left" className="bg-surface-800 border-[var(--border-base)] rounded-xl p-1 shadow-2xl flex gap-1 ml-4 mt-2">
-                        <button
-                            onClick={() => setIsSelectionMode(false)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${!isSelectionMode ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:bg-white/5'}`}
-                            title="Move tool"
-                        >
-                            Move
-                        </button>
-                        <button
-                            onClick={() => setIsSelectionMode(true)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${isSelectionMode ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:bg-white/5'}`}
-                            title="Selection tool"
-                        >
-                            Select
-                        </button>
-                        <div className="w-[1px] h-4 bg-[var(--border-base)] mx-1 self-center" />
-                        <button
-                            onClick={handleCopy}
-                            disabled={!nodes.some(n => n.selected)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 text-[var(--text-muted)] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
-                            title="Copy selected nodes"
-                        >
-                            Copy
-                        </button>
-                        <button
-                            onClick={() => handlePaste(false)}
-                            disabled={!clipboard}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 text-[var(--text-muted)] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
-                            title="Paste nodes nearby"
-                        >
-                            Paste
-                        </button>
+                    <Panel position="top-left" className="flex flex-col gap-4 mt-2">
+                        <div className="bg-surface-800 border-[var(--border-base)] rounded-xl p-1 shadow-2xl flex gap-1 ml-4">
+                            <button
+                                onClick={() => setIsSelectionMode(false)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${!isSelectionMode ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:bg-white/5'}`}
+                                title="Move tool"
+                            >
+                                Move
+                            </button>
+                            <button
+                                onClick={() => setIsSelectionMode(true)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${isSelectionMode ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-[var(--text-muted)] hover:bg-white/5'}`}
+                                title="Selection tool"
+                            >
+                                Select
+                            </button>
+                            <div className="w-[1px] h-4 bg-[var(--border-base)] mx-1 self-center" />
+                            <button
+                                onClick={handleCopy}
+                                disabled={!nodes.some(n => n.selected)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 text-[var(--text-muted)] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Copy selected nodes"
+                            >
+                                Copy
+                            </button>
+                            <button
+                                onClick={() => handlePaste(false)}
+                                disabled={!clipboard}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 text-[var(--text-muted)] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Paste nodes nearby"
+                            >
+                                Paste
+                            </button>
+                        </div>
+                        
+                        {!isReadOnly && <WorkflowToolbar nodeTypes={nodeTypes} />}
                     </Panel>
                     <Background
                         variant={BackgroundVariant.Dots}

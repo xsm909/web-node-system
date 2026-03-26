@@ -10,6 +10,8 @@ interface AppRoundButtonProps {
     title?: string;
     className?: string;
     iconSize?: number;
+    iconDir?: 'icons' | 'node_icons';
+    iconClassName?: string;
     size?: 'normal' | 'small';
     type?: 'button' | 'submit' | 'reset';
 }
@@ -23,6 +25,8 @@ export const AppRoundButton = React.forwardRef<HTMLButtonElement, AppRoundButton
     title,
     className = '',
     iconSize,
+    iconDir = 'icons',
+    iconClassName = '',
     size = 'normal',
     type = 'button'
 }, ref) => {
@@ -50,8 +54,9 @@ export const AppRoundButton = React.forwardRef<HTMLButtonElement, AppRoundButton
         >
             <Icon 
                 name={isLoading ? 'sync' : icon} 
+                dir={isLoading ? 'icons' : iconDir}
                 size={computedIconSize} 
-                className={isLoading ? 'animate-spin' : ''} 
+                className={`${isLoading ? 'animate-spin' : ''} ${iconClassName}`} 
             />
         </button>
     );

@@ -1,0 +1,79 @@
+import React from 'react';
+import type { NodeType } from '../../../entities/node-type/model/types';
+import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
+
+interface WorkflowToolbarProps {
+    nodeTypes: NodeType[];
+}
+
+export const WorkflowToolbar: React.FC<WorkflowToolbarProps> = ({ nodeTypes }) => {
+    const toolbarNodes = nodeTypes.filter(nt => nt.show_in_toolbar);
+    const [draggingNodeId, setDraggingNodeId] = React.useState<string | null>(null);
+
+    const onDragStart = (event: React.DragEvent, nodeType: NodeType) => {
+        // Delay hiding in toolbar to ensure it's captured in the drag snapshot
+        setTimeout(() => setDraggingNodeId(nodeType.id), 0);
+        event.dataTransfer.setData('application/reactflow', JSON.stringify(nodeType));
+        event.dataTransfer.effectAllowed = 'move';
+    };
+
+    const onDragEnd = () => {
+        setDraggingNodeId(null);
+    };
+
+    return (
+        <aside className="workflow-toolbar bg-surface-800/80 backdrop-blur-xl border border-[var(--border-base)] rounded-2xl p-2.5 shadow-2xl flex flex-col gap-2.5 ml-4 w-fit h-auto max-h-[calc(100%-40px)] pointer-events-auto overflow-visible">
+            <style>{`
+                .workflow-toolbar .icon {
+                    fill: currentColor !important;
+                }
+                .workflow-toolbar .icon * {
+                    fill: currentColor !important;
+                    stroke: currentColor !important;
+                }
+            `}</style>
+            
+            {toolbarNodes.map((nt) => (
+                <div
+                    key={nt.id}
+                    onDragStart={(event) => onDragStart(event, nt)}
+                    onDragEnd={onDragEnd}
+                    draggable
+                    // Increasing vertical buffer (+10% extra at bottom) and keeping horizontal safety
+                    className="relative group/item flex items-center justify-center p-6 -m-6 pb-10 -mb-10 pr-[240px] -mr-[240px] cursor-grab active:cursor-grabbing hover:scale-105 transition-transform"
+                >
+                    <AppRoundButton
+                        icon={nt.icon || 'function'}
+                        iconDir="node_icons"
+                        variant="ghost"
+                        size="small"
+                        className="!bg-white !text-brand !shadow-none"
+                    />
+                    
+                    {/* Tooltip (Hint) */}
+                    {draggingNodeId !== nt.id && (
+                        <div 
+                            className="absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 px-4 py-2 rounded-2xl border border-white/40 opacity-0 invisible group-hover/item:opacity-100 group-hover/item:visible transition-all duration-300 whitespace-nowrap z-[100] translate-x-[-10px] group-hover/item:translate-x-0 pointer-events-none"
+                            style={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                backdropFilter: 'blur(20px)',
+                                WebkitBackdropFilter: 'blur(20px)',
+                                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1)',
+                            }}
+                        >
+                            <span className="text-[10px] font-black text-brand uppercase tracking-wider">
+                                {nt.name}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            ))}
+
+            {toolbarNodes.length === 0 && (
+                <div className="text-[10px] text-[var(--text-muted)] text-center py-2 opacity-50 italic px-1">
+                    No nodes
+                </div>
+            )}
+        </aside>
+    );
+};
