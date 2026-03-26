@@ -386,11 +386,6 @@ class ReportExecutor:
                 "object_parameters": params_namespace,
                 "ObjectParameters": params_namespace,
                 "parameters": params_namespace, # Alias for backward compatibility
-                "metadata": node_globals["meta"], # Alias
-                "schema": node_globals["schema"], # Alias
-                "agent": node_globals["agent"], # Alias
-                "prompts": node_globals["prompts"], # Alias
-                "response_data": node_globals["response_data"], # Alias
                 "__builtins__": {
                     **SAFE_GLOBALS["__builtins__"],
                     "print": self._restricted_print,
