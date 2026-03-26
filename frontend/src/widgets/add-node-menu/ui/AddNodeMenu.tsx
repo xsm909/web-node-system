@@ -15,7 +15,7 @@ interface AddNodeMenuProps {
 
 export const AddNodeMenu: React.FC<AddNodeMenuProps> = ({ clientX, clientY, nodeTypes, onAddNode, onCancel }) => {
 
-    const visibleNodeTypes = useMemo(() => nodeTypes.filter(nt => nt.show_in_toolbar), [nodeTypes]);
+    const visibleNodeTypes = nodeTypes;
     const categoryTree = useMemo(() => buildCategoryTree(visibleNodeTypes), [visibleNodeTypes]);
 
     const selectionData = useMemo(() => {

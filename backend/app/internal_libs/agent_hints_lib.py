@@ -1,5 +1,5 @@
 import json
-from typing import Any, List, Optional, Dict
+from typing import Any, List, Optional, Dict, Union
 from ..core.database import SessionLocal
 from ..models.agent_hint import AgentHint
 from .logger_lib import system_log
@@ -28,7 +28,7 @@ def get_agent_hint_by_key(key: str) -> str:
     finally:
         db.close()
 
-def get_agent_hint_and_id_by_key(key: str) -> dict[str, Optional[int] | str | bool]:
+def get_agent_hint_and_id_by_key(key: str) -> Dict[str, Union[Optional[int], str, bool]]:
     """
     Retrieves an agent hint (markdown) by its unique key.
     Returns the hint content as a string.

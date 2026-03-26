@@ -19,3 +19,4 @@ class NodeType(Base):
     icon = Column(String(100), nullable=True, default="task")
     is_async = Column(Boolean, default=False)
     show_in_toolbar = Column(Boolean, default=False)
+    meta = Column(JSON, nullable=True, default={})

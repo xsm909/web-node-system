@@ -228,6 +228,7 @@ class NodeTypeCreate(BaseModel):
     icon: Optional[str] = "task"
     is_async: bool = False
     show_in_toolbar: bool = False
+    meta: Optional[dict] = {}
 
 
 class NodeTypeOut(BaseModel):
@@ -243,6 +244,7 @@ class NodeTypeOut(BaseModel):
     icon: Optional[str] = "task"
     is_async: bool
     show_in_toolbar: bool = False
+    meta: Optional[dict] = {}
     is_locked: bool = False
 
     class Config:
