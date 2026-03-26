@@ -621,9 +621,9 @@ def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Sess
         font-size: {"10pt" if not for_pdf else f"{int(12 * pdf_scale)}pt"} !important;
         width: 100% !important;
         border-collapse: collapse;
-        table-layout: auto;
+        table-layout: fixed;
     }}
-    th, td {{ word-break: break-all !important; white-space: normal !important; }}
+    th, td {{ word-break: break-all !important; white-space: normal !important; vertical-align: top !important; }}
     img, svg {{ max-width: 100% !important; height: auto !important; }}
     """
     
@@ -695,9 +695,9 @@ def _generate_grouped_report_html(report_ids: List[uuid.UUID], params: Dict[str,
         font-size: {"10pt" if not for_pdf else "6pt"} !important;
         width: 100% !important;
         border-collapse: collapse;
-        table-layout: auto;
+        table-layout: fixed;
     }}
-    th, td {{ word-break: break-all !important; white-space: normal !important; }}
+    th, td {{ word-break: break-all !important; white-space: normal !important; vertical-align: top !important; }}
     img, svg {{ max-width: 100% !important; height: auto !important; }}
     """
     
