@@ -705,8 +705,8 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             )}
 
             {activeTab === 'preview' && (
-                <div className="flex-1 flex flex-col pt-2 overflow-hidden gap-4">
-                    <div className="flex items-center justify-between">
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="flex items-center justify-between px-10 py-3 border-b border-[var(--border-base)] bg-[var(--bg-app)]">
                         <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Live Preview</h3>
                         <div className="flex items-center gap-1">
                             <AppFormButton
@@ -726,12 +726,12 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                         </div>
                     </div>
 
-                    <div className="flex-1 rounded-xl border border-[var(--border-base)] bg-white overflow-hidden shadow-inner relative">
+                    <div className="flex-1 relative overflow-hidden">
                         {previewHtml ? (
                             <iframe
                                 title="Report Preview"
                                 srcDoc={previewHtml}
-                                className="w-full h-full border-none"
+                                className="w-full h-full border-none bg-white"
                             />
                         ) : (
                             <div className="h-full flex items-center justify-center text-[var(--text-muted)] italic text-sm">

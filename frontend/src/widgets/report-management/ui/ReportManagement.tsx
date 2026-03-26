@@ -341,6 +341,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     icon="article"
                     isDirty={reportEditorIsDirty}
                     isSaving={isSaving}
+                    noPadding={activeTab === 'preview'}
                     onSave={() => {
                         setIsSaving(true);
                         const saveParams = !selectedReport && creationProjectId ? { project_id: creationProjectId } : {};
