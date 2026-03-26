@@ -394,6 +394,8 @@ const parseBlock = (sql: string): QueryState => {
         }
     }
 
+    const selectAliases = new Set(state.selectedFields.map(f => f.alias).filter(Boolean) as string[]);
+
     for (let i = 0; i < clauses.length; i++) {
         const c = clauses[i];
         const content = getClauseContent(c, clauses[i+1]);
@@ -418,7 +420,7 @@ const parseBlock = (sql: string): QueryState => {
                 if (!conditions[j]) continue;
                 const condStr = conditions[j].trim();
                 const logic = j > 0 ? (conditions[j-1] || 'AND').toUpperCase() : 'AND';
-                const condMatch = condStr.match(/(["\w\.]+)(?:\.(["\w\.]+))?\s*(=|!=|>|<|>=|<=|LIKE|IN)\s*([\s\S]+)/i);
+                const condMatch = condStr.match(/(["\w\.]+)(?:\.(["\w\.]+))?\s*(>=|<=|!=|=|>|<|LIKE|IN)\s*([\s\S]+)/i);
                 const nullMatch = condStr.match(/(["\w\.]+)(?:\.(["\w\.]+))?\s+(IS\s+NULL|IS\s+NOT\s+NULL)/i);
                 if (condMatch) {
                     const parsed = splitIdentifier(condMatch[2] ? `${condMatch[1]}.${condMatch[2]}` : condMatch[1]);
@@ -434,13 +436,17 @@ const parseBlock = (sql: string): QueryState => {
         } else if (c.token === 'GROUP BY') {
             content.split(',').forEach(g => {
                 const p = splitIdentifier(g.trim());
-                state.groupBy.push({ id: `g_${Date.now()}_${state.groupBy.length}`, tableAlias: p.table || state.tables[0]?.alias || '', columnName: p.column });
+                const isNumeric = /^\d+$/.test(p.column);
+                const defaultAlias = (selectAliases.has(p.column) || isNumeric) ? '' : (state.tables[0]?.alias || '');
+                state.groupBy.push({ id: `g_${Date.now()}_${state.groupBy.length}`, tableAlias: p.table || defaultAlias, columnName: p.column });
             });
         } else if (c.token === 'ORDER BY') {
             content.split(',').forEach(o => {
                 const pts = o.trim().split(/\s+/);
                 const p = splitIdentifier(pts[0]);
-                state.orderBy.push({ id: `o_${Date.now()}_${state.orderBy.length}`, tableAlias: p.table || state.tables[0]?.alias || '', columnName: p.column, direction: (pts[1] || 'ASC').toUpperCase() as any });
+                const isNumeric = /^\d+$/.test(p.column);
+                const defaultAlias = (selectAliases.has(p.column) || isNumeric) ? '' : (state.tables[0]?.alias || '');
+                state.orderBy.push({ id: `o_${Date.now()}_${state.orderBy.length}`, tableAlias: p.table || defaultAlias, columnName: p.column, direction: (pts[1] || 'ASC').toUpperCase() as any });
             });
         } else if (c.token === 'LIMIT') {
             const m = content.match(/^(\d+)/);
@@ -465,6 +471,7 @@ export const parseSQL = (sql: string): MultiQueryState => {
     };
 
     if (!sql || sql.trim() === '') return state;
+    sql = sql.trim().replace(/;+\s*$/, '');
 
     try {
         let startIdx = 0;

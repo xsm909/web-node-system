@@ -426,14 +426,21 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
         const carryOverCols = Array.from(currentTableColumns).filter(c => {
             if (aggAliasesAtThisLevel.has(c)) return false;
             
-            // Carry over any previous aggregation results that are referenced higher up.
             const isPrevAgg = c.startsWith('arr_');
-            if (isPrevAgg) return true; 
+            if (isPrevAgg) {
+                // Only carry over a previous aggregate if it's referenced OUTSIDE the current target arrays.
+                // This ensures we can embed it into a higher-level object/array without grouping by it.
+                return fieldsUsedHigher.has(c);
+            }
 
             return fieldsUsedHigher.has(c);
         });
 
-        const selectCols = carryOverCols.map(c => `to_jsonb(${q(c)}) AS ${q(c)}`);
+        const selectCols = carryOverCols.map(c => `${q(c)} AS ${q(c)}`);
+
+        // Important: Never group by aggregate columns (arr_). They are already combined values.
+        // Grouping by them causes one row per previous aggregate, breaking the hierarchy collapse.
+        const groupByCols = carryOverCols.filter(c => !c.startsWith('arr_'));
         
         levelArrays.forEach(arr => {
             const innerPairs = (arr.children || []).map(child =>
@@ -446,7 +453,8 @@ export const generateJsonSQL = (state: import('../model/types').MultiQueryState,
             selectCols.push(aggExpr);
         });
 
-        const groupByClause = carryOverCols.length > 0 ? `\n    GROUP BY ${carryOverCols.map((_, idx) => idx + 1).join(', ')}` : '';
+        const groupByNames = groupByCols.map(c => q(c));
+        const groupByClause = groupByNames.length > 0 ? `\n    GROUP BY ${groupByNames.join(', ')}` : '';
         const subSql = `    SELECT \n        ${selectCols.join(',\n        ')}\n    FROM ${prevTable}${groupByClause}`;
         
         arrayCtes.push({ alias: subAlias, sql: subSql });
