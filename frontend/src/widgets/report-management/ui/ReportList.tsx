@@ -17,10 +17,11 @@ interface ReportListProps {
     onDelete: (report: Report) => void;
     onDuplicate: (report: Report) => void;
     onReorder: (report: Report, newOrder: Report[]) => void;
+    onGroupView: (reports: Report[]) => void;
     searchQuery: string;
 }
 
-export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, onDuplicate, onReorder, searchQuery }: ReportListProps) {
+export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, onDuplicate, onReorder, onGroupView, searchQuery }: ReportListProps) {
 
     const columns = useMemo(() => [
         columnHelper.accessor('name', {
@@ -105,7 +106,15 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, onDupli
                 indentColumnId: 'name',
                 persistCategoryKey: 'report_expanded_categories',
                 emptyMessage: 'No reports found.',
-                onReorder: isAdmin ? onReorder : undefined
+                onReorder: isAdmin ? onReorder : undefined,
+                categoryActions: (path, items) => [
+                    {
+                        icon: 'play_arrow',
+                        label: 'Generate',
+                        onClick: () => onGroupView(items),
+                        variant: 'primary'
+                    }
+                ]
             }}
         />
     );

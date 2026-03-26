@@ -28,13 +28,14 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const { user } = useAuthStore();
     const isAdmin = user?.role === 'admin';
 
-    type ViewState = 'list' | 'edit' | 'view';
+    type ViewState = 'list' | 'edit' | 'view' | 'group-view';
     const [view, setView] = useState<ViewState>('list');
     const [topTab, setTopTab] = useState<'reports' | 'styles'>('reports');
     const [activeTab, setActiveTab] = useState<'general' | 'code' | 'template' | 'preview'>('general');
     const [reports, setReports] = useState<Report[]>([]);
     const [styles, setStyles] = useState<ReportStyle[]>([]);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+    const [selectedGroupReports, setSelectedGroupReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const { activeProject, isProjectMode } = useProjectStore();
@@ -156,6 +157,11 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         setView('view');
     };
 
+    const handleGroupView = (reports: Report[]) => {
+        setSelectedGroupReports(reports);
+        setView('group-view');
+    };
+
     const handleCreateStyle = () => {
         setSelectedStyle(null);
         setView('edit');
@@ -227,6 +233,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const handleBack = () => {
         setView('list');
         setSelectedReport(null);
+        setSelectedGroupReports([]);
         setCreationProjectId(null);
         setSelectedStyle(null);
         setIsGenerated(false);
@@ -235,18 +242,24 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     };
 
     const handleDownloadPdf = async () => {
-        if (!selectedReport) return;
         try {
-            const res = await apiClient.post(`/reports/${selectedReport.id}/pdf`, {
-                parameters: currentParams
-            }, {
-                responseType: 'blob'
-            });
+            let res;
+            if (view === 'group-view') {
+                res = await apiClient.post(`/reports/grouped/pdf`, {
+                    report_ids: selectedGroupReports.map(r => r.id),
+                    parameters: currentParams
+                }, { responseType: 'blob' });
+            } else {
+                if (!selectedReport) return;
+                res = await apiClient.post(`/reports/${selectedReport.id}/pdf`, {
+                    parameters: currentParams
+                }, { responseType: 'blob' });
+            }
 
             const url = window.URL.createObjectURL(new Blob([res.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `report_${selectedReport.name.replace(/\s+/g, '_')}.pdf`);
+            link.setAttribute('download', view === 'group-view' ? 'grouped_report.pdf' : `report_${selectedReport!.name.replace(/\s+/g, '_')}.pdf`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -257,18 +270,24 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     };
 
     const handleDownloadCsv = async () => {
-        if (!selectedReport) return;
         try {
-            const res = await apiClient.post(`/reports/${selectedReport.id}/csv`, {
-                parameters: currentParams
-            }, {
-                responseType: 'blob'
-            });
+            let res;
+            if (view === 'group-view') {
+                res = await apiClient.post(`/reports/grouped/csv`, {
+                    report_ids: selectedGroupReports.map(r => r.id),
+                    parameters: currentParams
+                }, { responseType: 'blob' });
+            } else {
+                if (!selectedReport) return;
+                res = await apiClient.post(`/reports/${selectedReport.id}/csv`, {
+                    parameters: currentParams
+                }, { responseType: 'blob' });
+            }
 
             const url = window.URL.createObjectURL(new Blob([res.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `report_${selectedReport.name.replace(/\s+/g, '_')}.csv`);
+            link.setAttribute('download', view === 'group-view' ? 'grouped_report.csv' : `report_${selectedReport!.name.replace(/\s+/g, '_')}.csv`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -279,18 +298,24 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     };
 
     const handleDownloadHtml = async () => {
-        if (!selectedReport) return;
         try {
-            const res = await apiClient.post(`/reports/${selectedReport.id}/html-file`, {
-                parameters: currentParams
-            }, {
-                responseType: 'blob'
-            });
+            let res;
+            if (view === 'group-view') {
+                res = await apiClient.post(`/reports/grouped/html-file`, {
+                    report_ids: selectedGroupReports.map(r => r.id),
+                    parameters: currentParams
+                }, { responseType: 'blob' });
+            } else {
+                if (!selectedReport) return;
+                res = await apiClient.post(`/reports/${selectedReport.id}/html-file`, {
+                    parameters: currentParams
+                }, { responseType: 'blob' });
+            }
 
             const url = window.URL.createObjectURL(new Blob([res.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `report_${selectedReport.name.replace(/\s+/g, '_')}.html`);
+            link.setAttribute('download', view === 'group-view' ? 'grouped_report.html' : `report_${selectedReport!.name.replace(/\s+/g, '_')}.html`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -428,7 +453,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 </AppFormView>
             )}
 
-            {(view === 'list' || view === 'view') && (
+            {(view === 'list' || view === 'view' || view === 'group-view') && (
                 <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden relative">
                     <AppHeader
                         onToggleSidebar={onToggleSidebar || (() => { })}
@@ -446,7 +471,11 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                                 )}
                                 <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
                                     {view === 'list' ? 'Reports Management' : (
-                                        <span><span className="opacity-50 font-normal">Reports / </span>{selectedReport?.name || 'New Report'}</span>
+                                        view === 'group-view' ? (
+                                             <span><span className="opacity-50 font-normal">Reports / </span>Group Report</span>
+                                        ) : (
+                                            <span><span className="opacity-50 font-normal">Reports / </span>{selectedReport?.name || 'New Report'}</span>
+                                        )
                                     )}
                                 </h1>
                             </div>
@@ -461,7 +490,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                                         title={topTab === 'reports' ? "Add Report" : "Add Style"}
                                     />
                                 )}
-                                {view === 'view' && (
+                                {(view === 'view' || view === 'group-view') && (
                                     <div className="flex items-center gap-2">
                                         <AppRoundButton
                                             icon="expand_all"
@@ -487,7 +516,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                                         />
                                     </div>
                                 )}
-                                {view === 'view' && isGenerated && (
+                                {(view === 'view' || view === 'group-view') && isGenerated && (
                                     <ComboBox
                                         label="Export"
                                         icon="article"
@@ -546,6 +575,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                                 onDelete={handleDelete}
                                 onDuplicate={handleDuplicate}
                                 onReorder={handleReorder}
+                                onGroupView={handleGroupView}
                                 searchQuery={searchQuery}
                             />
                         )}
@@ -560,10 +590,11 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                             />
                         )}
 
-                        {view === 'view' && (
+                        {(view === 'view' || view === 'group-view') && (
                             <ReportViewer
                                 ref={reportViewerRef}
                                 report={selectedReport!}
+                                reports={selectedGroupReports}
                                 onLoadingChange={() => { }}
                                 onGenerated={(generated: boolean, params: Record<string, any>) => {
                                     setIsGenerated(generated);

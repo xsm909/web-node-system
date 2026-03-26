@@ -7,7 +7,8 @@ import { AppParametersView } from '../../../shared/ui/app-parameters-view/AppPar
 import { AppParameterSelectByTamplate } from '../../../shared/ui/app-parameter-select-by-tamplate';
 
 interface ReportViewerProps {
-    report: Report;
+    report?: Report; // Single report
+    reports?: Report[]; // For grouped view
     onLoadingChange?: (loading: boolean) => void;
     onGenerated?: (isGenerated: boolean, params: Record<string, any>) => void;
 }
@@ -18,10 +19,14 @@ export interface ReportViewerRef {
     collapseAll: () => void;
 }
 
-export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ report, onLoadingChange, onGenerated }, ref) => {
+export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ report, reports, onLoadingChange, onGenerated }, ref) => {
     const [htmlData, setHtmlData] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    useEffect(() => {
+        onLoadingChange?.(isLoading);
+    }, [isLoading, onLoadingChange]);
     const [paramValues, setParamValues] = useState<Record<string, any>>({});
+    const [parameters, setParameters] = useState<any[]>([]);
     const [options, setOptions] = useState<Record<string, { value: string, label: string }[]>>({});
     const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
     const [isParamsExpanded, setIsParamsExpanded] = useState(true);
@@ -44,26 +49,40 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
     }));
 
     useEffect(() => {
-        onLoadingChange?.(isLoading);
-    }, [isLoading, onLoadingChange]);
-
-    useEffect(() => {
-        // Fetch options for parameters with @table sources
-        const fetchOptions = async () => {
+        const fetchOptions = async (reportId: string) => {
             try {
-                const res = await apiClient.get(`/reports/${report.id}/options`);
-                setOptions(res.data);
+                const res = await apiClient.get(`/reports/${reportId}/options`);
+                setOptions(prev => ({ ...prev, ...res.data }));
             } catch (err) {
-                console.error("Failed to load generic parameter options", err);
+                console.error("Failed to load options", err);
             }
         };
 
-        if (report.parameters && report.parameters.length > 0) {
-            fetchOptions();
+        const initialize = async () => {
+            let params: any[] = [];
+            if (reports && reports.length > 0) {
+                try {
+                    const res = await apiClient.post('/reports/grouped/parameters', {
+                        report_ids: reports.map(r => r.id)
+                    });
+                    params = res.data;
+                    setParameters(params);
+                    // For options, we might need to fetch from all reports or just first one? 
+                    // Let's fetch from the first one that has options for now, or all.
+                    for (const r of reports) {
+                        await fetchOptions(r.id);
+                    }
+                } catch (err) {
+                    console.error("Failed to load grouped params", err);
+                }
+            } else if (report) {
+                params = report.parameters || [];
+                setParameters(params);
+                await fetchOptions(report.id);
+            }
 
-            // initialize param values with default_value if available
             const initialParams: Record<string, any> = {};
-            report.parameters.forEach(p => {
+            params.forEach(p => {
                 if (p.parameter_type === 'date_range') {
                     const [s, e] = (p.default_value || '').split(',');
                     initialParams[`${p.parameter_name}_start`] = s || '';
@@ -73,19 +92,17 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                 }
             });
             setParamValues(initialParams);
-        }
-    }, [report.id, report.parameters]);
+        };
+
+        initialize();
+    }, [report?.id, reports]);
 
     const handleParamChange = (name: string, value: string) => {
         setParamValues(prev => ({ ...prev, [name]: value }));
     };
 
     const handleGenerate = async () => {
-        // Local validation removed - we allow the backend to handle it via ParametersProcessing
-        // to show better, custom error messages.
-
         setIsParamsExpanded(false);
-        // wait for collapse animation
         await new Promise(resolve => setTimeout(resolve, 300));
 
         setIsLoading(true);
@@ -93,9 +110,18 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
         setValidationReason(null);
         onGenerated?.(false, {});
         try {
-            const res = await apiClient.post(`/reports/${report.id}/generate`, {
-                parameters: paramValues
-            });
+            let res;
+            if (reports && reports.length > 0) {
+                res = await apiClient.post(`/reports/grouped/generate`, {
+                    report_ids: reports.map(r => r.id),
+                    parameters: paramValues
+                });
+            } else if (report) {
+                res = await apiClient.post(`/reports/${report.id}/generate`, {
+                    parameters: paramValues
+                });
+            } else return;
+
             if (res.data.validation_error) {
                 setValidationReason(res.data.validation_error);
                 setIsParamsExpanded(true);
@@ -105,7 +131,9 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
             }
         } catch (err: any) {
             console.error("Failed to generate report", err);
-            alert("Error generating report: " + (err.response?.data?.detail || err.message));
+            const detail = err.response?.data?.detail;
+            const msg = typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : err.message);
+            alert("Error generating report: " + msg);
         } finally {
             setIsLoading(false);
         }
@@ -118,9 +146,9 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
                     title="Report Parameters"
                     isExpanded={isParamsExpanded}
                     onToggle={() => setIsParamsExpanded(!isParamsExpanded)}
-                    className={!report.parameters || report.parameters.length === 0 ? 'hidden' : ''}
+                    className={parameters.length === 0 ? 'hidden' : ''}
                 >
-                    {report.parameters && report.parameters.map(param => (
+                    {parameters.map(param => (
                         <div key={param.parameter_name} className="space-y-1.5 min-w-0">
                             <label className="text-sm font-bold text-[var(--text-main)] capitalize block truncate">
                                 {param.parameter_name.replace(/_/g, ' ')}

@@ -5,6 +5,10 @@ from typing import List, Optional, Any, Dict
 import uuid
 import json
 import os
+import re
+import io
+import csv
+import markdown2
 from datetime import datetime
 from ..core.database import get_db
 from ..core.security import require_role, get_current_user
@@ -18,10 +22,6 @@ from ..internal_libs import projects_lib
 from pydantic import BaseModel
 from jinja2 import Environment, meta, Template
 from ..internal_libs.openai.openai_lib import openai_ask_single
-import re
-import io
-import csv
-import markdown2
 from fastapi.responses import Response, StreamingResponse
 from ..core.system_parameters import inject_system_params, get_system_parameters
 
@@ -117,6 +117,13 @@ class ReportCompileResponse(BaseModel):
     error: Optional[str] = None
     validation_reason: Optional[str] = None
 
+class ReportGroupParametersRequest(BaseModel):
+    report_ids: List[uuid.UUID]
+
+class ReportGroupGenerateRequest(BaseModel):
+    report_ids: List[uuid.UUID]
+    parameters: Dict[str, Any] = {}
+
 class ReportTemplateGenerateRequest(BaseModel):
     report_id: Optional[uuid.UUID] = None
     schema_json: Optional[Dict[str, Any]] = None
@@ -206,7 +213,7 @@ def delete_report_style(style_id: uuid.UUID, db: Session = Depends(get_db), _=ad
     db.commit()
     return {"status": "deleted"}
 
-# --- Routes for Reports ---
+# --- Routes for Reports (Management) ---
 
 @router.get("/", response_model=List[ReportOut])
 def list_reports(db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
@@ -220,13 +227,9 @@ def list_reports(db: Session = Depends(get_db), current_user: User = Depends(get
     query = db.query(Report, is_locked_subquery.label("is_locked"))
     
     if current_project_id:
-        # In project mode: see ONLY project items
         query = query.filter(Report.project_id == current_project_id)
     else:
-        # Outside project mode: see ONLY general items
         query = query.filter(Report.project_id == None)
-        # Also apply original role-based filters if needed, 
-        # but the requirement says "либо проектные либ общие"
         if current_user.role != "admin":
              query = query.filter(Report.type == ReportTypeEnum.global_type)
 
@@ -240,23 +243,8 @@ def list_reports(db: Session = Depends(get_db), current_user: User = Depends(get
         response.append(report_dict)
     return response
 
-@router.get("/{report_id}", response_model=ReportOut)
-def get_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
-    report = db.query(Report).filter(Report.id == report_id).first()
-    if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
-    
-    # Check access for managers
-    if current_user.role != "admin" and report.type != ReportTypeEnum.global_type:
-        # Assuming managers shouldn't see non-global reports unless authorized, but requirement says
-        # manager just opens the report for generation.
-        pass
-        
-    return report
-
 @router.post("/", response_model=ReportOut)
 def create_report(data: ReportCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=admin_access):
-    
     db_report = Report(
         **data.model_dump(exclude={"parameters", "project_id"}),
         created_by=current_user.id,
@@ -283,381 +271,141 @@ def reorder_reports(data: ReportReorderRequest, db: Session = Depends(get_db), _
     db.commit()
     return {"status": "reordered"}
 
-@router.put("/{report_id}", response_model=ReportOut)
-def update_report(report_id: uuid.UUID, data: ReportUpdate, db: Session = Depends(get_db), _=admin_access):
-    report = db.query(Report).filter(Report.id == report_id).first()
-    if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
+# --- Routes for Reports (Grouped - LITERAL PATHS FIRST) ---
+
+@router.post("/grouped/parameters", response_model=List[ObjectParameterOut])
+def get_grouped_report_parameters(data: ReportGroupParametersRequest, db: Session = Depends(get_db), _=manager_access):
+    """Returns unique union of parameters for multiple reports."""
+    params_map = {}
+    for rid in data.report_ids:
+        report = db.query(Report).filter(Report.id == rid).first()
+        if not report: continue
+        for p in report.parameters:
+            if p.parameter_name not in params_map:
+                params_map[p.parameter_name] = p
     
-    raise_if_locked(db, report_id, "reports")
-        
-    update_data = data.model_dump(exclude_unset=True, exclude={"parameters"})
-    
-    for k, v in update_data.items():
-        setattr(report, k, v)
-        
-    if data.parameters is not None:
-        # delete existing parameters
-        db.query(ObjectParameter).filter(
-            ObjectParameter.object_id == report.id,
-            ObjectParameter.object_name == "reports"
-        ).delete()
-        # add new
-        for p in data.parameters:
-            param_data = p.model_dump()
-            param = ObjectParameter(**param_data, object_id=report.id, object_name="reports")
-            db.add(param)
-            
-    db.commit()
-    db.refresh(report)
-    
-    is_locked = db.query(exists().where(and_(
-        LockData.entity_id == report_id,
-        LockData.entity_type == "reports"
-    ))).scalar()
-    
-    report_dict = ReportOut.model_validate(report).model_dump()
-    report_dict["is_locked"] = is_locked
-    return report_dict
+    return [ObjectParameterOut.model_validate(p) for p in params_map.values()]
 
-@router.delete("/{report_id}")
-def delete_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_access):
-    report = db.query(Report).filter(Report.id == report_id).first()
-    if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
-    
-    raise_if_locked(db, report_id, "reports")
-    
-    db.delete(report)
-    db.commit()
-    return {"status": "deleted"}
-
-
-@router.post("/{report_id}/duplicate", response_model=ReportOut)
-def duplicate_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=admin_access):
-    """Duplicate a report along with all its parameters."""
-    report = db.query(Report).filter(Report.id == report_id).first()
-    if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
-
-    new_report = Report(
-        name=f"{report.name} (Copy)",
-        type=report.type,
-        description=report.description,
-        code=report.code,
-        schema_json=report.schema_json,
-        template=report.template,
-        style_id=report.style_id,
-        category=report.category,
-        order=report.order,
-        meta=report.meta,
-        project_id=report.project_id,
-        created_by=current_user.id,
-    )
-    db.add(new_report)
-    db.flush()  # get new_report.id before committing
-
-    # Duplicate all parameters
-    for param in report.parameters:
-        new_param = ObjectParameter(
-            object_id=new_report.id,
-            object_name="reports",
-            parameter_name=param.parameter_name,
-            parameter_type=param.parameter_type,
-            default_value=param.default_value,
-            source=param.source,
-            value_field=param.value_field,
-            label_field=param.label_field,
-        )
-        db.add(new_param)
-
-    db.commit()
-    db.refresh(new_report)
-
-    new_report_dict = ReportOut.model_validate(new_report).model_dump()
-    new_report_dict["is_locked"] = False
-    return new_report_dict
-
-def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Session, user_context: Dict[str, Any] = None, for_pdf: bool = False) -> Dict[str, Any]:
-    report = db.query(Report).filter(Report.id == report_id).first()
-    if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
-        
-    # Inject default values if missing
-    final_params = inject_system_params(params.copy())
-    for param_config in report.parameters:
-
-        p_name = param_config.parameter_name
-        if p_name not in final_params or final_params[p_name] is None or (isinstance(final_params[p_name], str) and not final_params[p_name].strip()):
-            if param_config.default_value is not None:
-                final_params[p_name] = param_config.default_value
-
-    # Execute Python logic
-    executor = ReportExecutor(report.code)
-    exec_result = executor.execute(final_params, mode="is_run", user_context=user_context, execution_id=str(report.id))
-    
-    if not exec_result["success"]:
-        # If it's a validation error (reason provided), we don't raise 400, but return it
-        if "validation_reason" in exec_result and exec_result["validation_reason"]:
-             return {
-                "html": "",
-                "console": exec_result.get("console", ""),
-                "validation_error": exec_result["validation_reason"]
-            }
-        raise HTTPException(status_code=400, detail=f"Error executing Python: {exec_result.get('error', 'Unknown error')}\nConsole:\n{exec_result.get('console', '')}")
-
-    # Jinja2 Rendering
-    try:
-        # Create environment for custom filters
-        env = Environment()
-        
-        def jinja_markdown_filter(text):
-            if not text:
-                return ""
-            return markdown2.markdown(str(text), extras=["tables", "fenced-code-blocks", "task_list"]).strip()
-        
-        env.filters['markdown'] = jinja_markdown_filter
-        
-        jinja_template = env.from_string(report.template)
-        
-        # context: 'data', 'params', 'rows', 'items' and all keys from data if it's a dict
-        data_val = exec_result["data"]
-        render_context = {
-            "data": data_val,
-            "rows": data_val,
-            "items": data_val,
-            "params": final_params
-        }
-        if isinstance(data_val, dict):
-            render_context.update(data_val)
-            
-        # Add debugging info to console log if success
-        available_vars = list(render_context.keys())
-        executor.log(f"Rendering template with variables: {', '.join(available_vars)}")
-        if isinstance(data_val, list) and data_val:
-            executor.log(f"Data is a list with {len(data_val)} items. Accessible via 'data', 'rows', or 'items'.")
-        elif isinstance(data_val, dict):
-             executor.log(f"Data is a dictionary. Keys unpacked: {', '.join(data_val.keys())}")
-
-        rendered_html = jinja_template.render(**render_context)
-        
-        # Markdown Support: Process <md>...</md> tags
-        if '<md>' in rendered_html:
-            def md_replacer(match):
-                md_content = match.group(1)
-                # Convert markdown to html, removing wrapping <p> if it's a single line to avoid breaking layouts
-                html_rendered = markdown2.markdown(md_content, extras=["tables", "fenced-code-blocks", "task_list"])
-                return html_rendered.strip()
-            
-            rendered_html = re.sub(r'<md>(.*?)</md>', md_replacer, rendered_html, flags=re.DOTALL)
-            
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error rendering template: {str(e)}")
-        
-    # CSS logic
-    css_content = ""
-    if report.style_id:
-        style = db.query(ReportStyle).filter(ReportStyle.id == report.style_id).first()
-        if style:
-            css_content = style.css
-    else:
-        default_style = db.query(ReportStyle).filter(ReportStyle.is_default == True).first()
-        if default_style:
-             css_content = default_style.css
-             
-    # Base PDF CSS
-    pdf_scale = exec_result.get("pdf_scale", 0.5)
-    
-    base_pdf_css = """
-    @page {
-        margin: 1.5cm;
-        size: A4;
-    }
-    html, body {
-        background-color: white !important;
-        font-size: """ + ("10pt" if not for_pdf else "6pt") + """ !important;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-        line-height: 1.3;
-        color: #000 !important;
-        margin: 0;
-        padding: 0;
-    }
-    .report-container {
-        width: 100%;
-        background-color: white !important;
-        padding: """ + ("20px" if not for_pdf else "0px") + """;
-        box-sizing: border-box;
-    }
-    table {
-        font-size: """ + ("10pt" if not for_pdf else f"{int(12 * pdf_scale)}pt") + """ !important;
-        width: 100% !important;
-        border-collapse: collapse;
-        table-layout: auto;
-    }
-    th, td {
-        word-break: break-all !important;
-        white-space: normal !important;
-    }
-    img, svg {
-        max-width: 100% !important;
-        height: auto !important;
-    }
-    """
-    
-    if for_pdf:
-        # Scale everything down to the requested scale
-        base_pdf_css += f"\n    body {{ zoom: {pdf_scale} !important; }}\n"
-    
-    # We want to inject our base CSS and the report-specific CSS.
-    if "<html" in rendered_html.lower():
-        # Inject CSS into <head>
-        full_css = f"<style>{base_pdf_css}\n{css_content}</style>"
-        if "</head>" in rendered_html:
-            final_html = rendered_html.replace("</head>", f"{full_css}\n</head>")
-        else:
-            final_html = f"<html><head>{full_css}</head><body>{rendered_html}</body></html>"
-    else:
-        final_html = f"<!DOCTYPE html><html><head><style>{base_pdf_css}\n{css_content}</style></head><body><div class='report-container'>\n{rendered_html}\n</div></body></html>"
-        
-    return {
-        "html": final_html,
-        "console": exec_result.get("console", ""),
-        "validation_error": None
-    }
-
-@router.post("/{report_id}/generate", response_model=ReportGenerateResponse)
-def generate_report(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+@router.post("/grouped/generate", response_model=ReportGenerateResponse)
+def generate_grouped_report(data: ReportGroupGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
     user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
-    res = _generate_report_html(report_id, data.parameters, db, user_context=user_context)
-    final_html = res["html"]
-
-    # Optional: Log the report run
-    run = ReportRun(
-        report_id=report_id,
-        executed_by=current_user.id,
-        parameters_json=data.parameters, # Use original raw params for logging
-        result_snapshot=None # Opting to not save full HTML to save space, but could if needed.
-    )
-    db.add(run)
-    db.commit()
-
+    res = _generate_grouped_report_html(data.report_ids, data.parameters, db, user_context=user_context)
+    
     return {
-        "html": final_html,
+        "html": res["html"],
         "console": res.get("console", ""),
         "validation_error": res.get("validation_error")
     }
 
-@router.post("/{report_id}/pdf")
-def generate_report_pdf(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+@router.post("/grouped/pdf")
+def generate_grouped_report_pdf(data: ReportGroupGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
     from weasyprint import HTML
-    res = _generate_report_html(report_id, data.parameters, db, for_pdf=True)
-    final_html = res["html"]
+    user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
+    res = _generate_grouped_report_html(data.report_ids, data.parameters, db, user_context=user_context, for_pdf=True)
     
-    # Convert HTML to PDF
     pdf_bytes = io.BytesIO()
-    HTML(string=final_html).write_pdf(pdf_bytes)
+    HTML(string=res["html"]).write_pdf(pdf_bytes)
     
-    # Optional: Log the report run
-    run = ReportRun(
-        report_id=report_id,
-        executed_by=current_user.id,
-        parameters_json=data.parameters,
-        result_snapshot=None
-    )
-    db.add(run)
-    db.commit()
-
     return Response(
         content=pdf_bytes.getvalue(),
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f"attachment; filename=report_{report_id}.pdf"
+            "Content-Disposition": f"attachment; filename=grouped_report.pdf"
         }
     )
 
-@router.post("/{report_id}/csv")
-def generate_report_csv(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
-    # This was a snippet in the middle, but I need to make sure I don't break logic.
-    # Actually, generate_report_csv calls execute directly.
-    # I'll replace the lines inside it.
-    report = db.query(Report).filter(Report.id == report_id).first()
-    if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
-        
-    try:
-        # Inject default values for consistency
-        final_params = inject_system_params(data.parameters.copy())
-        for param_config in report.parameters:
-
-            p_name = param_config.parameter_name
-            if p_name not in final_params or final_params[p_name] is None or (isinstance(final_params[p_name], str) and not final_params[p_name].strip()):
-                if param_config.default_value is not None:
-                    final_params[p_name] = param_config.default_value
-
-        executor = ReportExecutor(report.code)
-        user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
-        exec_result = executor.execute(final_params, mode="is_run", user_context=user_context, execution_id=str(report.id))
-        if not exec_result["success"]:
-             raise HTTPException(status_code=400, detail=f"Error executing Python: {exec_result.get('error')}")
-        
-        data_rows = exec_result["data"]
-        # Assuming data_rows is a list of dicts for CSV
-        if not isinstance(data_rows, list) or (len(data_rows) > 0 and not isinstance(data_rows[0], dict)):
-             raise HTTPException(status_code=400, detail="GenerateReport must return a list of dictionaries for CSV export")
-
-        columns = data_rows[0].keys() if data_rows else []
-        
-        output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=columns)
-        writer.writeheader()
-        writer.writerows(data_rows)
-        
-        # Log the report run
-        run = ReportRun(
-            report_id=report_id,
-            executed_by=current_user.id,
-            parameters_json=data.parameters,
-            result_snapshot=None
-        )
-        db.add(run)
-        db.commit()
-
-        return Response(
-            content=output.getvalue(),
-            media_type="text/csv",
-            headers={
-                "Content-Disposition": f"attachment; filename=report_{report.name.replace(' ', '_')}.csv"
-            }
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error generating CSV: {str(e)}")
-
-@router.post("/{report_id}/html-file")
-def generate_report_html_file(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
-    report = db.query(Report).filter(Report.id == report_id).first()
-    if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
-        
-    res = _generate_report_html(report_id, data.parameters, db)
-    final_html = res["html"]
+@router.post("/grouped/csv")
+def generate_grouped_report_csv(data: ReportGroupGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    """Concatenate CSV data from all reports in the group."""
+    combined_rows = []
+    user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
     
-    # Log the report run
-    run = ReportRun(
-        report_id=report_id,
-        executed_by=current_user.id,
-        parameters_json=data.parameters,
-        result_snapshot=None
-    )
-    db.add(run)
-    db.commit()
+    for rid in data.report_ids:
+        res = _get_report_fragment(rid, data.parameters, db, user_context=user_context)
+        rows = res["data"]
+        if isinstance(rows, list):
+            combined_rows.extend(rows)
+        elif isinstance(rows, dict):
+            combined_rows.append(rows)
 
+    if not combined_rows:
+         return Response(content="", media_type="text/csv")
+         
+    columns = combined_rows[0].keys() if isinstance(combined_rows[0], dict) else []
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=columns)
+    writer.writeheader()
+    writer.writerows(combined_rows)
+    
     return Response(
-        content=final_html,
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=grouped_report.csv"
+        }
+    )
+
+@router.post("/grouped/html-file")
+def generate_grouped_report_html_file(data: ReportGroupGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
+    res = _generate_grouped_report_html(data.report_ids, data.parameters, db, user_context=user_context)
+    
+    return Response(
+        content=res["html"],
         media_type="text/html",
         headers={
-            "Content-Disposition": f"attachment; filename=report_{report.name.replace(' ', '_')}.html"
+            "Content-Disposition": f"attachment; filename=grouped_report.html"
         }
     )
+
+# --- Other Literal Paths ---
+
+@router.post("/test-source", response_model=SourceTestResponse)
+def test_parameter_source(data: SourceTestRequest, db: Session = Depends(get_db), _=manager_access):
+    source = data.source.strip()
+    if not source:
+        return {"options": [], "error": None}
+    
+    try:
+        if source.startswith("@"):
+            parts = source[1:].split("->")
+            table_name = parts[0]
+            fields_str = parts[1] if len(parts) > 1 else "id,name"
+            fields = fields_str.split(",")
+            val_field = fields[0]
+            lbl_field = fields[1] if len(fields) > 1 else val_field
+            
+            if not re.match(r'^\w+$', table_name) or not re.match(r'^\w+$', val_field) or not re.match(r'^\w+$', lbl_field):
+                return {"options": [], "error": "Invalid table or field names"}
+
+            system_params = get_system_parameters()
+            result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 100"), system_params)
+            options = [
+                {"value": str(row[0]), "label": str(row[1])} for row in [tuple(r) for r in result.fetchall()]
+            ]
+            return {"options": options, "error": None}
+            
+        elif source.lower().startswith("select"):
+            system_params = get_system_parameters()
+            result = db.execute(text(source), system_params)
+            val_field = data.value_field or "value"
+            lbl_field = data.label_field or "label"
+            columns = result.keys()
+            rows = [tuple(r) for r in result.fetchall()]
+            
+            param_options = []
+            for row in rows:
+                row_dict = dict(zip(columns, row))
+                param_options.append({
+                    "value": str(row_dict.get(val_field, row[0])), 
+                    "label": str(row_dict.get(lbl_field, row[1] if len(row) > 1 else row[0]))
+                })
+            return {"options": param_options, "error": None}
+        else:
+            return {"options": [], "error": "Unknown source format"}
+    except Exception as e:
+        print(f"Failed to test source {source}: {e}")
+        return {"options": [], "error": "Error source"}
 
 @router.post("/generate-template", response_model=ReportTemplateGenerateResponse)
 def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_access):
@@ -729,7 +477,6 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     if response_text.startswith("Error:") or response_text.startswith("HTTPError"):
         raise HTTPException(status_code=500, detail=response_text)
         
-    # Remove markdown code formatting if present
     template_text = response_text
     template_text = re.sub(r'^```html\n', '', template_text, flags=re.MULTILINE)
     template_text = re.sub(r'^```jinja2\n', '', template_text, flags=re.MULTILINE)
@@ -741,161 +488,458 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     
     return {"template": template_text}
 
-@router.post("/{report_id}/compile", response_model=ReportCompileResponse)
-def compile_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=admin_access):
+# --- Helper Functions ---
+
+def _scope_css(css: str, scope_id: str) -> str:
+    """Very basic CSS scoping by prefixing selectors with an ID."""
+    if not css.strip():
+        return ""
+    
+    css = re.sub(r'/\*.*?\*/', '', css, flags=re.DOTALL)
+    parts = []
+    for chunk in re.split(r'({[^}]*})', css):
+        if not chunk.strip():
+            continue
+        if chunk.startswith('{'):
+            parts.append(chunk)
+        else:
+            selectors = chunk.split(',')
+            scoped_selectors = []
+            for sel in selectors:
+                sel = sel.strip()
+                if not sel: continue
+                if sel.startswith('@'):
+                    scoped_selectors.append(sel)
+                else:
+                    scoped_selectors.append(f"#{scope_id} {sel}")
+            parts.append(", ".join(scoped_selectors))
+            
+    return "\n".join(parts)
+
+def _get_report_fragment(report_id: uuid.UUID, params: Dict[str, Any], db: Session, user_context: Dict[str, Any] = None) -> Dict[str, Any]:
+    """Generates the HTML fragment and CSS for a single report."""
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+        
+    final_params = inject_system_params(params.copy())
+    for param_config in report.parameters:
+        p_name = param_config.parameter_name
+        if p_name not in final_params or final_params[p_name] is None or (isinstance(final_params[p_name], str) and not final_params[p_name].strip()):
+            if param_config.default_value is not None:
+                final_params[p_name] = param_config.default_value
+
+    executor = ReportExecutor(report.code)
+    exec_result = executor.execute(final_params, mode="is_run", user_context=user_context, execution_id=str(report.id))
+    
+    if not exec_result["success"]:
+        if "validation_reason" in exec_result and exec_result["validation_reason"]:
+             return {
+                "fragment": "",
+                "css": "",
+                "console": exec_result.get("console", ""),
+                "validation_error": exec_result["validation_reason"],
+                "data": None
+            }
+        raise HTTPException(status_code=400, detail=f"Error executing Python for '{report.name}': {exec_result.get('error', 'Unknown error')}\nConsole:\n{exec_result.get('console', '')}")
+
+    try:
+        env = Environment()
+        def jinja_markdown_filter(text):
+            if not text: return ""
+            return markdown2.markdown(str(text), extras=["tables", "fenced-code-blocks", "task_list"]).strip()
+        env.filters['markdown'] = jinja_markdown_filter
+        
+        jinja_template = env.from_string(report.template)
+        data_val = exec_result["data"]
+        render_context = {
+            "data": data_val,
+            "rows": data_val,
+            "items": data_val,
+            "params": final_params
+        }
+        if isinstance(data_val, dict):
+            render_context.update(data_val)
+            
+        rendered_html = jinja_template.render(**render_context)
+        
+        if '<md>' in rendered_html:
+            def md_replacer(match):
+                return markdown2.markdown(match.group(1), extras=["tables", "fenced-code-blocks", "task_list"]).strip()
+            rendered_html = re.sub(r'<md>(.*?)</md>', md_replacer, rendered_html, flags=re.DOTALL)
+            
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error rendering template for '{report.name}': {str(e)}")
+        
+    css_content = ""
+    if report.style_id:
+        style = db.query(ReportStyle).filter(ReportStyle.id == report.style_id).first()
+        if style: css_content = style.css
+    else:
+        default_style = db.query(ReportStyle).filter(ReportStyle.is_default == True).first()
+        if default_style: css_content = default_style.css
+             
+    return {
+        "fragment": rendered_html,
+        "css": css_content,
+        "console": exec_result.get("console", ""),
+        "validation_error": None,
+        "data": data_val,
+        "pdf_scale": exec_result.get("pdf_scale", 0.5)
+    }
+
+def _generate_report_html(report_id: uuid.UUID, params: Dict[str, Any], db: Session, user_context: Dict[str, Any] = None, for_pdf: bool = False) -> Dict[str, Any]:
+    res = _get_report_fragment(report_id, params, db, user_context=user_context)
+    if res["validation_error"]:
+        return {
+            "html": "",
+            "console": res["console"],
+            "validation_error": res["validation_error"]
+        }
+    
+    rendered_html = res["fragment"]
+    css_content = res["css"]
+    pdf_scale = res["pdf_scale"]
+    
+    base_pdf_css = f"""
+    @page {{ margin: 1.5cm; size: A4; }}
+    html, body {{
+        background-color: white !important;
+        font-size: {"10pt" if not for_pdf else "6pt"} !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+        line-height: 1.3;
+        color: #000 !important;
+        margin: 0; padding: 0;
+    }}
+    .report-container {{
+        width: 100%;
+        background-color: white !important;
+        padding: {"20px" if not for_pdf else "0px"};
+        box-sizing: border-box;
+    }}
+    table {{
+        font-size: {"10pt" if not for_pdf else f"{int(12 * pdf_scale)}pt"} !important;
+        width: 100% !important;
+        border-collapse: collapse;
+        table-layout: auto;
+    }}
+    th, td {{ word-break: break-all !important; white-space: normal !important; }}
+    img, svg {{ max-width: 100% !important; height: auto !important; }}
+    """
+    
+    if for_pdf:
+        base_pdf_css += f"\n    body {{ zoom: {pdf_scale} !important; }}\n"
+    
+    if "<html" in rendered_html.lower():
+        full_css = f"<style>{base_pdf_css}\n{css_content}</style>"
+        if "</head>" in rendered_html:
+            final_html = rendered_html.replace("</head>", f"{full_css}\n</head>")
+        else:
+            final_html = f"<html><head>{full_css}</head><body>{rendered_html}</body></html>"
+    else:
+        final_html = f"<!DOCTYPE html><html><head><style>{base_pdf_css}\n{css_content}</style></head><body><div class='report-container'>\n{rendered_html}\n</div></body></html>"
+        
+    return {
+        "html": final_html,
+        "console": res["console"],
+        "validation_error": None
+    }
+
+def _generate_grouped_report_html(report_ids: List[uuid.UUID], params: Dict[str, Any], db: Session, user_context: Dict[str, Any] = None, for_pdf: bool = False) -> Dict[str, Any]:
+    fragments = []
+    css_blocks = []
+    full_console = []
+    
+    for rid in report_ids:
+        try:
+            res = _get_report_fragment(rid, params, db, user_context=user_context)
+            if res["validation_error"]:
+                return {
+                    "html": "",
+                    "console": "\n".join(full_console) + "\n" + res["console"],
+                    "validation_error": f"Report {rid} Validation: {res['validation_error']}"
+                }
+            
+            scope_id = f"rb-{str(rid).replace('-', '')}"
+            scoped_fragment = f"<div class='report-block' id='{scope_id}'>\n{res['fragment']}\n</div>"
+            scoped_css = _scope_css(res["css"], scope_id)
+            
+            fragments.append(scoped_fragment)
+            css_blocks.append(scoped_css)
+            full_console.append(f"--- Report {rid} ---\n{res['console']}")
+            
+        except HTTPException as e:
+             raise e
+        except Exception as e:
+            full_console.append(f"Error generating report {rid}: {str(e)}")
+            continue
+
+    base_pdf_css = f"""
+    @page {{ margin: 1.5cm; size: A4; }}
+    html, body {{
+        background-color: white !important;
+        font-size: {"10pt" if not for_pdf else "6pt"} !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+        line-height: 1.3;
+        color: #000 !important;
+        margin: 0; padding: 0;
+    }}
+    .report-container {{
+        width: 100%;
+        background-color: white !important;
+        padding: {"20px" if not for_pdf else "0px"};
+        box-sizing: border-box;
+    }}
+    .report-block {{ margin-bottom: 2rem; }}
+    table {{
+        font-size: {"10pt" if not for_pdf else "6pt"} !important;
+        width: 100% !important;
+        border-collapse: collapse;
+        table-layout: auto;
+    }}
+    th, td {{ word-break: break-all !important; white-space: normal !important; }}
+    img, svg {{ max-width: 100% !important; height: auto !important; }}
+    """
+    
+    combined_css = "\n".join(css_blocks)
+    combined_html = "\n".join(fragments)
+    final_html = f"<!DOCTYPE html><html><head><style>{base_pdf_css}\n{combined_css}</style></head><body><div class='report-container'>\n{combined_html}\n</div></body></html>"
+    
+    return {
+        "html": final_html,
+        "console": "\n".join(full_console),
+        "validation_error": None
+    }
+
+# --- Routes for Reports (PARAMETERIZED PATHS LAST) ---
+
+@router.get("/{report_id}", response_model=ReportOut)
+def get_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return report
+
+@router.put("/{report_id}", response_model=ReportOut)
+def update_report(report_id: uuid.UUID, data: ReportUpdate, db: Session = Depends(get_db), _=admin_access):
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     
-    # Inject default values for testing in design mode
-    test_params = {
-        "user": {
-            "id": "00000000-0000-0000-0000-000000000000",
-            "name": "Test User",
-            "email": "test@example.com",
-            "role": "client"
-        }
+    raise_if_locked(db, report_id, "reports")
+        
+    update_data = data.model_dump(exclude_unset=True, exclude={"parameters"})
+    for k, v in update_data.items():
+        setattr(report, k, v)
+        
+    if data.parameters is not None:
+        db.query(ObjectParameter).filter(
+            ObjectParameter.object_id == report.id,
+            ObjectParameter.object_name == "reports"
+        ).delete()
+        for p in data.parameters:
+            param_data = p.model_dump()
+            param = ObjectParameter(**param_data, object_id=report.id, object_name="reports")
+            db.add(param)
+            
+    db.commit()
+    db.refresh(report)
+    
+    is_locked = db.query(exists().where(and_(
+        LockData.entity_id == report_id,
+        LockData.entity_type == "reports"
+    ))).scalar()
+    
+    report_dict = ReportOut.model_validate(report).model_dump()
+    report_dict["is_locked"] = is_locked
+    return report_dict
+
+@router.delete("/{report_id}")
+def delete_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_access):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    raise_if_locked(db, report_id, "reports")
+    db.delete(report)
+    db.commit()
+    return {"status": "deleted"}
+
+@router.post("/{report_id}/duplicate", response_model=ReportOut)
+def duplicate_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=admin_access):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    new_report = Report(
+        name=f"{report.name} (Copy)",
+        type=report.type,
+        description=report.description,
+        code=report.code,
+        schema_json=report.schema_json,
+        template=report.template,
+        style_id=report.style_id,
+        category=report.category,
+        order=report.order,
+        meta=report.meta,
+        project_id=report.project_id,
+        created_by=current_user.id,
+    )
+    db.add(new_report)
+    db.flush()
+
+    for param in report.parameters:
+        new_param = ObjectParameter(
+            object_id=new_report.id,
+            object_name="reports",
+            parameter_name=param.parameter_name,
+            parameter_type=param.parameter_type,
+            default_value=param.default_value,
+            source=param.source,
+            value_field=param.value_field,
+            label_field=param.label_field,
+        )
+        db.add(new_param)
+
+    db.commit()
+    db.refresh(new_report)
+    new_report_dict = ReportOut.model_validate(new_report).model_dump()
+    new_report_dict["is_locked"] = False
+    return new_report_dict
+
+@router.post("/{report_id}/generate", response_model=ReportGenerateResponse)
+def generate_report(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
+    res = _generate_report_html(report_id, data.parameters, db, user_context=user_context)
+    
+    run = ReportRun(
+        report_id=report_id,
+        executed_by=current_user.id,
+        parameters_json=data.parameters,
+        result_snapshot=None
+    )
+    db.add(run)
+    db.commit()
+    return {
+        "html": res["html"],
+        "console": res.get("console", ""),
+        "validation_error": res.get("validation_error")
     }
+
+@router.post("/{report_id}/pdf")
+def generate_report_pdf(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    from weasyprint import HTML
+    res = _generate_report_html(report_id, data.parameters, db, for_pdf=True)
+    pdf_bytes = io.BytesIO()
+    HTML(string=res["html"]).write_pdf(pdf_bytes)
+    
+    run = ReportRun(
+        report_id=report_id,
+        executed_by=current_user.id,
+        parameters_json=data.parameters,
+        result_snapshot=None
+    )
+    db.add(run)
+    db.commit()
+    return Response(
+        content=pdf_bytes.getvalue(),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=report_{report_id}.pdf"}
+    )
+
+@router.post("/{report_id}/csv")
+def generate_report_csv(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
+    res = _get_report_fragment(report_id, data.parameters, db, user_context=user_context)
+    if res["validation_error"]: raise HTTPException(status_code=400, detail=res["validation_error"])
+         
+    data_rows = res["data"]
+    if not isinstance(data_rows, list) or (len(data_rows) > 0 and not isinstance(data_rows[0], dict)):
+         raise HTTPException(status_code=400, detail="GenerateReport must return a list of dictionaries for CSV export")
+
+    columns = data_rows[0].keys() if data_rows else []
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=columns)
+    writer.writeheader()
+    writer.writerows(data_rows)
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=report_{report_id}.csv"}
+    )
+
+@router.post("/{report_id}/html-file")
+def generate_report_html_file(report_id: uuid.UUID, data: ReportGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
+    res = _generate_report_html(report_id, data.parameters, db)
+    run = ReportRun(
+        report_id=report_id,
+        executed_by=current_user.id,
+        parameters_json=data.parameters,
+        result_snapshot=None
+    )
+    db.add(run)
+    db.commit()
+    return Response(
+        content=res["html"],
+        media_type="text/html",
+        headers={"Content-Disposition": f"attachment; filename=report_{report_id}.html"}
+    )
+
+@router.post("/{report_id}/compile", response_model=ReportCompileResponse)
+def compile_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=admin_access):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report: raise HTTPException(status_code=404, detail="Report not found")
+    
+    test_params = {"user": {"id": str(current_user.id), "name": current_user.username, "role": str(current_user.role)}}
     for param_config in report.parameters:
         if param_config.default_value is not None:
-            # For date types, provide current date if default is empty but type is date
             val = param_config.default_value
-            if not val and "date" in param_config.parameter_type:
-                val = datetime.now().strftime("%Y-%m-%d")
+            if not val and "date" in param_config.parameter_type: val = datetime.now().strftime("%Y-%m-%d")
             test_params[param_config.parameter_name] = val
         elif "date" in param_config.parameter_type:
              test_params[param_config.parameter_name] = datetime.now().strftime("%Y-%m-%d")
 
     test_params = inject_system_params(test_params)
-
     executor = ReportExecutor(report.code)
-    # Use injected defaults for design mode compilation test
     user_context = {"id": str(current_user.id), "username": current_user.username, "role": str(current_user.role)}
     result = executor.execute(test_params, mode="is_design", user_context=user_context, execution_id=str(report.id))
     
     if result["success"]:
-        # Generate schema from data
-        try:
-            schema = generate_json_schema(result["data"])
-        except:
-            schema = {}
-            
+        try: schema = generate_json_schema(result["data"])
+        except: schema = {}
         report.schema_json = schema
         db.commit()
-        return {
-            "success": True,
-            "console": result["console"],
-            "schema": schema,
-            "validation_reason": None
-        }
+        return {"success": True, "console": result["console"], "schema": schema}
     else:
-        return {
-            "success": False,
-            "console": result["console"],
-            "error": result.get("error"),
-            "validation_reason": result.get("validation_reason")
-        }
+        return {"success": False, "console": result["console"], "error": result.get("error"), "validation_reason": result.get("validation_reason")}
 
 @router.get("/{report_id}/options")
 def get_report_parameter_options(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=manager_access):
     report = db.query(Report).filter(Report.id == report_id).first()
-    if not report:
-         raise HTTPException(status_code=404, detail="Report not found")
-         
+    if not report: raise HTTPException(status_code=404, detail="Report not found")
     options = {}
     for param in report.parameters:
         source = param.source.strip() if param.source else ""
         if not source:
              options[param.parameter_name] = []
              continue
-
         try:
             if source.startswith("@"):
-                # Support for @table-name->value,label
                 parts = source[1:].split("->")
-                table_name = parts[0]
-                fields_str = parts[1] if len(parts) > 1 else "id,name"
+                table_name, fields_str = parts[0], parts[1] if len(parts) > 1 else "id,name"
                 fields = fields_str.split(",")
-                val_field = fields[0]
-                lbl_field = fields[1] if len(fields) > 1 else val_field
-                
+                val_field, lbl_field = fields[0], fields[1] if len(fields) > 1 else fields[0]
                 if not re.match(r'^\w+$', table_name) or not re.match(r'^\w+$', val_field) or not re.match(r'^\w+$', lbl_field):
                     options[param.parameter_name] = []
                     continue
-
-                system_params = get_system_parameters()
-                result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 1000"), system_params)
-                options[param.parameter_name] = [
-                    {"value": str(row[0]), "label": str(row[1])} for row in [tuple(r) for r in result.fetchall()]
-                ]
+                result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 1000"), get_system_parameters())
+                options[param.parameter_name] = [{"value": str(row[0]), "label": str(row[1])} for row in result.fetchall()]
             elif source.lower().startswith("select"):
-                system_params = get_system_parameters()
-                result = db.execute(text(source), system_params)
-                val_field = param.value_field or "value"
-                lbl_field = param.label_field or "label"
+                result = db.execute(text(source), get_system_parameters())
+                val_field, lbl_field = param.value_field or "value", param.label_field or "label"
                 columns = result.keys()
-                rows = [tuple(r) for r in result.fetchall()]
-                
-                param_options = []
-                for row in rows:
-                    row_dict = dict(zip(columns, row))
-                    param_options.append({
-                        "value": str(row_dict.get(val_field, row[0])), 
-                        "label": str(row_dict.get(lbl_field, row[1] if len(row) > 1 else row[0]))
-                    })
-                options[param.parameter_name] = param_options
-            else:
-                options[param.parameter_name] = []
+                options[param.parameter_name] = [{"value": str(row_dict.get(val_field, row[0])), "label": str(row_dict.get(lbl_field, row[1] if len(row) > 1 else row[0]))} for row in result.fetchall() for row_dict in [dict(zip(columns, row))]]
+            else: options[param.parameter_name] = []
         except Exception as e:
-            print(f"Failed to fetch options for {param.parameter_name}: {e}")
+            print(f"Error fetching options: {e}")
             options[param.parameter_name] = []
-            
     return options
-
-@router.post("/test-source", response_model=SourceTestResponse)
-def test_parameter_source(data: SourceTestRequest, db: Session = Depends(get_db), _=manager_access):
-    source = data.source.strip()
-    if not source:
-        return {"options": [], "error": None}
-    
-    try:
-        if source.startswith("@"):
-            parts = source[1:].split("->")
-            table_name = parts[0]
-            fields_str = parts[1] if len(parts) > 1 else "id,name"
-            fields = fields_str.split(",")
-            val_field = fields[0]
-            lbl_field = fields[1] if len(fields) > 1 else val_field
-            
-            if not re.match(r'^\w+$', table_name) or not re.match(r'^\w+$', val_field) or not re.match(r'^\w+$', lbl_field):
-                return {"options": [], "error": "Invalid table or field names"}
-
-            system_params = get_system_parameters()
-            result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 100"), system_params)
-            options = [
-                {"value": str(row[0]), "label": str(row[1])} for row in [tuple(r) for r in result.fetchall()]
-            ]
-            return {"options": options, "error": None}
-            
-        elif source.lower().startswith("select"):
-            system_params = get_system_parameters()
-            result = db.execute(text(source), system_params)
-            val_field = data.value_field or "value"
-            lbl_field = data.label_field or "label"
-            columns = result.keys()
-            rows = [tuple(r) for r in result.fetchall()]
-            
-            param_options = []
-            for row in rows:
-                row_dict = dict(zip(columns, row))
-                param_options.append({
-                    "value": str(row_dict.get(val_field, row[0])), 
-                    "label": str(row_dict.get(lbl_field, row[1] if len(row) > 1 else row[0]))
-                })
-            return {"options": param_options, "error": None}
-        else:
-            return {"options": [], "error": "Unknown source format"}
-    except Exception as e:
-        print(f"Failed to test source {source}: {e}")
-        return {"options": [], "error": "Error source"}
-

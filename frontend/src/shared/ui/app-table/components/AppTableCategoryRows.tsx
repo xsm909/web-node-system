@@ -94,14 +94,38 @@ export function AppTableCategoryRows<TData extends { id: any }>({
                 onClick={() => onToggle(path)}
             >
                 <td colSpan={colSpan} className="px-6 py-2" style={{ paddingLeft: `${1 + level * 1}rem` }}>
-                    <div className="flex items-center gap-2">
-                        <Icon
-                            name={isExpanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
-                            size={18}
-                            className="text-[var(--text-muted)] opacity-60"
-                        />
-                        <Icon name="folder" size={16} className="text-brand/70" />
-                        <span className="text-xs font-bold text-brand uppercase tracking-wider">{node.name}</span>
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-1">
+                            <Icon
+                                name={isExpanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
+                                size={18}
+                                className="text-[var(--text-muted)] opacity-60"
+                            />
+                            <Icon name="folder" size={16} className="text-brand/70" />
+                            <span className="text-xs font-bold text-brand uppercase tracking-wider">{node.name}</span>
+                        </div>
+                        
+                        {config.categoryActions && (
+                            <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                                {config.categoryActions(path, node.nodes.map(n => n.original)).map((action, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            action.onClick();
+                                        }}
+                                        disabled={action.disabled}
+                                        className={`flex items-center gap-1 px-2 py-1 rounded bg-brand/10 hover:bg-brand/20 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                            action.variant === 'danger' ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-brand'
+                                        }`}
+                                        title={action.label}
+                                    >
+                                        <Icon name={action.icon} size={14} />
+                                        <span>{action.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </td>
             </tr>

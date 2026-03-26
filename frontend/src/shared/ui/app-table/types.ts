@@ -33,6 +33,9 @@ export interface AppTableConfig<TData> {
     // Drag and drop reordering inside a category
     onReorder?: (item: TData, newOrder: TData[]) => void;
 
+    // Category actions (e.g. Generate Group Report)
+    categoryActions?: (categoryPath: string, items: TData[]) => AppTableAction[];
+
     // Layout options
     layout?: 'auto' | 'fixed' | 'compact'; 
 }
