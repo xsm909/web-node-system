@@ -375,7 +375,7 @@ const parseBlock = (sql: string): QueryState => {
             state.selectedFields.push({ id: `all_${state.selectedFields.length}`, tableAlias: state.tables[0]?.alias || '', columnName: '*' });
             continue;
         }
-        const aliasMatch = field.match(/(.+?)\s+AS\s+(["\w]+)$/i) || field.match(/(.+?)\s+(["\w]+)$/i);
+        const aliasMatch = field.match(/^([\s\S]+?)\s+AS\s+(["\w]+)$/i) || field.match(/^([\s\S]+?)\s+(["\w]+)$/i);
         let expr = field;
         let alias: string | undefined = undefined;
         if (aliasMatch && !['FROM', 'WHERE', 'JOIN', 'GROUP', 'ORDER', 'LIMIT'].includes(aliasMatch[2].toUpperCase())) {
