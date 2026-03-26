@@ -74,6 +74,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                 icon: data.icon || 'function',
                 code: data.code || 'def run(inputs, params):\n    return {}',
                 is_async: !!data.is_async,
+                show_in_toolbar: !!data.show_in_toolbar,
                 input_schema: data.input_schema || {},
                 output_schema: data.output_schema || {},
                 parameters: data.parameters || [],
@@ -109,6 +110,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             icon: currentNode?.icon || 'function',
             code: currentNode?.code || 'def run(inputs, params):\n    return {}',
             is_async: currentNode?.is_async || false,
+            show_in_toolbar: currentNode?.show_in_toolbar || false,
             input_schema: currentNode?.input_schema || {},
             output_schema: currentNode?.output_schema || {},
             parameters: currentNode?.parameters || [],
@@ -131,6 +133,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                         icon: updatedNode.icon || 'function',
                         code: updatedNode.code || '',
                         is_async: !!updatedNode.is_async,
+                        show_in_toolbar: !!updatedNode.show_in_toolbar,
                         input_schema: updatedNode.input_schema || {},
                         output_schema: updatedNode.output_schema || {},
                         parameters: updatedNode.parameters || [],
@@ -341,6 +344,27 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-normal">{field.state.value ? 'Async Node' : 'Sync Node'}</span>
                                                 <span className="text-[9px] uppercase tracking-tighter text-[var(--text-muted)]">{field.state.value ? 'Runs as task' : 'Direct execution'}</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-8 pt-6 border-t border-[var(--border-base)]">
+                            <div className="space-y-3">
+                                <label className="text-xs font-normal text-[var(--text-main)] tracking-widest ml-1">UI Visibility</label>
+                                <form.Field
+                                    name="show_in_toolbar"
+                                    children={(field) => (
+                                        <div
+                                            className={`flex items-center gap-3 px-5 py-4 rounded-xl border transition-all select-none h-[58px] ${field.state.value ? 'bg-brand/10 border-brand/50 text-brand' : 'bg-[var(--bg-app)] border-[var(--border-base)] text-[var(--text-muted)]'} ${currentNode?.is_locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                            onClick={currentNode?.is_locked ? undefined : () => field.handleChange(!field.state.value)}
+                                        >
+                                            <Icon name={field.state.value ? 'visibility' : 'visibility_off'} size={20} />
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-normal">{field.state.value ? 'Show in Toolbar' : 'Hidden from Toolbar'}</span>
+                                                <span className="text-[9px] uppercase tracking-tighter text-[var(--text-muted)]">{field.state.value ? 'Visible in editor' : 'Internal node only'}</span>
                                             </div>
                                         </div>
                                     )}

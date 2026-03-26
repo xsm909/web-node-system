@@ -227,6 +227,7 @@ class NodeTypeCreate(BaseModel):
     category: Optional[str] = ""
     icon: Optional[str] = "task"
     is_async: bool = False
+    show_in_toolbar: bool = False
 
 
 class NodeTypeOut(BaseModel):
@@ -241,6 +242,7 @@ class NodeTypeOut(BaseModel):
     category: Optional[str] = None
     icon: Optional[str] = "task"
     is_async: bool
+    show_in_toolbar: bool = False
     is_locked: bool = False
 
     class Config:

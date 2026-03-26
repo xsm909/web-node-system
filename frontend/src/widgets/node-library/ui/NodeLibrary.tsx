@@ -30,22 +30,24 @@ export const NodeLibrary: React.FC<NodeLibraryProps> = ({ nodeTypes, onAddNode }
         });
     };
 
+    const visibleNodeTypes = useMemo(() => nodeTypes.filter(nt => nt.show_in_toolbar), [nodeTypes]);
+
     const filteredNodes = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
-        if (!q) return nodeTypes;
+        if (!q) return visibleNodeTypes;
 
-        return nodeTypes.filter(n => {
+        return visibleNodeTypes.filter(n => {
             const inName = n.name.toLowerCase().includes(q);
             const inDesc = n.description?.toLowerCase().includes(q);
             const inCategory = n.category?.toLowerCase().includes(q);
             return inName || inDesc || inCategory;
         });
-    }, [nodeTypes, searchQuery]);
+    }, [visibleNodeTypes, searchQuery]);
 
     const nodeTree = useMemo(() => {
         if (searchQuery.trim()) return null;
-        return buildCategoryTree<NodeType>(nodeTypes);
-    }, [nodeTypes, searchQuery]);
+        return buildCategoryTree<NodeType>(visibleNodeTypes);
+    }, [visibleNodeTypes, searchQuery]);
 
     return (
         <div className="space-y-6">

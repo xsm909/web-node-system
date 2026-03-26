@@ -11,4 +11,5 @@ export interface NodeType {
     icon?: string;
     is_locked: boolean;
     is_async: boolean;
+    show_in_toolbar: boolean;
 }

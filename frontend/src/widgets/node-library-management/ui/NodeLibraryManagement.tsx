@@ -89,6 +89,35 @@ export const NodeLibraryManagement = ({
                 </span>
             )
         }),
+        columnHelper.accessor('show_in_toolbar', {
+            header: 'Visibility',
+            cell: info => {
+                const visible = info.getValue();
+                const node = info.row.original;
+                return (
+                    <button
+                        onClick={async (e) => {
+                            e.stopPropagation();
+                            if (node.is_locked) return;
+                            try {
+                                await apiClient.put(`/admin/node-types/${node.id}`, {
+                                    ...node,
+                                    show_in_toolbar: !visible
+                                });
+                                onDelete(); // Trigger refresh
+                            } catch (err) {
+                                console.error('Failed to toggle visibility:', err);
+                            }
+                        }}
+                        className={`p-1.5 rounded-lg transition-all ${visible ? 'text-brand bg-brand/5' : 'text-slate-400 hover:bg-slate-500/10'}`}
+                        title={visible ? 'Visible in Toolbar' : 'Hidden from Toolbar'}
+                        disabled={node.is_locked}
+                    >
+                        <Icon name={visible ? 'visibility' : 'visibility_off'} size={16} />
+                    </button>
+                );
+            }
+        }),
         columnHelper.display({
             id: 'actions',
             header: () => <div className="text-right">Actions</div>,
