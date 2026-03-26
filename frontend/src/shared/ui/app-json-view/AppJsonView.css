@@ -116,3 +116,16 @@
 .transition-transform {
     transition: transform 0.2s ease;
 }
+
+.json-link {
+    cursor: pointer !important;
+    text-decoration: underline dotted;
+    color: #10b981;
+}
+
+.json-link:hover {
+    color: var(--brand);
+    text-decoration: underline solid;
+    background: var(--brand-alpha-low);
+    border-radius: 4px;
+}

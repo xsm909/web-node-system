@@ -558,6 +558,24 @@
         "boost": 4
     },
     {
+        "label": "files",
+        "type": "variable",
+        "detail": "files namespace",
+        "boost": 3
+    },
+    {
+        "label": "files.save",
+        "type": "function",
+        "detail": "files.save function",
+        "boost": 4
+    },
+    {
+        "label": "files.view",
+        "type": "function",
+        "detail": "files.view function",
+        "boost": 4
+    },
+    {
         "label": "charts",
         "type": "module",
         "detail": "Charts library",

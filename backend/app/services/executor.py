@@ -43,6 +43,7 @@ from ..internal_libs.runtime_lib import (
     set_runtime_data as runtime_set_data,
     get_runtime_value_by_key as runtime_get_value
 )
+from ..internal_libs import temp_files_lib
 
 
 def json_sanitize(obj):
@@ -230,6 +231,11 @@ SAFE_GLOBALS = {
         update_response_meta=response_lib.update_response_meta,
         update_response_meta_by_key=response_lib.update_response_meta_by_key,
         get_responses_by_period_and_category=response_lib.get_responses_by_period_and_category
+    ),
+    "files": SimpleNamespace(
+        save=temp_files_lib.save,
+        download=temp_files_lib.download,
+        view=temp_files_lib.view
     ),
     "charts": charts,
     "datetime": datetime,
@@ -820,6 +826,12 @@ class WorkflowExecutor:
             # Sanitize before JSON serialization
             node_exec.output = json_sanitize(result)
             self.log(f"Success: {node_name}", level="system")
+
+            # Update cumulative runtime data for live view
+            current_runtime = dict(self.execution.runtime_data or {})
+            current_runtime.update(json_sanitize(result))
+            self.execution.runtime_data = current_runtime
+            self.db.commit()
 
             than_val = None
             max_than = None

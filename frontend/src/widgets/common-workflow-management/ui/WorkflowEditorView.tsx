@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { Node } from 'reactflow';
 import { AppFormView } from '../../../shared/ui/app-form-view/AppFormView';
 import { WorkflowActions } from '../../../features/workflow-operations/ui/WorkflowActions';
@@ -10,6 +10,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { AppParameterListEditor } from '../../../shared/ui/app-parameter-list-editor';
 import { AppConsole, AppConsoleLogLine, type ConsoleLog } from '../../../shared/ui/app-console';
+import { AppJsonView } from '../../../shared/ui/app-json-view/AppJsonView';
 import { useWorkflowEditor } from './WorkflowEditorProvider';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { apiClient } from '../../../shared/api/client';
@@ -54,6 +55,20 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
     const [activeConsoleTab, setActiveConsoleTab] = useState<'logs' | 'runtime'>('logs');
     const [showSystemLogs, setShowSystemLogs] = useState(false);
     const [consoleHeight, setConsoleHeight] = useState(280);
+    
+    // JSON Preview state
+    const [jsonPreviewModal, setJsonPreviewModal] = useState<{ 
+        isOpen: boolean; 
+        data: any; 
+        title: string;
+        url?: string;
+        filename?: string;
+    }>({
+        isOpen: false,
+        data: null,
+        title: 'JSON Preview'
+    });
+    const shownPreviewsRef = useRef<Set<string>>(new Set());
 
     const handleToggleParams = useCallback(() => {
         setIsParamsExpanded(!isParamsExpanded);
@@ -105,8 +120,6 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
         ].filter(p => p.parameter_type === 'select' && p.source);
 
         paramsToFetch.forEach((param: any) => {
-            // Only fetch if not already in paramOptions or if it's from modalParams (where it might have changed)
-            // For simplicity, we can just fetch if not already present
             if (paramOptions[param.parameter_name]) return;
 
             apiClient.post('/workflows/test-source', {
@@ -120,6 +133,62 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
             }).catch(() => {});
         });
     }, [isParamsExpanded, isParametersModalOpen, activeWorkflow?.parameters, modalParams, paramOptions]);
+    
+    // Scan for JSON previews in live runtime data
+    useEffect(() => {
+        if (!liveRuntimeData) return;
+
+        const scanForPreviews = (obj: any) => {
+            if (!obj || typeof obj !== 'object') return;
+
+            if (obj.type === 'json_preview' && obj.url) {
+                const url = obj.url;
+                if (!shownPreviewsRef.current.has(url)) {
+                    shownPreviewsRef.current.add(url);
+                    
+                    // Fetch the file content
+                    apiClient.get(url)
+                        .then(res => {
+                            setJsonPreviewModal({
+                                isOpen: true,
+                                data: res.data,
+                                title: `Preview: ${obj.filename || 'JSON Data'}`,
+                                url: obj.url,
+                                filename: obj.filename
+                            });
+                        })
+                        .catch(err => console.error('Failed to fetch JSON preview:', err));
+                }
+            }
+
+            if (obj.type === 'file_download' && obj.url) {
+                const url = obj.url;
+                if (!shownPreviewsRef.current.has(url)) {
+                    shownPreviewsRef.current.add(url);
+                    
+                    // Trigger programmatic download
+                    const fullUrl = `${apiClient.defaults.baseURL?.replace(/\/$/, '') || ''}${url}`;
+                    const link = document.createElement('a');
+                    link.href = fullUrl;
+                    link.download = obj.filename || 'download';
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }
+
+            // Recurse into objects/arrays
+            Object.values(obj).forEach(scanForPreviews);
+        };
+
+        scanForPreviews(liveRuntimeData);
+    }, [liveRuntimeData]);
+
+    const handleRunWorkflow = useCallback(() => {
+        shownPreviewsRef.current.clear(); // Reset previews for new run
+        runWorkflow(() => setIsConsoleVisible(true), activeClientId);
+    }, [runWorkflow, setIsConsoleVisible, activeClientId]);
 
     useHotkeys([
         {
@@ -169,7 +238,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
                 <div className="flex items-center gap-2">
                     <WorkflowActions
                         isRunning={isRunning}
-                        onRun={() => runWorkflow(() => setIsConsoleVisible(true), activeClientId)}
+                        onRun={handleRunWorkflow}
                         onOpenParameters={onOpenParameters}
                         isDisabled={isSaving}
                     />
@@ -328,9 +397,9 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
                                             {'>'} Runtime data is empty. Run the workflow to see live data here.
                                         </div>
                                     ) : (
-                                        <pre className="text-[var(--text-main)] text-xs leading-relaxed whitespace-pre-wrap break-all font-mono">
-                                            {JSON.stringify(liveRuntimeData, null, 2)}
-                                        </pre>
+                                        <div className="h-full bg-[var(--bg-app)] rounded-xl border border-[var(--border-base)] overflow-hidden">
+                                            <AppJsonView data={liveRuntimeData} />
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -338,6 +407,35 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
                     </AppConsole>
                 </div>
             </div>
+
+            {jsonPreviewModal.isOpen && (
+                <AppCompactModalForm
+                    isOpen={jsonPreviewModal.isOpen}
+                    title={jsonPreviewModal.title}
+                    onClose={() => setJsonPreviewModal(prev => ({ ...prev, isOpen: false }))}
+                    onSubmit={() => setJsonPreviewModal(prev => ({ ...prev, isOpen: false }))}
+                    submitLabel="Close"
+                    width="max-w-5xl"
+                    showCancel={false}
+                    onDiscard={() => {
+                        if (jsonPreviewModal.url) {
+                            const fullUrl = `${apiClient.defaults.baseURL?.replace(/\/$/, '') || ''}${jsonPreviewModal.url}`;
+                            const link = document.createElement('a');
+                            link.href = fullUrl;
+                            link.download = jsonPreviewModal.filename || 'download.json';
+                            link.target = '_blank';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }
+                    }}
+                    discardLabel="Download"
+                >
+                    <div className="h-[60vh] overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-app-alt)]">
+                        <AppJsonView data={jsonPreviewModal.data} />
+                    </div>
+                </AppCompactModalForm>
+            )}
         </AppFormView>
     );
 };

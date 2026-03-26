@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './AppJsonView.css';
 import { Icon } from '../icon';
+import { API_BASE_URL } from '../../api/client';
 
 interface AppJsonViewProps {
     data: any;
@@ -33,7 +34,26 @@ const JsonNode: React.FC<JsonNodeProps> = ({ value, label, isLast, depth, forceE
 
     const renderValue = () => {
         if (value === null) return <span className="json-null">null</span>;
-        if (typeof value === 'string') return <span className="json-string">"{value}"</span>;
+        if (typeof value === 'string') {
+            // Check if it's a download link
+            if (value.startsWith('/files/download/')) {
+                const fullUrl = `${API_BASE_URL}${value}`;
+                return (
+                    <a 
+                        href={fullUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="json-string json-link underline decoration-dotted hover:decoration-solid transition-all inline-flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                        title="Click to download file"
+                    >
+                        <Icon name="download" size={12} />
+                        "{value}"
+                    </a>
+                );
+            }
+            return <span className="json-string">"{value}"</span>;
+        }
         if (typeof value === 'number') return <span className="json-number">{value}</span>;
         if (typeof value === 'boolean') return <span className="json-boolean">{value.toString()}</span>;
         return null;
@@ -48,6 +68,35 @@ const JsonNode: React.FC<JsonNodeProps> = ({ value, label, isLast, depth, forceE
                 ) : (
                     renderValue()
                 )}
+                {!isLast && <span className="json-punc">,</span>}
+            </div>
+        );
+    }
+
+    // Special handling for file_download / json_preview objects to show as buttons
+    if (value && typeof value === 'object' && (value.type === 'file_download' || value.type === 'json_preview') && value.url) {
+        const fullUrl = `${API_BASE_URL}${value.url}`;
+        const isPreview = value.type === 'json_preview';
+        
+        return (
+            <div className="json-line" style={{ paddingLeft: `${depth * 20}px` }}>
+                {label && <span className="json-key">{label}: </span>}
+                <div className="flex items-center gap-2 py-1">
+                    <a 
+                        href={fullUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                            isPreview 
+                            ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20 hover:bg-blue-500/20' 
+                            : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20'
+                        }`}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <Icon name={isPreview ? "visibility" : "download"} size={14} />
+                        {isPreview ? "Preview JSON" : `Download ${value.filename || 'File'}`}
+                    </a>
+                </div>
                 {!isLast && <span className="json-punc">,</span>}
             </div>
         );

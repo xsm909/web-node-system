@@ -24,3 +24,7 @@ dist/
 .vscode/
 .idea/
 *.swp
+
+# Temporary Storage
+backend/app/resources/temp_storage/*
+!backend/app/resources/temp_storage/.gitkeep

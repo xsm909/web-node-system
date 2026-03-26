@@ -21,7 +21,7 @@ import { SYSTEM_PARAMETERS } from "../../../entities/report/model/constants";
 import { AppParameterListEditor } from "../../../shared/ui/app-parameter-list-editor";
 import { ParameterPresetSelector, SaveParameterPresetButton } from "../../../features/parameter-presets";
 import { AppFormButton } from "../../../shared/ui/app-form-button/AppFormButton";
-
+import { AppJsonView } from "../../../shared/ui/app-json-view/AppJsonView";
 
 interface ReportEditorProps {
     report?: Report | null;
@@ -665,7 +665,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                                     <span className="opacity-30 italic">No output yet. Click Compile to run.</span>
                                 )
                             ) : (
-                                JSON.stringify(schemaJson, null, 2) || <span className="opacity-30 italic">No schema generated.</span>
+                                <AppJsonView data={schemaJson} />
                             )}
                         </div>
                     </AppConsole>

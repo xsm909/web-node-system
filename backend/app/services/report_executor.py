@@ -57,6 +57,7 @@ from ..internal_libs import response_lib
 from ..internal_libs import charts
 from ..internal_libs.context_lib import execution_context, object_params_context
 from ..internal_libs.logger_lib import executor_logger
+from ..internal_libs import temp_files_lib
 
 def generate_json_schema(data: Any) -> Dict[str, Any]:
     """
@@ -178,6 +179,11 @@ SAFE_GLOBALS = {
         "_inplaceitem_": _inplace_handler,
     },
     "json": json,
+    "files": SimpleNamespace(
+        save=temp_files_lib.save,
+        download=temp_files_lib.download,
+        view=temp_files_lib.view
+    ),
     "time": time,
     "datetime": datetime,
     "timedelta": timedelta,
@@ -380,6 +386,11 @@ class ReportExecutor:
                 "object_parameters": params_namespace,
                 "ObjectParameters": params_namespace,
                 "parameters": params_namespace, # Alias for backward compatibility
+                "metadata": node_globals["meta"], # Alias
+                "schema": node_globals["schema"], # Alias
+                "agent": node_globals["agent"], # Alias
+                "prompts": node_globals["prompts"], # Alias
+                "response_data": node_globals["response_data"], # Alias
                 "__builtins__": {
                     **SAFE_GLOBALS["__builtins__"],
                     "print": self._restricted_print,

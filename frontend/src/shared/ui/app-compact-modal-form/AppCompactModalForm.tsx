@@ -27,6 +27,7 @@ interface AppCompactModalFormProps {
     onConfirmSave?: () => void;
     onDiscard?: () => void;
     discardLabel?: string;
+    showCancel?: boolean;
 }
 
 export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
@@ -50,6 +51,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     onConfirmSave,
     onDiscard,
     discardLabel = 'Discard Changes',
+    showCancel = true,
 }) => {
     const [showDirtyConfirm, setShowDirtyConfirm] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -208,10 +210,12 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                             withFrame={true}
                         />
                     )}
-                    <AppFormButton
-                        label={cancelLabel}
-                        onClick={handleClose}
-                    />
+                    {showCancel && (
+                        <AppFormButton
+                            label={cancelLabel}
+                            onClick={handleClose}
+                        />
+                    )}
                     <AppFormButton
                         label={submitLabel}
                         isDefault={true}
