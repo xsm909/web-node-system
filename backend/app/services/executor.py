@@ -5,12 +5,13 @@ Uses RestrictedPython to safely execute node code.
 import traceback
 import time
 import json
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, date, time, timezone, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 import ast
 import uuid
 from types import SimpleNamespace
+import decimal
 from RestrictedPython import compile_restricted, safe_globals, safe_builtins, Guards, RestrictingNodeTransformer
 
 from ..core.database import SessionLocal
@@ -47,11 +48,18 @@ from ..internal_libs import temp_files_lib
 
 
 def json_sanitize(obj):
-    """Recursively converts non-serializable objects (like functions) into strings."""
+    """
+    Recursively converts non-serializable objects (like functions, UUIDs, datetimes) 
+    into JSON-compatible formats (mostly strings).
+    """
     if isinstance(obj, dict):
         return {k: json_sanitize(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [json_sanitize(i) for i in obj]
+    elif isinstance(obj, (uuid.UUID, decimal.Decimal)):
+        return str(obj)
+    elif isinstance(obj, (datetime, date, time)):
+        return obj.isoformat()
     elif callable(obj):
         return str(obj)
     return obj
