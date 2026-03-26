@@ -39,26 +39,29 @@ export const WorkflowToolbar: React.FC<WorkflowToolbarProps> = ({ nodeTypes }) =
                     onDragStart={(event) => onDragStart(event, nt)}
                     onDragEnd={onDragEnd}
                     draggable
-                    // Increasing vertical buffer (+10% extra at bottom) and keeping horizontal safety
-                    className="relative group/item flex items-center justify-center p-6 -m-6 pb-10 -mb-10 pr-[240px] -mr-[240px] cursor-grab active:cursor-grabbing hover:scale-105 transition-transform"
+                    // NO vertical padding/margin here to prevent buttons from overlapping
+                    // ONLY massive horizontal expansion for the drag ghost snapshot
+                    className="relative group/item flex items-center justify-start h-10 pr-[240px] -mr-[240px] cursor-grab active:cursor-grabbing"
                 >
-                    <AppRoundButton
-                        icon={nt.icon || 'function'}
-                        iconDir="node_icons"
-                        variant="ghost"
-                        size="small"
-                        className="!bg-white !text-brand !shadow-none"
-                    />
+                    <div className="flex items-center justify-center w-10 h-10 hover:scale-110 active:scale-95 transition-transform duration-200">
+                        <AppRoundButton
+                            icon={nt.icon || 'function'}
+                            iconDir="node_icons"
+                            variant="ghost"
+                            size="small"
+                            className="!bg-white !text-brand !shadow-none !cursor-inherit"
+                        />
+                    </div>
                     
-                    {/* Tooltip (Hint) */}
+                    {/* Tooltip (Hint) positioned 12px to the right of the icon edge (icon is 40px wide here) */}
                     {draggingNodeId !== nt.id && (
                         <div 
-                            className="absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 px-4 py-2 rounded-2xl border border-white/40 opacity-0 invisible group-hover/item:opacity-100 group-hover/item:visible transition-all duration-300 whitespace-nowrap z-[100] translate-x-[-10px] group-hover/item:translate-x-0 pointer-events-none"
+                            className="absolute left-[52px] top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-2xl border border-white/40 opacity-0 invisible group-hover/item:opacity-100 group-hover/item:visible transition-all duration-300 whitespace-nowrap z-[100] translate-x-[-10px] group-hover/item:translate-x-0 pointer-events-none"
                             style={{
                                 backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                                backdropFilter: 'blur(20px)',
-                                WebkitBackdropFilter: 'blur(20px)',
-                                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1)',
+                                backdropFilter: 'blur(16px)',
+                                WebkitBackdropFilter: 'blur(16px)',
+                                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.08)',
                             }}
                         >
                             <span className="text-[10px] font-black text-brand uppercase tracking-wider">
