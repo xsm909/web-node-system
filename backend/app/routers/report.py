@@ -657,7 +657,7 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
 
     prompt = f"""
     You are an expert report template designer. 
-    Please create a Jinja2 template in HTML for the following SQL query and its resulting data schema.
+    Please create a **FULL HTML DOCUMENT** (including `<!DOCTYPE html>`, `<html>`, `<head>`, and `<body>`) for the following SQL query and its resulting data schema.
     
     The context passed to your template will contain:
     - `rows`: A list of dictionaries representing the query result rows.
@@ -675,11 +675,26 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     REPORT DESIGN GUIDELINES (CRITICAL):
     1. SELECTION OF LAYOUT:
        - FLAT DATA (Simple Rows): If the items in `rows` only contain primitive fields (strings, numbers, simple dates), USE A FLAT `<table>`.
-       - NESTED DATA (JSON-Builder Style): If the items in `rows` contain complex nested objects or arrays (e.g., `rows[0].result` or `rows[0].Models`), DO NOT use a flat table. Instead, use a **STRUCTURAL** approach:
-         - Hierarchical headers (<h1>-<h3>) for categories.
-         - Definition lists (<dl>) or sections for objects.
-         - Nested lists (<ul>/<li>) for arrays.
-         - **DEEP NESTING**: If the data structure has multiple levels (e.g. `row.Models[0].modeldata.items`), ensure you write nested loops and paths to traverse the ENTIRE hierarchy provided in the schema. Dig as deep as needed.
+       - NESTED DATA (JSON-Builder Style): If the items in `rows` contain complex nested objects or arrays, USE A **STRUCTURAL** approach:
+         - **DOCUMENT LOGIC**: Include a main `<h1>` for the report title. Use `<section>` tags for each primary group (e.g., Topics).
+         - **OUTER CONTAINER**: Inside each section, use a `<ul>` for the list of items.
+         - **ITEM CARDS**: Each item (e.g., each entry in the nested query) MUST be wrapped in an `<li>`.
+         - **TITLES**: Inside the `<li>`, use an `<h3>` for the primary label/question of that item.
+         - **DETAILS**: Use a `<dl>` for the internal properties of that item (e.g., metadata, scores, etc.).
+         - **PROPERTY LABELS**: Use `<dt>` for labels (e.g., "Field Name:") and `<dd>` for values.
+         - **MARKDOWN**: Always wrap fields that likely contain narrative text or AI responses in `<md>...</md>` tags for rich text rendering.
+         - **DEEP NESTING**: Write nested loops and paths to traverse the ENTIRE hierarchy provided in the schema. Dig as deep as needed.
+         - **INTERACTIVITY (STRUCTURAL ONLY)**:
+           - The report must be interactive. Clicking a header (`<h2>` or `<h3>`) must toggle the visibility of the content following it (`<ul>` or `<dl>`).
+           - By default, all content is **expanded**.
+           - Add a small `<script>` at the end of `<body>`:
+             - Attach click listeners to all `h2` and `h3` elements.
+             - Define global `window.expandAll()` and `window.collapseAll()` functions that find all collapsible content and toggle visibility.
+             - **MESSAGE LISTENER**: Add `window.addEventListener('message', (e) => {{ if (e.data === 'expandAll') window.expandAll(); if (e.data === 'collapseAll') window.collapseAll(); }});` to allow control from the parent UI.
+           - Add a `<style>` block in `<head>`:
+             - Mark headers with `cursor: pointer; user-select: none;`.
+             - Use a `.hidden` class to hide content.
+             - **CRITICAL**: Use `@media print {{ .hidden {{ display: block !important; }} }}` so PDF exports are always fully expanded.
     2. CLEANLINESS: The report MUST BE CLEAN AND MINIMAL. Use semantic HTML. 
     3. NO INLINE STYLES: DO NOT USE ANY INLINE CSS OR STYLE ATTRIBUTES. CSS is handled separately.
     4. DATA ACCESS (IMPORTANT): 

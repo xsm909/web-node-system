@@ -14,6 +14,8 @@ interface ReportViewerProps {
 
 export interface ReportViewerRef {
     handleGenerate: () => void;
+    expandAll: () => void;
+    collapseAll: () => void;
 }
 
 export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ report, onLoadingChange, onGenerated }, ref) => {
@@ -26,7 +28,19 @@ export const ReportViewer = forwardRef<ReportViewerRef, ReportViewerProps>(({ re
     const [validationReason, setValidationReason] = useState<string | null>(null);
 
     useImperativeHandle(ref, () => ({
-        handleGenerate
+        handleGenerate,
+        expandAll: () => {
+            const iframe = document.querySelector('iframe[title="Report Preview"]') as HTMLIFrameElement;
+            if (iframe?.contentWindow) {
+                iframe.contentWindow.postMessage('expandAll', '*');
+            }
+        },
+        collapseAll: () => {
+            const iframe = document.querySelector('iframe[title="Report Preview"]') as HTMLIFrameElement;
+            if (iframe?.contentWindow) {
+                iframe.contentWindow.postMessage('collapseAll', '*');
+            }
+        }
     }));
 
     useEffect(() => {

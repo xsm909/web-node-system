@@ -172,7 +172,13 @@ All constructor-like modals (Query Builder, Node Parameter Editor) implement a m
 The system features a **"Generate Template"** button that uses AI to draft Jinja2 templates from the result schema and SQL query.
 - **Layout Choices**:
     - **Table (Flat)**: Standard `<table>` or `<ul>` layout for primitive rows.
-    - **Structural (Nested)**: Hierarchical layout using `<section>`, `<dl>`, and nested `<ul>` to handle complex objects from the JSON Builder.
+    - **Structural (Nested)**: Hierarchical layout using `<!DOCTYPE html>`, `<html>`, `<body>`, `<section>`, `<ul>`, `<li>`, `h1`-`h3`, and `<dl>` to handle complex objects from the JSON Builder.
+        - **UI Hierarchy**: `<ul>` (Outer) -> `<li>` (Card) -> `<h3>` (Label) -> `<dl>` (Details).
+    - **Interactivity**: Structural reports support collapsible groups.
+        - **Mechanism**: Clicking on `<h2>` (Section) or `<h3>` (Item Card) toggles content visibility.
+        - **Default State**: All items are expanded by default.
+        - **Global Control**: The platform UI provides "Expand All" and "Collapse All" buttons that communicate with the report iframe via `postMessage`.
+        - **Print/PDF Safety**: Interactivity is disabled and all content is forced to `display: block` in print mode.
 - **Schema Mapping**: The AI scans the `schema_json` (synced after every code compile) to identify nested structures (`row.field[0...].subfield`).
 
 ## 10. Markdown & Rich Text Rendering

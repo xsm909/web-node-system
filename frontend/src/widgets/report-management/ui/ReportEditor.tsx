@@ -20,6 +20,7 @@ import { QueryBuilderModal } from "../../../features/query-builder/ui/QueryBuild
 import { SYSTEM_PARAMETERS } from "../../../entities/report/model/constants";
 import { AppParameterListEditor } from "../../../shared/ui/app-parameter-list-editor";
 import { ParameterPresetSelector, SaveParameterPresetButton } from "../../../features/parameter-presets";
+import { AppFormButton } from "../../../shared/ui/app-form-button/AppFormButton";
 
 
 interface ReportEditorProps {
@@ -41,6 +42,8 @@ export interface ReportEditorRef {
     isSaving: boolean;
     isCompiling: boolean;
     isGenerating: boolean;
+    expandAll: () => void;
+    collapseAll: () => void;
 }
 
 export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ report, reports = [], styles, activeTab, onTabChange, onDirtyChange, isLocked }, ref) => {
@@ -323,6 +326,20 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
         onDirtyChange?.(changed);
     }, [name, type, description, code, template, styleId, category, parameters]);
 
+    const expandAll = () => {
+        const iframe = document.querySelector('iframe[title="Report Preview"]') as HTMLIFrameElement;
+        if (iframe?.contentWindow) {
+            iframe.contentWindow.postMessage('expandAll', '*');
+        }
+    };
+
+    const collapseAll = () => {
+        const iframe = document.querySelector('iframe[title="Report Preview"]') as HTMLIFrameElement;
+        if (iframe?.contentWindow) {
+            iframe.contentWindow.postMessage('collapseAll', '*');
+        }
+    };
+
     useImperativeHandle(ref, () => ({
         handleSave,
         handleCompile,
@@ -331,7 +348,9 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
         handleOpenQueryBuilder,
         isSaving,
         isCompiling,
-        isGenerating
+        isGenerating,
+        expandAll,
+        collapseAll
     }));
 
     const handleGenerateTemplate = async (layout?: 'table' | 'structural') => {
@@ -689,14 +708,22 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
                 <div className="flex-1 flex flex-col pt-2 overflow-hidden gap-4">
                     <div className="flex items-center justify-between">
                         <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Live Preview</h3>
-                        <button
-                            onClick={handleGenerate}
-                            disabled={isGenerating}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand text-white text-[10px] font-bold hover:brightness-110 transition-all disabled:opacity-50 shadow-sm"
-                        >
-                            <Icon name={isGenerating ? "refresh" : "play"} size={12} className={isGenerating ? "animate-spin" : ""} />
-                            {isGenerating ? "Generating..." : "Generate Preview"}
-                        </button>
+                        <div className="flex items-center gap-1">
+                            <AppFormButton
+                                icon="expand_all"
+                                onClick={expandAll}
+                                withFrame={false}
+                                title="Expand All"
+                                iconSize={16}
+                            />
+                            <AppFormButton
+                                icon="collapse_all"
+                                onClick={collapseAll}
+                                withFrame={false}
+                                title="Collapse All"
+                                iconSize={16}
+                            />
+                        </div>
                     </div>
 
                     <div className="flex-1 rounded-xl border border-[var(--border-base)] bg-white overflow-hidden shadow-inner relative">

@@ -444,13 +444,30 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                                     />
                                 )}
                                 {view === 'view' && (
-                                    <button
-                                        onClick={() => reportViewerRef.current?.handleGenerate()}
-                                        className="flex items-center gap-2 px-6 py-2 rounded-xl bg-brand text-white font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-brand/20 active:scale-95 whitespace-nowrap"
-                                    >
-                                        <Icon name="play" size={16} className="-ml-1" />
-                                        Generate Report
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <AppRoundButton
+                                            icon="expand_all"
+                                            onClick={() => reportViewerRef.current?.expandAll()}
+                                            variant="ghost"
+                                            title="Expand All"
+                                            iconSize={20}
+                                        />
+                                        <AppRoundButton
+                                            icon="collapse_all"
+                                            onClick={() => reportViewerRef.current?.collapseAll()}
+                                            variant="ghost"
+                                            title="Collapse All"
+                                            iconSize={20}
+                                        />
+                                        <AppRoundButton
+                                            icon={isGenerating ? "refresh" : "play"}
+                                            onClick={() => reportViewerRef.current?.handleGenerate()}
+                                            isLoading={isGenerating}
+                                            variant="brand"
+                                            title="Generate"
+                                            iconSize={18}
+                                        />
+                                    </div>
                                 )}
                                 {view === 'view' && isGenerated && (
                                     <ComboBox
