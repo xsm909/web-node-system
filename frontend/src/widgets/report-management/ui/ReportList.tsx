@@ -16,10 +16,11 @@ interface ReportListProps {
     onView: (report: Report) => void;
     onDelete: (report: Report) => void;
     onDuplicate: (report: Report) => void;
+    onReorder: (report: Report, newOrder: Report[]) => void;
     searchQuery: string;
 }
 
-export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, onDuplicate, searchQuery }: ReportListProps) {
+export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, onDuplicate, onReorder, searchQuery }: ReportListProps) {
 
     const columns = useMemo(() => [
         columnHelper.accessor('name', {
@@ -103,7 +104,8 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, onDupli
                 categoryExtractor: r => r.category,
                 indentColumnId: 'name',
                 persistCategoryKey: 'report_expanded_categories',
-                emptyMessage: 'No reports found.'
+                emptyMessage: 'No reports found.',
+                onReorder: isAdmin ? onReorder : undefined
             }}
         />
     );

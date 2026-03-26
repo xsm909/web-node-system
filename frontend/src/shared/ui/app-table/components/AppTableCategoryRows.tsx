@@ -1,10 +1,14 @@
+import {
+    SortableContext,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import type { Row } from '@tanstack/react-table';
 import { Icon } from '../../icon';
 import type { CategoryTreeNode } from '../../../lib/categoryUtils';
 import { AppTableDataRow } from './AppTableDataRow';
 import type { AppTableConfig } from '../types';
 
-export type TWithCategory<TData> = {
+export type TWithCategory<TData extends { id: any }> = {
     original: TData;
     row: Row<TData>;
     category: string | null;
@@ -12,7 +16,7 @@ export type TWithCategory<TData> = {
     name?: string;
 };
 
-interface AppTableCategoryRowsProps<TData> {
+interface AppTableCategoryRowsProps<TData extends { id: any }> {
     name: string;
     node: CategoryTreeNode<TWithCategory<TData>>;
     path: string;
@@ -24,7 +28,7 @@ interface AppTableCategoryRowsProps<TData> {
     colSpan: number;
 }
 
-export function AppTableCategoryRows<TData>({
+export function AppTableCategoryRows<TData extends { id: any }>({
     name,
     node,
     path,
@@ -65,15 +69,20 @@ export function AppTableCategoryRows<TData>({
                         </td>
                     </tr>
                 )}
-                {node.nodes.map(item => (
-                    <AppTableDataRow
-                        key={item.row.id}
-                        row={item.row}
-                        onClick={onRowClick}
-                        level={0}
-                        config={config}
-                    />
-                ))}
+                <SortableContext 
+                    items={node.nodes.map(item => String((item.original as any).id))} 
+                    strategy={verticalListSortingStrategy}
+                >
+                    {node.nodes.map(item => (
+                        <AppTableDataRow
+                            key={item.row.id}
+                            row={item.row}
+                            onClick={onRowClick}
+                            level={0}
+                            config={config}
+                        />
+                    ))}
+                </SortableContext>
             </>
         );
     }
@@ -112,15 +121,20 @@ export function AppTableCategoryRows<TData>({
                             colSpan={colSpan}
                         />
                     ))}
-                    {node.nodes.map(item => (
-                        <AppTableDataRow
-                            key={item.row.id}
-                            row={item.row}
-                            onClick={onRowClick}
-                            level={level + 1}
-                            config={config}
-                        />
-                    ))}
+                    <SortableContext 
+                        items={node.nodes.map(item => String((item.original as any).id))} 
+                        strategy={verticalListSortingStrategy}
+                    >
+                        {node.nodes.map(item => (
+                            <AppTableDataRow
+                                key={item.row.id}
+                                row={item.row}
+                                onClick={onRowClick}
+                                level={level + 1}
+                                config={config}
+                            />
+                        ))}
+                    </SortableContext>
                 </>
             )}
         </>

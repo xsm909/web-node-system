@@ -30,6 +30,9 @@ export interface AppTableConfig<TData> {
     rowClassName?: (item: TData) => string;
     indentColumnId?: string;
 
+    // Drag and drop reordering inside a category
+    onReorder?: (item: TData, newOrder: TData[]) => void;
+
     // Layout options
     layout?: 'auto' | 'fixed' | 'compact'; 
 }

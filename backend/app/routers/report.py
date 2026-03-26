@@ -67,6 +67,7 @@ class ReportBase(BaseModel):
     template: str
     style_id: Optional[uuid.UUID] = None
     category: Optional[str] = None
+    order: Optional[int] = 0
     meta: Optional[Dict[str, Any]] = {}
 
 class ReportCreate(ReportBase):
@@ -82,6 +83,7 @@ class ReportUpdate(BaseModel):
     template: Optional[str] = None
     style_id: Optional[uuid.UUID] = None
     category: Optional[str] = None
+    order: Optional[int] = None
     meta: Optional[Dict[str, Any]] = None
     parameters: Optional[List[ObjectParameterCreate]] = None
 
@@ -104,6 +106,9 @@ class ReportGenerateResponse(BaseModel):
     html: str
     console: Optional[str] = None
     validation_error: Optional[str] = None
+
+class ReportReorderRequest(BaseModel):
+    ids: List[uuid.UUID]
 
 class ReportCompileResponse(BaseModel):
     success: bool
@@ -225,6 +230,7 @@ def list_reports(db: Session = Depends(get_db), current_user: User = Depends(get
         if current_user.role != "admin":
              query = query.filter(Report.type == ReportTypeEnum.global_type)
 
+    query = query.order_by(Report.order.asc(), Report.name.asc())
     results = query.all()
     
     response = []
@@ -268,6 +274,14 @@ def create_report(data: ReportCreate, db: Session = Depends(get_db), current_use
         db.refresh(db_report)
         
     return db_report
+
+@router.put("/reorder")
+def reorder_reports(data: ReportReorderRequest, db: Session = Depends(get_db), _=admin_access):
+    """Update the order of reports based on the provided list of IDs."""
+    for index, report_id in enumerate(data.ids):
+        db.query(Report).filter(Report.id == report_id).update({"order": index})
+    db.commit()
+    return {"status": "reordered"}
 
 @router.put("/{report_id}", response_model=ReportOut)
 def update_report(report_id: uuid.UUID, data: ReportUpdate, db: Session = Depends(get_db), _=admin_access):
@@ -318,6 +332,7 @@ def delete_report(report_id: uuid.UUID, db: Session = Depends(get_db), _=admin_a
     db.commit()
     return {"status": "deleted"}
 
+
 @router.post("/{report_id}/duplicate", response_model=ReportOut)
 def duplicate_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user), _=admin_access):
     """Duplicate a report along with all its parameters."""
@@ -334,6 +349,7 @@ def duplicate_report(report_id: uuid.UUID, db: Session = Depends(get_db), curren
         template=report.template,
         style_id=report.style_id,
         category=report.category,
+        order=report.order,
         meta=report.meta,
         project_id=report.project_id,
         created_by=current_user.id,

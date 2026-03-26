@@ -1,4 +1,6 @@
 import { flexRender, type Row } from '@tanstack/react-table';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { AppTableConfig } from '../types';
 
 interface AppTableDataRowProps<TData> {
@@ -8,19 +10,41 @@ interface AppTableDataRowProps<TData> {
     config?: AppTableConfig<TData>;
 }
 
-export function AppTableDataRow<TData>({ row, onClick, level = 0, config }: AppTableDataRowProps<TData>) {
+export function AppTableDataRow<TData extends { id: string | number | any }>({ row, onClick, level = 0, config }: AppTableDataRowProps<TData>) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: String((row.original as any).id) });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : undefined,
+        position: isDragging ? 'relative' : undefined,
+        opacity: isDragging ? 0.5 : undefined,
+    } as React.CSSProperties;
+
     const isClickable = !!onClick;
     const customClass = config?.rowClassName ? config.rowClassName(row.original) : '';
 
     return (
         <tr
+            ref={setNodeRef}
+            style={style}
             onClick={() => onClick?.(row.original)}
             className={`
-                group transition-colors border-transparent
+                group transition-all duration-200
                 even:bg-slate-500/[0.02]
+                ${isDragging ? 'bg-surface-700 shadow-xl ring-1 ring-brand/50 z-50' : ''}
                 ${isClickable ? 'cursor-pointer hover:bg-surface-700/30' : ''}
                 ${customClass}
             `}
+            {...attributes}
+            {...listeners}
         >
             {row.getVisibleCells().map((cell, index) => {
                 const isIndentCell = config?.indentColumnId 

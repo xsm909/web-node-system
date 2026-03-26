@@ -31,6 +31,7 @@ The report system has been migrated from a legacy SQL-only approach to a powerfu
     - `schema_json`: Automatically generated JSON schema of the output data.
     - `style_id`: Link to global CSS styles.
     - `category`: Hierarchical grouping string.
+    - `order`: **[NEW]** Integer field for custom report reordering within categories.
 - `ReportParameter`:
     - Stores input configurations.
     - Supports dynamic SQL-backed dropdowns via the `@table-name->value,label` syntax.
@@ -188,6 +189,13 @@ Reports natively support Markdown rendering via the `markdown2` library.
     2. Scans the resulting HTML for `<md>...</md>` tags.
     3. Converts content *inside* those tags into formatted HTML (replaces the tags).
 - **Filter Support**: A `| markdown` Jinja2 filter is also available (e.g., `{{ var | markdown }}`).
+
+## 11. Report Reordering (Drag-and-Drop)
+The platform supports intuitive report reordering within categories.
+- **Frontend Logic**: Uses `@dnd-kit` to enable horizontal/vertical dragging of report rows. 
+- **Constraints**: Reordering is restricted to the current category group and respects project/global boundaries.
+- **Backend Persistence**: A specialized `PUT /reports/reorder` endpoint updates the `order` column for a batch of IDs based on their new relative positions.
+- **UX**: The system provides smooth animations and visual indicators (shadows, opacity) during drag operations.
 
 ## 11. File Manifest
 - `/backend/app/routers/report.py`: API endpoints and rendering logic.

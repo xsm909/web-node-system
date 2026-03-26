@@ -184,6 +184,24 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         setIdToDelete(style.id);
     };
 
+    const handleReorder = async (_item: Report, newOrder: Report[]) => {
+        if (!isAdmin) return;
+        try {
+            await apiClient.put('/reports/reorder', {
+                ids: newOrder.map(r => r.id)
+            });
+            // Update local state for immediate feedback
+            setReports(prev => {
+                const otherReports = prev.filter(r => !newOrder.find(nr => nr.id === r.id));
+                return [...otherReports, ...newOrder];
+            });
+        } catch (err) {
+            console.error("Failed to reorder reports", err);
+            alert("Error reordering reports");
+            setRefreshTrigger(prev => prev + 1); // Rollback
+        }
+    };
+
     const confirmDelete = async () => {
         if (!idToDelete) return;
         setIsDeleting(true);
@@ -527,6 +545,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                                 onView={handleView}
                                 onDelete={handleDelete}
                                 onDuplicate={handleDuplicate}
+                                onReorder={handleReorder}
                                 searchQuery={searchQuery}
                             />
                         )}

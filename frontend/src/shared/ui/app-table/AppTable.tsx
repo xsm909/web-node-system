@@ -1,5 +1,17 @@
 import { useMemo, useState } from 'react';
 import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
+import {
     useReactTable,
     getCoreRowModel,
     flexRender,
@@ -10,7 +22,7 @@ import { buildCategoryTree } from '../../lib/categoryUtils';
 import { getCookie, setCookie } from '../../lib/cookieUtils';
 import type { AppTableProps } from './types';
 
-export function AppTable<TData>({
+export function AppTable<TData extends { id: string | number | any }>({
     data,
     columns,
     config,
@@ -23,6 +35,39 @@ export function AppTable<TData>({
         columns,
         getCoreRowModel: getCoreRowModel(),
     });
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const activeItem = data.find(item => String(item.id) === String(active.id));
+            if (activeItem && config?.onReorder) {
+                // Find all items in the same group as the active item
+                const category = config.categoryExtractor?.(activeItem) || null;
+                const itemsInGroup = data.filter(item => (config.categoryExtractor?.(item) || null) === category);
+                
+                const oldIndex = itemsInGroup.findIndex(item => String(item.id) === String(active.id));
+                const newIndex = itemsInGroup.findIndex(item => String(item.id) === String(over.id));
+                
+                if (oldIndex !== -1 && newIndex !== -1) {
+                    const newOrder = [...itemsInGroup];
+                    const [movedItem] = newOrder.splice(oldIndex, 1);
+                    newOrder.splice(newIndex, 0, movedItem);
+                    config.onReorder(activeItem, newOrder);
+                }
+            }
+        }
+    };
 
     const persistKey = config?.persistCategoryKey || 'app_table_expanded_categories';
 
@@ -77,45 +122,51 @@ export function AppTable<TData>({
                             </tr>
                         ))}
                     </thead>
-                    <tbody className="divide-y divide-[var(--border-base)]/30">
-                        {isLoading && data.length === 0 ? (
-                            <tr>
-                                <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)]">
-                                    <div className="flex justify-center flex-col items-center gap-4">
-                                        <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
-                                        <span className="text-sm">Loading data...</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        ) : data.length === 0 ? (
-                            <tr>
-                                <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)] italic opacity-50">
-                                    {config?.emptyMessage || "No matches found."}
-                                </td>
-                            </tr>
-                        ) : treeData ? (
-                            <AppTableCategoryRows
-                                name="Uncategorized"
-                                node={treeData}
-                                path=""
-                                level={-1}
-                                expandedCategories={expandedCategories}
-                                onToggle={toggleCategory}
-                                onRowClick={onRowClick}
-                                config={config}
-                                colSpan={columns.length}
-                            />
-                        ) : (
-                            table.getRowModel().rows.map(row => (
-                                <AppTableDataRow
-                                    key={row.id}
-                                    row={row}
-                                    onClick={onRowClick}
+                    <DndContext 
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <tbody className="divide-y divide-[var(--border-base)]/30">
+                            {isLoading && data.length === 0 ? (
+                                <tr>
+                                    <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)]">
+                                        <div className="flex justify-center flex-col items-center gap-4">
+                                            <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
+                                            <span className="text-sm">Loading data...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : data.length === 0 ? (
+                                <tr>
+                                    <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)] italic opacity-50">
+                                        {config?.emptyMessage || "No matches found."}
+                                    </td>
+                                </tr>
+                            ) : treeData ? (
+                                <AppTableCategoryRows
+                                    name="Uncategorized"
+                                    node={treeData}
+                                    path=""
+                                    level={-1}
+                                    expandedCategories={expandedCategories}
+                                    onToggle={toggleCategory}
+                                    onRowClick={onRowClick}
                                     config={config}
+                                    colSpan={columns.length}
                                 />
-                            ))
-                        )}
-                    </tbody>
+                            ) : (
+                                table.getRowModel().rows.map(row => (
+                                    <AppTableDataRow
+                                        key={row.id}
+                                        row={row}
+                                        onClick={onRowClick}
+                                        config={config}
+                                    />
+                                ))
+                            )}
+                        </tbody>
+                    </DndContext>
                 </table>
             </div>
         </div>
