@@ -470,7 +470,7 @@
     {
         "label": "agent.run",
         "type": "function",
-        "detail": "agent.run function",
+        "detail": "run(model: str, tools: list, hint: str, task: str, schema_key: str = None, iteration_limit: int = 10, files: list = None)",
         "boost": 4
     },
     {

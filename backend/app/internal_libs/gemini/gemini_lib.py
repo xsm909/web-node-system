@@ -1,6 +1,8 @@
 import uuid
 import json
 import logging
+import base64
+import mimetypes
 from typing import Dict, List, Optional, Any
 import google.genai as genai
 from google.genai import types
@@ -133,14 +135,36 @@ def _clean_schema_for_gemini(schema: Any) -> Any:
     return schema
 
 class GeminiAgentProvider(AgentProvider):
-    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None) -> str:
+    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> str:
         client = genai.Client(api_key=self.api_key)
         
         # Convert messages to Gemini format
         contents = []
         for m in messages:
             role = "user" if m["role"] == "user" else "model"
-            contents.append(types.Content(role=role, parts=[types.Part(text=m["content"])]))
+            parts = [types.Part(text=m["content"])]
+            
+            # If this is the first message and we have files, attach them
+            if m == messages[0] and files:
+                for file_path in files:
+                    try:
+                        mime_type, _ = mimetypes.guess_type(file_path)
+                        if not mime_type:
+                            mime_type = "application/octet-stream"
+                            
+                        with open(file_path, "rb") as f:
+                            file_data = f.read()
+                            
+                        parts.append(types.Part(
+                            inline_data=types.Blob(
+                                mime_type=mime_type,
+                                data=base64.b64encode(file_data).decode("utf-8")
+                            )
+                        ))
+                    except Exception as fe:
+                        logger.error(f"Error reading file for Gemini: {file_path} - {str(fe)}")
+            
+            contents.append(types.Content(role=role, parts=parts))
             
         resp = client.models.generate_content(
             model=self.model,

@@ -94,7 +94,7 @@ def grok_perform_web_search(query: str, model: str = "grok-2") -> str:
     """
 
 class GrokAgentProvider(AgentProvider):
-    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None) -> str:
+    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> str:
         client = OpenAI(api_key=self.api_key, base_url=self.base_url)
         
         # Section 13: Grok uses Responses API for native search tools

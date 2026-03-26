@@ -96,7 +96,7 @@ def perplexity_perform_web_search(query: str, model: str = "sonar") -> str:
 
 
 class PerplexityAgentProvider(AgentProvider):
-    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None) -> str:
+    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> str:
         client = OpenAI(api_key=self.api_key, base_url=self.base_url)
         
         # Perplexity defaults to completions for now (OpenAI compatible)

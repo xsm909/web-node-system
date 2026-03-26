@@ -220,7 +220,7 @@ def _extract_json(text: str) -> str:
             
     return text
 
-def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, iteration_limit: int = 10):
+def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, iteration_limit: int = 10, files: list = None):
 
     # 1. Setup Provider & Tools
     try:
@@ -295,7 +295,8 @@ AVAILABLE TOOLS:
             response_text = provider_instance.generate_response(
                 messages=messages, 
                 system_prompt=system_prompt,
-                native_tools=native_tools
+                native_tools=native_tools,
+                files=files
             )
 
             #system_log(f"[AGENT] AI raw response: {response_text[:300]}...", level="system")

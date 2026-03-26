@@ -124,7 +124,7 @@ def openai_perform_web_search(query: str, model: str = "gpt-5.2") -> str:
 from ..agent_providers import AgentProvider
 
 class OpenAIAgentProvider(AgentProvider):
-    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None) -> str:
+    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> str:
         client = OpenAI(api_key=self.api_key)
         
         # Section 13: OpenAI responses.create pattern
