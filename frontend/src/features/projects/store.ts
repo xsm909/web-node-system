@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Project } from '../../entities/project/model/types';
+import { UI_CONSTANTS } from '../../shared/ui/constants';
 
 interface ProjectState {
     activeProject: Project | null;
@@ -9,8 +10,8 @@ interface ProjectState {
     exitProject: () => void;
 }
 
-const DEFAULT_BRAND_COLOR = '#10b981';
-const DEFAULT_BRAND_HOVER_COLOR = '#059669';
+const DEFAULT_BRAND_COLOR = UI_CONSTANTS.BRAND;
+const DEFAULT_BRAND_HOVER_COLOR = UI_CONSTANTS.BRAND_HOVER;
 
 // Helper to update CSS variables
 const updateThemeColors = (color: string | null) => {

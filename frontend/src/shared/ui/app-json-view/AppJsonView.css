@@ -120,7 +120,7 @@
 .json-link {
     cursor: pointer !important;
     text-decoration: underline dotted;
-    color: #10b981;
+    color: var(--brand);
 }
 
 .json-link:hover {

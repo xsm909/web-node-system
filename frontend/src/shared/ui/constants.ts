@@ -18,4 +18,13 @@ export const UI_CONSTANTS = {
      * or bg-transparent
     */
     DEBUG_BG: 'bg-transparent',
+
+    /** Default brand color (Grayish-blue / Slate 600) */
+    BRAND: '#475569',
+    /** Default brand hover color (Slate 700) */
+    BRAND_HOVER: '#334155',
+    /** Default brand color for dark mode (Slate 400) */
+    BRAND_DARK: '#94a3b8',
+    /** Default brand hover color for dark mode (Slate 300) */
+    BRAND_HOVER_DARK: '#cbd5e1',
 };

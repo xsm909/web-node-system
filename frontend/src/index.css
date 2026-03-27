@@ -12,10 +12,10 @@
   --text-muted: #64748b;
   --border-base: #e2e8f0;
   --border-muted: #f1f5f9;
-  --brand: #10b981;
-  /* Emerald 500 */
-  --brand-hover: #059669;
-  /* Emerald 600 */
+  --brand: #475569;
+  /* Slate 600 */
+  --brand-hover: #334155;
+  /* Slate 700 */
 
   /* Footer Colors */
   --bg-footer: #e2e8f0;
@@ -34,8 +34,8 @@
   --text-muted: #94a3b8;
   --border-base: #1e293b;
   --border-muted: #334155;
-  --brand: #10b981;
-  --brand-hover: #34d399;
+  --brand: #94a3b8;
+  --brand-hover: #cbd5e1;
 
   /* Footer Colors - Night */
   --bg-footer: #0f172a;
