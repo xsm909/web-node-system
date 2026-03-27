@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Icon } from '../../../shared/ui/icon';
+import { AppProjectSeparator } from '../../../shared/ui/app-project-separator/AppProjectSeparator';
 import { useAuthStore } from '../../../features/auth/store';
 import { useEntityMetadata, useCreateMetadata, useDeleteMetadata, useReorderMetadata } from '../../../entities/metadata/api';
+import { useProjectStore } from '../../../features/projects/store';
 import { useSchemas } from '../../../entities/schema/api';
 import type { Schema } from '../../../entities/schema/api';
 import { ClientMetadataEditor, type ClientMetadataEditorRef } from './ClientMetadataEditor';
@@ -51,7 +53,10 @@ const SortableRow = ({
     onSchemaSelect,
     isExpanded,
     onToggleExpand,
-    hasChildren
+    hasChildren,
+    readOnly,
+    isProjectMode,
+    className = ""
 }: any) => {
     const {
         attributes,
@@ -60,7 +65,10 @@ const SortableRow = ({
         transform,
         transition,
         isDragging
-    } = useSortable({ id: item.id });
+    } = useSortable({ 
+        id: item.id,
+        disabled: readOnly
+    });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -73,12 +81,12 @@ const SortableRow = ({
         <tr
             ref={setNodeRef}
             style={style}
-            className={`group transition-colors border-l-2 border-transparent hover:bg-surface-700/30 ${isDragging ? 'bg-surface-700/50' : ''}`}
+            className={`group transition-colors border-l-2 border-transparent hover:bg-surface-700/30 ${isDragging ? 'bg-surface-700/50' : ''} ${className}`}
             onClick={() => onRowClick(item)}
         >
             <td className="px-6 py-4">
                 <div className="flex items-center gap-2">
-                    {isAdmin && (
+                    {isAdmin && !readOnly && (
                         <div
                             {...attributes}
                             {...listeners}
@@ -88,7 +96,7 @@ const SortableRow = ({
                             <Icon name="drag_indicator" size={16} />
                         </div>
                     )}
-                    {isAdmin && (
+                    {isAdmin && (!readOnly || isProjectMode) && (
                         <div
                             className={`transition-opacity duration-200 ${openSubMenuId === item.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                             onClick={(e) => e.stopPropagation()}
@@ -123,7 +131,14 @@ const SortableRow = ({
                             <Icon name={isExpanded ? "expand_more" : "chevron_right"} size={16} />
                         </button>
                     )}
-                    <Icon name="metadata" size={16} className="text-[var(--text-muted)] opacity-60 shrink-0" />
+                    <div className="relative">
+                        <Icon name="metadata" size={16} className="text-[var(--text-muted)] opacity-60 shrink-0" />
+                        {item.project_id && (
+                            <div className="absolute -top-1 -right-1 bg-[var(--bg-app)] rounded-full p-0.5">
+                                <Icon name="project" size={10} className="text-brand" />
+                            </div>
+                        )}
+                    </div>
                     <span className={`px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 ${item.is_locked ? 'ring-1 ring-amber-500/20 text-amber-400/80' : ''}`}>
                         <Icon name="schema" size={12} className="opacity-70" />
                         {depth > 0 && <Icon name="arrow_split" size={12} />}
@@ -143,7 +158,12 @@ const SortableRow = ({
                             <Icon name="lock" size={14} />
                         </div>
                     )}
-                    {isAdmin && !item.is_locked && (
+                    {readOnly && (
+                        <div className="p-1.5 text-blue-500/40" title="User Metadata (Read-only in project mode)">
+                            <Icon name="visibility" size={14} />
+                        </div>
+                    )}
+                    {isAdmin && !item.is_locked && !readOnly && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -169,6 +189,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
     onHeaderActionsChange
 }) => {
     const { user } = useAuthStore();
+    const { isProjectMode, activeProject } = useProjectStore();
     const { data: schemas = [], isLoading: isSchemasLoading } = useSchemas();
     const isAdmin = user?.role === 'admin';
 
@@ -370,8 +391,18 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
 
     const enrichedAssignments = useMemo(() => {
         const tree = buildRecordTree(assignments);
-        return enrichWithSchemas(tree);
-    }, [assignments, schemas]);
+        const enriched = enrichWithSchemas(tree);
+
+        if (!isProjectMode || !activeProject) {
+            return enriched;
+        }
+
+        const userItems = enriched.filter(a => !a.project_id);
+        const projectItems = enriched.filter(a => a.project_id === activeProject.id);
+
+        return [...userItems, ...projectItems];
+    }, [assignments, schemas, isProjectMode, activeProject]);
+
 
     const expandAll = useCallback(() => {
         setCollapsedIds(new Set());
@@ -485,7 +516,7 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                             onDragEnd={handleDragEnd}
                         >
                             <table className="w-full text-left border-collapse min-w-[700px]">
-                            <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-brand/20">
+                            <thead className="sticky top-0 z-10 bg-surface-800">
                                 <tr className="bg-brand">
                                     <th className="px-6 py-4 text-[11px] font-extrabold text-white uppercase tracking-widest w-24">
                                         Sub
@@ -504,43 +535,80 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                             <tbody className="divide-y divide-[var(--border-base)]">
                                 {(() => {
                                     const renderRows = (data: any[], depth = 0): React.ReactNode => {
+                                        const isParentProjectMode = !!(isProjectMode && activeProject);
+                                        
+                                        // If in project mode, separate user records (read-only) from project records
+                                        const userItems = isParentProjectMode 
+                                            ? data.filter(a => !a.project_id) 
+                                            : data;
+                                        const projectItems = isParentProjectMode 
+                                            ? data.filter(a => a.project_id === activeProject?.id) 
+                                            : [];
+
+                                        const renderItem = (item: any, isFirstAfterSeparator = false) => {
+                                            const itemReadOnly = isParentProjectMode && !item.project_id;
+                                            return (
+                                                <React.Fragment key={item.id}>
+                                                    <SortableRow
+                                                        item={item}
+                                                        depth={depth}
+                                                        onRowClick={handleRowClick}
+                                                        onDelete={setAssignmentToDelete}
+                                                        isAdmin={isAdmin}
+                                                        openSubMenuId={openSubMenuId}
+                                                        onOpenSubMenu={handleOpenSubMenu}
+                                                        comboData={comboData}
+                                                        onSchemaSelect={handleSchemaSelect}
+                                                        isExpanded={!collapsedIds.has(item.id)}
+                                                        onToggleExpand={toggleRow}
+                                                        hasChildren={item.children && item.children.length > 0}
+                                                        readOnly={itemReadOnly}
+                                                        isProjectMode={isProjectMode}
+                                                        className={isFirstAfterSeparator ? "!border-t-0" : ""}
+                                                    />
+                                                    {item.children && item.children.length > 0 && !collapsedIds.has(item.id) && (
+                                                        <tr key={`${item.id}-children`}>
+                                                              <td colSpan={4} className="p-0">
+                                                                <table className="w-full border-collapse">
+                                                                    <tbody className="divide-y divide-[var(--border-base)]">
+                                                                        {renderRows(item.children, depth + 1)}
+                                                                    </tbody>
+                                                                </table>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        };
+
                                         return (
                                             <SortableContext
                                                 items={data.map(item => item.id)}
                                                 strategy={verticalListSortingStrategy}
                                             >
-                                                {data.map((item) => (
-                                                    <React.Fragment key={item.id}>
-                                                        <SortableRow
-                                                            item={item}
-                                                            depth={depth}
-                                                            onRowClick={handleRowClick}
-                                                            onDelete={setAssignmentToDelete}
-                                                            isAdmin={isAdmin}
-                                                            openSubMenuId={openSubMenuId}
-                                                            onOpenSubMenu={handleOpenSubMenu}
-                                                            comboData={comboData}
-                                                            onSchemaSelect={handleSchemaSelect}
-                                                            isExpanded={!collapsedIds.has(item.id)}
-                                                            onToggleExpand={toggleRow}
-                                                            hasChildren={item.children && item.children.length > 0}
-                                                        />
-                                                        {item.children && item.children.length > 0 && !collapsedIds.has(item.id) && (
-                                                            <tr key={`${item.id}-children`}>
-                                                                <td colSpan={4} className="p-0">
-                                                                    <table className="w-full border-collapse">
-                                                                        <tbody className="divide-y divide-[var(--border-base)]">
-                                                                            {renderRows(item.children, depth + 1)}
-                                                                        </tbody>
-                                                                    </table>
-                                                                </td>
-                                                            </tr>
-                                                        )}
-                                                    </React.Fragment>
-                                                ))}
+                                                {userItems.map(item => renderItem(item))}
+                                                
+                                                {projectItems.length > 0 && (
+                                                    <>
+                                                        <AppProjectSeparator colSpan={4} />
+                                                        {projectItems.map((item, index) => renderItem(item, index === 0))}
+                                                    </>
+                                                )}
+
+                                                {depth === 0 && data.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={4} className="px-6 py-12 text-center">
+                                                            <div className="inline-flex flex-col items-center gap-2 opacity-30">
+                                                                <Icon name="metadata" size={32} />
+                                                                <span className="text-[10px] font-black uppercase tracking-widest">No metadata assigned</span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
                                             </SortableContext>
                                         );
                                     };
+
                                     return renderRows(enrichedAssignments);
                                 })()}
                             </tbody>
@@ -599,9 +667,11 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 onSave={() => editorRef.current?.handleSave()}
                 onSaveAndClose={() => editorRef.current?.handleSaveAndClose()}
                 footer={
-                    activeAssignment?.is_locked ? (
+                    (activeAssignment?.is_locked || (isProjectMode && !activeAssignment?.project_id)) ? (
                         <div className="flex items-center justify-end px-4">
-                             <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 opacity-60">Read Only Mode</span>
+                             <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 opacity-60">
+                                 {activeAssignment?.is_locked ? 'Read Only Mode' : 'User Metadata (Read Only in Project Mode)'}
+                             </span>
                         </div>
                     ) : undefined
                 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
 import { useUpdateMetadata } from '../../../entities/metadata/api';
+import { useProjectStore } from '../../../features/projects/store';
 import type { Metadata } from '../../../entities/metadata/api';
 import { useSchemas } from '../../../entities/schema/api';
 import { RjsfForm } from '../../../features/data-editor/RjsfForm';
@@ -27,6 +28,7 @@ export const ClientMetadataEditor = React.forwardRef<ClientMetadataEditorRef, Cl
     onDirtyChange
 }, ref) => {
     const updateMetadataMutation = useUpdateMetadata();
+    const { isProjectMode } = useProjectStore();
     const { data: schemas, isLoading: isSchemasLoading } = useSchemas();
     const [formData, setFormData] = useState<any>(undefined);
     const [isValid, setIsValid] = useState(true);
@@ -152,7 +154,8 @@ export const ClientMetadataEditor = React.forwardRef<ClientMetadataEditorRef, Cl
     };
 
     const handleSaveInternal = (isManual: boolean) => {
-        const isLocked = !!assignment?.is_locked;
+        const isUserMetadataInProjectMode = isProjectMode && !assignment?.project_id;
+        const isLocked = !!assignment?.is_locked || isUserMetadataInProjectMode;
         if (isLocked) return;
 
         if (!isValid) {
@@ -219,7 +222,7 @@ export const ClientMetadataEditor = React.forwardRef<ClientMetadataEditorRef, Cl
                         activeClientId={activeClientId || undefined}
                         assignments={assignments}
                         metadataId={assignment.id}
-                        readOnly={!!assignment.is_locked}
+                        readOnly={!!assignment.is_locked || (isProjectMode && !assignment.project_id)}
                     />
                 )}
             </div>
