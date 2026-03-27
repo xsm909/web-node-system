@@ -107,7 +107,7 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, onDupli
                 persistCategoryKey: 'report_expanded_categories',
                 emptyMessage: 'No reports found.',
                 onReorder: isAdmin ? onReorder : undefined,
-                categoryActions: (path, items) => [
+                categoryActions: (_path, items) => [
                     {
                         icon: 'play_arrow',
                         label: 'Generate',

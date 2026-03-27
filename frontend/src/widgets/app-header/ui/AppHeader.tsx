@@ -65,6 +65,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                             onChange={onSearchChange}
                             placeholder={searchPlaceholder}
                             icon="search"
+                            showClear={!!onSearchChange}
                             className="flex-1 min-w-[200px] lg:w-[320px] ml-auto"
                         />
                     )}

@@ -33,6 +33,7 @@ export interface AppInputProps {
     autoFocus?: boolean;
     actions?: AppInputAction[];
     leftActions?: AppInputAction[];
+    showClear?: boolean;
 }
 
 export const AppInput: React.FC<AppInputProps> = ({
@@ -55,6 +56,7 @@ export const AppInput: React.FC<AppInputProps> = ({
     autoFocus = false,
     actions = [],
     leftActions = [],
+    showClear = false,
 }) => {
     const [copied, setCopied] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -83,6 +85,15 @@ export const AppInput: React.FC<AppInputProps> = ({
             title: 'Copy to clipboard',
             label: copied ? 'Copied' : undefined,
             color: 'brand',
+        });
+    }
+    
+    if (!disabled && showClear && value) {
+        allActions.unshift({
+            icon: 'close',
+            onClick: () => onChange(''),
+            title: 'Clear',
+            color: 'default',
         });
     }
 
