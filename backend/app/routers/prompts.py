@@ -31,9 +31,9 @@ def list_prompts(
     results = db.query(Prompt, is_locked_subquery.label("is_locked"))
     
     # Filter by project context
-    from ..internal_libs.projects_lib import get_project_id
+    from ..internal_libs.projects_lib import get_project_id, is_project_mode
     project_id = get_project_id()
-    if project_id:
+    if is_project_mode():
         results = results.filter(Prompt.project_id == project_id)
     else:
         results = results.filter(Prompt.project_id == None)
@@ -70,7 +70,6 @@ def get_prompt(
     prompt_dict = PromptSchema.model_validate(prompt).model_dump()
     prompt_dict["is_locked"] = is_locked
     return prompt_dict
-    return prompt_dict
 
 @router.post("/", response_model=PromptSchema)
 def create_prompt(
@@ -78,11 +77,23 @@ def create_prompt(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    db_prompt = Prompt(**prompt_in.model_dump())
+    from ..internal_libs.projects_lib import get_project_id, is_project_mode
+    
+    prompt_data = prompt_in.model_dump()
+    
+    # Automatically set project_id if in project mode
+    if is_project_mode() and not prompt_data.get("project_id"):
+        prompt_data["project_id"] = get_project_id()
+
+    db_prompt = Prompt(**prompt_data)
     db.add(db_prompt)
     db.commit()
     db.refresh(db_prompt)
-    return db_prompt
+    
+    is_locked = check_is_locked(db, db_prompt.id, "prompts")
+    prompt_dict = PromptSchema.model_validate(db_prompt).model_dump()
+    prompt_dict["is_locked"] = is_locked
+    return prompt_dict
 
 @router.patch("/{prompt_id}", response_model=PromptSchema)
 def update_prompt(

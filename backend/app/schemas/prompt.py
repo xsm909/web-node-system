@@ -11,6 +11,7 @@ class PromptBase(BaseModel):
     category: Optional[str] = None
     datatype: str
     reference_id: Optional[UUID] = None
+    project_id: Optional[UUID] = None
     meta: Optional[Dict[str, Any]] = None
 
     @field_validator('content', 'meta', mode='before')
@@ -30,12 +31,14 @@ class PromptUpdate(BaseModel):
     content: Optional[Dict[str, Any]] = None
     category: Optional[str] = None
     datatype: Optional[str] = None
+    project_id: Optional[UUID] = None
     meta: Optional[Dict[str, Any]] = None
 
 class Prompt(PromptBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
+    is_locked: bool = False
 
     class Config:
         from_attributes = True
