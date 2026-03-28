@@ -215,6 +215,8 @@ Users - user.svg
 User management - user.svg
 
 #### 9.3.1 UI icons rules
+pin - keep.svg
+unpin - keep_off.svg
 visible - visibility.svg
 unvisible - visibility_off.svg
 save preset - bookmark_add.svg
