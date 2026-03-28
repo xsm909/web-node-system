@@ -117,7 +117,6 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen }: SchemaManag
                             content: JSON.stringify(savedSchema.content, null, 2),
                             isSystem: savedSchema.is_system,
                         });
-                        setIsEditing(false);
                     }
                 });
             } else {
@@ -130,7 +129,6 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen }: SchemaManag
                             content: JSON.stringify(savedSchema.content, null, 2),
                             isSystem: savedSchema.is_system,
                         });
-                        setIsEditing(false);
                     }
                 });
             }
