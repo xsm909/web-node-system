@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { usePinStore } from '../../../features/pinned-tabs/model/store';
+import { usePinStore, type PinnedTab } from '../../../features/pinned-tabs/model/store';
+import type { Project } from '../../../entities/project/model/types';
 import { SchemaManagement } from '../../schema-management/ui/SchemaManagement';
 import { NodeTypeFormView } from '../../node-type-form-modal/ui/NodeTypeFormModal';
 import { WorkflowManagement } from '../../common-workflow-management';
@@ -14,72 +15,90 @@ export const PinnedFormRouter: React.FC = () => {
     const { activeTabId, tabs, focus } = usePinStore();
     const { data: projects = [] } = useProjects();
     
-    const activeTab = tabs.find(t => t.id === activeTabId);
-    
-    if (!activeTab) return null;
+    if (tabs.length === 0) return null;
 
     const onClose = () => focus(null);
 
-    const activeProject = activeTab.projectId ? projects.find(p => p.id === activeTab.projectId) : null;
+    return (
+        <div className="flex-1 h-full flex flex-col overflow-hidden">
+            {tabs.map((tab) => (
+                <div 
+                    key={tab.id}
+                    className={`flex-1 flex-col h-full overflow-hidden ${tab.id === activeTabId ? 'flex' : 'hidden'}`}
+                >
+                    <PinnedTabContent 
+                        tab={tab} 
+                        projects={projects} 
+                        onClose={onClose} 
+                    />
+                </div>
+            ))}
+        </div>
+    );
+};
+
+interface PinnedTabContentProps {
+    tab: PinnedTab;
+    projects: Project[];
+    onClose: () => void;
+}
+
+const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ tab, projects, onClose }) => {
+    const activeProject = tab.projectId ? projects.find((p: Project) => p.id === tab.projectId) : null;
     const brandColor = activeProject?.theme_color || null;
     
     const content = (() => {
-        switch (activeTab.entityType) {
+        switch (tab.entityType) {
             case 'schemas':
                 return (
                     <SchemaManagement 
-                        initialEditId={activeTab.entityId} 
-                        key={activeTab.id} 
+                        initialEditId={tab.entityId} 
                         onClose={onClose} 
-                        projectId={activeTab.projectId ?? null}
+                        projectId={tab.projectId ?? null}
                     />
                 );
                 
             case 'node_types':
                 return (
                     <NodeTypeFormContainer 
-                        entityId={activeTab.entityId} 
+                        entityId={tab.entityId} 
                         onClose={onClose} 
-                        key={activeTab.id} 
-                        projectId={activeTab.projectId ?? null}
+                        projectId={tab.projectId ?? null}
                     />
                 );
                 
             case 'workflows':
                 return (
                     <WorkflowManagement 
-                        activeWorkflowId={activeTab.entityId} 
+                        activeWorkflowId={tab.entityId} 
                         onToggleSidebar={() => {}} 
                         isSidebarOpen={false}
-                        key={activeTab.id}
-                        projectId={activeTab.projectId ?? null}
+                        projectId={tab.projectId ?? null}
                     />
                 );
                 
             case 'reports':
                 return (
                     <ReportManagement 
-                        initialEditId={activeTab.entityId} 
-                        key={activeTab.id} 
+                        initialEditId={tab.entityId} 
                         onClose={onClose} 
-                        projectId={activeTab.projectId ?? null}
+                        projectId={tab.projectId ?? null}
                     />
                 );
                 
             case 'agent_hints':
                 return (
                     <AgentHintManagement 
-                        initialEditId={activeTab.entityId} 
-                        key={activeTab.id} 
+                        initialEditId={tab.entityId} 
                         onClose={onClose} 
-                        projectId={activeTab.projectId ?? null}
+                        projectId={tab.projectId ?? null}
                     />
                 );
 
             default:
                 return (
                     <div className="flex-1 flex items-center justify-center text-[var(--text-muted)]">
-                        Unknown entity type: {activeTab.entityType}
+                        Unknown entity type: {tab.entityType}
                     </div>
                 );
         }
