@@ -220,7 +220,7 @@ export default function AdminPage() {
                     { id: 'schemas', label: 'Schemas', icon: 'schema', isActive: activeTab === 'schemas', onClick: () => setActiveTab('schemas') },
                     { id: 'agent-hints', label: 'Agent Hints', icon: 'lightbulb_circle', isActive: activeTab === 'agent-hints', onClick: () => setActiveTab('agent-hints') },
                     { id: 'nodes', label: 'Node Types', icon: 'function', isActive: activeTab === 'nodes', onClick: () => setActiveTab('nodes') },
-                    { id: 'workflows', label: 'Workflows', icon: 'automation', isActive: activeTab === 'workflows', onClick: () => setActiveTab('workflows') },
+                    { id: 'workflows', label: 'Workflows', icon: 'workflow', isActive: activeTab === 'workflows', onClick: () => setActiveTab('workflows') },
                 ]}
             />
 

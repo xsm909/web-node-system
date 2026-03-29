@@ -205,7 +205,7 @@ separate name in fillename using underscore and use lowercase
 ### 9.3 icons for database records (objects)
 Credentials - verified.svg
 Report - article.svg
-Workflow - automation.png
+Workflow - workflow.svg
 Schema - schema.svg
 Agent hints - lightbulb_circle.svg
 Node type - function.svg

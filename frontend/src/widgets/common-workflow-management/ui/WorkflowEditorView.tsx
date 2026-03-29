@@ -219,7 +219,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
         <AppFormView
             title={activeWorkflow?.name || 'Workflow'}
             parentTitle="Workflows"
-            icon="automation"
+            icon="workflow"
             isDirty={isDirty}
             onSave={saveWorkflow}
             onCancel={onBack}

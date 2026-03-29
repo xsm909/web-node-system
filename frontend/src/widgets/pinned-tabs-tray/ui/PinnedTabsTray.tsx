@@ -53,7 +53,7 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({ tab, projectColor, isActi
     return (
         <div 
             className={`
-                group relative flex flex-col items-center justify-center w-full h-40 cursor-pointer transition-all duration-200
+                group relative flex flex-col items-center justify-start w-full h-40 cursor-pointer transition-all duration-200
                 ${isActive 
                     ? 'border-l-2' 
                     : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]'}
@@ -66,7 +66,7 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({ tab, projectColor, isActi
             onClick={onFocus}
             title={tab.title}
         >
-            <div className="flex flex-col items-center gap-6 h-full py-4 relative">
+            <div className="flex flex-col items-center gap-2 h-full py-3 relative overflow-hidden">
                 <Icon 
                     name={tab.icon || 'article'} 
                     size={15} 
@@ -74,10 +74,10 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({ tab, projectColor, isActi
                     style={{ color: isActive ? brandColor : undefined }}
                 />
                 
-                <div className="flex-1 flex items-center justify-center overflow-visible w-full">
+                <div className="flex-1 flex flex-col items-center justify-start overflow-hidden w-full">
                     <span 
-                        className="rotate-90 whitespace-nowrap text-[10px] uppercase tracking-widest font-black text-center origin-center block"
-                        style={{ color: isActive ? brandColor : undefined }}
+                        className="whitespace-nowrap text-[10px] uppercase tracking-widest font-light text-center truncate max-h-full"
+                        style={{ color: isActive ? brandColor : undefined, writingMode: 'vertical-rl' }}
                     >
                         {tab.title}
                     </span>
