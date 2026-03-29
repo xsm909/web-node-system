@@ -3,6 +3,7 @@ import { WorkflowList } from '../../workflow-list';
 import { useWorkflowEditor } from './WorkflowEditorProvider';
 import { useNavigator } from '../../../shared/ui/navigator';
 import { WorkflowEditorView } from './WorkflowEditorView';
+import { usePinnedNavigation } from '../../../features/pinned-tabs/lib/usePinnedCheck';
 
 export const WorkflowListTab = () => {
     const {
@@ -22,6 +23,7 @@ export const WorkflowListTab = () => {
     } = useWorkflowEditor();
     
     const nav = useNavigator();
+    const { openOrFocus } = usePinnedNavigation();
 
     const handleSelectWorkflow = useCallback((wf: any) => {
         loadWorkflow(wf);
@@ -46,7 +48,10 @@ export const WorkflowListTab = () => {
             workflows={workflows}
             isSidebarOpen={isSidebarOpen}
             onToggleSidebar={onToggleSidebar}
-            onSelectWorkflow={handleSelectWorkflow}
+            onSelectWorkflow={(wf) => {
+                if (!wf?.id) return;
+                openOrFocus('workflows', wf.id, () => handleSelectWorkflow(wf));
+            }}
             onCreateWorkflow={(name, category) => {
                 handleCreateWorkflow(name, category, activeProjectId).then((newWf: any) => {
                     if (newWf) handleSelectWorkflow(newWf);

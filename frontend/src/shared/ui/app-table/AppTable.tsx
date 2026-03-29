@@ -104,29 +104,29 @@ export function AppTable<TData extends { id: string | number | any }>({
     return (
         <div className="flex flex-col flex-1 min-h-0 w-full animate-in fade-in duration-300 overflow-hidden">
             <div className="flex-1 overflow-auto custom-scrollbar">
-                <table className={`w-full text-left border-collapse ${config?.layout === 'compact' ? 'min-w-max' : ''}`}>
-                    <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-brand/20">
-                        {table.getHeaderGroups().map(headerGroup => (
-                            <tr key={headerGroup.id} className="bg-brand">
-                                {headerGroup.headers.map((header, index) => (
-                                    <th 
-                                        key={header.id} 
-                                        className={`
-                                            py-4 text-[11px] font-semibold text-white uppercase tracking-widest
-                                            ${index === 0 ? 'px-4' : 'px-6'}
-                                        `}
-                                    >
-                                        {flexRender(header.column.columnDef.header, header.getContext())}
-                                    </th>
-                                ))}
-                            </tr>
-                        ))}
-                    </thead>
-                    <DndContext 
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                    >
+                <DndContext 
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                >
+                    <table className={`w-full text-left border-collapse ${config?.layout === 'compact' ? 'min-w-max' : ''}`}>
+                        <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-brand/20">
+                            {table.getHeaderGroups().map(headerGroup => (
+                                <tr key={headerGroup.id} className="bg-brand">
+                                    {headerGroup.headers.map((header, index) => (
+                                        <th 
+                                            key={header.id} 
+                                            className={`
+                                                py-4 text-[11px] font-semibold text-white uppercase tracking-widest
+                                                ${index === 0 ? 'px-4' : 'px-6'}
+                                            `}
+                                        >
+                                            {flexRender(header.column.columnDef.header, header.getContext())}
+                                        </th>
+                                    ))}
+                                </tr>
+                            ))}
+                        </thead>
                         <tbody className="divide-y divide-[var(--border-base)]/30">
                             {isLoading && data.length === 0 ? (
                                 <tr>
@@ -166,8 +166,8 @@ export function AppTable<TData extends { id: string | number | any }>({
                                 ))
                             )}
                         </tbody>
-                    </DndContext>
-                </table>
+                    </table>
+                </DndContext>
             </div>
         </div>
     );

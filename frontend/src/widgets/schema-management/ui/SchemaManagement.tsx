@@ -13,6 +13,7 @@ import { AppInput } from '../../../shared/ui/app-input';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { createColumnHelper } from '@tanstack/react-table';
+import { usePinnedNavigation } from '../../../features/pinned-tabs/lib/usePinnedCheck';
 
 
 const columnHelper = createColumnHelper<Schema>();
@@ -60,6 +61,8 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId
     const [initialFormState, setInitialFormState] = useState({ key: '', category: '', content: '', isSystem: false });
 
     const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(schemas), [schemas]);
+
+    const { openOrFocus } = usePinnedNavigation();
 
     const handleEdit = (schema: Schema) => {
         setSelectedSchema(schema);
@@ -371,7 +374,7 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId
                 data={filteredSchemas}
                 columns={columns}
                 isSearching={searchQuery.trim().length > 0}
-                onRowClick={handleEdit}
+                onRowClick={(schema) => openOrFocus('schemas', schema.id, () => handleEdit(schema))}
                 config={{
                     categoryExtractor: s => s.category,
                     persistCategoryKey: 'schema_expanded_categories',

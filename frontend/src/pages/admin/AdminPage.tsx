@@ -22,6 +22,7 @@ import { ConfirmModal } from '../../shared/ui/confirm-modal';
 import { PinnedTabsTray } from '../../widgets/pinned-tabs-tray/ui/PinnedTabsTray';
 import { PinnedFormRouter } from '../../widgets/pinned-tabs-tray/ui/PinnedFormRouter';
 import { usePinStore } from '../../features/pinned-tabs/model/store';
+import { usePinnedNavigation } from '../../features/pinned-tabs/lib/usePinnedCheck';
 
 const WorkflowsTabWithNavigator = ({
     refreshCount,
@@ -66,6 +67,7 @@ const NodesTabWithNavigator = ({
     setIsSidebarOpen: (v: boolean) => void;
 }) => {
     const nav = useNavigator();
+    const { openOrFocus } = usePinnedNavigation();
 
     const {
         handleOpenModal: prepareNodeEdit,
@@ -74,20 +76,28 @@ const NodesTabWithNavigator = ({
     } = useNodeTypeManagement();
 
     const handleEditNode = (node?: NodeType) => {
-        prepareNodeEdit(node);
-        nav.push(
-            <NodeTypeFormView
-                onClose={() => nav.pop()}
-                editingNode={node || null}
-                onSave={(data) => {
-                    return handleSave(data, data.id || node?.id, () => {
-                        setRefreshCount(r => r + 1);
-                    });
-                }}
-                onRefresh={() => setRefreshCount(r => r + 1)}
-                allNodes={allNodes}
-            />
-        );
+        const doOpen = () => {
+            prepareNodeEdit(node || undefined);
+            nav.push(
+                <NodeTypeFormView
+                    onClose={() => nav.pop()}
+                    editingNode={node || null}
+                    onSave={(data) => {
+                        return handleSave(data, data.id || node?.id, () => {
+                            setRefreshCount(r => r + 1);
+                        });
+                    }}
+                    onRefresh={() => setRefreshCount(r => r + 1)}
+                    allNodes={allNodes}
+                />
+            );
+        };
+
+        if (node?.id) {
+            openOrFocus('node_types', node.id, doOpen);
+        } else {
+            doOpen();
+        }
     };
 
     const handleDuplicateNode = (node: NodeType) => {
@@ -217,49 +227,51 @@ export default function AdminPage() {
 
             <main className="flex-1 flex flex-row min-w-0 overflow-hidden bg-[var(--bg-app)]">
                 <div className="flex-1 flex flex-col min-h-0 w-full relative">
-                    {activeTabId ? (
+                    {/* Pinned Tabs Layer */}
+                    <div className={`absolute inset-0 z-10 bg-[var(--bg-app)] flex flex-col overflow-hidden ${activeTabId ? '' : 'hidden pointer-events-none'}`}>
                         <PinnedFormRouter />
-                    ) : (
-                        <>
-                            {activeTab === 'users' ? (
-                                <UserManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
-                            ) : activeTab === 'nodes' ? (
-                                <Navigator
-                                    key={`nodes-${resetNonce}`}
-                                    initialScene={
-                                        <NodesTabWithNavigator
-                                            setRefreshCount={setRefreshCount}
-                                            allNodes={allNodes}
-                                            isSidebarOpen={isSidebarOpen}
-                                            setIsSidebarOpen={setIsSidebarOpen}
-                                        />
-                                    }
-                                />
-                            ) : activeTab === 'workflows' ? (
-                                <Navigator
-                                    key={`workflows-${resetNonce}`}
-                                    initialScene={
-                                        <WorkflowsTabWithNavigator
-                                            refreshCount={refreshCount}
-                                            isSidebarOpen={isSidebarOpen}
-                                            setIsSidebarOpen={setIsSidebarOpen}
-                                            onEditNode={(node) => setEditingNodeForModal(node)}
-                                        />
-                                    }
-                                />
-                            ) : activeTab === 'schemas' ? (
-                                <SchemaManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
-                            ) : activeTab === 'ai-tasks' ? (
-                                <AITaskManagement activeClientId={null} onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
-                            ) : activeTab === 'reports' ? (
-                                <ReportManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
-                            ) : activeTab === 'agent-hints' ? (
-                                <AgentHintManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
-                            ) : (
-                                <CredentialManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
-                            )}
-                        </>
-                    )}
+                    </div>
+                    
+                    {/* Main Navigation Layer */}
+                    <div className={`flex-1 flex flex-col min-h-0 w-full bg-[var(--bg-app)] ${activeTabId ? 'hidden pointer-events-none' : ''}`}>
+                        {activeTab === 'users' ? (
+                            <UserManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                        ) : activeTab === 'nodes' ? (
+                            <Navigator
+                                key={`nodes-${resetNonce}`}
+                                initialScene={
+                                    <NodesTabWithNavigator
+                                        setRefreshCount={setRefreshCount}
+                                        allNodes={allNodes}
+                                        isSidebarOpen={isSidebarOpen}
+                                        setIsSidebarOpen={setIsSidebarOpen}
+                                    />
+                                }
+                            />
+                        ) : activeTab === 'workflows' ? (
+                            <Navigator
+                                key={`workflows-${resetNonce}`}
+                                initialScene={
+                                    <WorkflowsTabWithNavigator
+                                        refreshCount={refreshCount}
+                                        isSidebarOpen={isSidebarOpen}
+                                        setIsSidebarOpen={setIsSidebarOpen}
+                                        onEditNode={(node) => setEditingNodeForModal(node)}
+                                    />
+                                }
+                            />
+                        ) : activeTab === 'schemas' ? (
+                            <SchemaManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                        ) : activeTab === 'ai-tasks' ? (
+                            <AITaskManagement activeClientId={null} onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                        ) : activeTab === 'reports' ? (
+                            <ReportManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                        ) : activeTab === 'agent-hints' ? (
+                            <AgentHintManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                        ) : (
+                            <CredentialManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                        )}
+                    </div>
                 </div>
                 <PinnedTabsTray />
             </main>

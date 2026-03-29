@@ -18,6 +18,7 @@ import { StyleList } from './StyleList';
 import { StyleEditor, type StyleEditorRef } from './StyleEditor';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { useProjectStore } from '../../../features/projects/store';
+import { usePinnedNavigation } from '../../../features/pinned-tabs/lib/usePinnedCheck';
 
 interface ReportManagementProps {
     onToggleSidebar?: () => void;
@@ -45,6 +46,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
     const { baseProject } = useProjectStore();
     const [creationProjectId, setCreationProjectId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const { openOrFocus } = usePinnedNavigation();
 
     // Auto-edit from ID
     useEffect(() => {
@@ -609,7 +611,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
                             <ReportList
                                 reports={reports}
                                 isAdmin={isAdmin}
-                                onEdit={handleEdit}
+                                onEdit={(r) => openOrFocus('reports', r.id, () => handleEdit(r))}
                                 onView={handleView}
                                 onDelete={handleDelete}
                                 onDuplicate={handleDuplicate}

@@ -14,6 +14,7 @@ import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCateg
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { createColumnHelper } from '@tanstack/react-table';
 import { useProjectStore } from '../../../features/projects/store';
+import { usePinnedNavigation } from '../../../features/pinned-tabs/lib/usePinnedCheck';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 import { marked } from 'marked';
@@ -71,6 +72,8 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen, initialEdi
     const [initialFormState, setInitialFormState] = useState({ key: '', category: '', hintContent: '', systemHints: false });
 
     const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(hints), [hints]);
+
+    const { openOrFocus } = usePinnedNavigation();
 
     const handleEdit = (hint: AgentHint) => {
         setSelectedHint(hint);
@@ -355,7 +358,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen, initialEdi
                 data={filteredHints}
                 columns={columns}
                 isSearching={searchQuery.trim().length > 0}
-                onRowClick={handleEdit}
+                onRowClick={(hint) => openOrFocus('agent_hints', hint.id, () => handleEdit(hint))}
                 config={{
                     categoryExtractor: h => h.category,
                     persistCategoryKey: 'hint_expanded_categories',
