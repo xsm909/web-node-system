@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { arrayMove } from '@dnd-kit/sortable';
 
 export type PinnedTab = {
     id: string; // Composite ID: entityType:entityId
@@ -22,6 +23,7 @@ interface PinnedTabsState {
     unpin: (id: string) => void;
     focus: (id: string | null) => void;
     updateTab: (id: string, updates: Partial<PinnedTab>) => void;
+    reorderTabs: (activeId: string, overId: string) => void;
 }
 
 export const usePinStore = create<PinnedTabsState>()(
@@ -62,6 +64,19 @@ export const usePinStore = create<PinnedTabsState>()(
             updateTab: (id, updates) => set((state) => ({
                 tabs: state.tabs.map((t) => t.id === id ? { ...t, ...updates } : t)
             })),
+
+            reorderTabs: (activeId, overId) => {
+                set((state) => {
+                    const oldIndex = state.tabs.findIndex((t) => t.id === activeId);
+                    const newIndex = state.tabs.findIndex((t) => t.id === overId);
+                    if (oldIndex !== -1 && newIndex !== -1) {
+                        return {
+                            tabs: arrayMove(state.tabs, oldIndex, newIndex),
+                        };
+                    }
+                    return state;
+                });
+            },
         }),
         {
             name: 'pinned-tabs-storage',
