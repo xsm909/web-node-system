@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AppSidebar } from '../../widgets/app-sidebar';
 import { UserManagement } from '../../widgets/user-management';
 import { NodeLibraryManagement } from '../../widgets/node-library-management';
@@ -16,44 +16,32 @@ import { AgentHintManagement } from '../../widgets/agent-hint-management/ui/Agen
 import { useProjects } from '../../entities/project/api';
 import { useProjectStore } from '../../features/projects/store';
 import { Navigator, useNavigator } from '../../shared/ui/navigator';
+import { AppCompactModalForm } from '../../shared/ui/app-compact-modal-form/AppCompactModalForm';
+import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
+import { ConfirmModal } from '../../shared/ui/confirm-modal';
+import { PinnedTabsTray } from '../../widgets/pinned-tabs-tray/ui/PinnedTabsTray';
+import { PinnedFormRouter } from '../../widgets/pinned-tabs-tray/ui/PinnedFormRouter';
+import { usePinStore } from '../../features/pinned-tabs/model/store';
 
 const WorkflowsTabWithNavigator = ({
     refreshCount,
-    setRefreshCount,
-    allNodes,
     isSidebarOpen,
-    setIsSidebarOpen
+    setIsSidebarOpen,
+    onEditNode,
 }: {
     refreshCount: number;
-    setRefreshCount: React.Dispatch<React.SetStateAction<number>>;
-    allNodes: NodeType[];
     isSidebarOpen: boolean;
     setIsSidebarOpen: (v: boolean) => void;
+    onEditNode: (node: NodeType) => void;
 }) => {
-    const nav = useNavigator();
-
     const {
         handleOpenModal: prepareNodeEdit,
-        handleSave
     } = useNodeTypeManagement();
 
     const handleEditNode = (node: NodeType) => {
         // This is called when double-clicking a node in the graph
         prepareNodeEdit(node);
-        nav.push(
-            <NodeTypeFormView
-                onClose={() => nav.pop()}
-                editingNode={node}
-                onSave={(data) => {
-                    return handleSave(data, data.id || node.id, () => {
-                        setRefreshCount(r => r + 1);
-                    });
-                }}
-                onRefresh={() => setRefreshCount(r => r + 1)}
-                allNodes={allNodes}
-                defaultTab="code"
-            />
-        );
+        onEditNode(node);
     };
 
     return (
@@ -134,11 +122,7 @@ const NodesTabWithNavigator = ({
 
 
 
-import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
-import { ConfirmModal } from '../../shared/ui/confirm-modal';
-import { PinnedTabsTray } from '../../widgets/pinned-tabs-tray/ui/PinnedTabsTray';
-import { PinnedFormRouter } from '../../widgets/pinned-tabs-tray/ui/PinnedFormRouter';
-import { usePinStore } from '../../features/pinned-tabs/model/store';
+
 
 export default function AdminPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -159,6 +143,13 @@ export default function AdminPage() {
         isSaving: isInterceptSaving,
         cancel
     } = useNavigationIntercept();
+
+    const [editingNodeForModal, setEditingNodeForModal] = useState<NodeType | null>(null);
+    const modalFormSubmitRef = useRef<() => void>(null);
+
+    const {
+        handleSave: handleNodeSave
+    } = useNodeTypeManagement();
 
     const { setPinnedContext } = useProjectStore();
     const { data: projects = [] } = useProjects();
@@ -250,10 +241,9 @@ export default function AdminPage() {
                                     initialScene={
                                         <WorkflowsTabWithNavigator
                                             refreshCount={refreshCount}
-                                            setRefreshCount={setRefreshCount}
-                                            allNodes={allNodes}
                                             isSidebarOpen={isSidebarOpen}
                                             setIsSidebarOpen={setIsSidebarOpen}
+                                            onEditNode={(node) => setEditingNodeForModal(node)}
                                         />
                                     }
                                 />
@@ -273,6 +263,47 @@ export default function AdminPage() {
                 </div>
                 <PinnedTabsTray />
             </main>
+
+            {editingNodeForModal && (
+                <AppCompactModalForm
+                    isOpen={!!editingNodeForModal}
+                    title={`Edit Node: ${editingNodeForModal.name}`}
+                    icon="function"
+                    onClose={() => setEditingNodeForModal(null)}
+                    onSubmit={() => {
+                        if (modalFormSubmitRef.current) {
+                            modalFormSubmitRef.current();
+                        }
+                    }}
+                    submitLabel="Save Changes"
+                    width="max-w-[90%]"
+                    fullHeight
+                    noPadding
+                    entityId={editingNodeForModal.id}
+                    entityType="node_types"
+                    initialLocked={editingNodeForModal.is_locked}
+                    onLockToggle={(locked) => {
+                        setEditingNodeForModal(prev => prev ? { ...prev, is_locked: locked } : prev);
+                        setRefreshCount(r => r + 1);
+                    }}
+                >
+                    <NodeTypeFormView
+                        onClose={() => setEditingNodeForModal(null)}
+                        editingNode={editingNodeForModal}
+                        onSave={(data) => {
+                            return handleNodeSave(data, data.id || editingNodeForModal.id, () => {
+                                setRefreshCount(r => r + 1);
+                                setEditingNodeForModal(null);
+                            });
+                        }}
+                        onRefresh={() => setRefreshCount(r => r + 1)}
+                        allNodes={allNodes}
+                        defaultTab="code"
+                        hideHeader={true}
+                        externalSubmitRef={modalFormSubmitRef as any}
+                    />
+                </AppCompactModalForm>
+            )}
 
             <ConfirmModal
                 isOpen={isIntercepted}

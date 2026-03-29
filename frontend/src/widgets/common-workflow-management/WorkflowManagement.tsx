@@ -18,6 +18,7 @@ export function WorkflowManagement({
     activeWorkflowId, 
     onToggleSidebar, 
     isSidebarOpen, 
+    onEditNode,
     projectId,
     refreshTrigger,
     isHotkeysEnabled
@@ -27,6 +28,7 @@ export function WorkflowManagement({
         <WorkflowEditorProvider
             onToggleSidebar={onToggleSidebar}
             isSidebarOpen={isSidebarOpen}
+            onEditNode={onEditNode}
             refreshTrigger={refreshTrigger}
             activeWorkflowId={activeWorkflowId}
             projectId={projectId}

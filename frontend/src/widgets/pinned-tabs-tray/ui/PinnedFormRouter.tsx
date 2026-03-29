@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePinStore, type PinnedTab } from '../../../features/pinned-tabs/model/store';
 import type { Project } from '../../../entities/project/model/types';
 import { SchemaManagement } from '../../schema-management/ui/SchemaManagement';
@@ -8,19 +8,37 @@ import { ReportManagement } from '../../report-management/ui/ReportManagement';
 import { AgentHintManagement } from '../../agent-hint-management/ui/AgentHintManagement';
 import { useNodeTypeManagement } from '../../../features/node-type-management';
 import { apiClient } from '../../../shared/api/client';
+import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
+import type { NodeType } from '../../../entities/node-type/model/types';
 
 import { useProjects } from '../../../entities/project/api';
 
 export const PinnedFormRouter: React.FC = () => {
     const { activeTabId, tabs, focus } = usePinStore();
     const { data: projects = [] } = useProjects();
+    const [editingNodeForModal, setEditingNodeForModal] = useState<NodeType | null>(null);
+    const [allNodes, setAllNodes] = useState<NodeType[]>([]);
+    const [refreshCount, setRefreshCount] = useState(0);
+    const modalFormSubmitRef = useRef<() => void>(null);
+
+    const { handleSave: handleNodeSave, handleOpenModal: prepareNodeEdit } = useNodeTypeManagement();
     
+    useEffect(() => {
+        apiClient.get(`/admin/node-types?t=${Date.now()}`).then(({ data }) => setAllNodes(data)).catch(() => { });
+    }, [refreshCount]);
+
     if (tabs.length === 0) return null;
 
     const onClose = () => focus(null);
 
+    const handleEditNodeFromWorkflow = (node: NodeType) => {
+        // This makes sure the management logic prepares the state (locks etc)
+        prepareNodeEdit(node);
+        setEditingNodeForModal(node);
+    };
+
     return (
-        <div className="flex-1 h-full flex flex-col overflow-hidden">
+        <div className="flex-1 h-full flex flex-col overflow-hidden relative">
             {tabs.map((tab) => (
                 <div 
                     key={tab.id}
@@ -31,9 +49,52 @@ export const PinnedFormRouter: React.FC = () => {
                         projects={projects} 
                         onClose={onClose} 
                         isHotkeysEnabled={tab.id === activeTabId}
+                        onEditNode={handleEditNodeFromWorkflow}
+                        refreshTrigger={refreshCount}
                     />
                 </div>
             ))}
+
+            {editingNodeForModal && (
+                <AppCompactModalForm
+                    isOpen={!!editingNodeForModal}
+                    title={`Edit Node: ${editingNodeForModal.name}`}
+                    icon="function"
+                    onClose={() => setEditingNodeForModal(null)}
+                    onSubmit={() => {
+                        if (modalFormSubmitRef.current) {
+                            modalFormSubmitRef.current();
+                        }
+                    }}
+                    submitLabel="Save Changes"
+                    width="max-w-[90%]"
+                    fullHeight
+                    noPadding
+                    entityId={editingNodeForModal.id}
+                    entityType="node_types"
+                    initialLocked={editingNodeForModal.is_locked}
+                    onLockToggle={(locked) => {
+                        setEditingNodeForModal(prev => prev ? { ...prev, is_locked: locked } : prev);
+                        setRefreshCount(r => r + 1);
+                    }}
+                >
+                    <NodeTypeFormView
+                        onClose={() => setEditingNodeForModal(null)}
+                        editingNode={editingNodeForModal}
+                        onSave={(data) => {
+                            return handleNodeSave(data, data.id || editingNodeForModal.id, () => {
+                                setRefreshCount(r => r + 1);
+                                setEditingNodeForModal(null);
+                            });
+                        }}
+                        onRefresh={() => setRefreshCount(r => r + 1)}
+                        allNodes={allNodes}
+                        defaultTab="code"
+                        hideHeader={true}
+                        externalSubmitRef={modalFormSubmitRef as any}
+                    />
+                </AppCompactModalForm>
+            )}
         </div>
     );
 };
@@ -43,9 +104,18 @@ interface PinnedTabContentProps {
     projects: Project[];
     onClose: () => void;
     isHotkeysEnabled?: boolean;
+    onEditNode?: (node: NodeType) => void;
+    refreshTrigger?: number;
 }
 
-const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ tab, projects, onClose, isHotkeysEnabled }) => {
+const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ 
+    tab, 
+    projects, 
+    onClose, 
+    isHotkeysEnabled,
+    onEditNode,
+    refreshTrigger
+}) => {
     const activeProject = tab.projectId ? projects.find((p: Project) => p.id === tab.projectId) : null;
     const brandColor = activeProject?.theme_color || null;
     
@@ -79,6 +149,8 @@ const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ tab, projects, onCl
                         isSidebarOpen={false}
                         projectId={tab.projectId ?? null}
                         isHotkeysEnabled={isHotkeysEnabled}
+                        onEditNode={onEditNode}
+                        refreshTrigger={refreshTrigger}
                     />
                 );
                 

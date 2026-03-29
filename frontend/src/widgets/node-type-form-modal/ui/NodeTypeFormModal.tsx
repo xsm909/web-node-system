@@ -28,6 +28,8 @@ interface NodeTypeFormViewProps {
     onRefresh?: () => void;
     projectId?: string | null;
     isHotkeysEnabled?: boolean;
+    hideHeader?: boolean;
+    externalSubmitRef?: React.RefObject<() => void>;
 }
 
 
@@ -45,7 +47,9 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     defaultTab,
     onRefresh,
     projectId,
-    isHotkeysEnabled
+    isHotkeysEnabled,
+    hideHeader = false,
+    externalSubmitRef,
 }) => {
     const { theme } = useThemeStore();
     const [currentNode, setCurrentNode] = useState<Partial<NodeType>>(editingNode || initialData || {});
@@ -154,6 +158,13 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         },
     });
 
+    // Sync external submit ref
+    useEffect(() => {
+        if (externalSubmitRef) {
+            (externalSubmitRef as any).current = () => form.handleSubmit();
+        }
+    }, [externalSubmitRef, form]);
+
     const [isDirty, setIsDirty] = useState(false);
     
     console.log('[NodeTypeFormView] currentNode:', currentNode);
@@ -250,6 +261,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                 if (onRefresh) onRefresh();
             }}
             isHotkeysEnabled={isHotkeysEnabled}
+            hideHeader={hideHeader}
         >
             <form
                 onSubmit={(e) => {

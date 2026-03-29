@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Icon } from '../icon';
 import { AppFormButton } from '../app-form-button/AppFormButton';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
+import { AppLockToggle } from '../app-lock-toggle/AppLockToggle';
 
 interface AppCompactModalFormProps {
     isOpen: boolean;
@@ -28,6 +29,13 @@ interface AppCompactModalFormProps {
     onDiscard?: () => void;
     discardLabel?: string;
     showCancel?: boolean;
+
+    // Lock Support
+    entityId?: string;
+    entityType?: string;
+    initialLocked?: boolean;
+    onLockToggle?: (isLocked: boolean) => void;
+    isSaving?: boolean;
 }
 
 export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
@@ -52,6 +60,11 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     onDiscard,
     discardLabel = 'Discard Changes',
     showCancel = true,
+    entityId,
+    entityType,
+    initialLocked = false,
+    onLockToggle,
+    isSaving = false,
 }) => {
     const [showDirtyConfirm, setShowDirtyConfirm] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -122,7 +135,14 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
             preventDefault: false, // Let handler decide
             handler: (e) => {
                 const active = document.activeElement;
-                if (active?.tagName !== 'BUTTON' && active?.tagName !== 'TEXTAREA') {
+                const isInput = active?.tagName === 'INPUT';
+                const isTextarea = active?.tagName === 'TEXTAREA';
+                const isButton = active?.tagName === 'BUTTON';
+                const isContentEditable = active?.getAttribute('contenteditable') === 'true';
+
+                // Submit only if we're in a standard input or nothing specific is focused
+                // For textareas or code editors (contenteditable), Enter should be allowed for manual line breaks
+                if (!isTextarea && !isButton && !isContentEditable) {
                     e.preventDefault();
                     onSubmit();
                 }
@@ -173,6 +193,19 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                     </div>
                     
                     <div className="flex items-center gap-3">
+                        {entityId && entityType && (
+                            <div className="flex items-center gap-2 border-r border-[var(--border-base)] pr-3 mr-1">
+                                <AppLockToggle
+                                    entityId={entityId}
+                                    entityType={entityType}
+                                    initialLocked={initialLocked}
+                                    onToggle={onLockToggle}
+                                    isSaving={isSaving}
+                                    isDirty={isDirty}
+                                    size={14}
+                                />
+                            </div>
+                        )}
                         {headerRightContent && (
                             <div className="flex items-center gap-2 border-r border-[var(--border-base)] pr-3 mr-1">
                                 {headerRightContent}

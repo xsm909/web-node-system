@@ -45,6 +45,7 @@ export interface AppFormViewProps {
     error?: string;
     projectId?: string | null;
     isHotkeysEnabled?: boolean;
+    hideHeader?: boolean;
 }
 
 export const AppFormView: React.FC<AppFormViewProps> = ({
@@ -73,7 +74,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     onLockToggle,
     error,
     projectId,
-    isHotkeysEnabled
+    isHotkeysEnabled,
+    hideHeader = false
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
     
@@ -155,59 +157,61 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
 
     return (
         <div className="w-full h-full flex flex-col bg-[var(--bg-app)] text-[var(--text-main)] overflow-hidden">
-            <AppHeader
-                onToggleSidebar={() => {}}
-                isSidebarOpen={false}
-                onBack={handleBack}
-                isDirty={isDirty}
-                isPinned={isPinned}
-                canPin={!!(entityId && entityType)}
-                onPinToggle={handlePinToggle}
-                projectId={projectId}
-                leftContent={
-                    <div className="flex items-center gap-3 ml-2 lg:ml-0">
-                        {icon && (
-                            <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
-                                <Icon name={icon} size={18} />
-                            </div>
-                        )}
-                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate flex items-center gap-2">
-                            {parentTitle ? (
-                                <div className="flex items-center gap-2">
-                                    <span className="opacity-50 hover:opacity-100 cursor-pointer transition-opacity text-sm lg:text-base" onClick={handleBack}>{parentTitle}</span>
-                                    <span className="opacity-40 text-sm">/</span>
-                                    <span>{title}</span>
+            {!hideHeader && (
+                <AppHeader
+                    onToggleSidebar={() => {}}
+                    isSidebarOpen={false}
+                    onBack={handleBack}
+                    isDirty={isDirty}
+                    isPinned={isPinned}
+                    canPin={!!(entityId && entityType)}
+                    onPinToggle={handlePinToggle}
+                    projectId={projectId}
+                    leftContent={
+                        <div className="flex items-center gap-3 ml-2 lg:ml-0">
+                            {icon && (
+                                <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
+                                    <Icon name={icon} size={18} />
                                 </div>
-                            ) : (
-                                <span>{title}</span>
                             )}
-                            {isLocked && (
-                                <Icon 
-                                    name="lock" 
-                                    size={16} 
-                                    className="text-amber-500 ml-1" 
-                                />
-                            )}
-                        </h1>
-                    </div>
-                }
-                rightContent={
-                    <div className="flex items-center gap-3">
-                        <AppLockToggle 
-                            entityId={entityId}
-                            entityType={entityType}
-                            initialLocked={isLocked}
-                            onToggle={onLockToggle}
-                            onSave={onSave}
-                            isSaving={isSaving}
-                            isDirty={isDirty}
-                            saveLabel={saveLabel}
-                            className="mr-1"
-                        />
-                        {headerRightContent}
-                    </div>
-                }
-            />
+                            <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate flex items-center gap-2">
+                                {parentTitle ? (
+                                    <div className="flex items-center gap-2">
+                                        <span className="opacity-50 hover:opacity-100 cursor-pointer transition-opacity text-sm lg:text-base" onClick={handleBack}>{parentTitle}</span>
+                                        <span className="opacity-40 text-sm">/</span>
+                                        <span>{title}</span>
+                                    </div>
+                                ) : (
+                                    <span>{title}</span>
+                                )}
+                                {isLocked && (
+                                    <Icon 
+                                        name="lock" 
+                                        size={16} 
+                                        className="text-amber-500 ml-1" 
+                                    />
+                                )}
+                            </h1>
+                        </div>
+                    }
+                    rightContent={
+                        <div className="flex items-center gap-3">
+                            <AppLockToggle 
+                                entityId={entityId}
+                                entityType={entityType}
+                                initialLocked={isLocked}
+                                onToggle={onLockToggle}
+                                onSave={onSave}
+                                isSaving={isSaving}
+                                isDirty={isDirty}
+                                saveLabel={saveLabel}
+                                className="mr-1"
+                            />
+                            {headerRightContent}
+                        </div>
+                    }
+                />
+            )}
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {tabs && tabs.length > 0 && activeTab && (

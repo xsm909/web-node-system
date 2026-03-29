@@ -47,6 +47,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
     } = useWorkflowEditor();
 
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isParamsExpanded, setIsParamsExpanded] = useState(false);
     const [isParametersModalOpen, setIsParametersModalOpen] = useState(false);
     const [modalParams, setModalParams] = useState<any[]>([]);
@@ -97,6 +98,9 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
     }, [setActiveWorkflow, notifyChange, selectedNode?.id, nodesRef]);
 
     const handleNodeSelect = useCallback((node: Node | null) => {
+        const id = node?.id || null;
+        setSelectedNodeId(id);
+
         if (!node || !nodeTypes) {
             setSelectedNode(null);
             return;
@@ -191,6 +195,16 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
         runWorkflow(() => setIsConsoleVisible(true), activeClientId);
     }, [runWorkflow, setIsConsoleVisible, activeClientId]);
 
+    const handleEditNodeAction = useCallback((e?: any) => {
+        const targetId = selectedNodeId;
+        if (!targetId || !onEditNode) return;
+        
+        const node = nodesRef.current.find(n => n.id === targetId);
+        if (node) {
+            onEditNode(e || {}, node);
+        }
+    }, [selectedNodeId, onEditNode, nodesRef]);
+
     useHotkeys([
         {
             key: 'f5',
@@ -205,13 +219,10 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
         {
             key: 'f2',
             description: 'Edit Node',
-            enabled: nodesRef.current.some(n => n.selected),
+            enabled: !!selectedNodeId,
             handler: (e) => {
                 e.preventDefault();
-                const flowSelectedNode = nodesRef.current.find(n => n.selected);
-                if (flowSelectedNode && onEditNode) {
-                    onEditNode(e as any, flowSelectedNode);
-                }
+                handleEditNodeAction(e);
             }
         }
     ], { 
