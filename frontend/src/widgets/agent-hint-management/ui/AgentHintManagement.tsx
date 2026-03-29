@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAgentHints, useCreateAgentHint, useUpdateAgentHint, useDeleteAgentHint } from '../../../entities/agent-hint/api';
 import type { AgentHint } from '../../../entities/agent-hint/api';
 import { MarkdownEditor } from '../../../features/markdown-editor/MarkdownEditor';
@@ -13,6 +13,7 @@ import { AppInput } from '../../../shared/ui/app-input';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { createColumnHelper } from '@tanstack/react-table';
+import { useProjectStore } from '../../../features/projects/store';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 import { marked } from 'marked';
@@ -22,17 +23,40 @@ const columnHelper = createColumnHelper<AgentHint>();
 interface AgentHintManagementProps {
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
+    initialEditId?: string;
+    onClose?: () => void;
+    projectId?: string | null;
 }
 
-export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHintManagementProps) => {
-
-    const { data: hints = [], isLoading } = useAgentHints();
-    const createMutation = useCreateAgentHint();
+export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId }: AgentHintManagementProps) => {
+    const { baseProject, isBaseProjectMode } = useProjectStore();
+    const { data: hints = [], isLoading } = useAgentHints(projectId);
+    const createMutation = useCreateAgentHint(projectId);
     const updateMutation = useUpdateAgentHint();
     const deleteMutation = useDeleteAgentHint();
 
     const [selectedHint, setSelectedHint] = useState<AgentHint | null>(null);
     const [isEditing, setIsEditing] = useState(false);
+
+    const handleClose = () => {
+        if (onClose) {
+            onClose();
+        } else {
+            setIsEditing(false);
+            setSelectedHint(null);
+        }
+    };
+
+    // Auto-edit from ID
+    React.useEffect(() => {
+        if (initialEditId && !isLoading && !isEditing && hints.length > 0) {
+            const found = hints.find(h => h.id === initialEditId);
+            if (found) {
+                handleEdit(found);
+            }
+        }
+    }, [initialEditId, hints, isLoading, isEditing]);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [isPreview, setIsPreview] = useState(false);
 
@@ -219,7 +243,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 isDirty={isDirty}
                 isSaving={updateMutation.isPending || createMutation.isPending}
                 onSave={handleSave}
-                onCancel={() => setIsEditing(false)}
+                onCancel={handleClose}
                 saveLabel={selectedHint ? "Save Hint" : "Create Hint"}
                 tabs={[
                     { id: 'edit', label: 'Editor' },
@@ -233,6 +257,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
                 onLockToggle={(locked) => {
                     setSelectedHint(prev => prev ? { ...prev, is_locked: locked } : prev);
                 }}
+                projectId={projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null)}
             >
                 <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                     {!isPreview && (
@@ -304,6 +329,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen }: AgentHin
             <AppHeader
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
+                projectId={projectId}
                 leftContent={
                     <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
                         Agent Hints

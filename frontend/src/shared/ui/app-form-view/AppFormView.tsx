@@ -5,6 +5,7 @@ import { Icon } from '../icon';
 import { AppLockToggle } from '../app-lock-toggle/AppLockToggle';
 import { useRegisterBlocker } from '../../lib/navigation-guard/useNavigationGuard';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
+import { usePinStore } from '../../../features/pinned-tabs/model/store';
 
 import { AppTabs, type AppTab } from '../app-tabs';
 
@@ -42,6 +43,7 @@ export interface AppFormViewProps {
     entityType?: string;
     onLockToggle?: (isLocked: boolean) => void;
     error?: string;
+    projectId?: string | null;
 }
 
 export const AppFormView: React.FC<AppFormViewProps> = ({
@@ -68,9 +70,38 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     entityId,
     entityType,
     onLockToggle,
-    error
+    error,
+    projectId
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
+    
+    // Pinning Logic
+    const { tabs: pinnedTabs, pin, unpin, updateTab } = usePinStore();
+    const pinId = entityType && entityId ? `${entityType}:${entityId}` : null;
+    const isPinned = pinnedTabs.some(t => t.id === pinId);
+
+    const handlePinToggle = useCallback(() => {
+        if (!pinId || !entityType || !entityId) return;
+        
+        if (isPinned) {
+            unpin(pinId);
+        } else {
+            pin({
+                entityType,
+                entityId,
+                title,
+                icon,
+                projectId
+            });
+        }
+    }, [isPinned, pinId, entityType, entityId, title, icon, pin, unpin, projectId]);
+
+    // Update dirty state in pin store
+    React.useEffect(() => {
+        if (pinId && isPinned) {
+            updateTab(pinId, { isDirty });
+        }
+    }, [isDirty, isPinned, pinId, updateTab]);
 
     // Register this form with the navigation guard
     useRegisterBlocker(
@@ -126,6 +157,10 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                 isSidebarOpen={false}
                 onBack={handleBack}
                 isDirty={isDirty}
+                isPinned={isPinned}
+                canPin={!!(entityId && entityType)}
+                onPinToggle={handlePinToggle}
+                projectId={projectId}
                 leftContent={
                     <div className="flex items-center gap-3 ml-2 lg:ml-0">
                         {icon && (

@@ -7,32 +7,40 @@ import type { NodeType } from '../../../entities/node-type/model/types';
 import { useClientStore } from '../model/clientStore';
 import { useProjectStore } from '../../projects/store';
 
-export function useWorkflowManagement(refreshTrigger?: number) {
+export function useWorkflowManagement(refreshTrigger?: number, projectId?: string | null) {
     const { user: currentUser } = useAuthStore();
     const { activeClientId, setAssignedUsers } = useClientStore();
     const [assignedUsers, setAssignedUsersState] = useState<AssignedUser[]>([]);
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
     const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
-    const { activeProject, isProjectMode } = useProjectStore();
+    const { baseProject, isBaseProjectMode, activeProject, isProjectMode } = useProjectStore();
+    
+    // Determine the effective context for this hook instance.
+    // Explicit projectId prop takes precedence (Pinned Tabs).
+    // If undefined, we use the stable sidebar selection (baseProject).
+    const effectiveProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null);
+    const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isBaseProjectMode;
 
     const [isCreating, setIsCreating] = useState(false);
     const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
     const [workflowToRename, setWorkflowToRename] = useState<Workflow | null>(null);
     const [workflowError, setWorkflowError] = useState<string | null>(null);
 
-    // Auto-close workflow if it doesn't belong to the active context (client or current user)
+    // Auto-close workflow if it doesn't belong to the active context (client or current user or current project)
     useEffect(() => {
         if (activeWorkflow) {
             const isPersonal = activeWorkflow.owner_id === currentUser?.id;
             const belongsToActiveClient = activeClientId && activeWorkflow.owner_id === activeClientId;
-            const belongsToActiveProject = isProjectMode && activeProject && activeWorkflow.project_id === activeProject.id;
+            // Use effective context to check project membership
+            const belongsToActiveProject = effectiveIsProjectMode && effectiveProjectId && activeWorkflow.project_id === effectiveProjectId;
 
             if (!isPersonal && !belongsToActiveClient && !belongsToActiveProject) {
+                // Only close if we are sure it doesn't belong to the effective context
                 setActiveWorkflow(null);
             }
         }
-    }, [activeClientId, activeWorkflow, currentUser?.id]);
+    }, [activeClientId, activeWorkflow, currentUser?.id, effectiveIsProjectMode, effectiveProjectId]);
 
     useEffect(() => {
         const init = async () => {
@@ -40,10 +48,22 @@ export function useWorkflowManagement(refreshTrigger?: number) {
                 // Clear state when switching project/mode to ensure isolation
                 setWorkflows([]);
                 setActiveWorkflow(null);
+                
+                const headers: Record<string, string> = {};
+                // Determine target project for headers. 
+                // Explicit projectId prop takes precedence.
+                // If undefined, use stable baseProject.
+                const targetProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null);
+                
+                if (targetProjectId) {
+                    headers['X-Force-Project-Id'] = targetProjectId;
+                } else if (projectId === null || (!isBaseProjectMode && projectId === undefined)) {
+                    headers['X-Project-Skip'] = 'true';
+                }
 
                 const [nodeTypesRes, usersRes] = await Promise.all([
-                    apiClient.get(`/workflows/node-types?t=${Date.now()}`),
-                    apiClient.get('/workflows/users')
+                    apiClient.get(`/workflows/node-types?t=${Date.now()}`, { headers }),
+                    apiClient.get('/workflows/users', { headers })
                 ]);
                 
                 setNodeTypes(nodeTypesRes.data);
@@ -57,7 +77,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
                 // 2. Load workflows for current user
                 if (currentUser?.id) {
                     try {
-                        const myWfsRes = await apiClient.get(`/workflows/users/${currentUser.id.toLowerCase()}/workflows`);
+                        const myWfsRes = await apiClient.get(`/workflows/users/${currentUser.id.toLowerCase()}/workflows`, { headers });
                         allWfs = [...allWfs, ...myWfsRes.data];
                     } catch (e) {
                         console.error(`Failed to load workflows for user ${currentUser.id}`, e);
@@ -68,7 +88,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
                 // Use Promise.all to load concurrently but merge correctly
                 const clientPromises = users
                     .filter((u: AssignedUser) => u.id.toLowerCase() !== currentUser?.id?.toLowerCase())
-                    .map((u: AssignedUser) => apiClient.get(`/workflows/users/${u.id.toLowerCase()}/workflows`).catch(() => ({ data: [] })));
+                    .map((u: AssignedUser) => apiClient.get(`/workflows/users/${u.id.toLowerCase()}/workflows`, { headers }).catch(() => ({ data: [] })));
                 
                 const clientResults = await Promise.all(clientPromises);
                 clientResults.forEach((res: any) => {
@@ -84,7 +104,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
         if (currentUser?.id) {
             init();
         }
-    }, [currentUser?.id, setAssignedUsers, isProjectMode, activeProject?.id]);
+    }, [currentUser?.id, setAssignedUsers, effectiveIsProjectMode, effectiveProjectId]);
 
     useEffect(() => {
         if (refreshTrigger !== undefined && refreshTrigger > 0) {
@@ -115,7 +135,7 @@ export function useWorkflowManagement(refreshTrigger?: number) {
                 name,
                 category,
                 owner_id: finalOwnerId,
-                project_id: project_id || activeProject?.id || null
+                project_id: project_id !== undefined ? project_id : (projectId || activeProject?.id || null)
             });
 
             setWorkflows((prev) => [...prev, data]);

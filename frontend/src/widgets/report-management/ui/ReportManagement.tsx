@@ -22,9 +22,12 @@ import { useProjectStore } from '../../../features/projects/store';
 interface ReportManagementProps {
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
+    initialEditId?: string;
+    onClose?: () => void;
+    projectId?: string | null;
 }
 
-export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManagementProps) {
+export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId }: ReportManagementProps) {
     const { user } = useAuthStore();
     const isAdmin = user?.role === 'admin';
 
@@ -38,9 +41,26 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const [selectedGroupReports, setSelectedGroupReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
-    const { activeProject, isProjectMode } = useProjectStore();
+    const { baseProject } = useProjectStore();
     const [creationProjectId, setCreationProjectId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Auto-edit from ID
+    useEffect(() => {
+        if (initialEditId && !isLoading && view === 'list') {
+            const report = reports.find(r => r.id === initialEditId);
+            if (report) {
+                setTopTab('reports');
+                handleEdit(report);
+                return;
+            }
+            const style = styles.find(s => s.id === initialEditId);
+            if (style) {
+                setTopTab('styles');
+                handleEditStyle(style);
+            }
+        }
+    }, [initialEditId, reports, styles, isLoading, view]);
 
     const [idToDelete, setIdToDelete] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -125,11 +145,20 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
         const fetchReports = async () => {
             setIsLoading(true);
             try {
-                const res = await apiClient.get<Report[]>('/reports');
+                const headers: Record<string, string> = {};
+                if (projectId !== undefined) {
+                    if (projectId) {
+                        headers['X-Force-Project-Id'] = projectId;
+                    } else {
+                        headers['X-Project-Skip'] = 'true';
+                    }
+                }
+
+                const res = await apiClient.get<Report[]>('/reports', { headers });
                 setReports(res.data);
 
                 if (isAdmin) {
-                    const stylesRes = await apiClient.get<ReportStyle[]>('/reports/styles');
+                    const stylesRes = await apiClient.get<ReportStyle[]>('/reports/styles', { headers });
                     setStyles(stylesRes.data);
                 }
             } catch (err) {
@@ -138,12 +167,13 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                 setIsLoading(false);
             }
         };
+
         fetchReports();
-    }, [refreshTrigger, isAdmin, isProjectMode, activeProject?.id]);
+    }, [refreshTrigger, isAdmin, projectId]);
 
     const handleCreate = () => {
         setSelectedReport(null);
-        setCreationProjectId(activeProject?.id || null);
+        setCreationProjectId(projectId !== undefined ? projectId : (baseProject?.id || null));
         setView('edit');
     };
 
@@ -231,6 +261,10 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
     const [currentParams, setCurrentParams] = useState<Record<string, any>>({});
 
     const handleBack = () => {
+        if (onClose) {
+            onClose();
+            return;
+        }
         setView('list');
         setSelectedReport(null);
         setSelectedGroupReports([]);
@@ -366,6 +400,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen }: ReportManag
                     allowedShortcuts={['f1', 'f4', 'f5', 'f9']}
                     entityId={selectedReport?.id}
                     entityType="reports"
+                    projectId={selectedReport?.project_id || projectId}
                     isLocked={selectedReport?.is_locked}
                     onLockToggle={(locked) => {
                         setSelectedReport(prev => prev ? { ...prev, is_locked: locked } : null);

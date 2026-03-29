@@ -138,3 +138,30 @@ type PinnedTab = {
   projectId?: string
   isDirty?: boolean
 }
+```
+
+---
+
+## Technical Implementation: Context Shadowing
+
+To ensure pinned tabs function as independent, transient workspaces, the application implements a **Context Shadowing** system.
+
+### 1. Dual-State Project Store (`features/projects/model/store.ts`)
+The project store maintains two distinct states:
+- **`baseProject`**: The persistent project selection controlled by the sidebar and URL. Used as the default context when no pinned tab is focused.
+- **`activeProject`**: The effective context currently being used by the application (UI themes, API headers, system parameters).
+
+### 2. Transient Overrides (`PinnedFormRouter.tsx`)
+When a user interacts with a pinned tab:
+- **Focusing a Tab**: `PinnedFormRouter` calls `setPinnedContext(tab.projectId)`. This updates `activeProject` to match the tab's context, instantly switching UI themes and API scopes.
+- **Unfocusing**: Clicking outside pinned tabs or closing them clears the override, restoring the `activeProject` to the current `baseProject`.
+
+### 3. Explicit Scoping (Prop Propagation)
+All management widgets (Schemas, Hints, Workflows) accept an optional `projectId` prop.
+- When rendered inside a pinned tab, the widget is passed the tab's specific `projectId`.
+- This prop is prioritized over the global `activeProject` for all internal data-fetching and creation hooks.
+
+### 4. Global Data Fetching (`X-Project-Skip`)
+When a pinned tab is in "Global" mode (`projectId: null`), it must be able to fetch global data even if the sidebar is in project mode.
+- Widgets detect the explicit `null` projectId and inject the `X-Project-Skip: true` header into API requests.
+- This forces the backend to ignore any project context set by the sidebar's `X-Project-Id` middleware, ensuring the pinned tab remains a pure global workspace.

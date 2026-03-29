@@ -30,13 +30,13 @@ def get_metadata_records(db: Session = Depends(get_db), current_user: User = Dep
         LockData.entity_type == "metadata"
     ).exists()
     
-    query = db.query(MetadataRecord, is_locked_subquery.label("is_locked"))
+    query = db.query(MetadataRecord, is_locked_subquery.label("is_locked")).join(Schema, MetadataRecord.schema_id == Schema.id)
     
     # Project filtering
     active_project_id = get_project_id()
     if is_project_mode():
         query = query.filter(
-            (MetadataRecord.project_id == None) | (MetadataRecord.project_id == active_project_id)
+            (MetadataRecord.project_id == active_project_id) | (Schema.is_system == True)
         )
     else:
         query = query.filter(MetadataRecord.project_id == None)
@@ -183,7 +183,7 @@ def get_entity_metadata(
     active_project_id = get_project_id()
     if is_project_mode():
         query = query.filter(
-            (MetadataRecord.project_id == None) | (MetadataRecord.project_id == active_project_id)
+            (MetadataRecord.project_id == active_project_id) | (Schema.is_system == True)
         )
     else:
         query = query.filter(MetadataRecord.project_id == None)

@@ -33,12 +33,30 @@ export interface UpdateAgentHintDto {
 }
 
 // Queries
-export const useAgentHints = () => {
-    const { activeProject, isProjectMode } = useProjectStore();
+export const useAgentHints = (projectId?: string | null) => {
+    const { baseProject, isBaseProjectMode } = useProjectStore();
+    
+    // Determine effective project to use for the query
+    // Explicit projectId prop takes precedence (Pinned Tabs).
+    // If undefined, use stable sidebar selection (baseProject).
+    const effectiveProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null);
+
     return useQuery({
-        queryKey: ['agent-hints', isProjectMode, activeProject?.id],
+        queryKey: ['agent-hints', effectiveProjectId],
         queryFn: async () => {
-            const response = await apiClient.get<AgentHint[]>('/agent-hints');
+             const config: any = {};
+            if (projectId === null) {
+                // Force global mode by bypassing interceptor
+                config.headers = { 'X-Project-Skip': 'true' };
+            } else if (projectId) {
+                // Explicit project passed via prop (Pinned Tabs)
+                config.headers = { 'X-Force-Project-Id': projectId };
+            } else if (projectId === undefined && isBaseProjectMode && baseProject) {
+                // Sidebar mode: explicitly set the base project to avoid any shadowed context leaks
+                config.headers = { 'X-Force-Project-Id': baseProject.id };
+            }
+
+            const response = await apiClient.get<AgentHint[]>('/agent-hints', config);
             return response.data;
         },
     });
@@ -57,11 +75,17 @@ export const useAgentHint = (id: string | undefined) => {
 };
 
 // Mutations
-export const useCreateAgentHint = () => {
+export const useCreateAgentHint = (projectId?: string | null) => {
     const queryClient = useQueryClient();
+    const { activeProject } = useProjectStore();
     return useMutation({
         mutationFn: async (data: CreateAgentHintDto) => {
-            const response = await apiClient.post<AgentHint>('/agent-hints', data);
+            // Priority: data.project_id > hook's projectId > global activeProject?.id
+            let project_id = data.project_id;
+            if (project_id === undefined) {
+                project_id = projectId !== undefined ? projectId : activeProject?.id;
+            }
+            const response = await apiClient.post<AgentHint>('/agent-hints', { ...data, project_id });
             return response.data;
         },
         onSuccess: () => {

@@ -39,8 +39,8 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
         notifyChange,
         setActiveWorkflow,
         nodesRef,
-        isAdmin,
         activeClientId,
+        activeProjectId,
         setIsConsoleVisible,
         isConsoleVisible
     } = useWorkflowEditor();
@@ -228,8 +228,9 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
             allowedShortcuts={['cmd+c', 'ctrl+c', 'cmd+v', 'ctrl+v', 'f5', 'f2']}
             fullHeight
             noPadding
-            entityId={isAdmin ? activeWorkflow?.id : undefined}
-            entityType={isAdmin ? "workflows" : undefined}
+            entityId={activeWorkflow?.id}
+            entityType="workflows"
+            projectId={activeProjectId}
             isLocked={activeWorkflow?.is_locked}
             onLockToggle={(locked: boolean) => {
                 setActiveWorkflow({ ...activeWorkflow, is_locked: locked });

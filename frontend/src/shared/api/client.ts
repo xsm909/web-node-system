@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useProjectStore } from '../../features/projects/store';
 
 const getBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
@@ -23,18 +24,32 @@ apiClient.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Add project headers from localStorage if present
+  // Handle Project Context Overrides
+  if (config.headers['X-Project-Skip']) {
+      delete config.headers['X-Project-Skip'];
+      return config;
+  }
+
+  const forcedProjectId = config.headers['X-Force-Project-Id'];
+  if (forcedProjectId) {
+      config.headers['X-Project-Id'] = forcedProjectId;
+      delete config.headers['X-Force-Project-Id'];
+      // We'd ideally need the owner_id too, but for now let's hope the backend 
+      // can resolve it or doesn't strictly require it for all operations.
+      // (Alternatively, we'd need to pass the full project object in config).
+      return config;
+  }
+
+  // Fallback to baseProject from store (Stable Sidebar Selection)
   try {
-      const projectStorage = localStorage.getItem('project-storage');
-      if (projectStorage) {
-          const { state } = JSON.parse(projectStorage);
-          if (state.isProjectMode && state.activeProject) {
-              config.headers['X-Project-Id'] = state.activeProject.id;
-              config.headers['X-Project-Owner'] = state.activeProject.owner_id;
-          }
+      const state = useProjectStore.getState();
+      const baseProject = state.baseProject;
+      if (baseProject) {
+          config.headers['X-Project-Id'] = baseProject.id;
+          config.headers['X-Project-Owner'] = baseProject.owner_id;
       }
   } catch (e) {
-      console.error('Failed to parse project storage', e);
+      // Ignore
   }
 
   return config;

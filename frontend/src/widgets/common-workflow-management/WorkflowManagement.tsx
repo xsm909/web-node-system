@@ -9,20 +9,25 @@ interface WorkflowManagementProps {
     isSidebarOpen?: boolean;
     onEditNode?: (node: NodeType) => void;
     refreshTrigger?: number;
+    activeWorkflowId?: string;
+    projectId?: string | null;
 }
 
-export function WorkflowManagement({
-    onToggleSidebar,
-    isSidebarOpen,
-    onEditNode,
+export function WorkflowManagement({ 
+    activeWorkflowId, 
+    onToggleSidebar, 
+    isSidebarOpen, 
+    projectId,
     refreshTrigger
 }: WorkflowManagementProps) {
+
     return (
         <WorkflowEditorProvider
             onToggleSidebar={onToggleSidebar}
             isSidebarOpen={isSidebarOpen}
-            onEditNode={onEditNode}
             refreshTrigger={refreshTrigger}
+            activeWorkflowId={activeWorkflowId}
+            projectId={projectId}
         >
             <div className="flex-1 flex flex-col min-w-0 relative h-full">
                 <Navigator

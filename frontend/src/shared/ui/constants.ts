@@ -19,12 +19,12 @@ export const UI_CONSTANTS = {
     */
     DEBUG_BG: 'bg-transparent',
 
-    /** Default brand color (Grayish-blue / Slate 600) */
-    BRAND: '#475569',
-    /** Default brand hover color (Slate 700) */
-    BRAND_HOVER: '#334155',
-    /** Default brand color for dark mode (Slate 400) */
-    BRAND_DARK: '#94a3b8',
-    /** Default brand hover color for dark mode (Slate 300) */
-    BRAND_HOVER_DARK: '#cbd5e1',
+    /** Default brand color (Strictly Neutral Gray / Neutral 600) */
+    BRAND: '#525252',
+    /** Default brand hover color (Neutral 700) */
+    BRAND_HOVER: '#404040',
+    /** Default brand color for dark mode (Neutral 400) */
+    BRAND_DARK: '#a3a3a3',
+    /** Default brand hover color for dark mode (Neutral 300) */
+    BRAND_HOVER_DARK: '#d4d4d4',
 };

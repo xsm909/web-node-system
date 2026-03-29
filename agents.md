@@ -508,28 +508,36 @@ All system parameters must be prefixed with `system_` (e.g., `system_project_id`
 - **Python Editor**: Available in the parameter registry and autocompletion.
 - **Auto-Resolution**: When executing a workflow or report, the system automatically injects these values. User-provided values with the same name will be ignored if the system can resolve them from the current session context.
 
-## 17. Workflow Management Architecture
-
-The platform uses a unified architecture for workflow management to ensure consistency across Administrator and Manager interfaces.
-
-### 17.1 Unified Widget (`WorkflowManagement`)
-All workflow management views must use the centralized `WorkflowManagement` widget. This widget encapsulates:
-- **`WorkflowEditorProvider`**: A centralized context that manages the editor state, including the active workflow, nodes, edges, execution logs, and live runtime data.
-- **`WorkflowEditorView`**: The primary UI for the graph editor, parameters panel, and console.
-- **`WorkflowListTab`**: A standardized tab for listing and managing workflows (CRUD operations).
-
-### 17.2 Shared Action System (`WorkflowActions`)
-Primary workflow actions (Run, Save, Parameters) are managed via the `WorkflowActions` component.
-- **Run Button**: Triggers the `runWorkflow` operation. Uses `play.svg` when idle and `stop.svg` when running.
-- **Save Button**: Triggers the `saveWorkflow` operation. Uses `save.svg`.
-- **Parameters Button**: Opens the workflow parameters overlay. Uses `AppRoundButton` with `brand` variant and `parameters.svg` icon.
-
-### 17.3 Navigation Pattern
-The `WorkflowManagement` widget implements a "Navigator" pattern:
-1.  **List Mode**: Displays the list of available workflows.
-2.  **Editor Mode**: When a workflow is selected, the list is replaced by the `WorkflowEditorView` in the navigation stack.
-3.  **Back Navigation**: Users return to the list via a standardized "Back" button in the `AppHeader`, which triggers a confirmation modal if there are unsaved changes.
-
 ### 17.4 Manager vs. Administrator Views
 - **Administrator**: Full CRUD access to all workflows across all clients. Manages node technical definitions and global library.
 - **Manager**: Access currently restricted to viewing results. Full management functionality is being centralized in the Administrator dashboard to ensure consistent governance and simplified architecture.
+
+## 18. Context Isolation & Shadowing
+
+To support high-speed, multi-context editing (e.g., editing a Global Schema while working in Project A), the platform implements **Context Isolation** through a "Shadowing" mechanism.
+
+### 18.1 Dual-State Store
+The project store (`useProjectStore`) distinguishes between:
+- **`baseProject`**: The persistent project selection controlled by the sidebar/navigation.
+- **`activeProject`**: The effective context currently being used for UI rendering (theme_color) and API headers.
+
+### 18.2 Context Shadows
+Pinned tabs and distinct management layers can "shadow" the global context:
+- When a pinned tab is focused, it pushes its own `projectId` into the `activeProject` state.
+- This instantly updates the UI (colors change to project theme) and redirects all API traffic to that project's scope.
+- Unfocusing the tab restores the `activeProject` to match the `baseProject`.
+
+## 19. Strict Data Visibility Rules
+
+The platform enforces strict isolation to prevent "data pollution" and ensure users only see relevant items for their active context.
+
+### 19.1 Project Mode Visibility
+When a project is active, the following entities are filtered to show ONLY:
+1.  **Project-Specific Data**: Items explicitly linked to the `activeProject`.
+2.  **System/Verified Data**: Global items marked with `is_system: true` or `system_hints: true`.
+
+#### Excluded Data
+Regular "Global" items (those with `project_id: null` but NOT marked as system) are **hidden** in Project Mode. This ensures that personal or unverified global schemas/reports do not leak into specific business projects.
+
+### 19.2 Global Mode Visibility
+When no project is active, the system displays ONLY Global items (`project_id: null`). Project-specific data is hidden to prevent accidental modification outside of its intended context.

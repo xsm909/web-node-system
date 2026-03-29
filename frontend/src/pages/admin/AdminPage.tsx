@@ -13,6 +13,8 @@ import { AITaskManagement } from '../../widgets/ai-task-management/ui/AITaskMana
 import { ReportManagement } from '../../widgets/report-management';
 import { SchemaManagement } from '../../widgets/schema-management/ui/SchemaManagement';
 import { AgentHintManagement } from '../../widgets/agent-hint-management/ui/AgentHintManagement';
+import { useProjects } from '../../entities/project/api';
+import { useProjectStore } from '../../features/projects/store';
 import { Navigator, useNavigator } from '../../shared/ui/navigator';
 
 const WorkflowsTabWithNavigator = ({
@@ -134,12 +136,17 @@ const NodesTabWithNavigator = ({
 
 import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
 import { ConfirmModal } from '../../shared/ui/confirm-modal';
+import { PinnedTabsTray } from '../../widgets/pinned-tabs-tray/ui/PinnedTabsTray';
+import { PinnedFormRouter } from '../../widgets/pinned-tabs-tray/ui/PinnedFormRouter';
+import { usePinStore } from '../../features/pinned-tabs/model/store';
 
 export default function AdminPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints'>(
         (getCookie('active_admin_tab') as 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') || 'users'
     );
+
+    const { focus, activeTabId } = usePinStore();
 
     const [refreshCount, setRefreshCount] = useState(0);
     const [resetNonce, setResetNonce] = useState(0);
@@ -153,8 +160,39 @@ export default function AdminPage() {
         cancel
     } = useNavigationIntercept();
 
+    const { setPinnedContext } = useProjectStore();
+    const { data: projects = [] } = useProjects();
+    const tabs = usePinStore(s => s.tabs);
+
+    // Sync Pinned Context (Shadowing)
+    useEffect(() => {
+        if (!activeTabId) {
+            setPinnedContext(undefined);
+            return;
+        }
+
+        const activeTab = tabs.find(t => t.id === activeTabId);
+        if (!activeTab) return;
+
+        if (activeTab.projectId) {
+            const project = projects.find(p => p.id === activeTab.projectId);
+            if (project) {
+                setPinnedContext(project);
+            } else if (projects.length > 0) {
+                // Project not found in current list but we are in project mode
+                setPinnedContext(null);
+            }
+        } else {
+            // Global Mode for global tabs
+            setPinnedContext(null);
+        }
+    }, [activeTabId, tabs, projects, setPinnedContext]);
+
     const setActiveTab = (tab: 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') => {
         handleIntercept(() => {
+            // Deactivate pinned tab when clicking sidebar
+            focus(null);
+            
             if (activeTab === tab) {
                 setResetNonce(n => n + 1);
             }
@@ -186,47 +224,54 @@ export default function AdminPage() {
                 ]}
             />
 
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--bg-app)]">
+            <main className="flex-1 flex flex-row min-w-0 overflow-hidden bg-[var(--bg-app)]">
                 <div className="flex-1 flex flex-col min-h-0 w-full relative">
-                    {activeTab === 'users' ? (
-                        <UserManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
-                    ) : activeTab === 'nodes' ? (
-                        <Navigator
-                            key={`nodes-${resetNonce}`}
-                            initialScene={
-                                <NodesTabWithNavigator
-                                    setRefreshCount={setRefreshCount}
-                                    allNodes={allNodes}
-                                    isSidebarOpen={isSidebarOpen}
-                                    setIsSidebarOpen={setIsSidebarOpen}
-                                />
-                            }
-                        />
-                    ) : activeTab === 'workflows' ? (
-                        <Navigator
-                            key={`workflows-${resetNonce}`}
-                            initialScene={
-                                <WorkflowsTabWithNavigator
-                                    refreshCount={refreshCount}
-                                    setRefreshCount={setRefreshCount}
-                                    allNodes={allNodes}
-                                    isSidebarOpen={isSidebarOpen}
-                                    setIsSidebarOpen={setIsSidebarOpen}
-                                />
-                            }
-                        />
-                    ) : activeTab === 'schemas' ? (
-                        <SchemaManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
-                    ) : activeTab === 'ai-tasks' ? (
-                        <AITaskManagement activeClientId={null} onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
-                    ) : activeTab === 'reports' ? (
-                        <ReportManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
-                    ) : activeTab === 'agent-hints' ? (
-                        <AgentHintManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                    {activeTabId ? (
+                        <PinnedFormRouter />
                     ) : (
-                        <CredentialManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                        <>
+                            {activeTab === 'users' ? (
+                                <UserManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            ) : activeTab === 'nodes' ? (
+                                <Navigator
+                                    key={`nodes-${resetNonce}`}
+                                    initialScene={
+                                        <NodesTabWithNavigator
+                                            setRefreshCount={setRefreshCount}
+                                            allNodes={allNodes}
+                                            isSidebarOpen={isSidebarOpen}
+                                            setIsSidebarOpen={setIsSidebarOpen}
+                                        />
+                                    }
+                                />
+                            ) : activeTab === 'workflows' ? (
+                                <Navigator
+                                    key={`workflows-${resetNonce}`}
+                                    initialScene={
+                                        <WorkflowsTabWithNavigator
+                                            refreshCount={refreshCount}
+                                            setRefreshCount={setRefreshCount}
+                                            allNodes={allNodes}
+                                            isSidebarOpen={isSidebarOpen}
+                                            setIsSidebarOpen={setIsSidebarOpen}
+                                        />
+                                    }
+                                />
+                            ) : activeTab === 'schemas' ? (
+                                <SchemaManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            ) : activeTab === 'ai-tasks' ? (
+                                <AITaskManagement activeClientId={null} onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            ) : activeTab === 'reports' ? (
+                                <ReportManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            ) : activeTab === 'agent-hints' ? (
+                                <AgentHintManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            ) : (
+                                <CredentialManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            )}
+                        </>
                     )}
                 </div>
+                <PinnedTabsTray />
             </main>
 
             <ConfirmModal

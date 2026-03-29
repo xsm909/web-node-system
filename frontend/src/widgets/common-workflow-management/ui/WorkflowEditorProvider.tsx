@@ -71,7 +71,17 @@ export const WorkflowEditorProvider: React.FC<{
     isSidebarOpen?: boolean;
     onEditNode?: (node: NodeType) => void;
     refreshTrigger?: number;
-}> = ({ children, onToggleSidebar, isSidebarOpen = false, onEditNode: onEditNodeProp, refreshTrigger }) => {
+    activeWorkflowId?: string;
+    projectId?: string | null;
+}> = ({ 
+    children, 
+    onToggleSidebar, 
+    isSidebarOpen = false, 
+    onEditNode: onEditNodeProp, 
+    refreshTrigger, 
+    activeWorkflowId,
+    projectId 
+}) => {
     const {
         workflows,
         activeWorkflow,
@@ -87,7 +97,17 @@ export const WorkflowEditorProvider: React.FC<{
         handleDuplicateWorkflow,
         handleRenameWorkflow,
         setActiveWorkflow
-    } = useWorkflowManagement(refreshTrigger);
+    } = useWorkflowManagement(refreshTrigger, projectId);
+
+    // Auto-load workflow from ID
+    useEffect(() => {
+        if (activeWorkflowId && workflows.length > 0 && (!activeWorkflow || activeWorkflow.id !== activeWorkflowId)) {
+            const wf = workflows.find(w => w.id === activeWorkflowId);
+            if (wf) {
+                loadWorkflow(wf);
+            }
+        }
+    }, [activeWorkflowId, workflows, activeWorkflow, loadWorkflow]);
 
     const nodesRef = useRef<Node[]>([]);
     const edgesRef = useRef<Edge[]>([]);
@@ -136,7 +156,7 @@ export const WorkflowEditorProvider: React.FC<{
     const { user: currentUser } = useAuthStore();
     const isAdmin = currentUser?.role === 'admin';
     const { activeProject } = useProjectStore();
-    const activeProjectId = activeProject?.id || null;
+    const activeProjectId = projectId || activeProject?.id || null;
 
     const [creationProjectId, setCreationProjectId] = useState<string | null>(null);
 

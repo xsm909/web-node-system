@@ -29,10 +29,9 @@ def get_schemas(db: Session = Depends(get_db), current_user: User = Depends(get_
     
     query = db.query(Schema, is_locked_subquery.label("is_locked"))
     if current_project_id:
-        # In project mode: see project items + shared/systemic ones
+        # In project mode: see project items + systemic ones
         query = query.filter(
             (Schema.project_id == current_project_id) | 
-            (Schema.project_id == None) | 
             (Schema.is_system == True)
         )
     else:

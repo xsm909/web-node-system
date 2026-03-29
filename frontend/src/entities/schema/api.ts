@@ -12,6 +12,7 @@ export interface Schema {
     is_locked: boolean;
     created_at: string;
     updated_at: string;
+    project_id?: string | null;
 }
 
 export interface CreateSchemaDto {
@@ -32,12 +33,30 @@ export interface UpdateSchemaDto {
 }
 
 // Queries
-export const useSchemas = () => {
-    const { activeProject, isProjectMode } = useProjectStore();
+export const useSchemas = (projectId?: string | null) => {
+    const { baseProject, isBaseProjectMode } = useProjectStore();
+    
+    // Determine effective project to use for the query
+    // Explicit projectId prop takes precedence (Pinned Tabs).
+    // If undefined, use stable sidebar selection (baseProject).
+    const effectiveProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null);
+
     return useQuery({
-        queryKey: ['schemas', isProjectMode, activeProject?.id],
+        queryKey: ['schemas', effectiveProjectId],
         queryFn: async () => {
-            const response = await apiClient.get<Schema[]>('/schemas');
+            const config: any = {};
+            if (projectId === null) {
+                // Force global mode by bypassing interceptor
+                config.headers = { 'X-Project-Skip': 'true' };
+            } else if (projectId) {
+                // Explicit project passed via prop (Pinned Tabs)
+                config.headers = { 'X-Force-Project-Id': projectId };
+            } else if (projectId === undefined && isBaseProjectMode && baseProject) {
+                // Sidebar mode: explicitly set the base project to avoid any shadowed context leaks
+                config.headers = { 'X-Force-Project-Id': baseProject.id };
+            }
+
+            const response = await apiClient.get<Schema[]>('/schemas', config);
             return response.data;
         },
     });
@@ -56,13 +75,16 @@ export const useSchema = (schemaId: string | undefined) => {
 };
 
 // Mutations
-export const useCreateSchema = () => {
+export const useCreateSchema = (projectId?: string | null) => {
     const queryClient = useQueryClient();
     const { activeProject } = useProjectStore();
     return useMutation({
         mutationFn: async (data: CreateSchemaDto) => {
-            // Ensure project_id is captured from the current active project if not provided
-            const project_id = data.project_id || activeProject?.id;
+            // Priority: data.project_id > hook's projectId > global activeProject?.id
+            let project_id = data.project_id;
+            if (project_id === undefined) {
+                project_id = projectId !== undefined ? projectId : activeProject?.id;
+            }
             const response = await apiClient.post<Schema>('/schemas', { ...data, project_id });
             return response.data;
         },

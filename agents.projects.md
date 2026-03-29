@@ -192,3 +192,31 @@ Introduced a centralized system for "System Parameters" — reserved variables t
 ### Verification Results
 - **Auto-Resolution**: Verified that `:system_project_id` in SQL queries correctly resolves to the active project UUID.
 - **Discovery**: Confirmed system parameters appear in the parameter selection UI across the platform.
+
+## Phase 8: Strict Context Isolation & Filtering
+
+### Summary
+Addressed architectural vulnerabilities where pinned tabs could "leak" project context to global items (data poisoning) and where global items would "leak" into project-specific lists (global leak). Formalized the **Context Shadowing** pattern and tightened backend filtering.
+
+### Frontend Details
+- **Explicit Scoping**: 
+    - Moved from an implicit reliance on the global `activeProject` to explicit `projectId` prop propagation.
+    - Updated `SchemaManagement`, `AgentHintManagement`, and `WorkflowManagement` to accept `projectId`.
+- **API Interceptor Bypass (`X-Project-Skip`)**:
+    - Implemented a mechanism where pinned tabs in "Global" mode explicitly request global data using the `X-Project-Skip: true` header.
+    - This ensures that a global pinned tab remains global even if the user activates a project in the sidebar.
+- **Header Badge Sync**: 
+    - `AppHeader` now uses the local `projectId` prop to display the correct project badge/title, ensuring the header accurately reflects the tab's context rather than the application's global state.
+
+### Backend Details
+- **Schema Filtering** ([schemas.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/routers/schemas.py)):
+    - Tightened `get_schemas` to exclude regular global schemas in Project Mode.
+    - Only project-specific and `is_system=True` schemas are visible.
+- **Metadata Filtering** ([metadata.py](file:///Users/Shared/Work/Web/web-node-system/backend/app/routers/metadata.py)):
+    - Implemented a join with the Schema model for all metadata listing operations.
+    - In Project Mode, only returns records belonging to the project or records associated with **System** schemas.
+
+### Verification Results
+- **Context Stability**: Verified that switching projects in the sidebar does NOT affect the data displayed in open pinned tabs. 
+- **Creation Isolation**: Confirmed that creating a new schema in a global pinned tab results in a global schema, even while in a project.
+- **Filtering Strictness**: Confirmed that regular global schemas and metadata entries are hidden when a project is active, providing a focused project workspace.

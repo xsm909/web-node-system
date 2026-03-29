@@ -4,6 +4,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { ThemeToggle } from '../../../shared/ui/theme-toggle/ThemeToggle';
 import { useAuthStore } from '../../../features/auth/store';
 import { useProjectStore } from '../../../features/projects/store';
+import { usePinStore } from '../../../features/pinned-tabs/model/store';
 
 export interface NavItem {
     id: string;
@@ -33,7 +34,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     onClose,
 }) => {
     const { user, logout } = useAuthStore();
-    const { activeProject, isProjectMode, exitProject } = useProjectStore();
+    const { baseProject, isBaseProjectMode, exitProject } = useProjectStore();
+    const { focus } = usePinStore();
 
     return (
         <Sidebar
@@ -69,7 +71,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                             {navItems.map((item) => (
                                 <button
                                     key={item.id}
-                                    onClick={item.onClick}
+                                    onClick={() => {
+                                        focus(null);
+                                        item.onClick();
+                                    }}
                                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${item.isActive
                                         ? 'bg-brand/10 text-brand font-semibold shadow-sm ring-1 ring-brand/20'
                                         : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]'
@@ -104,14 +109,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                         </div>
                     )}
 
-                    {isProjectMode && activeProject && (
+                    {isBaseProjectMode && baseProject && (
                         <div className="mx-2 p-3 rounded-2xl bg-brand/5 border border-brand/10 flex flex-col gap-2">
                             <div className="flex items-center gap-2">
                                 <Icon name="project" size={14} className="text-brand" />
                                 <span className="text-[10px] font-black uppercase tracking-widest text-brand">Active Project</span>
                             </div>
                             <div className="text-xs font-bold text-[var(--text-main)] truncate px-1">
-                                {activeProject.name}
+                                {baseProject.name}
                             </div>
                             <button
                                 onClick={exitProject}

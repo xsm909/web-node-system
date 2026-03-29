@@ -26,6 +26,7 @@ interface NodeTypeFormViewProps {
     allNodes?: NodeType[];
     defaultTab?: FormTab;
     onRefresh?: () => void;
+    projectId?: string | null;
 }
 
 
@@ -42,6 +43,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     allNodes = [],
     defaultTab,
     onRefresh,
+    projectId
 }) => {
     const { theme } = useThemeStore();
     const [currentNode, setCurrentNode] = useState<Partial<NodeType>>(editingNode || initialData || {});
@@ -236,6 +238,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             onTabChange={(id) => setActiveTab(id as FormTab)}
             entityId={currentNode?.id}
             entityType="node_types"
+            projectId={projectId}
             isLocked={!!currentNode?.is_locked}
             onLockToggle={(locked) => {
                 setCurrentNode(prev => prev ? { ...prev, is_locked: locked } : prev);

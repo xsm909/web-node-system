@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSchemas, useCreateSchema, useUpdateSchema, useDeleteSchema } from '../../../entities/schema/api';
 import type { Schema } from '../../../entities/schema/api';
 import { SchemaEditor } from '../../../features/schema-editor/SchemaEditor';
@@ -20,16 +20,32 @@ const columnHelper = createColumnHelper<Schema>();
 interface SchemaManagementProps {
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
+    initialEditId?: string;
+    /** Called when the form is closed/cancelled (useful for pinned tabs) */
+    onClose?: () => void;
+    /** Explicit project context (overrides global store if provided) */
+    projectId?: string | null;
 }
 
-export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen }: SchemaManagementProps) => {
-    const { data: schemas = [], isLoading } = useSchemas();
-    const createMutation = useCreateSchema();
+export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId }: SchemaManagementProps) => {
+    const { data: schemas = [], isLoading } = useSchemas(projectId);
+    const createMutation = useCreateSchema(projectId);
     const updateMutation = useUpdateSchema();
     const deleteMutation = useDeleteSchema();
 
     const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
     const [isEditing, setIsEditing] = useState(false);
+    
+    // Auto-edit from ID
+    React.useEffect(() => {
+        if (initialEditId && !isLoading && !isEditing && schemas.length > 0) {
+            const found = schemas.find(s => s.id === initialEditId);
+            if (found) {
+                handleEdit(found);
+            }
+        }
+    }, [initialEditId, schemas, isLoading, isEditing]);
+
     const [searchQuery, setSearchQuery] = useState('');
 
     const [idToDelete, setIdToDelete] = useState<string | null>(null);
@@ -95,7 +111,14 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen }: SchemaManag
         setIsEditing(true);
     };
 
-    // Unified toggle handled by AppLockToggle
+    const handleClose = () => {
+        if (onClose) {
+            onClose();
+        } else {
+            setIsEditing(false);
+            setSelectedSchema(null);
+        }
+    };
 
     const handleSave = () => {
         setLocalError(null);
@@ -257,11 +280,12 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen }: SchemaManag
                 isSaving={updateMutation.isPending || createMutation.isPending}
                 error={getErrorMessage() || undefined}
                 onSave={handleSave}
-                onCancel={() => setIsEditing(false)}
+                onCancel={handleClose}
                 saveLabel={selectedSchema ? "Save Schema" : "Create Schema"}
                 entityId={selectedSchema?.id}
                 entityType="schemas"
-                isLocked={selectedSchema?.is_locked}
+                projectId={selectedSchema?.project_id || projectId}
+                isLocked={!!selectedSchema?.is_locked}
                 onLockToggle={(locked) => {
                     if (selectedSchema) {
                         setSelectedSchema({ ...selectedSchema, is_locked: locked });
@@ -319,6 +343,7 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen }: SchemaManag
             <AppHeader
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
+                projectId={projectId}
                 leftContent={
                     <div className="flex items-center gap-3 px-2 lg:px-0">
                         <Icon name="schema" size={24} className="text-brand" />
