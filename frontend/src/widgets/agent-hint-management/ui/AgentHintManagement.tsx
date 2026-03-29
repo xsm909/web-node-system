@@ -26,9 +26,10 @@ interface AgentHintManagementProps {
     initialEditId?: string;
     onClose?: () => void;
     projectId?: string | null;
+    isHotkeysEnabled?: boolean;
 }
 
-export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId }: AgentHintManagementProps) => {
+export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId, isHotkeysEnabled }: AgentHintManagementProps) => {
     const { baseProject, isBaseProjectMode } = useProjectStore();
     const { data: hints = [], isLoading } = useAgentHints(projectId);
     const createMutation = useCreateAgentHint(projectId);
@@ -258,6 +259,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen, initialEdi
                     setSelectedHint(prev => prev ? { ...prev, is_locked: locked } : prev);
                 }}
                 projectId={projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null)}
+                isHotkeysEnabled={isHotkeysEnabled}
             >
                 <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                     {!isPreview && (

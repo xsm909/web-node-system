@@ -30,6 +30,7 @@ export const PinnedFormRouter: React.FC = () => {
                         tab={tab} 
                         projects={projects} 
                         onClose={onClose} 
+                        isHotkeysEnabled={tab.id === activeTabId}
                     />
                 </div>
             ))}
@@ -41,9 +42,10 @@ interface PinnedTabContentProps {
     tab: PinnedTab;
     projects: Project[];
     onClose: () => void;
+    isHotkeysEnabled?: boolean;
 }
 
-const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ tab, projects, onClose }) => {
+const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ tab, projects, onClose, isHotkeysEnabled }) => {
     const activeProject = tab.projectId ? projects.find((p: Project) => p.id === tab.projectId) : null;
     const brandColor = activeProject?.theme_color || null;
     
@@ -55,6 +57,7 @@ const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ tab, projects, onCl
                         initialEditId={tab.entityId} 
                         onClose={onClose} 
                         projectId={tab.projectId ?? null}
+                        isHotkeysEnabled={isHotkeysEnabled}
                     />
                 );
                 
@@ -64,6 +67,7 @@ const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ tab, projects, onCl
                         entityId={tab.entityId} 
                         onClose={onClose} 
                         projectId={tab.projectId ?? null}
+                        isHotkeysEnabled={isHotkeysEnabled}
                     />
                 );
                 
@@ -74,6 +78,7 @@ const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ tab, projects, onCl
                         onToggleSidebar={() => {}} 
                         isSidebarOpen={false}
                         projectId={tab.projectId ?? null}
+                        isHotkeysEnabled={isHotkeysEnabled}
                     />
                 );
                 
@@ -83,6 +88,7 @@ const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ tab, projects, onCl
                         initialEditId={tab.entityId} 
                         onClose={onClose} 
                         projectId={tab.projectId ?? null}
+                        isHotkeysEnabled={isHotkeysEnabled}
                     />
                 );
                 
@@ -92,6 +98,7 @@ const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ tab, projects, onCl
                         initialEditId={tab.entityId} 
                         onClose={onClose} 
                         projectId={tab.projectId ?? null}
+                        isHotkeysEnabled={isHotkeysEnabled}
                     />
                 );
 
@@ -122,7 +129,8 @@ const NodeTypeFormContainer: React.FC<{
     entityId: string; 
     onClose: () => void; 
     projectId?: string | null;
-}> = ({ entityId, onClose, projectId }) => {
+    isHotkeysEnabled?: boolean;
+}> = ({ entityId, onClose, projectId, isHotkeysEnabled }) => {
     const { handleSave } = useNodeTypeManagement();
     const [node, setNode] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -143,7 +151,9 @@ const NodeTypeFormContainer: React.FC<{
             editingNode={node}
             onClose={onClose}
             onSave={(data) => handleSave(data, node.id)}
+            allNodes={[]}
             projectId={projectId}
+            isHotkeysEnabled={isHotkeysEnabled}
         />
     );
 };

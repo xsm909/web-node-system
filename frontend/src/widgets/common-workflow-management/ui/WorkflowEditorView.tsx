@@ -42,7 +42,8 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
         activeClientId,
         activeProjectId,
         setIsConsoleVisible,
-        isConsoleVisible
+        isConsoleVisible,
+        isHotkeysEnabled
     } = useWorkflowEditor();
 
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -213,7 +214,10 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
                 }
             }
         }
-    ], { scopeName: 'Workflow Editor', enabled: !!activeWorkflow });
+    ], { 
+        scopeName: 'Workflow Editor', 
+        enabled: (isHotkeysEnabled !== false) && !!activeWorkflow 
+    });
 
     return (
         <AppFormView
@@ -235,6 +239,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
             onLockToggle={(locked: boolean) => {
                 setActiveWorkflow({ ...activeWorkflow, is_locked: locked });
             }}
+            isHotkeysEnabled={isHotkeysEnabled}
             headerRightContent={
                 <div className="flex items-center gap-2">
                     <WorkflowActions

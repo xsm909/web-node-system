@@ -11,6 +11,7 @@ interface WorkflowManagementProps {
     refreshTrigger?: number;
     activeWorkflowId?: string;
     projectId?: string | null;
+    isHotkeysEnabled?: boolean;
 }
 
 export function WorkflowManagement({ 
@@ -18,7 +19,8 @@ export function WorkflowManagement({
     onToggleSidebar, 
     isSidebarOpen, 
     projectId,
-    refreshTrigger
+    refreshTrigger,
+    isHotkeysEnabled
 }: WorkflowManagementProps) {
 
     return (
@@ -28,6 +30,7 @@ export function WorkflowManagement({
             refreshTrigger={refreshTrigger}
             activeWorkflowId={activeWorkflowId}
             projectId={projectId}
+            isHotkeysEnabled={isHotkeysEnabled}
         >
             <div className="flex-1 flex flex-col min-w-0 relative h-full">
                 <Navigator

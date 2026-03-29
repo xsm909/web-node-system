@@ -27,6 +27,7 @@ interface NodeTypeFormViewProps {
     defaultTab?: FormTab;
     onRefresh?: () => void;
     projectId?: string | null;
+    isHotkeysEnabled?: boolean;
 }
 
 
@@ -43,7 +44,8 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     allNodes = [],
     defaultTab,
     onRefresh,
-    projectId
+    projectId,
+    isHotkeysEnabled
 }) => {
     const { theme } = useThemeStore();
     const [currentNode, setCurrentNode] = useState<Partial<NodeType>>(editingNode || initialData || {});
@@ -101,7 +103,10 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     
     useHotkeys([
         { key: 'F4', description: 'Python Code', handler: () => setActiveTab('code') }
-    ], { scopeName: 'Node Type Editor' });
+    ], { 
+        scopeName: 'Node Type Editor',
+        enabled: isHotkeysEnabled !== false 
+    });
 
     const form = useForm({
         defaultValues: {
@@ -244,6 +249,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                 setCurrentNode(prev => prev ? { ...prev, is_locked: locked } : prev);
                 if (onRefresh) onRefresh();
             }}
+            isHotkeysEnabled={isHotkeysEnabled}
         >
             <form
                 onSubmit={(e) => {

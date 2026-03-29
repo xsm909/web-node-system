@@ -25,9 +25,10 @@ interface SchemaManagementProps {
     onClose?: () => void;
     /** Explicit project context (overrides global store if provided) */
     projectId?: string | null;
+    isHotkeysEnabled?: boolean;
 }
 
-export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId }: SchemaManagementProps) => {
+export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId, isHotkeysEnabled }: SchemaManagementProps) => {
     const { data: schemas = [], isLoading } = useSchemas(projectId);
     const createMutation = useCreateSchema(projectId);
     const updateMutation = useUpdateSchema();
@@ -291,6 +292,7 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId
                         setSelectedSchema({ ...selectedSchema, is_locked: locked });
                     }
                 }}
+                isHotkeysEnabled={isHotkeysEnabled}
             >
                 <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                     <div className="grid grid-cols-2 gap-8">

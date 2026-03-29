@@ -25,9 +25,10 @@ interface ReportManagementProps {
     initialEditId?: string;
     onClose?: () => void;
     projectId?: string | null;
+    isHotkeysEnabled?: boolean;
 }
 
-export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId }: ReportManagementProps) {
+export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId, isHotkeysEnabled }: ReportManagementProps) {
     const { user } = useAuthStore();
     const isAdmin = user?.role === 'admin';
 
@@ -117,7 +118,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
         { key: 'Escape', description: 'Go Back', handler: () => handleBack() }
     ], { 
         scopeName: 'Report Viewer', 
-        enabled: view === 'view' 
+        enabled: (isHotkeysEnabled !== false) && view === 'view' 
     });
 
     // Editor shortcuts
@@ -138,7 +139,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
         { key: 'F9', description: 'Generate', handler: () => handleHeaderGenerate() }
     ], { 
         scopeName: 'Report Editor', 
-        enabled: view === 'edit' && isAdmin && topTab === 'reports' 
+        enabled: (isHotkeysEnabled !== false) && view === 'edit' && isAdmin && topTab === 'reports' 
     });
 
     useEffect(() => {
@@ -406,6 +407,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
                         setSelectedReport(prev => prev ? { ...prev, is_locked: locked } : null);
                         setRefreshTrigger(prev => prev + 1);
                     }}
+                    isHotkeysEnabled={isHotkeysEnabled}
                     headerRightContent={
                         <div className="flex gap-2">
                             {activeTab === 'code' && (
@@ -478,6 +480,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
                         setSelectedStyle(prev => prev ? { ...prev, is_locked: locked } : null);
                         setRefreshTrigger(prev => prev + 1);
                     }}
+                    isHotkeysEnabled={isHotkeysEnabled}
                 >
                     <StyleEditor
                         ref={styleEditorRef}

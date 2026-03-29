@@ -28,6 +28,7 @@ interface WorkflowEditorContextType {
     isAdmin: boolean;
     activeProjectId: string | null;
     creationProjectId: string | null;
+    isHotkeysEnabled?: boolean;
     
     setWorkflowToDelete: (wf: any) => void;
     setWorkflowToRename: (wf: any) => void;
@@ -73,6 +74,7 @@ export const WorkflowEditorProvider: React.FC<{
     refreshTrigger?: number;
     activeWorkflowId?: string;
     projectId?: string | null;
+    isHotkeysEnabled?: boolean;
 }> = ({ 
     children, 
     onToggleSidebar, 
@@ -80,7 +82,8 @@ export const WorkflowEditorProvider: React.FC<{
     onEditNode: onEditNodeProp, 
     refreshTrigger, 
     activeWorkflowId,
-    projectId 
+    projectId,
+    isHotkeysEnabled
 }) => {
     const {
         workflows,
@@ -207,6 +210,7 @@ export const WorkflowEditorProvider: React.FC<{
         activeClientId,
         isAdmin,
         activeProjectId,
+        isHotkeysEnabled,
         
         setWorkflowToDelete,
         setWorkflowToRename,

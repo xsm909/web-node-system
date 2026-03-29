@@ -44,6 +44,7 @@ export interface AppFormViewProps {
     onLockToggle?: (isLocked: boolean) => void;
     error?: string;
     projectId?: string | null;
+    isHotkeysEnabled?: boolean;
 }
 
 export const AppFormView: React.FC<AppFormViewProps> = ({
@@ -71,7 +72,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     entityType,
     onLockToggle,
     error,
-    projectId
+    projectId,
+    isHotkeysEnabled
 }) => {
     const [showConfirmBack, setShowConfirmBack] = useState(false);
     
@@ -138,7 +140,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     ], { 
         scopeName: 'Form View',
         exclusive: true,
-        exclusiveExceptions: allowedShortcuts
+        exclusiveExceptions: allowedShortcuts,
+        enabled: isHotkeysEnabled !== false
     });
 
     const handleDiscard = () => {
