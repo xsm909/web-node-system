@@ -59,7 +59,7 @@ export function useWorkflowManagement(_refreshTrigger?: number, projectId?: stri
 
     // 3. Fetch All Workflows (Global Query)
     const { data: workflows = [], isLoading: isWorkflowsLoading, refetch: refetchWorkflows } = useQuery({
-        queryKey: ['workflows', effectiveProjectId],
+        queryKey: ['workflows', effectiveProjectId, assignedUsers],
         queryFn: async () => {
             if (!currentUser?.id) return [];
 
