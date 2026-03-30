@@ -97,8 +97,10 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                 icon,
                 projectId
             });
+            // When pinning from the main workspace, go back to the list
+            onCancel();
         }
-    }, [isPinned, pinId, entityType, entityId, title, icon, pin, unpin, projectId]);
+    }, [isPinned, pinId, entityType, entityId, title, icon, pin, unpin, projectId, onCancel]);
 
     // Memoize metadata to ensure updateTab only finds changes when they're real
     const tabMetadata = React.useMemo(() => ({
@@ -129,7 +131,10 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     const handleBack = useCallback(() => {
         if (isDirty) {
             setShowConfirmBack(true);
-        } else if (isPinned && pinId) {
+            return;
+        }
+        
+        if (isPinned && pinId) {
             unpin(pinId);
         } else {
             onCancel();
