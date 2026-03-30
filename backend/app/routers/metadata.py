@@ -36,7 +36,9 @@ def get_metadata_records(db: Session = Depends(get_db), current_user: User = Dep
     active_project_id = get_project_id()
     if is_project_mode():
         query = query.filter(
-            (MetadataRecord.project_id == active_project_id) | (Schema.is_system == True)
+            (MetadataRecord.project_id == active_project_id) | 
+            (MetadataRecord.project_id == None) | 
+            (Schema.is_system == True)
         )
     else:
         query = query.filter(MetadataRecord.project_id == None)
@@ -183,7 +185,9 @@ def get_entity_metadata(
     active_project_id = get_project_id()
     if is_project_mode():
         query = query.filter(
-            (MetadataRecord.project_id == active_project_id) | (Schema.is_system == True)
+            (MetadataRecord.project_id == active_project_id) | 
+            (MetadataRecord.project_id == None) | 
+            (Schema.is_system == True)
         )
     else:
         query = query.filter(MetadataRecord.project_id == None)
