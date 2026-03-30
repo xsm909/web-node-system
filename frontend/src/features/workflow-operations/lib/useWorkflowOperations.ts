@@ -14,6 +14,18 @@ interface UseWorkflowOperationsProps {
     isPinned?: boolean;
 }
 
+function normalizeNode(node: Node) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { selected, dragging, positionAbsolute, width, height, ...rest } = node;
+    return rest;
+}
+
+function normalizeEdge(edge: Edge) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { selected, ...rest } = edge;
+    return rest;
+}
+
 export function useWorkflowOperations({
     activeWorkflow,
     nodesRef,
@@ -47,8 +59,8 @@ export function useWorkflowOperations({
         // Capture initial baseline when workflow changes
         if (activeWorkflow) {
             initialWorkflowRef.current = JSON.stringify({
-                nodes: activeWorkflow.graph?.nodes || [],
-                edges: activeWorkflow.graph?.edges || [],
+                nodes: (activeWorkflow.graph?.nodes || []).map(normalizeNode),
+                edges: (activeWorkflow.graph?.edges || []).map(normalizeEdge),
                 workflow_data: activeWorkflow.workflow_data,
                 parameters: (activeWorkflow.parameters || []).map(({ id, ...rest }: any) => rest)
             });
@@ -68,8 +80,8 @@ export function useWorkflowOperations({
 
         try {
             const currentStr = JSON.stringify({
-                nodes: currentNodes,
-                edges: currentEdges,
+                nodes: currentNodes.map(normalizeNode),
+                edges: currentEdges.map(normalizeEdge),
                 workflow_data: currentData,
                 parameters: (activeWorkflow.parameters || []).map(({ id, ...rest }: any) => rest)
             });
@@ -90,7 +102,10 @@ export function useWorkflowOperations({
         if (!activeWorkflow) return;
         setIsSaving(true);
         try {
-            const graph = { nodes: nodesRef.current, edges: edgesRef.current };
+            const graph = { 
+                nodes: nodesRef.current.map(normalizeNode), 
+                edges: edgesRef.current.map(normalizeEdge) 
+            };
             
             await apiClient.put(`/workflows/workflows/${activeWorkflow.id}`, {
                 graph,
@@ -196,8 +211,8 @@ export function useWorkflowOperations({
         try {
             // Decoupled from Save: Capture CURRENT graph state from Refs to run as a draft
             const draftGraph = {
-                nodes: nodesRef.current,
-                edges: edgesRef.current
+                nodes: nodesRef.current.map(normalizeNode),
+                edges: edgesRef.current.map(normalizeEdge)
             };
 
             const parameters = (activeWorkflow.parameters || []).reduce((acc: Record<string, any>, p: any) => {
