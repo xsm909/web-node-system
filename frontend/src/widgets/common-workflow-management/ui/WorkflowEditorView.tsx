@@ -36,6 +36,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
         runWorkflow,
         onNodesChange,
         onEdgesChange,
+        onViewportChange,
         onEditNode,
         notifyChange,
         setActiveWorkflow,
@@ -291,6 +292,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                                     isReadOnly={activeWorkflow?.is_locked}
                                     onNodesChangeCallback={onNodesChange}
                                     onEdgesChangeCallback={onEdgesChange}
+                                    onViewportChangeCallback={onViewportChange}
                                     onNodeDoubleClickCallback={onEditNode}
                                     onNodeSelectCallback={handleNodeSelect}
                                     activeNodeIds={activeNodeIds}

@@ -91,6 +91,7 @@ export function useWorkflowOperations({
         setIsSaving(true);
         try {
             const graph = { nodes: nodesRef.current, edges: edgesRef.current };
+            
             await apiClient.put(`/workflows/workflows/${activeWorkflow.id}`, {
                 graph,
                 workflow_data: activeWorkflow.workflow_data,
@@ -199,7 +200,7 @@ export function useWorkflowOperations({
                 edges: edgesRef.current
             };
 
-            const parameters = (activeWorkflow.parameters || []).reduce((acc, p) => {
+            const parameters = (activeWorkflow.parameters || []).reduce((acc: Record<string, any>, p: any) => {
                 acc[p.parameter_name] = p.default_value;
                 return acc;
             }, {} as Record<string, any>);

@@ -214,11 +214,11 @@ export const WorkflowEditorProvider: React.FC<{
         workflows,
         activeWorkflow,
         nodeTypes,
-        isCreating: isSaving,
+        isCreating: isCreatingWf || isSavingOps,
         workflowToDelete,
         workflowToRename,
         workflowError,
-        isSaving,
+        isSaving: isSavingOps,
         isRunning,
         activeNodeIds,
         isConsoleVisible,
@@ -230,6 +230,7 @@ export const WorkflowEditorProvider: React.FC<{
         activeClientId,
         isAdmin,
         activeProjectId: activeProjectIdFromContext,
+        creationProjectId: creationProjectId,
         isHotkeysEnabled,
         
         setWorkflowToDelete,
@@ -247,7 +248,6 @@ export const WorkflowEditorProvider: React.FC<{
         confirmDeleteWorkflow,
         saveWorkflow,
         runWorkflow: handleRunWorkflow,
-        creationProjectId,
         
         onNodesChange,
         onEdgesChange,
@@ -260,17 +260,17 @@ export const WorkflowEditorProvider: React.FC<{
         isSidebarOpen,
         onEditNode
     }), [
-        workflows, activeWorkflow, nodeTypes, isSaving, workflowToDelete,
-        workflowToRename, workflowError, isRunning, activeNodeIds, 
-        isConsoleVisible, executionLogs, liveRuntimeData, renameInputValue,
-        renameCategoryValue, notifyChange, activeClientId, isAdmin, 
-        activeProjectIdFromContext, isHotkeysEnabled, setWorkflowToDelete,
-        setWorkflowToRename, setRenameInputValue, setRenameCategoryValue,
-        setWorkflowError, setIsConsoleVisible, setActiveWorkflow, loadWorkflow,
-        handleCreateWorkflowWithProject, handleDuplicateWorkflow,
-        handleRenameWorkflow, confirmDeleteWorkflow, saveWorkflow,
-        handleRunWorkflow, creationProjectId, onNodesChange, onEdgesChange,
-        nodesRef, edgesRef, onToggleSidebar, isSidebarOpen, onEditNode
+        workflows, activeWorkflow, nodeTypes, isCreatingWf, isSavingOps, 
+        workflowToDelete, workflowToRename, workflowError, isRunning, 
+        activeNodeIds, isConsoleVisible, executionLogs, liveRuntimeData, 
+        renameInputValue, renameCategoryValue, isDirty, activeClientId, 
+        isAdmin, activeProjectIdFromContext, creationProjectId, isHotkeysEnabled,
+        setWorkflowToDelete, setWorkflowToRename, setRenameInputValue, 
+        setRenameCategoryValue, setWorkflowError, setIsConsoleVisible, 
+        setActiveWorkflow, loadWorkflow, handleCreateWorkflowWithProject, 
+        handleDuplicateWorkflow, handleRenameWorkflow, confirmDeleteWorkflow, 
+        saveWorkflow, handleRunWorkflow, onNodesChange, onEdgesChange, notifyChange, 
+        onToggleSidebar, isSidebarOpen, onEditNode
     ]);
 
     return (

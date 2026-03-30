@@ -28,6 +28,7 @@ import { DefaultNode } from '../../../entities/node-type/ui/DefaultNode';
 import { AddNodeMenu } from '../../add-node-menu';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { useClipboardStore } from '../../../features/workflow-management/model/clipboardStore';
+import { useViewportStore } from '../../../features/workflow-management/model/viewportStore';
 
 const nodeTypesConfig = {
     start: StartNode,
@@ -64,7 +65,6 @@ export const WorkflowGraph = React.memo(({
     isHotkeysEnabled = true
 }: WorkflowGraphProps) => {
     const lastInitializedIdRef = useRef<string | null>(null);
-    const viewportCacheRef = useRef<Record<string, { x: number, y: number, zoom: number }>>({});
     const nodesRefInternal = useRef<Node[]>([]);
     const edgesRefInternal = useRef<Edge[]>([]);
 
@@ -76,9 +76,10 @@ export const WorkflowGraph = React.memo(({
     const [edges, setEdges] = useEdgesState(workflow?.graph?.edges || []);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isSelectionMode] = useState(false);
-    const { screenToFlowPosition, setViewport, fitView } = useReactFlow();
+    const { screenToFlowPosition, fitView } = useReactFlow();
     const mousePosition = useRef<XYPosition>({ x: 0, y: 0 });
     const { nodes: clipboardNodes, edges: clipboardEdges, center: clipboardCenter, setClipboard } = useClipboardStore();
+    const setPersistentViewport = useViewportStore(state => state.setViewport);
 
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
     const [addNodeMenu, setAddNodeMenu] = useState<{ x: number, y: number, clientX: number, clientY: number, connectionStart: OnConnectStartParams } | null>(null);
@@ -114,16 +115,25 @@ export const WorkflowGraph = React.memo(({
         setEdges(graphEdges);
         nodesRefInternal.current = graphNodes;
         edgesRefInternal.current = graphEdges;
-        lastInitializedIdRef.current = workflow.id;
+        lastInitializedIdRef.current = workflow?.id;
+    }, [workflow?.id, setNodes, setEdges, nodeTypes]);
 
-        const cachedViewport = viewportCacheRef.current[workflow.id];
-        if (cachedViewport) {
-            setViewport(cachedViewport);
-        } else {
-            const timer = setTimeout(() => fitView({ padding: 50 }), 100);
-            return () => clearTimeout(timer);
+    // Compute initial viewport once per workflow ID TO avoid blinking
+    const initialViewport = useMemo(() => {
+        if (!workflow?.id) return { x: 0, y: 0, zoom: 1 };
+        const storeViewports = useViewportStore.getState().viewports;
+        return storeViewports[workflow.id] || workflow.workflow_data?.viewport || { x: 0, y: 0, zoom: 1 };
+    }, [workflow?.id]);
+
+    // Fallback fitView only if NO viewport exists
+    useEffect(() => {
+        if (!workflow?.id) return;
+        const storeViewports = useViewportStore.getState().viewports;
+        if (!storeViewports[workflow.id] && !workflow.workflow_data?.viewport) {
+             const timer = setTimeout(() => fitView({ padding: 50 }), 100);
+             return () => clearTimeout(timer);
         }
-    }, [workflow?.id, setNodes, setEdges, setViewport, fitView, nodeTypes]);
+    }, [workflow?.id, fitView]);
 
     // Targeted Parameter Sync: 
     // This allows sidebar edits to show up on the graph WITHOUT resetting the entire graph structure.
@@ -205,8 +215,11 @@ export const WorkflowGraph = React.memo(({
     }, [isReadOnly, setEdges, notifyEdgesChange]);
 
     const onMoveEnd = useCallback((_: any, viewport: { x: number, y: number, zoom: number }) => {
-        if (workflow?.id) viewportCacheRef.current[workflow.id] = viewport;
-    }, [workflow?.id]);
+        if (workflow?.id) {
+            // Update Zustand store for persistence
+            setPersistentViewport(workflow.id, viewport);
+        }
+    }, [workflow?.id, setPersistentViewport]);
 
     const handleCopy = useCallback(() => {
         const selectedNodes = nodes.filter(n => n.selected);
@@ -405,6 +418,7 @@ export const WorkflowGraph = React.memo(({
     return (
         <div style={{ width: '100%', height: '100%', position: 'relative' }} onMouseMove={onMouseMove}>
             <ReactFlow
+                key={workflow?.id || 'empty'}
                 nodes={renderedNodes}
                 edges={edges}
                 onNodesChange={onNodesChange}
@@ -418,7 +432,8 @@ export const WorkflowGraph = React.memo(({
                 onNodeContextMenu={(e, n) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, nodeId: n.id }); }}
                 onMoveEnd={onMoveEnd}
                 nodeTypes={nodeTypesConfig}
-                fitView
+                defaultViewport={initialViewport}
+                fitView={!initialViewport || (initialViewport.x === 0 && initialViewport.y === 0 && initialViewport.zoom === 1)}
                 snapToGrid={true}
                 snapGrid={[10, 10]}
                 selectionMode={isSelectionMode ? SelectionMode.Full : undefined}
