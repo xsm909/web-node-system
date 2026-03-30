@@ -93,9 +93,15 @@ export const WorkflowGraph = React.memo(({
             return;
         }
 
-        if (lastInitializedIdRef.current === workflow.id) return;
+        // Check if we need to re-initialize nodes even if ID hasn't changed.
+        // This happens right after workflow creation where we might have a skeleton object first.
+        const needsDataSync = lastInitializedIdRef.current === workflow.id && 
+                            nodes.length === 0 && 
+                            (workflow.graph?.nodes?.length || 0) > 0;
 
-        console.log('[WorkflowGraph] Initializing workflow ID:', workflow.id);
+        if (lastInitializedIdRef.current === workflow.id && !needsDataSync) return;
+
+        console.log('[WorkflowGraph] Initializing workflow data:', workflow.id, 'needsSync:', needsDataSync);
         const graphNodes = (workflow.graph?.nodes || []).map((n: any) => {
             const base = n.type === 'default' ? { ...n, type: 'action' } : { ...n };
             const ntDef = nodeTypes.find(t => t.id === base.data?.nodeTypeId || t.name === base.data?.label);
@@ -116,7 +122,7 @@ export const WorkflowGraph = React.memo(({
         nodesRefInternal.current = graphNodes;
         edgesRefInternal.current = graphEdges;
         lastInitializedIdRef.current = workflow?.id;
-    }, [workflow?.id, setNodes, setEdges, nodeTypes]);
+    }, [workflow?.id, workflow?.graph?.nodes, setNodes, setEdges, nodeTypes, nodes.length]);
 
     // Compute initial viewport once per workflow ID TO avoid blinking
     const initialViewport = useMemo(() => {

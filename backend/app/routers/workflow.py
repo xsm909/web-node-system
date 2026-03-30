@@ -29,20 +29,7 @@ from ..core.system_parameters import inject_system_params, get_system_parameters
 import re
 
 
-class WorkflowCreate(BaseModel):
-    name: str
-    owner_id: Optional[str] = None
-    category: str = "personal"
-    graph: Optional[dict] = None
-    workflow_data: Optional[dict] = None
-    parameters: Optional[List[ObjectParameterCreate]] = []
-
-
-class WorkflowUpdate(BaseModel):
-    graph: Optional[dict] = None
-    workflow_data: Optional[dict] = None
-    runtime_data: Optional[dict] = None
-    parameters: Optional[List[ObjectParameterCreate]] = None
+# Schemas are consolidated below (lines 47+)
 
 class WorkflowBase(BaseModel):
     name: str
@@ -225,7 +212,7 @@ def get_user_workflows(user_id: str, current_user: User = Depends(get_current_us
     return response
 
 
-@router.post("/workflows", response_model=WorkflowOut)
+@router.post("/workflows", response_model=WorkflowDetail)
 def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
     owner_id = data.owner_id or str(current_user.id)
     
@@ -290,7 +277,7 @@ def create_workflow(data: WorkflowCreate, current_user: User = Depends(get_curre
         db.commit()
         db.refresh(new_wf)
         
-    wf_dict = WorkflowOut.model_validate(new_wf).model_dump()
+    wf_dict = WorkflowDetail.model_validate(new_wf).model_dump()
     wf_dict["is_locked"] = False
     return wf_dict
 
@@ -394,7 +381,7 @@ def rename_workflow(workflow_id: uuid.UUID, data: WorkflowRename, current_user: 
 
 
 
-@router.post("/workflows/{workflow_id}/duplicate", response_model=WorkflowOut)
+@router.post("/workflows/{workflow_id}/duplicate", response_model=WorkflowDetail)
 def duplicate_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), _=workflow_access):
     wf = db.query(Workflow).filter(Workflow.id == workflow_id).first()
     if not wf:
@@ -409,7 +396,18 @@ def duplicate_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_
         name=f"Copy of {wf.name}",
         owner_id=str(current_user.id),
         created_by=current_user.id,
-        graph=wf.graph,
+        graph=wf.graph or {
+            "nodes": [
+                {
+                    "id": "node_start", 
+                    "type": "start", 
+                    "position": {"x": 100, "y": 100}, 
+                    "deletable": False,
+                    "data": {"label": "Start", "nodeType": "Start"}
+                }
+            ], 
+            "edges": []
+        },
         category=wf.category,
         workflow_data=wf.workflow_data,
         status=WorkflowStatus.draft
@@ -440,7 +438,7 @@ def duplicate_workflow(workflow_id: uuid.UUID, current_user: User = Depends(get_
         LockData.entity_type == "workflows"
     ))).scalar()
     
-    wf_dict = WorkflowOut.model_validate(new_wf).model_dump()
+    wf_dict = WorkflowDetail.model_validate(new_wf).model_dump()
     wf_dict["is_locked"] = is_locked
     return wf_dict
 

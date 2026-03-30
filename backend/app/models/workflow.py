@@ -23,7 +23,18 @@ class Workflow(Base):
     name = Column(String(255), nullable=False)
     owner_id = Column(String(50), nullable=False, index=True) # Changed from UUID/FK to String to allow "common"
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    graph = Column(JSON, nullable=False, default={"nodes": [], "edges": []})
+    graph = Column(JSON, nullable=False, default={
+        "nodes": [
+            {
+                "id": "node_start", 
+                "type": "start", 
+                "position": {"x": 100, "y": 100}, 
+                "deletable": False,
+                "data": {"label": "Start", "nodeType": "Start"}
+            }
+        ], 
+        "edges": []
+    })
     category = Column(String(50), nullable=False, default="personal")
     status = Column(Enum(WorkflowStatus), default=WorkflowStatus.draft)
     workflow_data = Column(JSON, nullable=True, default={})
