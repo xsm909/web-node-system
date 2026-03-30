@@ -426,7 +426,15 @@ export const WorkflowGraph = React.memo(({
                 onConnect={onConnect}
                 onConnectStart={onConnectStart}
                 onConnectEnd={onConnectEnd}
-                onNodeClick={(_, node) => { setSelectedNodeId(node.id); onNodeSelectCallback?.(node); }}
+                onNodeClick={(e, node) => { 
+                    if (e.altKey) {
+                        e.preventDefault();
+                        onDisconnectInput(node.id);
+                    } else {
+                        setSelectedNodeId(node.id); 
+                        onNodeSelectCallback?.(node); 
+                    }
+                }}
                 onPaneClick={() => { setSelectedNodeId(null); onNodeSelectCallback?.(null); setMenu(null); }}
                 onNodeDoubleClick={onNodeDoubleClickCallback}
                 onNodeContextMenu={(e, n) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, nodeId: n.id }); }}

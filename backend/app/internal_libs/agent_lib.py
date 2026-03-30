@@ -92,7 +92,7 @@ def prepare_tools(tools: List[str], provider: str) -> Dict[str, Any]:
             if not any(t.get("type") == "web_search" for t in native_tools):
                 native_tools.append(web_search_tool)
                 tools_desc += f"- auto-search: {provider.title()} Search enabled\n"
-        elif provider in ("perplexity", "grok"):
+        elif provider in ("perplexity", "grok", "deepseek", "groq"):
              if provider == "grok":
                  native_tools.append({"type": "web_search"})
              tools_desc += f"- auto-search: Enabled (built-in to {provider.title()} models)\n"
@@ -126,6 +126,10 @@ def get_provider(model: str) -> Any:
         base_url = "https://api.x.ai/v1"
         # Backward compatibility for old workflows
         if model == "grok-2-latest": model = "grok-2"
+    elif provider_name == "deepseek":
+        base_url = "https://api.deepseek.com"
+    elif provider_name == "groq":
+        base_url = "https://api.groq.com/openai/v1"
     elif provider_name == "gemini":
         if model == "gemini-1.5-flash": model = "gemini-1.5-flash-latest"
         elif model == "gemini-1.5-pro": model = "gemini-1.5-pro-latest"

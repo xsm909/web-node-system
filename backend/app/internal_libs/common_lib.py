@@ -108,6 +108,14 @@ def GetAIByModel(Model: str) -> str:
     elif "grok" in model_lower:
         return "Grok"
         
+    # DeepSeek models
+    elif "deepseek" in model_lower:
+        return "DeepSeek"
+        
+    # Groq models
+    elif any(x in model_lower for x in ["groq", "llama", "mixtral", "gemma"]):
+        return "Groq"
+        
     return "Unknown"
 
 

@@ -26,12 +26,18 @@ def get_provider_class(model_name: str):
     if "gemini" in model_lower:
         from .gemini.gemini_lib import GeminiAgentProvider
         return GeminiAgentProvider
-    elif "sonar" in model_lower or "llama" in model_lower:
+    elif "sonar" in model_lower:
         from .perplexity.perplexity_lib import PerplexityAgentProvider
         return PerplexityAgentProvider
     elif "grok" in model_lower:
         from .grok.grok_lib import GrokAgentProvider
         return GrokAgentProvider
+    elif "deepseek" in model_lower:
+        from .deepseek.deepseek_lib import DeepSeekAgentProvider
+        return DeepSeekAgentProvider
+    elif any(x in model_lower for x in ["groq", "llama", "mixtral", "gemma"]):
+        from .groq.groq_lib import GroqAgentProvider
+        return GroqAgentProvider
     else:
         from .openai.openai_lib import OpenAIAgentProvider
         return OpenAIAgentProvider
