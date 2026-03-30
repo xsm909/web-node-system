@@ -29,6 +29,7 @@ interface AppCompactModalFormProps {
     onDiscard?: () => void;
     discardLabel?: string;
     showCancel?: boolean;
+    isSimpleDialog?: boolean;
 
     // Lock Support
     entityId?: string;
@@ -60,6 +61,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     onDiscard,
     discardLabel = 'Discard Changes',
     showCancel = true,
+    isSimpleDialog = false,
     entityId,
     entityType,
     initialLocked = false,
@@ -114,7 +116,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
             window.removeEventListener('mouseup', handleMouseUp);
         };
     }, [isDragging, dragStart]);
-
+    
     const handleClose = useCallback(() => {
         if (isDirty) {
             setShowDirtyConfirm(true);
@@ -122,34 +124,39 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
             onClose();
         }
     }, [isDirty, onClose]);
-
+    
     useHotkeys([
         {
-            key: 'Escape',
-            description: 'Close Modal',
-            handler: handleClose,
+            key: 'enter',
+            description: 'Submit',
+            enabled: isSimpleDialog || (!noPadding && !!submitLabel && !fullHeight),
+            handler: () => onSubmit()
         },
         {
-            key: 'Enter',
-            description: submitLabel,
-            preventDefault: false, // Let handler decide
+            key: 'cmd+s',
+            description: 'Save Changes',
+            enabled: !isSimpleDialog,
             handler: (e) => {
-                const active = document.activeElement;
-                const isInput = active?.tagName === 'INPUT';
-                const isTextarea = active?.tagName === 'TEXTAREA';
-                const isButton = active?.tagName === 'BUTTON';
-                const isContentEditable = active?.getAttribute('contenteditable') === 'true';
-
-                // Submit only if we're in a standard input or nothing specific is focused
-                // For textareas or code editors (contenteditable), Enter should be allowed for manual line breaks
-                if (!isTextarea && !isButton && !isContentEditable) {
-                    e.preventDefault();
-                    onSubmit();
-                }
+                e.preventDefault();
+                onSubmit();
             }
+        },
+        {
+            key: 'ctrl+s',
+            description: 'Save Changes',
+            enabled: !isSimpleDialog,
+            handler: (e) => {
+                e.preventDefault();
+                onSubmit();
+            }
+        },
+        {
+            key: 'escape',
+            description: 'Close',
+            handler: () => handleClose()
         }
     ], { 
-        scopeName: 'Modal', 
+        scopeName: `AppCompactModalForm-${title}`, 
         enabled: isOpen,
         exclusive: true,
         exclusiveExceptions: allowedShortcuts 
@@ -182,8 +189,13 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                         <div className="flex items-center gap-2">
                             {icon && <Icon name={icon} size={14} className="text-brand" />}
                             <h3 className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-main)] whitespace-nowrap">
-                                {title}
+                                {title}{isDirty ? '*' : ''}
                             </h3>
+                            {isDirty && (
+                                <div className="flex items-center ml-2">
+                                    <div className="w-2 h-2 rounded-full bg-brand animate-pulse shadow-sm shadow-brand/50" title="Unsaved changes" />
+                                </div>
+                            )}
                         </div>
                         {headerLeftContent && (
                             <div className="flex items-center gap-2">
@@ -277,7 +289,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                         onClose();
                     }
                 }}
-                submitLabel="Save Changes"
+                submitLabel="Save and Close"
                 discardLabel="Discard Changes"
                 cancelLabel="Stay and Edit"
                 icon="warning"

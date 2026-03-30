@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePinStore, type PinnedTab } from '../../../features/pinned-tabs/model/store';
 import type { Project } from '../../../entities/project/model/types';
 import { SchemaManagement } from '../../schema-management/ui/SchemaManagement';
@@ -24,9 +24,18 @@ export const PinnedFormRouter: React.FC = () => {
     const [editingNodeForModal, setEditingNodeForModal] = useState<NodeType | null>(null);
     const [allNodes, setAllNodes] = useState<NodeType[]>([]);
     const [refreshCount, setRefreshCount] = useState(0);
+    const [isModalDirty, setIsModalDirty] = useState(false);
+    const closeNodeModal = useCallback(() => {
+        console.log('[PinnedFormRouter] closeNodeModal called');
+        console.trace(); // Find out who called this
+        setEditingNodeForModal(null);
+        setIsModalDirty(false);
+    }, []);
     const modalFormSubmitRef = useRef<() => void>(null);
 
     const { handleSave: handleNodeSave, handleOpenModal: prepareNodeEdit } = useNodeTypeManagement();
+    
+    console.log('[PinnedFormRouter] Rendered. editingNodeForModal ID:', editingNodeForModal?.id, 'isModalDirty:', isModalDirty);
     
     // Handle node type list refresh
     useEffect(() => {
@@ -39,6 +48,7 @@ export const PinnedFormRouter: React.FC = () => {
         // This makes sure the management logic prepares the state (locks etc)
         prepareNodeEdit(node);
         setEditingNodeForModal(node);
+        setIsModalDirty(false); // Reset dirty state for new modal
     }, [prepareNodeEdit]);
 
     if (tabs.length === 0) return null;
@@ -64,9 +74,9 @@ export const PinnedFormRouter: React.FC = () => {
             {editingNodeForModal && (
                 <AppCompactModalForm
                     isOpen={!!editingNodeForModal}
-                    title={`Edit Node: ${editingNodeForModal.name}`}
+                    title={`Edit Node: ${editingNodeForModal.name}${isModalDirty ? '*' : ''}`}
                     icon="function"
-                    onClose={() => setEditingNodeForModal(null)}
+                    onClose={closeNodeModal}
                     onSubmit={() => {
                         if (modalFormSubmitRef.current) {
                             modalFormSubmitRef.current();
@@ -83,17 +93,25 @@ export const PinnedFormRouter: React.FC = () => {
                         setEditingNodeForModal(prev => prev ? { ...prev, is_locked: locked } : prev);
                         setRefreshCount(r => r + 1);
                     }}
+                    isDirty={isModalDirty}
                 >
                     <NodeTypeFormView
-                        onClose={() => setEditingNodeForModal(null)}
+                        onClose={closeNodeModal}
                         editingNode={editingNodeForModal}
                         onSave={(data) => {
                             return handleNodeSave(data, data.id || editingNodeForModal.id, () => {
+                                console.log('[PinnedFormRouter] handleSave SUCCESS. Modal SHOULD NOT close.');
                                 setRefreshCount(r => r + 1);
-                                setEditingNodeForModal(null);
+                                setIsModalDirty(false);
                             });
                         }}
                         onRefresh={() => setRefreshCount(r => r + 1)}
+                        onDirtyChange={(val) => {
+                            if (val !== isModalDirty) {
+                                console.log('[PinnedFormRouter] isModalDirty CHANGING to:', val);
+                                setIsModalDirty(val);
+                            }
+                        }}
                         allNodes={allNodes}
                         defaultTab="code"
                         hideHeader={true}

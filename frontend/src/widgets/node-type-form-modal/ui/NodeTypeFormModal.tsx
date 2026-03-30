@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { NodeType } from '../../../entities/node-type/model/types';
 import CodeMirror from '@uiw/react-codemirror';
 import { python } from '@codemirror/lang-python';
@@ -30,6 +30,7 @@ interface NodeTypeFormViewProps {
     isHotkeysEnabled?: boolean;
     hideHeader?: boolean;
     externalSubmitRef?: React.RefObject<() => void>;
+    onDirtyChange?: (isDirty: boolean) => void;
 }
 
 
@@ -37,6 +38,20 @@ interface NodeTypeFormViewProps {
 // ─── Main View ───────────────────────────────────────────────────────────────
 
 type FormTab = 'info' | 'code';
+const DirtyNotifier = React.memo<{ isDirty: boolean; onDirtyChange?: (d: boolean) => void }>(({ isDirty, onDirtyChange }) => {
+    const isFirstMount = useRef(true);
+    
+    useEffect(() => {
+        // Skip first 'false' notification on mount to prevent resetting parent state
+        if (isFirstMount.current && !isDirty) {
+            isFirstMount.current = false;
+            return;
+        }
+        isFirstMount.current = false;
+        if (onDirtyChange) onDirtyChange(isDirty);
+    }, [isDirty, onDirtyChange]);
+    return null;
+});
 
 export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     onClose,
@@ -50,7 +65,9 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     isHotkeysEnabled,
     hideHeader = false,
     externalSubmitRef,
+    onDirtyChange,
 }) => {
+
     const { theme } = useThemeStore();
     const [currentNode, setCurrentNode] = useState<Partial<NodeType>>(editingNode || initialData || {});
     const [activeTab, setActiveTab] = useState<FormTab>(defaultTab || 'info');
@@ -165,20 +182,27 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         }
     }, [externalSubmitRef, form]);
 
+    const componentId = useRef(Math.random().toString(36).substring(7));
     const [isDirty, setIsDirty] = useState(false);
+    
+    console.log(`[NodeTypeFormView:${componentId.current}] Rendered. onDirtyChange prop exists:`, !!onDirtyChange, 'id:', editingNode?.id);
+    const initialValuesRef = useRef({
+        name: editingNode?.name || '',
+        code: editingNode?.code || '',
+        version: editingNode?.version || '1.0'
+    });
+    
+    useEffect(() => {
+        initialValuesRef.current = {
+            name: editingNode?.name || '',
+            code: editingNode?.code || '',
+            version: editingNode?.version || '1.0'
+        };
+    }, [editingNode?.id]);
     
     console.log('[NodeTypeFormView] currentNode:', currentNode);
     console.log('[NodeTypeFormView] editingNode prop:', editingNode);
     console.log('[NodeTypeFormView] form values:', form.state.values);
-
-    // Subscribe to form's baseStore to get reactive dirty state
-    useEffect(() => {
-        // Subscribe to form's store to get immediate updates
-        const unsubscribe = form.baseStore.subscribe(() => {
-            setIsDirty(form.state.isDirty);
-        });
-        return unsubscribe;
-    }, [form]);
 
     const codeMirrorExtensions = useMemo(() => [
         python(),
@@ -271,6 +295,35 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                 }}
                 className="h-full"
             >
+                <form.Subscribe>
+                    {(state) => {
+                        const vals = state.values;
+                        const isCurrentlyDirty = state.isDirty || 
+                                               vals.code !== initialValuesRef.current.code ||
+                                               vals.name !== initialValuesRef.current.name ||
+                                               vals.version !== initialValuesRef.current.version;
+                        
+                        console.log(`[NodeTypeFormView:${componentId.current}] Subscribe detected dirty:`, isCurrentlyDirty, {
+                            formDirty: state.isDirty,
+                            codeDirty: vals.code !== initialValuesRef.current.code
+                        });
+                        
+                        return (
+                            <DirtyNotifier
+                                isDirty={isCurrentlyDirty}
+                                onDirtyChange={(val) => {
+                                    setIsDirty(val);
+                                    if (onDirtyChange) {
+                                        console.log(`[NodeTypeFormView:${componentId.current}] Calling onDirtyChange prop with:`, val);
+                                        onDirtyChange(val);
+                                    } else {
+                                        console.warn(`[NodeTypeFormView:${componentId.current}] onDirtyChange prop IS MISSING!`);
+                                    }
+                                }}
+                            />
+                        );
+                    }}
+                </form.Subscribe>
                 {activeTab === 'info' && (
                     <div className="space-y-10 max-w-5xl mx-auto py-4">
                         <div className="grid grid-cols-12 gap-8 items-end">
