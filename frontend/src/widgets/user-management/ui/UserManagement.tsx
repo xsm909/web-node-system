@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     createColumnHelper,
@@ -19,9 +19,10 @@ const columnHelper = createColumnHelper<User>();
 interface UserManagementProps {
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
+    initialEditId?: string | null;
 }
 
-export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar, isSidebarOpen }) => {
+export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar, isSidebarOpen, initialEditId }) => {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [view, setView] = useState<'list' | 'edit'>('list');
     const [activeTab, setActiveTab] = useState<'common' | 'projects' | 'metadata' | 'prompts'>('common');
@@ -37,6 +38,17 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar,
             return response.data;
         },
     });
+
+    useEffect(() => {
+        if (initialEditId && users.length > 0) {
+            const user = users.find(u => u.id === initialEditId);
+            if (user) {
+                setSelectedUser(user);
+                setView('edit');
+                setActiveTab('common');
+            }
+        }
+    }, [initialEditId, users]);
 
     const columns = useMemo(() => [
         columnHelper.accessor('username', {

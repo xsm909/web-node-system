@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Credential } from '../../../entities/credential/model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
@@ -24,9 +24,13 @@ const columnHelper = createColumnHelper<Credential>();
 interface CredentialManagementProps {
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
+    hideHeader?: boolean;
+    externalSearchQuery?: string;
+    onExternalSearchQueryChange?: (query: string) => void;
+    initialEditId?: string | null;
 }
 
-export const CredentialManagement = ({ onToggleSidebar, isSidebarOpen }: CredentialManagementProps) => {
+export const CredentialManagement = ({ onToggleSidebar, isSidebarOpen, hideHeader, externalSearchQuery, onExternalSearchQueryChange, initialEditId }: CredentialManagementProps) => {
     const { baseProject } = useProjectStore();
     const { data: credentials = [], isLoading: loading } = useCredentials(baseProject?.id);
     const queryClient = useQueryClient();
@@ -49,18 +53,28 @@ export const CredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Credent
     });
     const [editingId, setEditingId] = useState<string | null>(null);
 
+    const handleOpenEdit = (cred: Credential) => {
+        setFormData(cred);
+        setInitialFormState(cred);
+        setEditingId(cred.id);
+        setIsEditing(true);
+    };
+
+    // Deep link / Pinning support
+    useEffect(() => {
+        if (initialEditId && credentials.length > 0) {
+            const cred = credentials.find(c => c.id === initialEditId);
+            if (cred) {
+                handleOpenEdit(cred);
+            }
+        }
+    }, [initialEditId, credentials]);
+
     const handleOpenCreate = () => {
         const data = { key: '', value: '', type: 'api', description: '' };
         setFormData(data);
         setInitialFormState(data);
         setEditingId(null);
-        setIsEditing(true);
-    };
-
-    const handleOpenEdit = (cred: Credential) => {
-        setFormData(cred);
-        setInitialFormState(cred);
-        setEditingId(cred.id);
         setIsEditing(true);
     };
 
@@ -104,7 +118,9 @@ export const CredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Credent
         }
     };
 
-    const [searchQuery, setSearchQuery] = useState('');
+    const [internalSearchQuery, setInternalSearchQuery] = useState('');
+    const searchQuery = hideHeader && externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
+    const setSearchQuery = hideHeader && onExternalSearchQueryChange ? onExternalSearchQueryChange : setInternalSearchQuery;
 
     const filteredCredentials = useMemo(() => {
         const q = searchQuery.toLowerCase().trim();
@@ -260,32 +276,34 @@ export const CredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Credent
 
     return (
         <div className="flex flex-col h-full bg-[var(--bg-app)] overflow-hidden">
-            <AppHeader
-                onToggleSidebar={onToggleSidebar || (() => { })}
-                isSidebarOpen={isSidebarOpen}
-                leftContent={
-                    <div className="flex flex-col">
-                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
-                            API Credentials
-                        </h1>
-                        <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60 px-2 lg:px-0">
-                            Manage system-wide security keys and tokens.
-                        </p>
-                    </div>
-                }
-                rightContent={
-                    <AppRoundButton
-                        onClick={handleOpenCreate}
-                        icon="add"
-                        variant="brand"
-                        title="Add Access Key"
-                        iconSize={20}
-                    />
-                }
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                searchPlaceholder="Search by key, type or description..."
-            />
+            {!hideHeader && (
+                <AppHeader
+                    onToggleSidebar={onToggleSidebar || (() => { })}
+                    isSidebarOpen={isSidebarOpen}
+                    leftContent={
+                        <div className="flex flex-col">
+                            <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
+                                API Credentials
+                            </h1>
+                            <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60 px-2 lg:px-0">
+                                Manage system-wide security keys and tokens.
+                            </p>
+                        </div>
+                    }
+                    rightContent={
+                        <AppRoundButton
+                            onClick={handleOpenCreate}
+                            icon="add"
+                            variant="brand"
+                            title="Add Access Key"
+                            iconSize={20}
+                        />
+                    }
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    searchPlaceholder="Search by key, type or description..."
+                />
+            )}
 
             <AppTable
                 data={filteredCredentials}

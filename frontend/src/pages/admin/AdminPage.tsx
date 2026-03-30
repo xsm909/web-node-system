@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { AppSidebar } from '../../widgets/app-sidebar';
 import { UserManagement } from '../../widgets/user-management';
 import { NodeLibraryManagement } from '../../widgets/node-library-management';
-import { CredentialManagement } from '../../widgets/credential-management';
+import { ApiManagement } from '../../widgets/api-management/ui/ApiManagement';
 import { NodeTypeFormView } from '../../widgets/node-type-form-modal';
 import { WorkflowManagement } from '../../widgets/common-workflow-management';
 import { useNodeTypeManagement } from '../../features/node-type-management';
@@ -136,8 +136,8 @@ const NodesTabWithNavigator = React.memo(({
 
 export default function AdminPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints'>(
-        (getCookie('active_admin_tab') as 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') || 'users'
+    const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'schemas' | 'api' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints'>(
+        (getCookie('active_admin_tab') as 'users' | 'nodes' | 'schemas' | 'api' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') || 'users'
     );
 
     const [refreshCount, setRefreshCount] = useState(0);
@@ -238,7 +238,7 @@ export default function AdminPage() {
         }
     }, [targetProject, setPinnedContext, activeProjectInStore, isProjectModeInStore, baseProject, isBaseProjectMode]);
 
-    const setActiveTab = useCallback((tab: 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') => {
+    const setActiveTab = useCallback((tab: 'users' | 'nodes' | 'schemas' | 'api' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') => {
         handleIntercept(() => {
             // Deactivate pinned tab when clicking sidebar
             focus(null);
@@ -261,7 +261,7 @@ export default function AdminPage() {
                     'node_types': 'nodes',
                     'workflows': 'workflows',
                     'schemas': 'schemas',
-                    'credentials': 'credentials',
+                    'api': 'api',
                     'reports': 'reports',
                     'agent_hints': 'agent-hints',
                     'users': 'users'
@@ -320,8 +320,8 @@ export default function AdminPage() {
         <AgentHintManagement onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
     ), [toggleSidebar, isSidebarOpen]);
 
-    const credentialsScene = useMemo(() => (
-        <CredentialManagement onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+    const apiScene = useMemo(() => (
+        <ApiManagement onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
     ), [toggleSidebar, isSidebarOpen]);
 
     const aiTasksScene = useMemo(() => (
@@ -337,7 +337,7 @@ export default function AdminPage() {
                 onClose={closeSidebar}
                 navItems={[
                     { id: 'users', label: 'Users', icon: 'user', isActive: activeTab === 'users', onClick: () => setActiveTab('users') },
-                    { id: 'credentials', label: 'Credentials', icon: 'verified', isActive: activeTab === 'credentials', onClick: () => setActiveTab('credentials') },
+                    { id: 'api', label: 'API', icon: 'hive', isActive: activeTab === 'api', onClick: () => setActiveTab('api') },
                     { id: 'reports', label: 'Reports', icon: 'article', isActive: activeTab === 'reports', onClick: () => setActiveTab('reports') },
                     { id: 'schemas', label: 'Schemas', icon: 'schema', isActive: activeTab === 'schemas', onClick: () => setActiveTab('schemas') },
                     { id: 'agent-hints', label: 'Agent Hints', icon: 'lightbulb_circle', isActive: activeTab === 'agent-hints', onClick: () => setActiveTab('agent-hints') },
@@ -377,7 +377,7 @@ export default function AdminPage() {
                         ) : activeTab === 'agent-hints' ? (
                             agentHintsScene
                         ) : (
-                            credentialsScene
+                            apiScene
                         )}
                     </div>
                 </div>

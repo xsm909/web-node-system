@@ -48,10 +48,21 @@ const columnHelper = createColumnHelper<Project>();
 interface ProjectManagementProps {
     ownerId: string;
     onHeaderActionsChange?: (actions: React.ReactNode) => void;
+    initialEditId?: string | null;
 }
 
-export const ProjectManagement: React.FC<ProjectManagementProps> = ({ ownerId, onHeaderActionsChange }) => {
+export const ProjectManagement: React.FC<ProjectManagementProps> = ({ ownerId, onHeaderActionsChange, initialEditId }) => {
     const { data: projects = [], isLoading } = useProjects(ownerId);
+    
+    // Deep link support
+    useEffect(() => {
+        if (initialEditId && projects.length > 0) {
+            const project = projects.find(p => p.id === initialEditId);
+            if (project) {
+                handleEdit(project);
+            }
+        }
+    }, [initialEditId, projects]);
     const createMutation = useCreateProject();
     const updateMutation = useUpdateProject();
     const deleteMutation = useDeleteProject();

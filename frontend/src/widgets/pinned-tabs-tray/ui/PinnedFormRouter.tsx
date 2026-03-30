@@ -6,11 +6,13 @@ import { NodeTypeFormView } from '../../node-type-form-modal/ui/NodeTypeFormModa
 import { WorkflowManagement } from '../../common-workflow-management';
 import { ReportManagement } from '../../report-management/ui/ReportManagement';
 import { AgentHintManagement } from '../../agent-hint-management/ui/AgentHintManagement';
+import { ApiManagement } from '../../api-management/ui/ApiManagement';
+import { UserManagement } from '../../user-management/ui/UserManagement';
+import { ProjectManagement } from '../../project-management/ui/ProjectManagement';
 import { useNodeTypeManagement } from '../../../features/node-type-management';
 import { apiClient } from '../../../shared/api/client';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import type { NodeType } from '../../../entities/node-type/model/types';
-
 import { useProjects } from '../../../entities/project/api';
 
 export const PinnedFormRouter: React.FC = () => {
@@ -179,6 +181,41 @@ const PinnedTabContent = React.memo<PinnedTabContentProps>(({
                     />
                 );
 
+            case 'credentials':
+                return (
+                    <ApiManagement 
+                        initialTab="credentials"
+                        initialEditId={tab.entityId}
+                        onToggleSidebar={() => {}}
+                        isSidebarOpen={false}
+                    />
+                );
+
+            case 'ai_providers':
+                return (
+                    <ApiManagement 
+                        initialTab="providers"
+                        initialEditId={tab.entityId}
+                        onToggleSidebar={() => {}}
+                        isSidebarOpen={false}
+                    />
+                );
+
+            case 'users':
+                return (
+                    <UserManagement 
+                        initialEditId={tab.entityId}
+                    />
+                );
+
+            case 'projects':
+                return (
+                    <ProjectManagement 
+                        ownerId="" // Resolved internally
+                        initialEditId={tab.entityId}
+                    />
+                );
+
             default:
                 return (
                     <div className="flex-1 flex items-center justify-center text-[var(--text-muted)]">
@@ -201,7 +238,6 @@ const PinnedTabContent = React.memo<PinnedTabContentProps>(({
     );
 });
 
-// Helper to handle async deps for Node Type Form
 const NodeTypeFormContainer: React.FC<{ 
     entityId: string; 
     onClose: () => void; 
