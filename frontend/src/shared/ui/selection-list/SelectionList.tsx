@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../icon';
+import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 
 export type SelectionAction = 'add' | 'delete' | 'rename' | 'duplicate';
 
@@ -290,6 +291,28 @@ export const SelectionList: React.FC<SelectionListProps> = ({
     useEffect(() => { inputRef.current?.focus(); }, []);
     useEffect(() => { setHighlightedIndex(0); }, [searchQuery]);
 
+    useHotkeys([
+        {
+            key: 'enter',
+            description: 'Select highlighted item',
+            handler: () => {
+                if (isSearching && searchResults.length > 0) {
+                    onSelect(searchResults[highlightedIndex] || searchResults[0]);
+                } else {
+                    onClose?.();
+                }
+            }
+        },
+        {
+            key: 'escape',
+            description: 'Close list',
+            handler: () => onClose?.()
+        }
+    ], {
+        scopeName: 'Selection List',
+        exclusive: true
+    });
+
     useEffect(() => {
         if (isSearching && searchResultsRef.current) {
             const container = searchResultsRef.current;
@@ -379,6 +402,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             onKeyDown={e => {
+                                e.stopPropagation();
                                 if (e.key === 'Enter') {
                                     if (isSearching && searchResults.length > 0) {
                                         onSelect(searchResults[highlightedIndex] || searchResults[0]);
