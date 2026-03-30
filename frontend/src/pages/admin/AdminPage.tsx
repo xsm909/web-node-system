@@ -153,6 +153,7 @@ export default function AdminPage() {
     } = useNavigationIntercept();
 
     const [editingNodeForModal, setEditingNodeForModal] = useState<NodeType | null>(null);
+    const [isModalDirty, setIsModalDirty] = useState(false);
     const modalFormSubmitRef = useRef<() => void>(null);
 
     const {
@@ -165,7 +166,7 @@ export default function AdminPage() {
     const isProjectModeInStore = useProjectStore(s => s.isProjectMode);
     const baseProject = useProjectStore(s => s.baseProject);
     const isBaseProjectMode = useProjectStore(s => s.isBaseProjectMode);
-    
+
     // Track the last successfully synchronized project ID to prevent recursive updates
     const lastSyncIdRef = useRef<string | null | undefined>(undefined);
 
@@ -176,28 +177,28 @@ export default function AdminPage() {
     const { data: projectsRaw = [] } = useProjects();
     const projects = useMemo(() => projectsRaw, [projectsRaw]);
 
-    const activePinnedTab = useMemo(() => 
+    const activePinnedTab = useMemo(() =>
         tabs.find(t => t.id === activeTabId) || null
-    , [tabs, activeTabId]);
+        , [tabs, activeTabId]);
 
     // Stable fallback objects to prevent identity churn
     const loadingFallbacksRef = useRef<Record<string, Project>>({});
 
     const targetProject = useMemo(() => {
         if (!activePinnedTab) return undefined; // undefined means "restore to base"
-        
+
         if (!activePinnedTab.projectId) return null; // null means "global mode"
-        
+
         const found = projects.find(p => p.id === activePinnedTab.projectId);
         if (found) return found;
 
         // Loading fallback: stable object for the same ID to prevent identity loops
         const pid = activePinnedTab.projectId;
         if (!loadingFallbacksRef.current[pid]) {
-            loadingFallbacksRef.current[pid] = { 
-                id: pid, 
-                name: 'Loading...', 
-                theme_color: null 
+            loadingFallbacksRef.current[pid] = {
+                id: pid,
+                name: 'Loading...',
+                theme_color: null
             } as Project;
         }
         return loadingFallbacksRef.current[pid];
@@ -207,7 +208,7 @@ export default function AdminPage() {
     useEffect(() => {
         // ID-based change detection (more robust than object identity)
         const targetId = targetProject === undefined ? 'RESTORING' : (targetProject === null ? 'GLOBAL' : targetProject.id);
-        
+
         if (lastSyncIdRef.current === targetId) {
             return;
         }
@@ -215,7 +216,7 @@ export default function AdminPage() {
         const isCurrentlyGlobal = !isProjectModeInStore;
         const wantGlobal = targetProject === null;
         const wantRestore = targetProject === undefined;
-        
+
         if (wantRestore) {
             const isDifferentFromBase = activeProjectInStore?.id !== baseProject?.id || isProjectModeInStore !== isBaseProjectMode;
             if (isDifferentFromBase) {
@@ -242,7 +243,7 @@ export default function AdminPage() {
         handleIntercept(() => {
             // Deactivate pinned tab when clicking sidebar
             focus(null);
-            
+
             if (activeTab === tab) {
                 setResetNonce(n => n + 1);
             }
@@ -283,7 +284,10 @@ export default function AdminPage() {
 
     const toggleSidebar = useCallback(() => setIsSidebarOpen(true), []);
     const closeSidebar = useCallback(() => setIsSidebarOpen(false), []);
-    const setEditingNode = useCallback((node: NodeType) => setEditingNodeForModal(node), []);
+    const setEditingNode = useCallback((node: NodeType) => {
+        setIsModalDirty(false); // Reset dirty state when opening a new node
+        setEditingNodeForModal(node);
+    }, []);
 
     // Memoize the initial scenes to ensure the Navigator doesn't restart its stack
     const nodesScene = useMemo(() => (
@@ -352,9 +356,9 @@ export default function AdminPage() {
                     <div className={`absolute inset-0 z-10 bg-[var(--bg-app)] flex flex-col overflow-hidden ${activeTabId ? '' : 'opacity-0 invisible pointer-events-none z-[-1]'}`}>
                         <PinnedFormRouter />
                     </div>
-                    
+
                     {/* Main Navigation Layer */}
-                    <div 
+                    <div
                         key={`${activeTab}-${resetNonce}`}
                         className={`bg-[var(--bg-app)] ${activeTabId ? 'absolute inset-0 z-[-1] opacity-0 invisible pointer-events-none flex flex-col' : 'flex-1 flex flex-col min-h-0 w-full'}`}
                     >
@@ -386,10 +390,14 @@ export default function AdminPage() {
 
             {editingNodeForModal && (
                 <AppCompactModalForm
+                    key={`admin-modal-${editingNodeForModal.id}`}
                     isOpen={!!editingNodeForModal}
                     title={`Edit Node: ${editingNodeForModal.name}`}
                     icon="function"
-                    onClose={() => setEditingNodeForModal(null)}
+                    onClose={() => {
+                        setIsModalDirty(false);
+                        setEditingNodeForModal(null);
+                    }}
                     onSubmit={() => {
                         if (modalFormSubmitRef.current) {
                             modalFormSubmitRef.current();
@@ -406,12 +414,17 @@ export default function AdminPage() {
                         setEditingNodeForModal(prev => prev ? { ...prev, is_locked: locked } : prev);
                         setRefreshCount(r => r + 1);
                     }}
+                    isDirty={isModalDirty}
                 >
                     <NodeTypeFormView
-                        onClose={() => setEditingNodeForModal(null)}
+                        onClose={() => {
+                            setIsModalDirty(false);
+                            setEditingNodeForModal(null);
+                        }}
                         editingNode={editingNodeForModal}
                         onSave={(data) => {
                             return handleNodeSave(data, data.id || editingNodeForModal.id, () => {
+                                setIsModalDirty(false);
                                 setRefreshCount(r => r + 1);
                                 setEditingNodeForModal(null);
                             });
@@ -421,6 +434,7 @@ export default function AdminPage() {
                         defaultTab="code"
                         hideHeader={true}
                         externalSubmitRef={modalFormSubmitRef as any}
+                        onDirtyChange={setIsModalDirty}
                     />
                 </AppCompactModalForm>
             )}

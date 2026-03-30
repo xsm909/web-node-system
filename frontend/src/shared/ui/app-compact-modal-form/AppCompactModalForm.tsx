@@ -189,7 +189,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                         <div className="flex items-center gap-2">
                             {icon && <Icon name={icon} size={14} className="text-brand" />}
                             <h3 className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-main)] whitespace-nowrap">
-                                {title}{isDirty ? '*' : ''}
+                                {title}
                             </h3>
                             {isDirty && (
                                 <div className="flex items-center ml-2">

@@ -54,16 +54,16 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
     const [isParametersModalOpen, setIsParametersModalOpen] = useState(false);
     const [modalParams, setModalParams] = useState<any[]>([]);
     const [paramOptions, setParamOptions] = useState<Record<string, any[]>>({});
-    
+
     // Console state
     const [activeConsoleTab, setActiveConsoleTab] = useState<'logs' | 'runtime'>('logs');
     const [showSystemLogs, setShowSystemLogs] = useState(false);
     const [consoleHeight, setConsoleHeight] = useState(280);
-    
+
     // JSON Preview state
-    const [jsonPreviewModal, setJsonPreviewModal] = useState<{ 
-        isOpen: boolean; 
-        data: any; 
+    const [jsonPreviewModal, setJsonPreviewModal] = useState<{
+        isOpen: boolean;
+        data: any;
         title: string;
         url?: string;
         filename?: string;
@@ -95,9 +95,9 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
         const updatedNodes = currentNodes.map((n: any) =>
             n.id === nodeId ? { ...n, data: { ...n.data, params } } : n
         );
-        
+
         nodesRef.current = updatedNodes;
-        
+
         setActiveWorkflow((prev: any) => {
             if (!prev) return prev;
             return { ...prev, graph: { ...prev.graph, nodes: updatedNodes } };
@@ -109,7 +109,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                 return { ...prev, data: { ...prev.data, params } };
             });
         }
-        
+
         notifyChange?.();
     }, [setActiveWorkflow, notifyChange, selectedNode?.id, nodesRef]);
 
@@ -151,10 +151,10 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                 if (data.options) {
                     setParamOptions(prev => ({ ...prev, [param.parameter_name]: data.options }));
                 }
-            }).catch(() => {});
+            }).catch(() => { });
         });
     }, [isParamsExpanded, isParametersModalOpen, activeWorkflow?.parameters, modalParams, paramOptions]);
-    
+
     // Scan for JSON previews in live runtime data
     useEffect(() => {
         if (!liveRuntimeData) return;
@@ -166,7 +166,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                 const url = obj.url;
                 if (!shownPreviewsRef.current.has(url)) {
                     shownPreviewsRef.current.add(url);
-                    
+
                     // Fetch the file content
                     apiClient.get(url)
                         .then(res => {
@@ -186,7 +186,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                 const url = obj.url;
                 if (!shownPreviewsRef.current.has(url)) {
                     shownPreviewsRef.current.add(url);
-                    
+
                     // Trigger programmatic download
                     const fullUrl = `${apiClient.defaults.baseURL?.replace(/\/$/, '') || ''}${url}`;
                     const link = document.createElement('a');
@@ -214,7 +214,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
     const handleEditNodeAction = useCallback((e?: any) => {
         const targetId = selectedNodeId;
         if (!targetId || !onEditNode) return;
-        
+
         const node = nodesRef.current.find(n => n.id === targetId);
         if (node) {
             onEditNode(e || {}, node);
@@ -241,9 +241,9 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                 handleEditNodeAction(e);
             }
         }
-    ], { 
-        scopeName: 'Workflow Editor', 
-        enabled: (isHotkeysEnabled !== false) && !!activeWorkflow 
+    ], {
+        scopeName: 'Workflow Editor',
+        enabled: (isHotkeysEnabled !== false) && !!activeWorkflow
     });
 
     return (
@@ -253,7 +253,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
             icon="workflow"
             isDirty={isDirty}
             onSave={saveWorkflow}
-            onCancel={isInitialScene ? (() => {}) : onBack}
+            onCancel={isInitialScene ? (() => { }) : onBack}
             isSaving={isSaving}
             saveLabel="Save Workflow"
             allowedShortcuts={['cmd+c', 'ctrl+c', 'cmd+v', 'ctrl+v', 'f5', 'f2']}
@@ -371,8 +371,8 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                                 options={paramOptions}
                                 isLocked={activeWorkflow?.is_locked}
                                 renderHeaderActions={() => (
-                                    <ParameterPresetSelector 
-                                        onLoad={(param) => setModalParams([...modalParams, param])} 
+                                    <ParameterPresetSelector
+                                        onLoad={(param) => setModalParams([...modalParams, param])}
                                     />
                                 )}
                                 renderParameterActions={(param: ObjectParameter) => (

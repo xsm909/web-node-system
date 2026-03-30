@@ -73,8 +73,9 @@ export const PinnedFormRouter: React.FC = () => {
 
             {editingNodeForModal && (
                 <AppCompactModalForm
+                    key={`modal-${editingNodeForModal.id}`}
                     isOpen={!!editingNodeForModal}
-                    title={`Edit Node: ${editingNodeForModal.name}${isModalDirty ? '*' : ''}`}
+                    title={`Edit Node: ${editingNodeForModal.name}`}
                     icon="function"
                     onClose={closeNodeModal}
                     onSubmit={() => {
@@ -106,12 +107,12 @@ export const PinnedFormRouter: React.FC = () => {
                             });
                         }}
                         onRefresh={() => setRefreshCount(r => r + 1)}
-                        onDirtyChange={(val) => {
+                        onDirtyChange={useCallback((val: boolean) => {
                             if (val !== isModalDirty) {
                                 console.log('[PinnedFormRouter] isModalDirty CHANGING to:', val);
                                 setIsModalDirty(val);
                             }
-                        }}
+                        }, [isModalDirty])}
                         allNodes={allNodes}
                         defaultTab="code"
                         hideHeader={true}
