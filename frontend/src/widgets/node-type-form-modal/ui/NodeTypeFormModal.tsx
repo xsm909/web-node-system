@@ -166,8 +166,18 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                         output_schema: updatedNode.output_schema || {},
                         parameters: updatedNode.parameters || [],
                     });
+                    initialValuesRef.current = {
+                        name: updatedNode.name || '',
+                        code: updatedNode.code || '',
+                        version: updatedNode.version || '1.0'
+                    };
                 } else {
                     form.reset(value);
+                    initialValuesRef.current = {
+                        name: value.name || '',
+                        code: value.code || '',
+                        version: value.version || '1.0'
+                    };
                 }
             } catch (err: any) {
                 console.error('[NodeTypeFormView] Submit failed:', err);

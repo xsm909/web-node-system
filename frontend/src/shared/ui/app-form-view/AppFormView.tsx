@@ -144,7 +144,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     useHotkeys([
         {
             key: 'Escape',
-            description: isPinned ? 'Close tab' : 'Back',
+            description: 'Back',
+            enabled: !isPinned,
             handler: handleBack,
         },
         {

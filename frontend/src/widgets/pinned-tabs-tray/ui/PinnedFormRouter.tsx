@@ -51,6 +51,13 @@ export const PinnedFormRouter: React.FC = () => {
         setIsModalDirty(false); // Reset dirty state for new modal
     }, [prepareNodeEdit]);
 
+    const handleModalDirtyChange = useCallback((val: boolean) => {
+        if (val !== isModalDirty) {
+            console.log('[PinnedFormRouter] isModalDirty CHANGING to:', val);
+            setIsModalDirty(val);
+        }
+    }, [isModalDirty]);
+
     if (tabs.length === 0) return null;
 
     return (
@@ -107,12 +114,7 @@ export const PinnedFormRouter: React.FC = () => {
                             });
                         }}
                         onRefresh={() => setRefreshCount(r => r + 1)}
-                        onDirtyChange={useCallback((val: boolean) => {
-                            if (val !== isModalDirty) {
-                                console.log('[PinnedFormRouter] isModalDirty CHANGING to:', val);
-                                setIsModalDirty(val);
-                            }
-                        }, [isModalDirty])}
+                        onDirtyChange={handleModalDirtyChange}
                         allNodes={allNodes}
                         defaultTab="code"
                         hideHeader={true}
