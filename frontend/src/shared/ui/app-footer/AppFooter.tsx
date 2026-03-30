@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { useHotkeysContext } from '../../lib/hotkeys/HotkeysContext';
+import { useThemeStore } from '../../lib/theme/store';
+import { useHotkeysState } from '../../lib/hotkeys/HotkeysContext';
 
 // Helper to determine order weight
 const getWeight = (key: string): number => {
@@ -47,7 +48,8 @@ const formatGroupedKeys = (keys: string[]): string => {
 };
 
 export const AppFooter: React.FC = () => {
-    const { scopes } = useHotkeysContext();
+    const scopes = useHotkeysState();
+    const { theme } = useThemeStore();
 
     const displayGroups = useMemo(() => {
         const activeHotkeys: Array<{ key: string, description: string }> = [];
@@ -78,7 +80,7 @@ export const AppFooter: React.FC = () => {
             }
 
             if (scope.exclusive) {
-                const scopeExceptions = new Set((scope.exclusiveExceptions || []).map(e => e.toLowerCase()));
+                const scopeExceptions = new Set((scope.exclusiveExceptions || []).map((e: string) => e.toLowerCase()));
                 
                 if (allowedKeys === undefined) {
                     allowedKeys = scopeExceptions;
@@ -144,6 +146,7 @@ export const AppFooter: React.FC = () => {
         <div 
             className={`fixed bottom-0 h-8 bg-[var(--bg-footer)] border-t border-[var(--border-footer)] z-[90] flex items-center px-4 shadow-xl select-none transition-all duration-500 ease-in-out
                 ${isVisible ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
+            data-theme={theme}
             style={{
                 left: 'var(--sidebar-width, 0px)',
                 width: 'calc(100% - var(--sidebar-width, 0px))'

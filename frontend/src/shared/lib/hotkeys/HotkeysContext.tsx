@@ -17,20 +17,28 @@ export interface HotkeyScope {
     hotkeys: Hotkey[];
 }
 
-interface HotkeysContextState {
-    scopes: HotkeyScope[];
+export interface HotkeysActions {
     addScope: (scope: HotkeyScope) => void;
     removeScope: (id: string) => void;
     addHotkeyToScope: (scopeId: string, hotkey: Hotkey) => void;
     removeHotkeyFromScope: (scopeId: string, key: string) => void;
 }
 
-const HotkeysContext = createContext<HotkeysContextState | undefined>(undefined);
+const HotkeysStateContext = createContext<HotkeyScope[] | undefined>(undefined);
+const HotkeysActionsContext = createContext<HotkeysActions | undefined>(undefined);
 
-export const useHotkeysContext = () => {
-    const context = useContext(HotkeysContext);
+export const useHotkeysState = () => {
+    const context = useContext(HotkeysStateContext);
     if (!context) {
-        throw new Error('useHotkeysContext must be used within a HotkeysProvider');
+        throw new Error('useHotkeysState must be used within a HotkeysProvider');
+    }
+    return context;
+};
+
+export const useHotkeysActions = () => {
+    const context = useContext(HotkeysActionsContext);
+    if (!context) {
+        throw new Error('useHotkeysActions must be used within a HotkeysProvider');
     }
     return context;
 };
@@ -79,7 +87,6 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
         const handleKeyDown = (e: KeyboardEvent) => {
             // Do not naturally intercept if we are typing in an input/textarea
             // UNLESS it's a specific global hotkey like Escape, F4, F5, F9, ctrl+s, etc.
-            // Specifically, standard keys (letters) without modifiers are usually typing.
             const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable;
             
             // Normalize key
@@ -143,17 +150,19 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
         return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
     }, [scopes]);
 
-    const value = useMemo(() => ({ 
-        scopes, 
+    const actions = useMemo(() => ({ 
         addScope, 
         removeScope, 
         addHotkeyToScope, 
         removeHotkeyFromScope 
-    }), [scopes, addScope, removeScope, addHotkeyToScope, removeHotkeyFromScope]);
+    }), [addScope, removeScope, addHotkeyToScope, removeHotkeyFromScope]);
 
     return (
-        <HotkeysContext.Provider value={value}>
-            {children}
-        </HotkeysContext.Provider>
+        <HotkeysActionsContext.Provider value={actions}>
+            <HotkeysStateContext.Provider value={scopes}>
+                {children}
+            </HotkeysStateContext.Provider>
+        </HotkeysActionsContext.Provider>
     );
 };
+

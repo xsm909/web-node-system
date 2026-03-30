@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import ReactFlow, {
     addEdge,
     Background,
@@ -9,13 +8,11 @@ import ReactFlow, {
     useEdgesState,
     useReactFlow,
     Panel,
-} from 'reactflow';
-import type {
-    Node,
-    Edge,
-    Connection,
-    OnConnectStartParams,
-    XYPosition
+    type Node,
+    type Edge,
+    type Connection,
+    type OnConnectStartParams,
+    type XYPosition
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -27,7 +24,6 @@ import { StartNode } from '../../../entities/node-type/ui/StartNode';
 import { DefaultNode } from '../../../entities/node-type/ui/DefaultNode';
 import { AddNodeMenu } from '../../add-node-menu';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
-// import { WorkflowToolbar } from './WorkflowToolbar';
 
 const nodeTypesConfig = {
     start: StartNode,
@@ -40,10 +36,7 @@ const nodeTypesConfig = {
     provider: DefaultNode,
 };
 
-// Global trackers to survive component remounts (e.g. when returning from NodeType editor).
-let globalLastCenteredWorkflowId: string | null = null;
-const globalViewportCache: Record<string, { x: number, y: number, zoom: number }> = {};
-
+// Internal component state will handle viewport tracking via refs
 interface WorkflowGraphProps {
     workflow: Workflow | null;
     nodeTypes: NodeType[];
@@ -55,7 +48,7 @@ interface WorkflowGraphProps {
     activeNodeIds?: string[];
 }
 
-export function WorkflowGraph({
+export const WorkflowGraph = React.memo(({
     workflow,
     nodeTypes,
     isReadOnly = false,
@@ -64,44 +57,47 @@ export function WorkflowGraph({
     onNodeDoubleClickCallback,
     onNodeSelectCallback,
     activeNodeIds = []
-}: WorkflowGraphProps) {
-    const initialNodes = (workflow?.graph?.nodes || []).map((n: any) => n.type === 'default' ? { ...n, type: 'action' } : n);
+}: WorkflowGraphProps) => {
+    // Instance-specific trackers
+    const lastInitializedIdRef = useRef<string | null>(null);
+    const viewportCacheRef = useRef<Record<string, { x: number, y: number, zoom: number }>>({});
+
+    const initialNodes = useMemo(() => 
+        (workflow?.graph?.nodes || []).map((n: any) => n.type === 'default' ? { ...n, type: 'action' } : n)
+    , [workflow?.id]); 
+
     const [nodes, setNodes, onNodesChangeRaw] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChangeRaw] = useEdgesState(workflow?.graph?.edges || []);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const { screenToFlowPosition, setCenter, fitView, setViewport } = useReactFlow();
-    const mousePosition = React.useRef<XYPosition>({ x: 0, y: 0 });
+    const mousePosition = useRef<XYPosition>({ x: 0, y: 0 });
     const [clipboard, setClipboard] = useState<{ nodes: Node[], edges: Edge[], center: XYPosition } | null>(null);
-
-    console.log('[WorkflowGraph] Rendering. Workflow ID:', workflow?.id, 'Node count:', nodes.length, 'Edge count:', edges.length);
 
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
     const [addNodeMenu, setAddNodeMenu] = useState<{ x: number, y: number, clientX: number, clientY: number, connectionStart: OnConnectStartParams } | null>(null);
 
-    // Load workflow data
+    // Initialize workflow data
     useEffect(() => {
         const wf = workflow as any;
         if (!wf || !wf.id) {
             setNodes([]);
             setEdges([]);
-            globalLastCenteredWorkflowId = null;
+            lastInitializedIdRef.current = null;
             return;
         }
 
-        const hasNodes = nodes.length > 0;
-        const isSameWorkflow = globalLastCenteredWorkflowId === wf.id;
-
-        if (isSameWorkflow && hasNodes) {
-            // Even if same workflow, check if props have different count (e.g. node added externally)
-            if (nodes.length === (wf.graph?.nodes?.length || 0) && edges.length === (wf.graph?.edges?.length || 0)) {
-                return;
-            }
+        // If this SPECIFIC instance has already initialized this ID, skip to avoid loops
+        if (lastInitializedIdRef.current === wf.id) {
+            return;
         }
 
         if (!wf.graph) {
+            setNodes([]);
+            setEdges([]);
             return;
         }
+
 
         const graphNodes = wf.graph.nodes || [];
         const graphEdges = wf.graph.edges || [];
@@ -159,29 +155,23 @@ export function WorkflowGraph({
         setNodes(loadedNodes);
         setEdges(graphEdges);
 
-        // Only center/fit the viewport when switching to a DIFFERENT workflow AND we have no cache.
-        if (globalLastCenteredWorkflowId !== wf.id) {
-            console.log('[WorkflowGraph] Workflow ID changed from', globalLastCenteredWorkflowId, 'to', wf.id);
-            const cachedViewport = globalViewportCache[wf.id];
+        console.log('[WorkflowGraph] Initialized workflow:', wf.id);
+        const cachedViewport = viewportCacheRef.current[wf.id];
+        lastInitializedIdRef.current = wf.id;
 
-            // Mark as centered/loaded IMMEDIATELY
-            globalLastCenteredWorkflowId = wf.id;
-
-            if (!cachedViewport) {
-                console.log('[WorkflowGraph] No cached viewport, fitting view...');
-                const timer = setTimeout(() => {
-                    fitView({ padding: 50 });
-                    const startNode = loadedNodes.find((n: any) => n.id === 'node_start' || n.type === 'start');
-                    if (startNode && typeof startNode.position?.x === 'number' && typeof startNode.position?.y === 'number') {
-                        if (!isNaN(startNode.position.x) && !isNaN(startNode.position.y)) {
-                            setCenter(startNode.position.x + 100, startNode.position.y + 60, { zoom: 0.5, duration: 400 });
-                        }
+        if (!cachedViewport) {
+            const timer = setTimeout(() => {
+                fitView({ padding: 50 });
+                const startNode = loadedNodes.find((n: any) => n.id === 'node_start' || n.type === 'start');
+                if (startNode && typeof startNode.position?.x === 'number' && typeof startNode.position?.y === 'number') {
+                    if (!isNaN(startNode.position.x) && !isNaN(startNode.position.y)) {
+                        setCenter(startNode.position.x + 100, startNode.position.y + 60, { zoom: 0.5, duration: 400 });
                     }
-                }, 100);
-                return () => clearTimeout(timer);
-            }
+                }
+            }, 100);
+            return () => clearTimeout(timer);
         }
-    }, [workflow?.id, workflow?.graph, setViewport, setCenter, fitView, setNodes, setEdges, nodeTypes]);
+    }, [workflow, setViewport, setCenter, fitView, setNodes, setEdges, nodeTypes]);
 
     // Downward synchronization: update internal nodes state when workflow.graph.nodes changes externally (e.g. from parameters panel)
     useEffect(() => {
@@ -194,7 +184,7 @@ export function WorkflowGraph({
                 const externalNode = externalNodes.find((en: any) => en.id === localNode.id);
                 if (!externalNode) return localNode;
 
-                // If params changed externally, sync them to local state
+                // Sync params if changed externally (important for the parameter panel live sync)
                 if (JSON.stringify(localNode.data?.params) !== JSON.stringify(externalNode.data?.params)) {
                     hasChanges = true;
                     return {
@@ -214,39 +204,9 @@ export function WorkflowGraph({
     // Save viewport state on change
     const onMoveEnd = useCallback((_event: any, viewport: { x: number, y: number, zoom: number }) => {
         if (workflow?.id) {
-            globalViewportCache[workflow.id] = viewport;
+            viewportCacheRef.current[workflow.id] = viewport;
         }
     }, [workflow?.id]);
-
-    // Propagate changes up — use a ref to prevent infinite loops if callbacks trigger parent re-renders
-    const lastNodesRef = React.useRef<string>('');
-    useEffect(() => {
-        const nodesStr = JSON.stringify(nodes.map(n => ({
-            id: n.id,
-            position: n.position,
-            nodeTypeId: n.data?.nodeTypeId,
-            selected: n.selected
-        })));
-        if (nodesStr !== lastNodesRef.current) {
-            lastNodesRef.current = nodesStr;
-            if (onNodesChangeCallback) onNodesChangeCallback(nodes);
-        }
-    }, [nodes, onNodesChangeCallback]);
-
-    const lastEdgesRef = React.useRef<string>('');
-    useEffect(() => {
-        const edgesStr = JSON.stringify(edges.map(e => ({
-            id: e.id,
-            source: e.source,
-            target: e.target,
-            sourceHandle: e.sourceHandle,
-            targetHandle: e.targetHandle
-        })));
-        if (edgesStr !== lastEdgesRef.current) {
-            lastEdgesRef.current = edgesStr;
-            if (onEdgesChangeCallback) onEdgesChangeCallback(edges);
-        }
-    }, [edges, onEdgesChangeCallback]);
 
     const handleCopy = useCallback(() => {
         const selectedNodes = nodes.filter((node) => node.selected);
@@ -254,7 +214,6 @@ export function WorkflowGraph({
 
         if (selectedNodes.length === 0) return;
 
-        // Calculate center of selected nodes
         const minX = Math.min(...selectedNodes.map(n => n.position.x));
         const minY = Math.min(...selectedNodes.map(n => n.position.y));
         const maxX = Math.max(...selectedNodes.map(n => n.position.x + (n.width || 250)));
@@ -282,7 +241,6 @@ export function WorkflowGraph({
                 y: mousePosition.current.y - clipboard.center.y,
             };
         } else {
-            // Paste nearby (offset from original position)
             offset = { x: 40, y: 40 };
         }
 
@@ -315,10 +273,16 @@ export function WorkflowGraph({
                 selected: true,
             }));
 
-        // Deselect current nodes
-        setNodes((nds) => nds.map(n => ({ ...n, selected: false })).concat(newNodes));
-        setEdges((eds) => eds.map(e => ({ ...e, selected: false })).concat(newEdges));
-    }, [clipboard, setNodes, setEdges]);
+        const finalNodes = nodes.map(n => ({ ...n, selected: false })).concat(newNodes);
+        const finalEdges = edges.map(e => ({ ...e, selected: false })).concat(newEdges);
+        
+        setNodes(finalNodes);
+        setEdges(finalEdges);
+
+        // Notify parent of the new structure immediately
+        if (onNodesChangeCallback) onNodesChangeCallback(finalNodes);
+        if (onEdgesChangeCallback) onEdgesChangeCallback(finalEdges);
+    }, [clipboard, nodes, edges, setNodes, setEdges, onNodesChangeCallback, onEdgesChangeCallback]);
 
     useHotkeys([
         { key: 'cmd+c', description: 'Copy Nodes', enabled: nodes.some(n => n.selected), handler: () => handleCopy() },
@@ -334,6 +298,7 @@ export function WorkflowGraph({
         });
         mousePosition.current = position;
     }, [screenToFlowPosition]);
+
     const onNodesChange = useCallback((changes: any) => {
         if (isReadOnly) return;
         const filteredChanges = changes.filter((change: any) => {
@@ -349,22 +314,38 @@ export function WorkflowGraph({
             if (onNodeSelectCallback) onNodeSelectCallback(null);
         }
 
+        // Apply changes locally first
         onNodesChangeRaw(filteredChanges);
-    }, [onNodesChangeRaw, nodes, selectedNodeId, isReadOnly, onNodeSelectCallback]);
+        
+        // Notify parent directly in the next tick to avoid render-phase updates
+        setTimeout(() => {
+            setNodes(currentNodes => {
+                if (onNodesChangeCallback) onNodesChangeCallback(currentNodes);
+                return currentNodes;
+            });
+        }, 0);
+    }, [onNodesChangeRaw, nodes, selectedNodeId, isReadOnly, onNodeSelectCallback, onNodesChangeCallback, setNodes]);
 
     const onEdgesChange = useCallback((changes: any) => {
         if (isReadOnly) return;
+        
+        // Apply changes locally
         onEdgesChangeRaw(changes);
-    }, [onEdgesChangeRaw, isReadOnly]);
+
+        // Notify parent in next tick
+        setTimeout(() => {
+            setEdges(currentEdges => {
+                if (onEdgesChangeCallback) onEdgesChangeCallback(currentEdges);
+                return currentEdges;
+            });
+        }, 0);
+    }, [onEdgesChangeRaw, isReadOnly, onEdgesChangeCallback, setEdges]);
 
     const onConnect = useCallback(
         (params: Connection) => {
             if (isReadOnly) return;
-            // Prevent same node connecting to itself
             if (params.source === params.target) return;
 
-            // Ensure if targetHandle is not set or empty, it defaults to 'top'
-            // Unless the source is dropping explicitly onto a named targetHandle
             const newEdgeParams: Edge = {
                 ...params,
                 source: params.source || '',
@@ -373,10 +354,15 @@ export function WorkflowGraph({
                 targetHandle: params.targetHandle || 'top',
                 sourceHandle: params.sourceHandle || 'output'
             };
-            setEdges((eds) => addEdge(newEdgeParams, eds));
+            
+            setEdges((eds) => {
+                const nextEdges = addEdge(newEdgeParams, eds);
+                if (onEdgesChangeCallback) onEdgesChangeCallback(nextEdges);
+                return nextEdges;
+            });
             (window as any)._connectionEstablished = true;
         },
-        [setEdges, isReadOnly]
+        [setEdges, isReadOnly, onEdgesChangeCallback]
     );
 
     const onConnectStart = useCallback((_: any, params: OnConnectStartParams) => {
@@ -418,7 +404,6 @@ export function WorkflowGraph({
         const nodeWidth = isProvider ? 70 : 250;
         const newNodeId = `node_${Date.now()}`;
 
-        // Center horizontally (half width) and align top vertically
         const flowPos = screenToFlowPosition({
             x: position.x - (nodeWidth / 2),
             y: position.y
@@ -440,12 +425,15 @@ export function WorkflowGraph({
             },
         };
 
-        setNodes((nds) => nds.concat(newNode));
+        setNodes((nds) => {
+            const nextNodes = nds.concat(newNode);
+            if (onNodesChangeCallback) onNodesChangeCallback(nextNodes);
+            return nextNodes;
+        });
 
         if (connectionStart.nodeId) {
             let newEdge: any;
             if (connectionStart.handleType === 'target') {
-                // Dragged from an input (target) handle, so the new node provides the data (source)
                 newEdge = {
                     id: `e_${newNodeId}-${connectionStart.nodeId}`,
                     source: newNodeId,
@@ -454,8 +442,6 @@ export function WorkflowGraph({
                     targetHandle: connectionStart.handleId,
                 };
             } else {
-                // Dragged from an output (source) handle, so the new node receives the data (target)
-                // We force targetHandle: 'top' so it points to the explicit top input, not a specialized Right input.
                 newEdge = {
                     id: `e_${connectionStart.nodeId}-${newNodeId}`,
                     source: connectionStart.nodeId,
@@ -464,7 +450,11 @@ export function WorkflowGraph({
                     targetHandle: 'top',
                 };
             }
-            setEdges((eds) => addEdge(newEdge, eds));
+            setEdges((eds) => {
+                const nextEdges = addEdge(newEdge, eds);
+                if (onEdgesChangeCallback) onEdgesChangeCallback(nextEdges);
+                return nextEdges;
+            });
         }
 
         setAddNodeMenu(null);
@@ -476,18 +466,30 @@ export function WorkflowGraph({
             alert('Cannot delete the Start node. It is required for the workflow.');
             return;
         }
-        setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-        setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+        setNodes((nds) => {
+            const nextNodes = nds.filter((node) => node.id !== nodeId);
+            if (onNodesChangeCallback) onNodesChangeCallback(nextNodes);
+            return nextNodes;
+        });
+        setEdges((eds) => {
+            const nextEdges = eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId);
+            if (onEdgesChangeCallback) onEdgesChangeCallback(nextEdges);
+            return nextEdges;
+        });
         setMenu(null);
         if (selectedNodeId === nodeId) setSelectedNodeId(null);
-    }, [setNodes, setEdges, selectedNodeId, isReadOnly]);
+    }, [setNodes, setEdges, selectedNodeId, isReadOnly, onNodesChangeCallback, onEdgesChangeCallback]);
 
 
     const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
         if (!isReadOnly && event.altKey) {
             event.stopPropagation();
             event.preventDefault();
-            setEdges((eds) => eds.filter(e => !(e.target === node.id && (e.targetHandle === 'top' || !e.targetHandle))));
+            setEdges((eds) => {
+                const nextEdges = eds.filter(e => !(e.target === node.id && (e.targetHandle === 'top' || !e.targetHandle)));
+                if (onEdgesChangeCallback) onEdgesChangeCallback(nextEdges);
+                return nextEdges;
+            });
             return;
         }
 
@@ -515,7 +517,7 @@ export function WorkflowGraph({
 
         setSelectedNodeId(node.id);
         if (onNodeSelectCallback) onNodeSelectCallback(node);
-    }, [isReadOnly, setEdges, onNodeSelectCallback]);
+    }, [isReadOnly, setEdges, onNodeSelectCallback, onEdgesChangeCallback]);
 
     const onSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: Node[] }) => {
         if (selectedNodes.length !== 1) {
@@ -534,32 +536,26 @@ export function WorkflowGraph({
             .map(e => e.source)
     );
 
-    // Inject isActive + maxThan (from nodeType definition) into each node's data
-    const renderedNodes = React.useMemo(() => nodes.map(node => {
+    const renderedNodes = useMemo(() => nodes.map(node => {
         const ntDef = nodeTypes.find((t: NodeType) => {
-            // Prefer looking up by UID
             if (node.data?.nodeTypeId && t.id === node.data.nodeTypeId) {
                 return true;
             }
-            // Fallback to name/category
             const nameMatches = t.name.toLowerCase() === (node.data?.nodeType || node.data?.label || '').toLowerCase();
             if (node.data?.category && t.category) {
                 return nameMatches && t.category === node.data.category;
             }
             return nameMatches;
         });
-        // Determine MAX_THEN from nodeType parameters definition
         const maxThenParam = ntDef?.parameters?.find((p: any) => p.name === 'MAX_THEN' || p.name === 'MAX_THAN');
         const maxThen = node.data?.params?.MAX_THEN ?? node.data?.params?.maxThen ?? node.data?.params?.MAX_THAN ?? node.data?.params?.maxThan ?? maxThenParam?.default ?? 0;
 
-        // Extract inputs from input_schema
         const inputs = ntDef?.input_schema?.inputs || [];
 
         return {
             ...node,
             data: {
                 ...node.data,
-                // Always use the latest label and icon from the library if available
                 label: ntDef?.name || node.data?.label,
                 isActive: activeNodeIds.includes(node.id),
                 maxThen: Number(maxThen),
@@ -572,6 +568,10 @@ export function WorkflowGraph({
 
     const isLoading = !workflow || !(workflow as any).graph;
 
+    const onFitView = useCallback(() => {
+        fitView({ padding: 50 });
+    }, [fitView]);
+
     return (
         <div className="flex-1 flex flex-col overflow-hidden relative w-full h-full min-h-0">
             <section className="flex-1 bg-[var(--bg-app)] relative w-full h-full min-h-0">
@@ -583,9 +583,7 @@ export function WorkflowGraph({
                     onConnect={onConnect}
                     onNodeClick={onNodeClick}
                     onNodeDoubleClick={(event, node) => {
-                        console.log('[WorkflowGraph] onNodeDoubleClick triggered for node:', node.id);
                         if (onNodeDoubleClickCallback) onNodeDoubleClickCallback(event, node);
-                        else console.warn('[WorkflowGraph] No onNodeDoubleClickCallback provided');
                     }}
                     onMouseMove={onMouseMove}
                     onNodeDragStart={() => setMenu(null)}
@@ -602,7 +600,7 @@ export function WorkflowGraph({
                     onConnectStart={onConnectStart}
                     onConnectEnd={onConnectEnd}
                     proOptions={{ hideAttribution: true }}
-                    defaultViewport={workflow?.id ? globalViewportCache[workflow.id] : undefined}
+                    defaultViewport={workflow?.id ? viewportCacheRef.current[workflow.id] : undefined}
                     snapToGrid={true}
                     snapGrid={[10, 10]}
                     nodesDraggable={!isReadOnly}
@@ -624,14 +622,8 @@ export function WorkflowGraph({
                         if (!typeJson) return;
 
                         const type = JSON.parse(typeJson) as NodeType;
-                        
-                        // Get drop position in flow coordinates
-                        const flowPos = screenToFlowPosition({
-                            x: event.clientX,
-                            y: event.clientY,
-                        });
+                        const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
-                        // Check if dropped onto a node
                         const nodeUnder = nodes.find(n => {
                             const nodeWidth = n.width || 250;
                             const nodeHeight = n.height || 100;
@@ -656,7 +648,6 @@ export function WorkflowGraph({
                         let newNode: Node;
 
                         if (nodeUnder) {
-                            // Place under the target node
                             const nodeHeight = nodeUnder.height || 100;
                             const verticalGap = 60;
                             
@@ -684,10 +675,17 @@ export function WorkflowGraph({
                                 targetHandle: 'top',
                             };
 
-                            setNodes((nds) => nds.concat(newNode));
-                            setEdges((eds) => addEdge(newEdge, eds));
+                            setNodes((nds) => {
+                                const nextNodes = nds.concat(newNode);
+                                if (onNodesChangeCallback) onNodesChangeCallback(nextNodes);
+                                return nextNodes;
+                            });
+                            setEdges((eds) => {
+                                const nextEdges = addEdge(newEdge, eds);
+                                if (onEdgesChangeCallback) onEdgesChangeCallback(nextEdges);
+                                return nextEdges;
+                            });
                         } else {
-                            // Place at drop position (centered)
                             newNode = {
                                 id: newNodeId,
                                 type: 'action',
@@ -703,7 +701,11 @@ export function WorkflowGraph({
                                     icon: type.icon
                                 },
                             };
-                            setNodes((nds) => nds.concat(newNode));
+                            setNodes((nds) => {
+                                const nextNodes = nds.concat(newNode);
+                                if (onNodesChangeCallback) onNodesChangeCallback(nextNodes);
+                                return nextNodes;
+                            });
                         }
                     }}
                 >
@@ -740,9 +742,15 @@ export function WorkflowGraph({
                             >
                                 Paste
                             </button>
+                            <div className="w-[1px] h-4 bg-[var(--border-base)] mx-1 self-center" />
+                            <button
+                                onClick={onFitView}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 text-[var(--text-muted)] hover:bg-white/5"
+                                title="Fit view (F)"
+                            >
+                                Fit
+                            </button>
                         </div>
-                        
-                        {/* {!isReadOnly && <WorkflowToolbar nodeTypes={nodeTypes} />} */}
                     </Panel>
                     <Background
                         variant={BackgroundVariant.Dots}
@@ -782,7 +790,11 @@ export function WorkflowGraph({
                         nodeId={menu.nodeId}
                         onDelete={handleDeleteNode}
                         onDisconnectInput={(id) => {
-                            setEdges((eds) => eds.filter(e => !(e.target === id && (e.targetHandle === 'top' || !e.targetHandle))));
+                            setEdges((eds) => {
+                                const nextEdges = eds.filter(e => !(e.target === id && (e.targetHandle === 'top' || !e.targetHandle)));
+                                if (onEdgesChangeCallback) onEdgesChangeCallback(nextEdges);
+                                return nextEdges;
+                            });
                         }}
                         onClose={() => setMenu(null)}
                     />
@@ -790,4 +802,4 @@ export function WorkflowGraph({
             </section>
         </div>
     );
-}
+});

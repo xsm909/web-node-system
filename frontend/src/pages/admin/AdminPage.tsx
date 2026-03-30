@@ -166,6 +166,9 @@ export default function AdminPage() {
     const isProjectModeInStore = useProjectStore(s => s.isProjectMode);
     const baseProject = useProjectStore(s => s.baseProject);
     const isBaseProjectMode = useProjectStore(s => s.isBaseProjectMode);
+    
+    // Track the last successfully synchronized project ID to prevent recursive updates
+    const lastSyncIdRef = useRef<string | null | undefined>(undefined);
 
     const activeTabId = usePinStore(s => s.activeTabId);
     const tabs = usePinStore(s => s.tabs);
@@ -178,6 +181,9 @@ export default function AdminPage() {
         tabs.find(t => t.id === activeTabId) || null
     , [tabs, activeTabId]);
 
+    // Stable fallback objects to prevent identity churn
+    const loadingFallbacksRef = useRef<Record<string, Project>>({});
+
     const targetProject = useMemo(() => {
         if (!activePinnedTab) return undefined; // undefined means "restore to base"
         
@@ -186,24 +192,38 @@ export default function AdminPage() {
         const found = projects.find(p => p.id === activePinnedTab.projectId);
         if (found) return found;
 
-        // Loading fallback: stable object for the same ID
-        return { 
-            id: activePinnedTab.projectId, 
-            name: 'Loading...', 
-            theme_color: null 
-        } as Project;
+        // Loading fallback: stable object for the same ID to prevent identity loops
+        const pid = activePinnedTab.projectId;
+        if (!loadingFallbacksRef.current[pid]) {
+            loadingFallbacksRef.current[pid] = { 
+                id: pid, 
+                name: 'Loading...', 
+                theme_color: null 
+            } as Project;
+        }
+        return loadingFallbacksRef.current[pid];
     }, [activePinnedTab, projects]);
 
     // Sync Pinned Context (Shadowing)
     useEffect(() => {
-        // Only update if different from current active state in store to prevent infinite loops
+        // ID-based change detection (more robust than object identity)
+        const targetId = targetProject === undefined ? 'RESTORING' : (targetProject === null ? 'GLOBAL' : targetProject.id);
+        
+        if (lastSyncIdRef.current === targetId) {
+            return;
+        }
+
         const isCurrentlyGlobal = !isProjectModeInStore;
         const wantGlobal = targetProject === null;
         const wantRestore = targetProject === undefined;
         
         if (wantRestore) {
-            if (activeProjectInStore?.id !== baseProject?.id || isProjectModeInStore !== isBaseProjectMode) {
+            const isDifferentFromBase = activeProjectInStore?.id !== baseProject?.id || isProjectModeInStore !== isBaseProjectMode;
+            if (isDifferentFromBase) {
+                lastSyncIdRef.current = 'RESTORING';
                 setPinnedContext(undefined);
+            } else {
+                lastSyncIdRef.current = 'RESTORING'; // Mark as synced anyway
             }
             return;
         }
@@ -212,9 +232,12 @@ export default function AdminPage() {
         const modeChanged = isCurrentlyGlobal !== wantGlobal;
 
         if (projectChanged || modeChanged) {
+            lastSyncIdRef.current = targetId;
             setPinnedContext(targetProject);
+        } else {
+            lastSyncIdRef.current = targetId; // Mark as synced anyway
         }
-    }, [targetProject, setPinnedContext, activeProjectInStore, isProjectModeInStore, baseProject?.id, isBaseProjectMode]);
+    }, [targetProject, setPinnedContext, activeProjectInStore, isProjectModeInStore, baseProject, isBaseProjectMode]);
 
     const setActiveTab = useCallback((tab: 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') => {
         handleIntercept(() => {

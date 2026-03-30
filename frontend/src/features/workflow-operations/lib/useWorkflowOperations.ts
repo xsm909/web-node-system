@@ -57,26 +57,25 @@ export function useWorkflowOperations({
     const isDirty = useMemo(() => {
         if (!activeWorkflow || !initialWorkflowRef.current) return false;
         
+        // Use a local stringify of just the properties we care about
         const currentNodes = nodesRef.current || [];
         const currentEdges = edgesRef.current || [];
         const currentData = activeWorkflow.workflow_data;
 
-        // Compare current refs/state against the stable baseline
-        const currentStr = JSON.stringify({
-            nodes: currentNodes,
-            edges: currentEdges,
-            workflow_data: currentData,
-            parameters: (activeWorkflow.parameters || []).map(({ id, ...rest }: any) => rest)
-        });
+        try {
+            const currentStr = JSON.stringify({
+                nodes: currentNodes,
+                edges: currentEdges,
+                workflow_data: currentData,
+                parameters: (activeWorkflow.parameters || []).map(({ id, ...rest }: any) => rest)
+            });
 
-        const dirty = currentStr !== initialWorkflowRef.current;
-        if (dirty) {
-            console.log('[useWorkflowOperations] isDirty: true');
-        } else {
-            console.log('[useWorkflowOperations] isDirty: false');
+            return currentStr !== initialWorkflowRef.current;
+        } catch (e) {
+            console.warn('[useWorkflowOperations] Error calculating isDirty:', e);
+            return false;
         }
-        return dirty;
-    }, [activeWorkflow?.id, activeWorkflow?.workflow_data, activeWorkflow?.parameters, changeNonce, nodesRef, edgesRef]);
+    }, [activeWorkflow?.id, activeWorkflow?.workflow_data, activeWorkflow?.parameters, changeNonce]); // Remove nodesRef/edgesRef from deps as they are refs
 
     const onExecutionCompleteRef = useRef(onExecutionComplete);
     useEffect(() => {

@@ -34,16 +34,32 @@ export function useWorkflowManagement(refreshTrigger?: number, projectId?: strin
 
     // Auto-close workflow if it doesn't belong to the active context
     useEffect(() => {
-        if (activeWorkflow) {
-            const isPersonal = activeWorkflow.owner_id === currentUser?.id;
+        if (activeWorkflow && currentUser) {
+            const isAdmin = currentUser.role === 'admin';
+            const isPersonal = activeWorkflow.owner_id === currentUser.id;
             const belongsToActiveClient = activeClientId && activeWorkflow.owner_id === activeClientId;
-            const belongsToActiveProject = effectiveIsProjectMode && effectiveProjectId && activeWorkflow.project_id === effectiveProjectId;
+            
+            // Check Project Alignment
+            const workflowProject = activeWorkflow.project_id || null;
+            const belongsToActiveProject = effectiveIsProjectMode && effectiveProjectId && workflowProject === effectiveProjectId;
+            const matchesGlobalContext = !effectiveIsProjectMode && !workflowProject;
 
-            if (!isPersonal && !belongsToActiveClient && !belongsToActiveProject) {
+            // admins are generally allowed to see everything, but we still want to maintain some separation.
+            // however, to prevent infinite loops during context switching, we must allow 
+            // shared global workflows in global mode and respect admin status.
+            const isAllowed = isAdmin || isPersonal || belongsToActiveClient || belongsToActiveProject || matchesGlobalContext;
+
+            if (!isAllowed) {
+                console.log('[useWorkflowManagement] Auto-closing workflow due to context mismatch', {
+                    workflowId: activeWorkflow.id,
+                    workflowProject,
+                    effectiveProjectId,
+                    effectiveIsProjectMode
+                });
                 setActiveWorkflow(null);
             }
         }
-    }, [activeClientId, activeWorkflow, currentUser?.id, effectiveIsProjectMode, effectiveProjectId]);
+    }, [activeClientId, activeWorkflow, currentUser, effectiveIsProjectMode, effectiveProjectId]);
 
     const lastLoadedContextRef = useRef<{ id: string | null, isProjectMode: boolean } | null>(null);
 

@@ -4,7 +4,6 @@ import { useAuthStore } from '../features/auth/store';
 import LoginPage from '../pages/login/LoginPage';
 import AdminPage from '../pages/admin/AdminPage';
 import ManagerPage from '../pages/manager/ManagerPage';
-import { ReactFlowProvider } from 'reactflow';
 import ClientPage from '../pages/client/ClientPage';
 
 interface ProtectedRouteProps {
@@ -52,9 +51,7 @@ export default function Router() {
                     path="/admin/*"
                     element={
                         <ProtectedRoute allowedRoles={['admin']}>
-                            <ReactFlowProvider>
-                                <AdminPage />
-                            </ReactFlowProvider>
+                            <AdminPage />
                         </ProtectedRoute>
                     }
                 />
@@ -62,9 +59,7 @@ export default function Router() {
                     path="/manager/*"
                     element={
                         <ProtectedRoute allowedRoles={['manager']}>
-                            <ReactFlowProvider>
-                                <ManagerPage />
-                            </ReactFlowProvider>
+                            <ManagerPage />
                         </ProtectedRoute>
                     }
                 />

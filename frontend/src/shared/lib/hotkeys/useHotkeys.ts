@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
-import { useHotkeysContext, GLOBAL_SCOPE_ID, type Hotkey } from './HotkeysContext';
+import { useHotkeysActions, GLOBAL_SCOPE_ID, type Hotkey } from './HotkeysContext';
 
 interface UseHotkeysOptions {
     scopeName?: string; // If provided, creates a new scope when the component mounts
@@ -9,7 +9,7 @@ interface UseHotkeysOptions {
 }
 
 export const useHotkeys = (hotkeys: Hotkey[], options?: UseHotkeysOptions) => {
-    const { addScope, removeScope, addHotkeyToScope, removeHotkeyFromScope } = useHotkeysContext();
+    const { addScope, removeScope, addHotkeyToScope, removeHotkeyFromScope } = useHotkeysActions();
     const componentId = useId();
     
     // Determine the scope ID to use: either a fresh one for this component, or the global one

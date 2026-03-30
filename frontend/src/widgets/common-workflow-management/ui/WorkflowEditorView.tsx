@@ -84,17 +84,31 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
 
     const handleParamsChange = useCallback((nodeId: string, params: any) => {
         const currentNodes = nodesRef.current || [];
+        const nodeIndex = currentNodes.findIndex((n: any) => n.id === nodeId);
+        if (nodeIndex === -1) return;
+
+        // Check if params actually changed to avoid redundant updates
+        const oldParams = currentNodes[nodeIndex].data?.params;
+        if (JSON.stringify(oldParams) === JSON.stringify(params)) return;
+
         const updatedNodes = currentNodes.map((n: any) =>
             n.id === nodeId ? { ...n, data: { ...n.data, params } } : n
         );
+        
         nodesRef.current = updatedNodes;
+        
         setActiveWorkflow((prev: any) => {
             if (!prev) return prev;
             return { ...prev, graph: { ...prev.graph, nodes: updatedNodes } };
         });
+
         if (selectedNode?.id === nodeId) {
-            setSelectedNode((prev: any) => prev ? { ...prev, data: { ...prev.data, params } } : prev);
+            setSelectedNode((prev: any) => {
+                if (!prev) return prev;
+                return { ...prev, data: { ...prev.data, params } };
+            });
         }
+        
         notifyChange?.();
     }, [setActiveWorkflow, notifyChange, selectedNode?.id, nodesRef]);
 

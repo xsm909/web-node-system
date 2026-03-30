@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import type { Node, Edge } from 'reactflow';
+import { ReactFlowProvider } from 'reactflow';
 import { useWorkflowManagement } from '../../../features/workflow-management';
 import { useWorkflowOperations } from '../../../features/workflow-operations';
 import { useAuthStore } from '../../../features/auth/store';
@@ -127,6 +128,7 @@ export const WorkflowEditorProvider: React.FC<{
         liveRuntimeData,
         activeNodeIds,
         notifyChange,
+        isDirty,
         isSaving: isSavingOps
     } = useWorkflowOperations({
         activeWorkflow,
@@ -148,10 +150,12 @@ export const WorkflowEditorProvider: React.FC<{
     }, [activeWorkflow?.id, activeWorkflow?.graph]);
 
     const onNodesChange = useCallback((nodes: Node[]) => {
+        if (!nodes) return;
         nodesRef.current = nodes;
     }, []);
 
     const onEdgesChange = useCallback((edges: Edge[]) => {
+        if (!edges) return;
         edgesRef.current = edges;
     }, []);
 
@@ -208,7 +212,7 @@ export const WorkflowEditorProvider: React.FC<{
         liveRuntimeData,
         renameInputValue,
         renameCategoryValue,
-        isDirty: (notifyChange as any).isDirty || false,
+        isDirty,
         activeClientId,
         isAdmin,
         activeProjectId: activeProjectIdFromContext,
@@ -256,8 +260,10 @@ export const WorkflowEditorProvider: React.FC<{
     ]);
 
     return (
-        <WorkflowEditorContext.Provider value={value}>
-            {children}
-        </WorkflowEditorContext.Provider>
+        <ReactFlowProvider>
+            <WorkflowEditorContext.Provider value={value}>
+                {children}
+            </WorkflowEditorContext.Provider>
+        </ReactFlowProvider>
     );
 };
