@@ -84,19 +84,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                             <button
                                 className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors shrink-0 mr-1 hidden lg:flex"
                                 onClick={onBack}
-                                aria-label="Go back"
-                                title="Go back (Esc)"
+                                aria-label={isPinned ? "Close tab" : "Go back"}
+                                title={isPinned ? "Close tab (Esc)" : "Go back (Esc)"}
                             >
-                                <Icon name="arrow_back" size={22} />
+                                <Icon name={isPinned ? "close" : "arrow_back"} size={22} />
                             </button>
-                            {canPin && onPinToggle && (
+                            {canPin && onPinToggle && !isPinned && (
                                 <button
-                                    className={`p-2 rounded-lg transition-colors shrink-0 mr-1 hidden lg:flex ${isPinned ? 'text-brand bg-brand/10' : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]'}`}
-                                    onClick={onPinToggle}
-                                    aria-label={isPinned ? "Unpin form" : "Pin form"}
-                                    title={isPinned ? "Unpin (detach)" : "Pin (detach)"}
+                                    className={`p-2 rounded-lg transition-colors shrink-0 mr-1 hidden lg:flex text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] ${isDirty ? 'opacity-30 cursor-not-allowed grayscale' : ''}`}
+                                    onClick={isDirty ? undefined : onPinToggle}
+                                    disabled={isDirty}
+                                    aria-label="Pin form"
+                                    title={isDirty ? "Cannot pin unsaved data" : "Pin (detach)"}
                                 >
-                                    <Icon name={isPinned ? "keep_off" : "keep"} size={20} />
+                                    <Icon name="keep" size={20} />
                                 </button>
                             )}
                         </div>

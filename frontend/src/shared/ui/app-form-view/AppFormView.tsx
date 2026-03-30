@@ -129,15 +129,17 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     const handleBack = useCallback(() => {
         if (isDirty) {
             setShowConfirmBack(true);
+        } else if (isPinned && pinId) {
+            unpin(pinId);
         } else {
             onCancel();
         }
-    }, [isDirty, onCancel]);
+    }, [isDirty, isPinned, pinId, unpin, onCancel]);
 
     useHotkeys([
         {
             key: 'Escape',
-            description: 'Back',
+            description: isPinned ? 'Close tab' : 'Back',
             handler: handleBack,
         },
         {
@@ -159,8 +161,20 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
 
     const handleDiscard = () => {
         setShowConfirmBack(false);
-        if (onDiscard) {
+        if (isPinned && pinId) {
+            unpin(pinId);
+        } else if (onDiscard) {
             onDiscard();
+        } else {
+            onCancel();
+        }
+    };
+
+    const handleConfirmSave = async () => {
+        setShowConfirmBack(false);
+        await onSave();
+        if (isPinned && pinId) {
+            unpin(pinId);
         } else {
             onCancel();
         }
@@ -259,11 +273,7 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                 <AppCompactModalForm
                     isOpen={showConfirmBack}
                     title="Unsaved Changes"
-                    onSubmit={async () => {
-                        setShowConfirmBack(false);
-                        await onSave();
-                        onCancel();
-                    }}
+                    onSubmit={handleConfirmSave}
                     onClose={() => setShowConfirmBack(false)}
                     onDiscard={handleDiscard}
                     submitLabel="Save Changes"

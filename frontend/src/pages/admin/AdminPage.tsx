@@ -251,6 +251,30 @@ export default function AdminPage() {
         });
     }, [activeTab, focus, handleIntercept]);
 
+    // Track pinned tabs for sidebar transition when the last tab is closed
+    const prevTabsRef = useRef(tabs);
+    useEffect(() => {
+        if (prevTabsRef.current.length > 0 && tabs.length === 0) {
+            const lastTab = prevTabsRef.current[0]; // If there was only one, it was at index 0
+            if (lastTab) {
+                const typeMap: Record<string, any> = {
+                    'node_types': 'nodes',
+                    'workflows': 'workflows',
+                    'schemas': 'schemas',
+                    'credentials': 'credentials',
+                    'reports': 'reports',
+                    'agent_hints': 'agent-hints',
+                    'users': 'users'
+                };
+                const targetTab = typeMap[lastTab.entityType];
+                if (targetTab && activeTab !== targetTab) {
+                    setActiveTab(targetTab);
+                }
+            }
+        }
+        prevTabsRef.current = tabs;
+    }, [tabs, activeTab, setActiveTab]);
+
     const [allNodes, setAllNodes] = useState<NodeType[]>([]);
 
     useEffect(() => {

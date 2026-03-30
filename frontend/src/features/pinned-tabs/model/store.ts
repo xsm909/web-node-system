@@ -56,11 +56,22 @@ export const usePinStore = create<PinnedTabsState>()(
 
             unpin: (id) => {
                 set((state) => {
+                    const tabIndex = state.tabs.findIndex(t => t.id === id);
+                    if (tabIndex === -1) return state;
+
                     const newTabs = state.tabs.filter((t) => t.id !== id);
                     let newActiveId = state.activeTabId;
+
                     if (state.activeTabId === id) {
-                        newActiveId = newTabs.length > 0 ? newTabs[newTabs.length - 1].id : null;
+                        if (newTabs.length === 0) {
+                            newActiveId = null;
+                        } else {
+                            // Pick neighbor: previous one, or if first, the new first one
+                            const nextIndex = Math.max(0, tabIndex - 1);
+                            newActiveId = newTabs[Math.min(nextIndex, newTabs.length - 1)].id;
+                        }
                     }
+
                     return {
                         tabs: newTabs,
                         activeTabId: newActiveId,
