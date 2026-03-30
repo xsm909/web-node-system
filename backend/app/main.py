@@ -113,6 +113,16 @@ async def lifespan(app: FastAPI):
         except:
             db.rollback()
 
+        # Migrations for workflow_executions
+        try:
+            if dialect == 'postgresql':
+                db.execute(text("ALTER TABLE workflow_executions ADD COLUMN IF NOT EXISTS graph JSONB;"))
+            else:
+                db.execute(text("ALTER TABLE workflow_executions ADD COLUMN graph JSON;"))
+            db.commit()
+        except:
+            db.rollback()
+
         # Project system migrations - Ensure project_id exists in relevant tables
         project_table_mapping = {
             'metadata': ['metadata', 'records'],

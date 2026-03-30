@@ -573,6 +573,7 @@ def test_parameter_source(data: SourceTestRequest, db: Session = Depends(get_db)
 class RunWorkflowRequest(BaseModel):
     target_client_id: Optional[uuid.UUID] = None
     parameters: Optional[Dict[str, Any]] = None
+    graph: Optional[Dict[str, Any]] = None
 
 
 @router.post("/workflows/{workflow_id}/run")
@@ -596,7 +597,8 @@ def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = No
     execution = WorkflowExecution(
         workflow_id=wf.id, 
         status=WorkflowStatus.pending,
-        runtime_data=runtime_data
+        runtime_data=runtime_data,
+        graph=data.graph if data and data.graph else None
     )
     db.add(execution)
     db.commit()

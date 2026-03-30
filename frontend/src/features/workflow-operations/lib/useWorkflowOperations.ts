@@ -184,18 +184,7 @@ export function useWorkflowOperations({
 
     const runWorkflow = async (onConsoleOpen: () => void, activeClientId?: string | null) => {
         if (!activeWorkflow) return;
-        try {
-            await saveWorkflow();
-        } catch (err: any) {
-            // If the user doesn't have permission to save (e.g. non-admin running common workflow),
-            // just continue to run the workflow as it is saved in the database
-            if (err?.response?.status !== 403) {
-                console.error("Failed to save workflow before running:", err);
-                // Optionally alert the user here if it's not a 403
-            } else {
-                console.warn("Could not save workflow before running (403 Forbidden). Proceeding with execution using existing backend state.");
-            }
-        }
+        
         setCurrentExecutionId(null);
         setIsRunning(true);
         setExecutionLogs([]);
@@ -204,11 +193,25 @@ export function useWorkflowOperations({
         onConsoleOpen();
 
         try {
+            // Decoupled from Save: Capture CURRENT graph state from Refs to run as a draft
+            const draftGraph = {
+                nodes: nodesRef.current,
+                edges: edgesRef.current
+            };
+
+            const parameters = (activeWorkflow.parameters || []).reduce((acc, p) => {
+                acc[p.parameter_name] = p.default_value;
+                return acc;
+            }, {} as Record<string, any>);
+
             const { data } = await apiClient.post(`/workflows/workflows/${activeWorkflow.id}/run`, {
-                target_client_id: activeClientId
+                target_client_id: activeClientId || null,
+                parameters: parameters,
+                graph: draftGraph
             });
             setCurrentExecutionId(data.execution_id);
-        } catch {
+        } catch (err) {
+            console.error("Failed to run workflow:", err);
             setIsRunning(false);
         }
     };

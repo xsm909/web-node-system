@@ -411,9 +411,48 @@ class WorkflowExecutor:
             else:
                 self.log(f"Starting execution with {len(workflow_params)} default parameters.", level="system")
 
-            graph = workflow.graph or {"nodes": [], "edges": []}
+            # Determine which graph to use: 
+            # 1. execution.graph (provided for this specific run) 
+            # 2. workflow.graph (fallback to master record)
+            graph = None
+            if self.execution.graph:
+                self.log("Using custom graph provided with execution request (Draft Run).", level="system")
+                graph = self.execution.graph
+            else:
+                self.log("Using master workflow graph from database.", level="system")
+                graph = workflow.graph or {"nodes": [], "edges": []}
+
             nodes = graph.get("nodes", [])
             edges = graph.get("edges", [])
+            
+            # Debug log counts
+            self.log(f"Graph Data: {len(nodes)} nodes, {len(edges)} edges.", level="system")
+            print(f"[DEBUG] Executor Nodes: {[n.get('id') for n in nodes[:10]]}")
+
+            # Topological Sort & Reachability check
+            # We only execute nodes reachable from the Start node
+            start_node = next((n for n in nodes if n.get("data", {}).get("label") == "Start"), None)
+            if not start_node:
+                self.log("Error: No 'Start' node found in workflow. Cannot execute.", level="error")
+                return
+
+            reachable: set = {start_node["id"]}
+            changed = True
+            while changed:
+                changed = False
+                for edge in edges:
+                    s = edge.get("source")
+                    t = edge.get("target")
+                    if s in reachable and t not in reachable:
+                        reachable.add(t)
+                        changed = True
+
+            self.log(f"Reachable Nodes: {len(reachable)} / {len(nodes)}", level="system")
+            print(f"[DEBUG] Reachable IDs: {list(reachable)}")
+            
+            # Filter nodes and edges to only reachable ones
+            nodes = [n for n in nodes if n["id"] in reachable]
+            edges = [e for e in edges if e.get("source") in reachable and e.get("target") in reachable]
 
             node_map = {n["id"]: n for n in nodes}
             

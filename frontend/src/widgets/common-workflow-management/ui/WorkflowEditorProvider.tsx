@@ -118,6 +118,7 @@ export const WorkflowEditorProvider: React.FC<{
 
     const nodesRef = useRef<Node[]>([]);
     const edgesRef = useRef<Edge[]>([]);
+    const lastInitializedIdRef = useRef<string | null>(null);
     const [workflowError, setWorkflowError] = useState<string | null>(null);
     const [isConsoleVisible, setIsConsoleVisible] = useState(false);
     const [renameInputValue, setRenameInputValue] = useState('');
@@ -139,30 +140,37 @@ export const WorkflowEditorProvider: React.FC<{
         edgesRef,
         onUpdateLocalWorkflow: setActiveWorkflow,
         onExecutionComplete: () => {
-             if (activeWorkflow) loadWorkflow(activeWorkflow);
+             // NO LOAD here - polling already gets the logs/status. 
+             // Fresh fetch would reset the UI to stale 'Saved' state.
         },
         isPinned
     });
 
     const isSaving = isCreatingWf || isSavingOps;
 
+    // Only INITIALIZE from backend data when ID changes. 
+    // Do NOT overwrite Ref during edits (graph changes but ID is same).
     useEffect(() => {
-        if (activeWorkflow?.graph) {
-            nodesRef.current = activeWorkflow.graph.nodes || [];
-            edgesRef.current = activeWorkflow.graph.edges || [];
+        if (activeWorkflow?.id && lastInitializedIdRef.current !== activeWorkflow.id) {
+            nodesRef.current = activeWorkflow.graph?.nodes || [];
+            edgesRef.current = activeWorkflow.graph?.edges || [];
+            lastInitializedIdRef.current = activeWorkflow.id;
+            console.log('[WorkflowEditorProvider] Initialized Ref from Workflow:', activeWorkflow.id);
         }
-    }, [activeWorkflow?.id, activeWorkflow?.graph]);
+    }, [activeWorkflow?.id]); // Only watch ID, not graph content
 
     const onNodesChange = useCallback((nodes: Node[]) => {
         if (!nodes) return;
         nodesRef.current = nodes;
-        notifyChange();
+        // Defer notification to avoid React "update during render" warning from child to parent
+        setTimeout(() => notifyChange(), 0);
     }, [notifyChange]);
 
     const onEdgesChange = useCallback((edges: Edge[]) => {
         if (!edges) return;
         edgesRef.current = edges;
-        notifyChange();
+        // Defer notification to avoid React "update during render" warning from child to parent
+        setTimeout(() => notifyChange(), 0);
     }, [notifyChange]);
 
     const activeClientId = useClientStore(s => s.activeClientId);

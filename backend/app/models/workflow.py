@@ -55,6 +55,7 @@ class WorkflowExecution(Base):
     result_summary = Column(Text, nullable=True)
     logs = Column(JSON, nullable=True, default=[])
     runtime_data = Column(JSON, nullable=True, default={})
+    graph = Column(JSON, nullable=True) # Graph executed at this point
     started_at = Column(DateTime(timezone=True), server_default=func.now())
     finished_at = Column(DateTime(timezone=True), nullable=True)
 
