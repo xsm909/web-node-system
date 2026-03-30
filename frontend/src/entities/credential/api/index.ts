@@ -12,7 +12,7 @@ export const useCredentials = (projectId?: string | null) => {
             } else if (projectId) {
                 config.headers = { 'X-Force-Project-Id': projectId };
             }
-            const response = await apiClient.get<Credential[]>('/credentials', config);
+            const response = await apiClient.get<Credential[]>('/admin/credentials', config);
             return response.data;
         },
     });
@@ -22,7 +22,7 @@ export const useCreateCredential = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (data: Partial<Credential>) => {
-            const response = await apiClient.post<Credential>('/credentials', data);
+            const response = await apiClient.post<Credential>('/admin/credentials', data);
             return response.data;
         },
         onSuccess: () => {
@@ -35,7 +35,7 @@ export const useUpdateCredential = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async ({ id, data }: { id: string, data: Partial<Credential> }) => {
-            const response = await apiClient.patch<Credential>(`/credentials/${id}`, data);
+            const response = await apiClient.put<Credential>(`/admin/credentials/${id}`, data);
             return response.data;
         },
         onSuccess: () => {
@@ -48,7 +48,7 @@ export const useDeleteCredential = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (id: string) => {
-            await apiClient.delete(`/credentials/${id}`);
+            await apiClient.delete(`/admin/credentials/${id}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['credentials'] });
