@@ -38,7 +38,8 @@ from ..internal_libs import prompt_lib
 from ..internal_libs import response_lib
 from ..internal_libs import charts
 from ..internal_libs.logger_lib import executor_logger
-from ..internal_libs.context_lib import execution_context
+from ..internal_libs.context_lib import execution_context, project_id_context, project_owner_context
+from ..models.project import Project
 from ..internal_libs.runtime_lib import (
     get_runtime_data as runtime_get_data,
     set_runtime_data as runtime_set_data,
@@ -374,6 +375,19 @@ class WorkflowExecutor:
             # Set the logger and execution context for this execution thread
             token = executor_logger.set(self.log)
             context_token = execution_context.set(str(self.execution_id))
+            
+            # Set project context if the workflow belongs to a project
+            p_id_token = None
+            p_owner_token = None
+            if workflow.project_id:
+                p_id_token = project_id_context.set(str(workflow.project_id))
+                project = self.db.query(Project).filter(Project.id == workflow.project_id).first()
+                if project:
+                    p_owner_token = project_owner_context.set(str(project.owner_id))
+            else:
+                # Explicitly clear project context if no project is associated
+                p_id_token = project_id_context.set(None)
+                p_owner_token = project_owner_context.set(None)
 
             self.execution.status = WorkflowStatus.running
             self.db.commit()
@@ -533,6 +547,10 @@ class WorkflowExecutor:
                 executor_logger.reset(token)
             if 'context_token' in locals():
                 execution_context.reset(context_token)
+            if 'p_id_token' in locals() and p_id_token:
+                project_id_context.reset(p_id_token)
+            if 'p_owner_token' in locals() and p_owner_token:
+                project_owner_context.reset(p_owner_token)
             self.db.close()
 
     def _run_execution_loop(self, nodes, edges, node_map, queue, triggered, waiting, outputs, manual_node_inputs: dict = None, allow_reexecution: bool = False):
