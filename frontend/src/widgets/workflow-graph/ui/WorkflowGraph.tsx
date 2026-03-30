@@ -24,6 +24,7 @@ import { StartNode } from '../../../entities/node-type/ui/StartNode';
 import { DefaultNode } from '../../../entities/node-type/ui/DefaultNode';
 import { AddNodeMenu } from '../../add-node-menu';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { useClipboardStore } from '../../../features/workflow-management/model/clipboardStore';
 
 const nodeTypesConfig = {
     start: StartNode,
@@ -46,6 +47,7 @@ interface WorkflowGraphProps {
     onNodeDoubleClickCallback?: (event: React.MouseEvent, node: Node) => void;
     onNodeSelectCallback?: (node: Node | null) => void;
     activeNodeIds?: string[];
+    isHotkeysEnabled?: boolean;
 }
 
 export const WorkflowGraph = React.memo(({
@@ -56,7 +58,8 @@ export const WorkflowGraph = React.memo(({
     onEdgesChangeCallback,
     onNodeDoubleClickCallback,
     onNodeSelectCallback,
-    activeNodeIds = []
+    activeNodeIds = [],
+    isHotkeysEnabled = true
 }: WorkflowGraphProps) => {
     // Instance-specific trackers
     const lastInitializedIdRef = useRef<string | null>(null);
@@ -72,7 +75,7 @@ export const WorkflowGraph = React.memo(({
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const { screenToFlowPosition, setCenter, fitView, setViewport } = useReactFlow();
     const mousePosition = useRef<XYPosition>({ x: 0, y: 0 });
-    const [clipboard, setClipboard] = useState<{ nodes: Node[], edges: Edge[], center: XYPosition } | null>(null);
+    const { nodes: clipboardNodes, edges: clipboardEdges, center: clipboardCenter, setClipboard } = useClipboardStore();
 
     const [menu, setMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
     const [addNodeMenu, setAddNodeMenu] = useState<{ x: number, y: number, clientX: number, clientY: number, connectionStart: OnConnectStartParams } | null>(null);
@@ -224,21 +227,21 @@ export const WorkflowGraph = React.memo(({
             y: minY + (maxY - minY) / 2,
         };
 
-        setClipboard({
-            nodes: selectedNodes.map(n => ({ ...n, selected: false })),
-            edges: selectedEdges.map(e => ({ ...e, selected: false })),
+        setClipboard(
+            selectedNodes.map(n => ({ ...n, selected: false })),
+            selectedEdges.map(e => ({ ...e, selected: false })),
             center,
-        });
-    }, [nodes, edges]);
+        );
+    }, [nodes, edges, setClipboard]);
 
     const handlePaste = useCallback((useMouse: boolean = true) => {
-        if (!clipboard) return;
+        if (!clipboardNodes || clipboardNodes.length === 0) return;
 
         let offset: XYPosition;
         if (useMouse) {
             offset = {
-                x: mousePosition.current.x - clipboard.center.x,
-                y: mousePosition.current.y - clipboard.center.y,
+                x: mousePosition.current.x - clipboardCenter.x,
+                y: mousePosition.current.y - clipboardCenter.y,
             };
         } else {
             offset = { x: 40, y: 40 };
@@ -246,7 +249,7 @@ export const WorkflowGraph = React.memo(({
 
         const nodeIdMap: Record<string, string> = {};
 
-        const newNodes = clipboard.nodes
+        const newNodes = (clipboardNodes as any[])
             .filter((node: any) => node.id !== 'node_start' && node.type !== 'start')
             .map((node: any) => {
                 const newId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -263,7 +266,7 @@ export const WorkflowGraph = React.memo(({
                 };
             });
 
-        const newEdges = clipboard.edges
+        const newEdges = (clipboardEdges as any[])
             .filter((edge: any) => nodeIdMap[edge.source] && nodeIdMap[edge.target])
             .map((edge: any) => ({
                 ...edge,
@@ -282,14 +285,17 @@ export const WorkflowGraph = React.memo(({
         // Notify parent of the new structure immediately
         if (onNodesChangeCallback) onNodesChangeCallback(finalNodes);
         if (onEdgesChangeCallback) onEdgesChangeCallback(finalEdges);
-    }, [clipboard, nodes, edges, setNodes, setEdges, onNodesChangeCallback, onEdgesChangeCallback]);
+    }, [clipboardNodes, clipboardEdges, clipboardCenter, nodes, edges, setNodes, setEdges, onNodesChangeCallback, onEdgesChangeCallback]);
 
     useHotkeys([
         { key: 'cmd+c', description: 'Copy Nodes', enabled: nodes.some(n => n.selected), handler: () => handleCopy() },
         { key: 'ctrl+c', description: 'Copy Nodes', enabled: nodes.some(n => n.selected), handler: () => handleCopy() },
-        { key: 'cmd+v', description: 'Paste Nodes', enabled: !!clipboard, handler: () => handlePaste() },
-        { key: 'ctrl+v', description: 'Paste Nodes', enabled: !!clipboard, handler: () => handlePaste() }
-    ], { scopeName: 'Workflow Graph' });
+        { key: 'cmd+v', description: 'Paste Nodes', enabled: clipboardNodes.length > 0, handler: () => handlePaste() },
+        { key: 'ctrl+v', description: 'Paste Nodes', enabled: clipboardNodes.length > 0, handler: () => handlePaste() }
+    ], { 
+        scopeName: 'Workflow Graph',
+        enabled: isHotkeysEnabled && !isReadOnly
+    });
 
     const onMouseMove = useCallback((event: React.MouseEvent) => {
         const position = screenToFlowPosition({
@@ -736,7 +742,7 @@ export const WorkflowGraph = React.memo(({
                             </button>
                             <button
                                 onClick={() => handlePaste(false)}
-                                disabled={!clipboard}
+                                disabled={clipboardNodes.length === 0}
                                 className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 text-[var(--text-muted)] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
                                 title="Paste nodes nearby"
                             >
