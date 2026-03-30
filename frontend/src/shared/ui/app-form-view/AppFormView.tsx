@@ -100,12 +100,20 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
         }
     }, [isPinned, pinId, entityType, entityId, title, icon, pin, unpin, projectId]);
 
+    // Memoize metadata to ensure updateTab only finds changes when they're real
+    const tabMetadata = React.useMemo(() => ({
+        isDirty,
+        title,
+        icon,
+        projectId
+    }), [isDirty, title, icon, projectId]);
+
     // Update pinned tab state (sync with current component props)
     React.useEffect(() => {
         if (pinId && isPinned) {
-            updateTab(pinId, { isDirty, title, icon, projectId });
+            updateTab(pinId, tabMetadata);
         }
-    }, [isDirty, isPinned, pinId, updateTab, title, icon, projectId]);
+    }, [isPinned, pinId, updateTab, tabMetadata]);
 
     // Register this form with the navigation guard
     useRegisterBlocker(

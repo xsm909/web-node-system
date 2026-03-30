@@ -403,7 +403,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
                     allowedShortcuts={['f1', 'f4', 'f5', 'f9']}
                     entityId={selectedReport?.id}
                     entityType="reports"
-                    projectId={selectedReport?.project_id || projectId}
+                    projectId={selectedReport ? selectedReport.project_id : projectId}
                     isLocked={selectedReport?.is_locked}
                     onLockToggle={(locked) => {
                         setSelectedReport(prev => prev ? { ...prev, is_locked: locked } : null);

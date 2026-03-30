@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { WorkflowList } from '../../workflow-list';
 import { useWorkflowEditor } from './WorkflowEditorProvider';
 import { useNavigator } from '../../../shared/ui/navigator';
@@ -8,7 +8,6 @@ import { usePinnedNavigation } from '../../../features/pinned-tabs/lib/usePinned
 export const WorkflowListTab = () => {
     const {
         workflows,
-        activeWorkflow,
         handleCreateWorkflow,
         handleDuplicateWorkflow,
         setActiveWorkflow,
@@ -26,6 +25,7 @@ export const WorkflowListTab = () => {
     const { openOrFocus } = usePinnedNavigation();
 
     const handleSelectWorkflow = useCallback((wf: any) => {
+        if (!wf?.id) return;
         loadWorkflow(wf);
         nav.push(
             <WorkflowEditorView
@@ -36,12 +36,6 @@ export const WorkflowListTab = () => {
             />
         );
     }, [loadWorkflow, nav, setActiveWorkflow]);
-
-    useEffect(() => {
-        if (activeWorkflow && !nav.canGoBack) {
-            handleSelectWorkflow(activeWorkflow);
-        }
-    }, [nav.canGoBack, handleSelectWorkflow, activeWorkflow]);
 
     return (
         <WorkflowList

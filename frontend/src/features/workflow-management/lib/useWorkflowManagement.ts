@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { apiClient } from '../../../shared/api/client';
 import { useAuthStore } from '../../auth/store';
 import type { AssignedUser } from '../../../entities/user/model/types';
@@ -8,18 +8,23 @@ import { useClientStore } from '../model/clientStore';
 import { useProjectStore } from '../../projects/store';
 
 export function useWorkflowManagement(refreshTrigger?: number, projectId?: string | null) {
-    const { user: currentUser } = useAuthStore();
-    const { activeClientId, setAssignedUsers } = useClientStore();
+    // Atomic Selectors for stability
+    const currentUser = useAuthStore(s => s.user);
+    const activeClientId = useClientStore(s => s.activeClientId);
+    const setAssignedUsers = useClientStore(s => s.setAssignedUsers);
+    
+    const baseProject = useProjectStore(s => s.baseProject);
+    const isBaseProjectMode = useProjectStore(s => s.isBaseProjectMode);
+    const activeProject = useProjectStore(s => s.activeProject);
+    const isProjectMode = useProjectStore(s => s.isProjectMode);
+
     const [assignedUsers, setAssignedUsersState] = useState<AssignedUser[]>([]);
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
     const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
     const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
-    const { baseProject, isBaseProjectMode, activeProject, isProjectMode } = useProjectStore();
     
     // Determine the effective context for this hook instance.
-    // Explicit projectId prop takes precedence (Pinned Tabs).
-    // If undefined, we use the stable sidebar selection (baseProject).
-    const effectiveProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null);
+    const effectiveProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? (baseProject?.id || null) : null);
     const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isBaseProjectMode;
 
     const [isCreating, setIsCreating] = useState(false);
@@ -27,84 +32,83 @@ export function useWorkflowManagement(refreshTrigger?: number, projectId?: strin
     const [workflowToRename, setWorkflowToRename] = useState<Workflow | null>(null);
     const [workflowError, setWorkflowError] = useState<string | null>(null);
 
-    // Auto-close workflow if it doesn't belong to the active context (client or current user or current project)
+    // Auto-close workflow if it doesn't belong to the active context
     useEffect(() => {
         if (activeWorkflow) {
             const isPersonal = activeWorkflow.owner_id === currentUser?.id;
             const belongsToActiveClient = activeClientId && activeWorkflow.owner_id === activeClientId;
-            // Use effective context to check project membership
             const belongsToActiveProject = effectiveIsProjectMode && effectiveProjectId && activeWorkflow.project_id === effectiveProjectId;
 
             if (!isPersonal && !belongsToActiveClient && !belongsToActiveProject) {
-                // Only close if we are sure it doesn't belong to the effective context
                 setActiveWorkflow(null);
             }
         }
     }, [activeClientId, activeWorkflow, currentUser?.id, effectiveIsProjectMode, effectiveProjectId]);
 
-    useEffect(() => {
-        const init = async () => {
-            try {
-                // Clear state when switching project/mode to ensure isolation
-                setWorkflows([]);
-                setActiveWorkflow(null);
-                
-                const headers: Record<string, string> = {};
-                // Determine target project for headers. 
-                // Explicit projectId prop takes precedence.
-                // If undefined, use stable baseProject.
-                const targetProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null);
-                
-                if (targetProjectId) {
-                    headers['X-Force-Project-Id'] = targetProjectId;
-                } else if (projectId === null || (!isBaseProjectMode && projectId === undefined)) {
-                    headers['X-Project-Skip'] = 'true';
-                }
+    const lastLoadedContextRef = useRef<{ id: string | null, isProjectMode: boolean } | null>(null);
 
-                const [nodeTypesRes, usersRes] = await Promise.all([
-                    apiClient.get(`/workflows/node-types?t=${Date.now()}`, { headers }),
-                    apiClient.get('/workflows/users', { headers })
-                ]);
-                
-                setNodeTypes(nodeTypesRes.data);
-                const users = usersRes.data;
-                setAssignedUsersState(users); // Keep this to update local state
-                setAssignedUsers(users);
+    const init = useCallback(async () => {
+        if (lastLoadedContextRef.current?.id === effectiveProjectId && 
+            lastLoadedContextRef.current?.isProjectMode === effectiveIsProjectMode) {
+            return;
+        }
+        
+        lastLoadedContextRef.current = { id: effectiveProjectId, isProjectMode: effectiveIsProjectMode };
 
-                // Collect all workflows locally to avoid race conditions with multiple setWorkflows
-                let allWfs: Workflow[] = [];
-
-                // 2. Load workflows for current user
-                if (currentUser?.id) {
-                    try {
-                        const myWfsRes = await apiClient.get(`/workflows/users/${currentUser.id.toLowerCase()}/workflows`, { headers });
-                        allWfs = [...allWfs, ...myWfsRes.data];
-                    } catch (e) {
-                        console.error(`Failed to load workflows for user ${currentUser.id}`, e);
-                    }
-                }
-
-                // 3. Load workflows for clients
-                // Use Promise.all to load concurrently but merge correctly
-                const clientPromises = users
-                    .filter((u: AssignedUser) => u.id.toLowerCase() !== currentUser?.id?.toLowerCase())
-                    .map((u: AssignedUser) => apiClient.get(`/workflows/users/${u.id.toLowerCase()}/workflows`, { headers }).catch(() => ({ data: [] })));
-                
-                const clientResults = await Promise.all(clientPromises);
-                clientResults.forEach((res: any) => {
-                    allWfs = [...allWfs, ...res.data];
-                });
-
-                setWorkflows(allWfs);
-            } catch (e) {
-                console.error("Initialization failed", e);
+        try {
+            setWorkflows([]);
+            setActiveWorkflow(null);
+            
+            const headers: Record<string, string> = {};
+            const targetProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? (baseProject?.id || null) : null);
+            
+            if (targetProjectId) {
+                headers['X-Force-Project-Id'] = targetProjectId;
+            } else if (projectId === null || (!isBaseProjectMode && projectId === undefined)) {
+                headers['X-Project-Skip'] = 'true';
             }
-        };
 
+            const [nodeTypesRes, usersRes] = await Promise.all([
+                apiClient.get(`/workflows/node-types?t=${Date.now()}`, { headers }),
+                apiClient.get('/workflows/users', { headers })
+            ]);
+            
+            setNodeTypes(nodeTypesRes.data);
+            const users = usersRes.data;
+            setAssignedUsersState(users);
+            setAssignedUsers(users);
+
+            let allWfs: Workflow[] = [];
+
+            if (currentUser?.id) {
+                try {
+                    const myWfsRes = await apiClient.get(`/workflows/users/${currentUser.id.toLowerCase()}/workflows`, { headers });
+                    allWfs = [...allWfs, ...myWfsRes.data];
+                } catch (e) {
+                    console.error(`Failed to load workflows for user ${currentUser.id}`, e);
+                }
+            }
+
+            const clientPromises = users
+                .filter((u: AssignedUser) => u.id.toLowerCase() !== currentUser?.id?.toLowerCase())
+                .map((u: AssignedUser) => apiClient.get(`/workflows/users/${u.id.toLowerCase()}/workflows`, { headers }).catch(() => ({ data: [] })));
+            
+            const clientResults = await Promise.all(clientPromises);
+            clientResults.forEach((res: any) => {
+                allWfs = [...allWfs, ...res.data];
+            });
+
+            setWorkflows(allWfs);
+        } catch (e) {
+            console.error("Initialization failed", e);
+        }
+    }, [effectiveProjectId, effectiveIsProjectMode, projectId, isBaseProjectMode, baseProject?.id, currentUser?.id, setAssignedUsers]);
+
+    useEffect(() => {
         if (currentUser?.id) {
             init();
         }
-    }, [currentUser?.id, setAssignedUsers, effectiveIsProjectMode, effectiveProjectId]);
+    }, [currentUser?.id, init]);
 
     useEffect(() => {
         if (refreshTrigger !== undefined && refreshTrigger > 0) {
@@ -112,7 +116,7 @@ export function useWorkflowManagement(refreshTrigger?: number, projectId?: strin
         }
     }, [refreshTrigger]);
 
-    const loadWorkflow = async (wf: Workflow) => {
+    const loadWorkflow = useCallback(async (wf: Workflow) => {
         try {
             const r = await apiClient.get(`/workflows/workflows/${wf.id}`);
             setActiveWorkflow(r.data);
@@ -123,9 +127,9 @@ export function useWorkflowManagement(refreshTrigger?: number, projectId?: strin
             alert(`❌ Failed to load workflow "${wf.name}"\n\n${typeof detail === 'string' ? detail : JSON.stringify(detail)}`);
             throw err;
         }
-    };
+    }, [setActiveWorkflow]);
 
-    const handleCreateWorkflow = async (name: string, category: string = 'general', project_id?: string | null, owner_id?: string | null) => {
+    const handleCreateWorkflow = useCallback(async (name: string, category: string = 'general', project_id?: string | null, owner_id?: string | null) => {
         if (!currentUser?.id) return;
 
         setIsCreating(true);
@@ -144,9 +148,9 @@ export function useWorkflowManagement(refreshTrigger?: number, projectId?: strin
         } finally {
             setIsCreating(false);
         }
-    };
+    }, [currentUser?.id, isProjectMode, activeProject?.owner_id, activeProject?.id, activeClientId, projectId, loadWorkflow]);
 
-    const confirmDeleteWorkflow = async () => {
+    const confirmDeleteWorkflow = useCallback(async () => {
         if (!workflowToDelete) return;
 
         try {
@@ -164,22 +168,20 @@ export function useWorkflowManagement(refreshTrigger?: number, projectId?: strin
             setWorkflowError(typeof detail === 'string' ? detail : JSON.stringify(detail));
             console.error('Failed to delete workflow', error);
         }
-    };
+    }, [workflowToDelete, activeWorkflow?.id, setActiveWorkflow]);
 
-    const handleDuplicateWorkflow = async (workflowId: string) => {
+    const handleDuplicateWorkflow = useCallback(async (workflowId: string) => {
         try {
             const { data } = await apiClient.post(`/workflows/workflows/${workflowId}/duplicate`);
-            
             setWorkflows((prev) => [...prev, data]);
-            
             return data;
         } catch (error) {
             console.error('Failed to duplicate workflow', error);
             throw error;
         }
-    };
+    }, []);
 
-    const handleRenameWorkflow = async (workflowId: string, newName: string, newCategory?: string) => {
+    const handleRenameWorkflow = useCallback(async (workflowId: string, newName: string, newCategory?: string) => {
         if (!newName.trim()) return;
         try {
             setWorkflowError(null);
@@ -201,9 +203,9 @@ export function useWorkflowManagement(refreshTrigger?: number, projectId?: strin
             setWorkflowError(typeof detail === 'string' ? detail : JSON.stringify(detail));
             console.error('Failed to rename workflow', error);
         }
-    };
+    }, [activeWorkflow?.id, setActiveWorkflow]);
 
-    return {
+    return useMemo(() => ({
         assignedUsers,
         workflows,
         activeWorkflow,
@@ -222,6 +224,12 @@ export function useWorkflowManagement(refreshTrigger?: number, projectId?: strin
         handleDuplicateWorkflow,
         handleRenameWorkflow,
         setActiveWorkflow,
-        setWorkflows
-    };
+        setWorkflows,
+        activeProjectId: effectiveProjectId
+    }), [
+        assignedUsers, workflows, activeWorkflow, nodeTypes, isCreating, 
+        workflowToDelete, workflowToRename, workflowError, currentUser,
+        loadWorkflow, handleCreateWorkflow, confirmDeleteWorkflow,
+        handleDuplicateWorkflow, handleRenameWorkflow, effectiveProjectId
+    ]);
 }

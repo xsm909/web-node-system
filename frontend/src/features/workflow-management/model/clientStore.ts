@@ -8,9 +8,18 @@ interface ClientState {
     setAssignedUsers: (users: AssignedUser[]) => void;
 }
 
-export const useClientStore = create<ClientState>((set) => ({
+export const useClientStore = create<ClientState>((set, get) => ({
     activeClientId: null,
     assignedUsers: [],
-    setActiveClientId: (id) => set({ activeClientId: id }),
-    setAssignedUsers: (users) => set({ assignedUsers: users }),
+    setActiveClientId: (id) => {
+        if (get().activeClientId === id) return;
+        set({ activeClientId: id });
+    },
+    setAssignedUsers: (users) => {
+        const current = get().assignedUsers;
+        if (current.length === users.length && JSON.stringify(current) === JSON.stringify(users)) {
+            return;
+        }
+        set({ assignedUsers: users });
+    },
 }));

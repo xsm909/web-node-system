@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { apiClient } from '../../../shared/api/client';
 import type { NodeType } from '../../../entities/node-type/model/types';
 
@@ -40,12 +40,12 @@ export function useNodeTypeManagement() {
         setIsModalOpen(true);
     };
 
-    return {
+    return useMemo(() => ({
         isModalOpen,
         setIsModalOpen,
         editingNode,
         handleOpenModal,
         handleDuplicateNode,
         handleSave
-    };
+    }), [isModalOpen, setIsModalOpen, editingNode]);
 }

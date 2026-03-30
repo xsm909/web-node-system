@@ -62,19 +62,35 @@ export const useProjectStore = create<ProjectState>()(
             },
 
             setPinnedContext: (project) => {
+                const current = get().activeProject;
+                const currentMode = get().isProjectMode;
+                
                 if (project === undefined) {
                     // Restore to base context
                     const base = get().baseProject;
+                    const baseMode = get().isBaseProjectMode;
+                    
+                    if (current?.id === base?.id && currentMode === baseMode) {
+                        return; // No change
+                    }
+                    
                     set({ 
                         activeProject: base, 
-                        isProjectMode: !!base 
+                        isProjectMode: baseMode 
                     });
                     updateThemeColors(base?.theme_color || null);
                 } else {
+                    const nextMode = !!project;
+                    
+                    // Avoid redundant updates
+                    if (current?.id === project?.id && currentMode === nextMode) {
+                        return;
+                    }
+                    
                     // Temporarily override with specific project or null (global)
                     set({ 
                         activeProject: project, 
-                        isProjectMode: !!project 
+                        isProjectMode: nextMode 
                     });
                     updateThemeColors(project?.theme_color || null);
                 }

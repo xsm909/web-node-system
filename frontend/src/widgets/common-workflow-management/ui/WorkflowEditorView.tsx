@@ -19,9 +19,10 @@ import type { ObjectParameter } from '../../../entities/report/model/types';
 
 interface WorkflowEditorViewProps {
     onBack: () => void;
+    isInitialScene?: boolean;
 }
 
-export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }) => {
+export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, isInitialScene }) => {
     const {
         activeWorkflow,
         nodeTypes,
@@ -237,7 +238,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
             icon="workflow"
             isDirty={isDirty}
             onSave={saveWorkflow}
-            onCancel={onBack}
+            onCancel={isInitialScene ? (() => {}) : onBack}
             isSaving={isSaving}
             saveLabel="Save Workflow"
             allowedShortcuts={['cmd+c', 'ctrl+c', 'cmd+v', 'ctrl+v', 'f5', 'f2']}
@@ -273,7 +274,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
                                 <WorkflowGraph
                                     workflow={activeWorkflow}
                                     nodeTypes={nodeTypes}
-                                    isReadOnly={activeWorkflow.is_locked}
+                                    isReadOnly={activeWorkflow?.is_locked}
                                     onNodesChangeCallback={onNodesChange}
                                     onEdgesChangeCallback={onEdgesChange}
                                     onNodeDoubleClickCallback={onEditNode}
@@ -297,7 +298,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
                                     nodeTypes={nodeTypes}
                                     onChange={handleParamsChange}
                                     workflowParameters={activeWorkflow?.parameters || []}
-                                    isLocked={activeWorkflow.is_locked}
+                                    isLocked={activeWorkflow?.is_locked}
                                     onBack={() => {
                                         setSelectedNode(null);
                                         setIsParamsExpanded(false);
@@ -312,9 +313,12 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
                                                 parameter={param}
                                                 value={param.default_value || ''}
                                                 onChange={(val) => {
-                                                    const newParams = [...activeWorkflow.parameters];
-                                                    newParams[pIdx] = { ...newParams[pIdx], default_value: val };
-                                                    setActiveWorkflow({ ...activeWorkflow, parameters: newParams });
+                                                    setActiveWorkflow((prev: any) => {
+                                                        if (!prev) return prev;
+                                                        const newParams = [...prev.parameters];
+                                                        newParams[pIdx] = { ...newParams[pIdx], default_value: val };
+                                                        return { ...prev, parameters: newParams };
+                                                    });
                                                     notifyChange();
                                                 }}
                                                 options={paramOptions[param.parameter_name] || []}
@@ -338,7 +342,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
                             title="Workflow Parameters"
                             onClose={() => setIsParametersModalOpen(false)}
                             onSubmit={() => {
-                                setActiveWorkflow({ ...activeWorkflow, parameters: modalParams });
+                                setActiveWorkflow({ ...activeWorkflow!, parameters: modalParams });
                                 notifyChange();
                                 setIsParametersModalOpen(false);
                             }}
@@ -348,7 +352,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack }
                                 parameters={modalParams}
                                 onChange={setModalParams}
                                 options={paramOptions}
-                                isLocked={activeWorkflow.is_locked}
+                                isLocked={activeWorkflow?.is_locked}
                                 renderHeaderActions={() => (
                                     <ParameterPresetSelector 
                                         onLoad={(param) => setModalParams([...modalParams, param])} 

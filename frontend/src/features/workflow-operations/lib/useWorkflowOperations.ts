@@ -206,7 +206,7 @@ export function useWorkflowOperations({
         }
     };
 
-    return {
+    return useMemo(() => ({
         saveWorkflow,
         runWorkflow,
         isRunning,
@@ -216,6 +216,9 @@ export function useWorkflowOperations({
         setLiveRuntimeData,
         activeNodeIds,
         isDirty,
-        notifyChange: useCallback(() => setChangeNonce(n => n + 1), [])
-    };
+        notifyChange: () => setChangeNonce(n => n + 1)
+    }), [
+        saveWorkflow, runWorkflow, isRunning, isSaving, executionLogs, 
+        liveRuntimeData, activeNodeIds, isDirty
+    ]);
 }

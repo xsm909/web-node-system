@@ -1,6 +1,8 @@
+import React from 'react';
 import { Navigator } from '../../shared/ui/navigator';
 import { WorkflowEditorProvider } from './ui/WorkflowEditorProvider';
 import { WorkflowListTab } from './ui/WorkflowListTab';
+import { WorkflowEditorView } from './ui/WorkflowEditorView';
 import { WorkflowModals } from './ui/WorkflowModals';
 import type { NodeType } from '../../entities/node-type/model/types';
 
@@ -24,6 +26,13 @@ export function WorkflowManagement({
     isHotkeysEnabled
 }: WorkflowManagementProps) {
 
+    const initialScene = React.useMemo(() => {
+        if (activeWorkflowId) {
+            return <WorkflowEditorView isInitialScene onBack={() => { }} />;
+        }
+        return <WorkflowListTab />;
+    }, [activeWorkflowId, onEditNode, refreshTrigger, onToggleSidebar, isSidebarOpen]);
+
     return (
         <WorkflowEditorProvider
             onToggleSidebar={onToggleSidebar}
@@ -36,7 +45,7 @@ export function WorkflowManagement({
         >
             <div className="flex-1 flex flex-col min-w-0 relative h-full">
                 <Navigator
-                    initialScene={<WorkflowListTab />}
+                    initialScene={initialScene}
                 />
                 
                 <WorkflowModals />

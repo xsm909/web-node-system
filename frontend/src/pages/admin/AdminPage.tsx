@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { AppSidebar } from '../../widgets/app-sidebar';
 import { UserManagement } from '../../widgets/user-management';
 import { NodeLibraryManagement } from '../../widgets/node-library-management';
@@ -23,8 +23,9 @@ import { PinnedTabsTray } from '../../widgets/pinned-tabs-tray/ui/PinnedTabsTray
 import { PinnedFormRouter } from '../../widgets/pinned-tabs-tray/ui/PinnedFormRouter';
 import { usePinStore } from '../../features/pinned-tabs/model/store';
 import { usePinnedNavigation } from '../../features/pinned-tabs/lib/usePinnedCheck';
+import type { Project } from '../../entities/project/model/types';
 
-const WorkflowsTabWithNavigator = ({
+const WorkflowsTabWithNavigator = React.memo(({
     refreshCount,
     isSidebarOpen,
     setIsSidebarOpen,
@@ -39,23 +40,25 @@ const WorkflowsTabWithNavigator = ({
         handleOpenModal: prepareNodeEdit,
     } = useNodeTypeManagement();
 
-    const handleEditNode = (node: NodeType) => {
+    const handleEditNode = React.useCallback((node: NodeType) => {
         // This is called when double-clicking a node in the graph
         prepareNodeEdit(node);
         onEditNode(node);
-    };
+    }, [prepareNodeEdit, onEditNode]);
+
+    const onToggleSidebar = React.useCallback(() => setIsSidebarOpen(true), [setIsSidebarOpen]);
 
     return (
         <WorkflowManagement
-            onToggleSidebar={() => setIsSidebarOpen(true)}
+            onToggleSidebar={onToggleSidebar}
             isSidebarOpen={isSidebarOpen}
             onEditNode={handleEditNode}
             refreshTrigger={refreshCount}
         />
     );
-};
+});
 
-const NodesTabWithNavigator = ({
+const NodesTabWithNavigator = React.memo(({
     setRefreshCount,
     allNodes,
     isSidebarOpen,
@@ -75,7 +78,7 @@ const NodesTabWithNavigator = ({
         handleSave
     } = useNodeTypeManagement();
 
-    const handleEditNode = (node?: NodeType) => {
+    const handleEditNode = React.useCallback((node?: NodeType) => {
         const doOpen = () => {
             prepareNodeEdit(node || undefined);
             nav.push(
@@ -84,10 +87,10 @@ const NodesTabWithNavigator = ({
                     editingNode={node || null}
                     onSave={(data) => {
                         return handleSave(data, data.id || node?.id, () => {
-                            setRefreshCount(r => r + 1);
+                            setRefreshCount((r: number) => r + 1);
                         });
                     }}
-                    onRefresh={() => setRefreshCount(r => r + 1)}
+                    onRefresh={() => setRefreshCount((r: number) => r + 1)}
                     allNodes={allNodes}
                 />
             );
@@ -98,9 +101,9 @@ const NodesTabWithNavigator = ({
         } else {
             doOpen();
         }
-    };
+    }, [prepareNodeEdit, nav, handleSave, setRefreshCount, allNodes, openOrFocus]);
 
-    const handleDuplicateNode = (node: NodeType) => {
+    const handleDuplicateNode = React.useCallback((node: NodeType) => {
         prepareNodeDuplicate(node);
         nav.push(
             <NodeTypeFormView
@@ -116,7 +119,9 @@ const NodesTabWithNavigator = ({
                 allNodes={allNodes}
             />
         );
-    };
+    }, [prepareNodeDuplicate, nav, handleSave, setRefreshCount, allNodes]);
+
+    const onToggleSidebar = React.useCallback(() => setIsSidebarOpen(true), [setIsSidebarOpen]);
 
     return (
         <NodeLibraryManagement
@@ -124,23 +129,17 @@ const NodesTabWithNavigator = ({
             onEditNode={handleEditNode}
             onDuplicateNode={handleDuplicateNode}
             onDelete={() => setRefreshCount(r => r + 1)}
-            onToggleSidebar={() => setIsSidebarOpen(true)}
+            onToggleSidebar={onToggleSidebar}
             isSidebarOpen={isSidebarOpen}
         />
     );
-};
-
-
-
-
+});
 
 export default function AdminPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [activeTab, setActiveTabState] = useState<'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints'>(
         (getCookie('active_admin_tab') as 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') || 'users'
     );
-
-    const { focus, activeTabId } = usePinStore();
 
     const [refreshCount, setRefreshCount] = useState(0);
     const [resetNonce, setResetNonce] = useState(0);
@@ -161,35 +160,63 @@ export default function AdminPage() {
         handleSave: handleNodeSave
     } = useNodeTypeManagement();
 
-    const { setPinnedContext } = useProjectStore();
-    const { data: projects = [] } = useProjects();
+    // Use selectors to avoid unnecessary re-renders when other parts of the store change
+    const setPinnedContext = useProjectStore(s => s.setPinnedContext);
+    const activeProjectInStore = useProjectStore(s => s.activeProject);
+    const isProjectModeInStore = useProjectStore(s => s.isProjectMode);
+    const baseProject = useProjectStore(s => s.baseProject);
+    const isBaseProjectMode = useProjectStore(s => s.isBaseProjectMode);
+
+    const activeTabId = usePinStore(s => s.activeTabId);
     const tabs = usePinStore(s => s.tabs);
+    const focus = usePinStore(s => s.focus);
+
+    const { data: projectsRaw = [] } = useProjects();
+    const projects = useMemo(() => projectsRaw, [projectsRaw]);
+
+    const activePinnedTab = useMemo(() => 
+        tabs.find(t => t.id === activeTabId) || null
+    , [tabs, activeTabId]);
+
+    const targetProject = useMemo(() => {
+        if (!activePinnedTab) return undefined; // undefined means "restore to base"
+        
+        if (!activePinnedTab.projectId) return null; // null means "global mode"
+        
+        const found = projects.find(p => p.id === activePinnedTab.projectId);
+        if (found) return found;
+
+        // Loading fallback: stable object for the same ID
+        return { 
+            id: activePinnedTab.projectId, 
+            name: 'Loading...', 
+            theme_color: null 
+        } as Project;
+    }, [activePinnedTab, projects]);
 
     // Sync Pinned Context (Shadowing)
     useEffect(() => {
-        if (!activeTabId) {
-            setPinnedContext(undefined);
+        // Only update if different from current active state in store to prevent infinite loops
+        const isCurrentlyGlobal = !isProjectModeInStore;
+        const wantGlobal = targetProject === null;
+        const wantRestore = targetProject === undefined;
+        
+        if (wantRestore) {
+            if (activeProjectInStore?.id !== baseProject?.id || isProjectModeInStore !== isBaseProjectMode) {
+                setPinnedContext(undefined);
+            }
             return;
         }
 
-        const activeTab = tabs.find(t => t.id === activeTabId);
-        if (!activeTab) return;
+        const projectChanged = activeProjectInStore?.id !== targetProject?.id;
+        const modeChanged = isCurrentlyGlobal !== wantGlobal;
 
-        if (activeTab.projectId) {
-            const project = projects.find(p => p.id === activeTab.projectId);
-            if (project) {
-                setPinnedContext(project);
-            } else if (projects.length > 0) {
-                // Project not found in current list but we are in project mode
-                setPinnedContext(null);
-            }
-        } else {
-            // Global Mode for global tabs
-            setPinnedContext(null);
+        if (projectChanged || modeChanged) {
+            setPinnedContext(targetProject);
         }
-    }, [activeTabId, tabs, projects, setPinnedContext]);
+    }, [targetProject, setPinnedContext, activeProjectInStore, isProjectModeInStore, baseProject?.id, isBaseProjectMode]);
 
-    const setActiveTab = (tab: 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') => {
+    const setActiveTab = useCallback((tab: 'users' | 'nodes' | 'schemas' | 'credentials' | 'workflows' | 'ai-tasks' | 'reports' | 'agent-hints') => {
         handleIntercept(() => {
             // Deactivate pinned tab when clicking sidebar
             focus(null);
@@ -200,12 +227,60 @@ export default function AdminPage() {
             setCookie('active_admin_tab', tab);
             setActiveTabState(tab);
         });
-    };
+    }, [activeTab, focus, handleIntercept]);
+
     const [allNodes, setAllNodes] = useState<NodeType[]>([]);
 
     useEffect(() => {
         apiClient.get(`/admin/node-types?t=${Date.now()}`).then(({ data }) => setAllNodes(data)).catch(() => { });
     }, [refreshCount]);
+
+    const toggleSidebar = useCallback(() => setIsSidebarOpen(true), []);
+    const closeSidebar = useCallback(() => setIsSidebarOpen(false), []);
+    const setEditingNode = useCallback((node: NodeType) => setEditingNodeForModal(node), []);
+
+    // Memoize the initial scenes to ensure the Navigator doesn't restart its stack
+    const nodesScene = useMemo(() => (
+        <NodesTabWithNavigator
+            setRefreshCount={setRefreshCount}
+            allNodes={allNodes}
+            isSidebarOpen={isSidebarOpen}
+            setIsSidebarOpen={setIsSidebarOpen}
+        />
+    ), [allNodes, isSidebarOpen, setIsSidebarOpen]);
+
+    const workflowsScene = useMemo(() => (
+        <WorkflowsTabWithNavigator
+            refreshCount={refreshCount}
+            isSidebarOpen={isSidebarOpen}
+            setIsSidebarOpen={setIsSidebarOpen}
+            onEditNode={setEditingNode}
+        />
+    ), [refreshCount, isSidebarOpen, setIsSidebarOpen, setEditingNode]);
+
+    const usersScene = useMemo(() => (
+        <UserManagement onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+    ), [toggleSidebar, isSidebarOpen]);
+
+    const schemasScene = useMemo(() => (
+        <SchemaManagement onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+    ), [toggleSidebar, isSidebarOpen]);
+
+    const reportsScene = useMemo(() => (
+        <ReportManagement onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+    ), [toggleSidebar, isSidebarOpen]);
+
+    const agentHintsScene = useMemo(() => (
+        <AgentHintManagement onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+    ), [toggleSidebar, isSidebarOpen]);
+
+    const credentialsScene = useMemo(() => (
+        <CredentialManagement onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+    ), [toggleSidebar, isSidebarOpen]);
+
+    const aiTasksScene = useMemo(() => (
+        <AITaskManagement activeClientId={null} onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+    ), [toggleSidebar, isSidebarOpen]);
 
     return (
         <div className="flex h-screen bg-surface-900 text-[var(--text-main)] font-sans overflow-hidden">
@@ -213,7 +288,7 @@ export default function AdminPage() {
                 title="Workflow Engine"
                 headerIcon="bolt"
                 isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
+                onClose={closeSidebar}
                 navItems={[
                     { id: 'users', label: 'Users', icon: 'user', isActive: activeTab === 'users', onClick: () => setActiveTab('users') },
                     { id: 'credentials', label: 'Credentials', icon: 'verified', isActive: activeTab === 'credentials', onClick: () => setActiveTab('credentials') },
@@ -228,48 +303,34 @@ export default function AdminPage() {
             <main className="flex-1 flex flex-row min-w-0 overflow-hidden bg-[var(--bg-app)]">
                 <div className="flex-1 flex flex-col min-h-0 w-full relative">
                     {/* Pinned Tabs Layer */}
-                    <div className={`absolute inset-0 z-10 bg-[var(--bg-app)] flex flex-col overflow-hidden ${activeTabId ? '' : 'hidden pointer-events-none'}`}>
+                    <div className={`absolute inset-0 z-10 bg-[var(--bg-app)] flex flex-col overflow-hidden ${activeTabId ? '' : 'opacity-0 invisible pointer-events-none z-[-1]'}`}>
                         <PinnedFormRouter />
                     </div>
                     
                     {/* Main Navigation Layer */}
-                    <div className={`flex-1 flex flex-col min-h-0 w-full bg-[var(--bg-app)] ${activeTabId ? 'hidden pointer-events-none' : ''}`}>
+                    <div className={`bg-[var(--bg-app)] ${activeTabId ? 'absolute inset-0 z-[-1] opacity-0 invisible pointer-events-none flex flex-col' : 'flex-1 flex flex-col min-h-0 w-full'}`}>
                         {activeTab === 'users' ? (
-                            <UserManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            usersScene
                         ) : activeTab === 'nodes' ? (
                             <Navigator
                                 key={`nodes-${resetNonce}`}
-                                initialScene={
-                                    <NodesTabWithNavigator
-                                        setRefreshCount={setRefreshCount}
-                                        allNodes={allNodes}
-                                        isSidebarOpen={isSidebarOpen}
-                                        setIsSidebarOpen={setIsSidebarOpen}
-                                    />
-                                }
+                                initialScene={nodesScene}
                             />
                         ) : activeTab === 'workflows' ? (
                             <Navigator
                                 key={`workflows-${resetNonce}`}
-                                initialScene={
-                                    <WorkflowsTabWithNavigator
-                                        refreshCount={refreshCount}
-                                        isSidebarOpen={isSidebarOpen}
-                                        setIsSidebarOpen={setIsSidebarOpen}
-                                        onEditNode={(node) => setEditingNodeForModal(node)}
-                                    />
-                                }
+                                initialScene={workflowsScene}
                             />
                         ) : activeTab === 'schemas' ? (
-                            <SchemaManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            schemasScene
                         ) : activeTab === 'ai-tasks' ? (
-                            <AITaskManagement activeClientId={null} onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            aiTasksScene
                         ) : activeTab === 'reports' ? (
-                            <ReportManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            reportsScene
                         ) : activeTab === 'agent-hints' ? (
-                            <AgentHintManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            agentHintsScene
                         ) : (
-                            <CredentialManagement onToggleSidebar={() => setIsSidebarOpen(true)} isSidebarOpen={isSidebarOpen} />
+                            credentialsScene
                         )}
                     </div>
                 </div>
@@ -341,4 +402,3 @@ export default function AdminPage() {
         </div>
     );
 }
-

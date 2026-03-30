@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { arrayMove } from '@dnd-kit/sortable';
 
+export const isMetadataEqual = (a: any, b: any) => {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    return (a.title === b.title || (a.title === undefined && b.title === undefined)) &&
+           (a.icon === b.icon || (a.icon === undefined && b.icon === undefined)) &&
+           (a.projectId === b.projectId || (a.projectId === undefined && b.projectId === undefined)) &&
+           (a.isDirty === b.isDirty || (a.isDirty === undefined && b.isDirty === undefined));
+};
+
 export type PinnedTab = {
     id: string; // Composite ID: entityType:entityId
     entityType: string;
@@ -61,9 +70,24 @@ export const usePinStore = create<PinnedTabsState>()(
 
             focus: (id) => set({ activeTabId: id }),
 
-            updateTab: (id, updates) => set((state) => ({
-                tabs: state.tabs.map((t) => t.id === id ? { ...t, ...updates } : t)
-            })),
+            updateTab: (id, updates) => set((state) => {
+                const tabIndex = state.tabs.findIndex(t => t.id === id);
+                if (tabIndex === -1) return state;
+
+                const tab = state.tabs[tabIndex];
+                
+                // Use strict metadata comparison to avoid infinite loops
+                if (isMetadataEqual(tab, { ...tab, ...updates })) {
+                    return state; 
+                }
+
+                const newTabs = [...state.tabs];
+                newTabs[tabIndex] = { ...tab, ...updates };
+
+                return {
+                    tabs: newTabs
+                };
+            }),
 
             reorderTabs: (activeId, overId) => {
                 set((state) => {

@@ -101,73 +101,86 @@ export function AppTable<TData extends { id: string | number | any }>({
         return buildCategoryTree(mapped);
     }, [table.getRowModel().rows, isSearching, config?.categoryExtractor]);
 
-    return (
-        <div className="flex flex-col flex-1 min-h-0 w-full animate-in fade-in duration-300 overflow-hidden">
-            <div className="flex-1 overflow-auto custom-scrollbar">
+    const tableContent = (
+        <table className={`w-full text-left border-collapse ${config?.layout === 'compact' ? 'min-w-max' : ''}`}>
+            <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-brand/20">
+                {table.getHeaderGroups().map(headerGroup => (
+                    <tr key={headerGroup.id} className="bg-brand">
+                        {headerGroup.headers.map((header, index) => (
+                            <th 
+                                key={header.id} 
+                                className={`
+                                    py-4 text-[11px] font-semibold text-white uppercase tracking-widest
+                                    ${index === 0 ? 'px-4' : 'px-6'}
+                                `}
+                            >
+                                {flexRender(header.column.columnDef.header, header.getContext())}
+                            </th>
+                        ))}
+                    </tr>
+                ))}
+            </thead>
+            <tbody className="divide-y divide-[var(--border-base)]/30">
+                {isLoading && data.length === 0 ? (
+                    <tr>
+                        <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)]">
+                            <div className="flex justify-center flex-col items-center gap-4">
+                                <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
+                                <span className="text-sm">Loading data...</span>
+                            </div>
+                        </td>
+                    </tr>
+                ) : data.length === 0 ? (
+                    <tr>
+                        <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)] italic opacity-50">
+                            {config?.emptyMessage || "No matches found."}
+                        </td>
+                    </tr>
+                ) : treeData ? (
+                    <AppTableCategoryRows
+                        name="Uncategorized"
+                        node={treeData}
+                        path=""
+                        level={-1}
+                        expandedCategories={expandedCategories}
+                        onToggle={toggleCategory}
+                        onRowClick={onRowClick}
+                        config={config}
+                        colSpan={columns.length}
+                    />
+                ) : (
+                    table.getRowModel().rows.map(row => (
+                        <AppTableDataRow
+                            key={row.id}
+                            row={row}
+                            onClick={onRowClick}
+                            config={config}
+                        />
+                    ))
+                )}
+            </tbody>
+        </table>
+    );
+
+    const renderContent = () => {
+        if (config?.onReorder) {
+            return (
                 <DndContext 
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     onDragEnd={handleDragEnd}
                 >
-                    <table className={`w-full text-left border-collapse ${config?.layout === 'compact' ? 'min-w-max' : ''}`}>
-                        <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-brand/20">
-                            {table.getHeaderGroups().map(headerGroup => (
-                                <tr key={headerGroup.id} className="bg-brand">
-                                    {headerGroup.headers.map((header, index) => (
-                                        <th 
-                                            key={header.id} 
-                                            className={`
-                                                py-4 text-[11px] font-semibold text-white uppercase tracking-widest
-                                                ${index === 0 ? 'px-4' : 'px-6'}
-                                            `}
-                                        >
-                                            {flexRender(header.column.columnDef.header, header.getContext())}
-                                        </th>
-                                    ))}
-                                </tr>
-                            ))}
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-base)]/30">
-                            {isLoading && data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)]">
-                                        <div className="flex justify-center flex-col items-center gap-4">
-                                            <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
-                                            <span className="text-sm">Loading data...</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)] italic opacity-50">
-                                        {config?.emptyMessage || "No matches found."}
-                                    </td>
-                                </tr>
-                            ) : treeData ? (
-                                <AppTableCategoryRows
-                                    name="Uncategorized"
-                                    node={treeData}
-                                    path=""
-                                    level={-1}
-                                    expandedCategories={expandedCategories}
-                                    onToggle={toggleCategory}
-                                    onRowClick={onRowClick}
-                                    config={config}
-                                    colSpan={columns.length}
-                                />
-                            ) : (
-                                table.getRowModel().rows.map(row => (
-                                    <AppTableDataRow
-                                        key={row.id}
-                                        row={row}
-                                        onClick={onRowClick}
-                                        config={config}
-                                    />
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                    {tableContent}
                 </DndContext>
+            );
+        }
+        return tableContent;
+    };
+
+    return (
+        <div className="flex flex-col flex-1 min-h-0 w-full animate-in fade-in duration-300 overflow-hidden">
+            <div className="flex-1 overflow-auto custom-scrollbar">
+                {renderContent()}
             </div>
         </div>
     );

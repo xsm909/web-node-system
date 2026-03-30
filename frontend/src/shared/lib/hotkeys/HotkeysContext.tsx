@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 
 export interface Hotkey {
     key: string;            // e.g. 'Escape', 'F4', 'ctrl+s' or 'mod+s' (we will match e.key usually)
@@ -143,8 +143,16 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
         return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
     }, [scopes]);
 
+    const value = useMemo(() => ({ 
+        scopes, 
+        addScope, 
+        removeScope, 
+        addHotkeyToScope, 
+        removeHotkeyFromScope 
+    }), [scopes, addScope, removeScope, addHotkeyToScope, removeHotkeyFromScope]);
+
     return (
-        <HotkeysContext.Provider value={{ scopes, addScope, removeScope, addHotkeyToScope, removeHotkeyFromScope }}>
+        <HotkeysContext.Provider value={value}>
             {children}
         </HotkeysContext.Provider>
     );

@@ -288,7 +288,7 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId
                 saveLabel={selectedSchema ? "Save Schema" : "Create Schema"}
                 entityId={selectedSchema?.id}
                 entityType="schemas"
-                projectId={selectedSchema?.project_id || projectId}
+                projectId={selectedSchema ? selectedSchema.project_id : projectId}
                 isLocked={!!selectedSchema?.is_locked}
                 onLockToggle={(locked) => {
                     if (selectedSchema) {

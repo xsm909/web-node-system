@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import type { Node, Edge } from 'reactflow';
 import { useWorkflowManagement } from '../../../features/workflow-management';
 import { useWorkflowOperations } from '../../../features/workflow-operations';
@@ -155,19 +155,21 @@ export const WorkflowEditorProvider: React.FC<{
         edgesRef.current = edges;
     }, []);
 
-    const { activeClientId } = useClientStore();
-    const { user: currentUser } = useAuthStore();
+    const activeClientId = useClientStore(s => s.activeClientId);
+    const currentUser = useAuthStore(s => s.user);
+    const activeProject = useProjectStore(s => s.activeProject);
+
     const isAdmin = currentUser?.role === 'admin';
-    const { activeProject } = useProjectStore();
-    const activeProjectId = projectId || activeProject?.id || null;
+    // Prioritize explicitly passed projectId (Pinned Tabs), then the workflow's own project context, then the sidebar selection.
+    const activeProjectIdFromContext = projectId !== undefined ? projectId : (activeWorkflow ? (activeWorkflow.project_id || null) : (activeProject?.id || null));
 
     const [creationProjectId, setCreationProjectId] = useState<string | null>(null);
 
     const handleCreateWorkflowWithProject = useCallback(async (name: string, category: string, projectId?: string | null) => {
-        const finalProjectId = projectId || activeProjectId || null;
+        const finalProjectId = projectId || activeProjectIdFromContext || null;
         setCreationProjectId(finalProjectId);
         return handleCreateWorkflow(name, category, finalProjectId);
-    }, [handleCreateWorkflow, activeProjectId]);
+    }, [handleCreateWorkflow, activeProjectIdFromContext]);
 
     const onEditNode = useCallback((_event: React.MouseEvent | React.KeyboardEvent, node: Node) => {
         if (!nodeTypes || nodeTypes.length === 0) return;
@@ -190,7 +192,7 @@ export const WorkflowEditorProvider: React.FC<{
         return runWorkflow(onStart || (() => {}), clientId);
     }, [runWorkflow]);
 
-    const value: WorkflowEditorContextType = {
+    const value = useMemo(() => ({
         workflows,
         activeWorkflow,
         nodeTypes,
@@ -209,7 +211,7 @@ export const WorkflowEditorProvider: React.FC<{
         isDirty: (notifyChange as any).isDirty || false,
         activeClientId,
         isAdmin,
-        activeProjectId,
+        activeProjectId: activeProjectIdFromContext,
         isHotkeysEnabled,
         
         setWorkflowToDelete,
@@ -239,7 +241,19 @@ export const WorkflowEditorProvider: React.FC<{
         onToggleSidebar,
         isSidebarOpen,
         onEditNode
-    };
+    }), [
+        workflows, activeWorkflow, nodeTypes, isSaving, workflowToDelete,
+        workflowToRename, workflowError, isRunning, activeNodeIds, 
+        isConsoleVisible, executionLogs, liveRuntimeData, renameInputValue,
+        renameCategoryValue, notifyChange, activeClientId, isAdmin, 
+        activeProjectIdFromContext, isHotkeysEnabled, setWorkflowToDelete,
+        setWorkflowToRename, setRenameInputValue, setRenameCategoryValue,
+        setWorkflowError, setIsConsoleVisible, setActiveWorkflow, loadWorkflow,
+        handleCreateWorkflowWithProject, handleDuplicateWorkflow,
+        handleRenameWorkflow, confirmDeleteWorkflow, saveWorkflow,
+        handleRunWorkflow, creationProjectId, onNodesChange, onEdgesChange,
+        nodesRef, edgesRef, onToggleSidebar, isSidebarOpen, onEditNode
+    ]);
 
     return (
         <WorkflowEditorContext.Provider value={value}>

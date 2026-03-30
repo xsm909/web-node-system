@@ -14,7 +14,10 @@ import type { NodeType } from '../../../entities/node-type/model/types';
 import { useProjects } from '../../../entities/project/api';
 
 export const PinnedFormRouter: React.FC = () => {
-    const { activeTabId, tabs, focus } = usePinStore();
+    const activeTabId = usePinStore(s => s.activeTabId);
+    const tabs = usePinStore(s => s.tabs);
+    const focus = usePinStore(s => s.focus);
+    
     const { data: projects = [] } = useProjects();
     const [editingNodeForModal, setEditingNodeForModal] = useState<NodeType | null>(null);
     const [allNodes, setAllNodes] = useState<NodeType[]>([]);
@@ -23,26 +26,27 @@ export const PinnedFormRouter: React.FC = () => {
 
     const { handleSave: handleNodeSave, handleOpenModal: prepareNodeEdit } = useNodeTypeManagement();
     
+    // Handle node type list refresh
     useEffect(() => {
         apiClient.get(`/admin/node-types?t=${Date.now()}`).then(({ data }) => setAllNodes(data)).catch(() => { });
     }, [refreshCount]);
 
-    if (tabs.length === 0) return null;
+    const onClose = React.useCallback(() => focus(null), [focus]);
 
-    const onClose = () => focus(null);
-
-    const handleEditNodeFromWorkflow = (node: NodeType) => {
+    const handleEditNodeFromWorkflow = React.useCallback((node: NodeType) => {
         // This makes sure the management logic prepares the state (locks etc)
         prepareNodeEdit(node);
         setEditingNodeForModal(node);
-    };
+    }, [prepareNodeEdit]);
+
+    if (tabs.length === 0) return null;
 
     return (
         <div className="flex-1 h-full flex flex-col overflow-hidden relative">
             {tabs.map((tab) => (
                 <div 
                     key={tab.id}
-                    className={`flex-1 flex-col h-full overflow-hidden ${tab.id === activeTabId ? 'flex' : 'hidden'}`}
+                    className={`flex-col h-full overflow-hidden ${tab.id === activeTabId ? 'flex-1 flex' : 'absolute inset-0 z-[-1] opacity-0 invisible pointer-events-none flex'}`}
                 >
                     <PinnedTabContent 
                         tab={tab} 
@@ -108,7 +112,7 @@ interface PinnedTabContentProps {
     refreshTrigger?: number;
 }
 
-const PinnedTabContent: React.FC<PinnedTabContentProps> = ({ 
+const PinnedTabContent = React.memo<PinnedTabContentProps>(({ 
     tab, 
     projects, 
     onClose, 
@@ -194,7 +198,7 @@ const PinnedTabContent: React.FC<PinnedTabContentProps> = ({
             {content}
         </div>
     );
-};
+});
 
 // Helper to handle async deps for Node Type Form
 const NodeTypeFormContainer: React.FC<{ 

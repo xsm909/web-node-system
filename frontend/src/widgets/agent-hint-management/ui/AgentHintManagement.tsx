@@ -31,7 +31,7 @@ interface AgentHintManagementProps {
 }
 
 export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId, isHotkeysEnabled }: AgentHintManagementProps) => {
-    const { baseProject, isBaseProjectMode } = useProjectStore();
+    const { baseProject } = useProjectStore();
     const { data: hints = [], isLoading } = useAgentHints(projectId);
     const createMutation = useCreateAgentHint(projectId);
     const updateMutation = useUpdateAgentHint();
@@ -261,7 +261,7 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen, initialEdi
                 onLockToggle={(locked) => {
                     setSelectedHint(prev => prev ? { ...prev, is_locked: locked } : prev);
                 }}
-                projectId={projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null)}
+                projectId={selectedHint ? selectedHint.project_id : (projectId !== undefined ? projectId : (baseProject?.id || null))}
                 isHotkeysEnabled={isHotkeysEnabled}
             >
                 <div className="flex flex-col gap-6 w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
