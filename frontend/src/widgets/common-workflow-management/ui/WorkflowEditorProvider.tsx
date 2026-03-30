@@ -152,12 +152,14 @@ export const WorkflowEditorProvider: React.FC<{
     const onNodesChange = useCallback((nodes: Node[]) => {
         if (!nodes) return;
         nodesRef.current = nodes;
-    }, []);
+        notifyChange();
+    }, [notifyChange]);
 
     const onEdgesChange = useCallback((edges: Edge[]) => {
         if (!edges) return;
         edgesRef.current = edges;
-    }, []);
+        notifyChange();
+    }, [notifyChange]);
 
     const activeClientId = useClientStore(s => s.activeClientId);
     const currentUser = useAuthStore(s => s.user);
