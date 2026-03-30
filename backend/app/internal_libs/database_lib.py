@@ -61,6 +61,16 @@ def unsafe_request(sql_query: str, params: Optional[Dict[str, Any]] = None) -> L
                     level="system"
                 )
 
+        # 3. Try User directly (Configuration Mode)
+        if not owner:
+            user = db.query(User).filter(User.id == exec_uuid).first()
+            if user:
+                owner = user
+                system_log(
+                    f"[DATABASE_LIB] Resolved owner directly from User {user.id} (Configuration Mode)",
+                    level="system"
+                )
+
         if not owner:
             system_log(
                 f"[DATABASE_LIB] Could not resolve owner for {execution_id} (not a Workflow or Report)",

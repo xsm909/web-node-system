@@ -117,6 +117,14 @@ def extract_node_parameters(code: str) -> list:
                             }
                             if table_name == "AI_Tasks":
                                 options_source["filters"] = {"owner_id": "AI_Task"}
+                        else:
+                            # Support for @function_name
+                            func_marker_match = re.search(r"@([\w]+)\b", line_content)
+                            if func_marker_match:
+                                options_source = {
+                                    "function": func_marker_match.group(1),
+                                    "component": "ComboBox"
+                                }
 
                         sql_constructor_match = re.search(r"@sql_query_constructor", line_content)
 
@@ -235,7 +243,7 @@ class NodeTypeOut(BaseModel):
     id: uuid.UUID
     name: str
     version: str
-    description: str
+    description: Optional[str] = ""
     code: str
     input_schema: dict
     output_schema: dict

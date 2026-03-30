@@ -117,7 +117,7 @@ class NodeTypeOut(BaseModel):
     id: uuid.UUID
     name: str
     version: str
-    description: str
+    description: Optional[str] = ""
     code: str
     input_schema: dict
     output_schema: dict
@@ -604,6 +604,104 @@ def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = No
 
     background_tasks.add_task(execute_workflow, execution.id)
     return {"execution_id": execution.id, "status": "started"}
+
+
+@router.get("/node-types/{node_id}/parameter-options/{parameter_name}")
+def get_node_parameter_options(
+    node_id: uuid.UUID, 
+    parameter_name: str, 
+    source_func: str, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns options for a node parameter by executing a specified function
+    from the node's own Python code.
+    """
+    node = db.query(NodeType).filter(NodeType.id == node_id).first()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node type not found")
+    
+    # We use RestrictedPython to safely execute node-defined selection functions
+    from ..services.executor import SAFE_GLOBALS, CustomRestrictingNodeTransformer, custom_getattr, restricted_import
+    from RestrictedPython import compile_restricted, Guards
+    from ..internal_libs.context_lib import execution_context
+    
+    try:
+        # Set the execution context to the current user's ID
+        # This allows unsafe_request to resolve permissions in configuration mode
+        token = execution_context.set(str(current_user.id))
+        
+        # Compile the node's code in restricted mode
+        byte_code = compile_restricted(
+            node.code, 
+            f"<node-options:{node_id}>", 
+            "exec", 
+            policy=CustomRestrictingNodeTransformer
+        )
+        
+        # Prepare the execution environment (similar to WorkflowExecutor)
+        # We include SAFE_GLOBALS which has inner_database and other utilities
+        node_globals = {
+            **SAFE_GLOBALS,
+            "__name__": f"<node-options:{node_id}>",
+            "_getattr_": custom_getattr,
+            "_setattr_": Guards.guarded_setattr,
+            "_delattr_": Guards.guarded_delattr,
+            "__builtins__": {
+                **SAFE_GLOBALS["__builtins__"],
+                "__import__": restricted_import
+            },
+        }
+        
+        # Execute the module to populate globals with defined functions
+        # We use a custom local dictionary to avoid polluting SAFE_GLOBALS if they were modified
+        exec(byte_code, node_globals)
+        
+        # Find the function specified in the marker
+        if source_func not in node_globals or not callable(node_globals[source_func]):
+             raise HTTPException(status_code=400, detail=f"Options function '{source_func}' not found in node code or is not callable.")
+             
+        # Call the function (expects no arguments)
+        res = node_globals[source_func]()
+        
+        # Standardize the output format for the frontend ComboBox:
+        # Expected: [{"value": "...", "label": "..."}]
+        formatted = []
+        if isinstance(res, list):
+            for item in res:
+                if isinstance(item, dict):
+                    # Map the user-defined 'display' or 'label' to our frontend standard 'label'
+                    value = item.get("value")
+                    label = item.get("display") or item.get("label") or str(value)
+                    formatted.append({
+                        "value": str(value), 
+                        "label": str(label)
+                    })
+                else:
+                    # Simple array of primitives
+                    formatted.append({
+                        "value": str(item), 
+                        "label": str(item)
+                    })
+        elif isinstance(res, dict):
+            # If function returns a dict {value: label}, convert to array
+            for k, v in res.items():
+                formatted.append({
+                    "value": str(k), 
+                    "label": str(v)
+                })
+        
+        return formatted
+        
+    except Exception as e:
+        import traceback
+        print(f"Error fetching dynamic options for {node.name}.{parameter_name}: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Dynamic options script failed: {str(e)}")
+    finally:
+        # Reset context variable
+        execution_context.reset(token)
 
 
 @router.get("/node-types", response_model=List[NodeTypeOut])

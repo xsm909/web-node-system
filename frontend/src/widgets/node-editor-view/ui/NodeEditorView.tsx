@@ -31,7 +31,8 @@ const ParameterRow: React.FC<{
     onChange: (updates: Record<string, any>) => void;
     isReadOnly: boolean;
     onOpenSqlEditor?: () => void;
-}> = ({ param, value, displayValue, onChange, isReadOnly, onOpenSqlEditor }) => {
+    nodeTypeId?: string;
+}> = ({ param, value, displayValue, onChange, isReadOnly, onOpenSqlEditor, nodeTypeId }) => {
     const [options, setOptions] = useState<SelectionItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -41,32 +42,53 @@ const ParameterRow: React.FC<{
                 setIsLoading(true);
                 try {
                     let endpoint = "";
-                    if (param.options_source.table === "AI_Tasks") {
+                    let requestParams = {};
+                    
+                    if (param.options_source.function) {
+                        endpoint = `/workflows/node-types/${nodeTypeId}/parameter-options/${param.name}`;
+                        requestParams = { source_func: param.options_source.function };
+                    } else if (param.options_source.table === "AI_Tasks") {
                         endpoint = "/ai-tasks/";
                     } else if (param.options_source.table === "users") {
                         endpoint = "/workflows/users/";
-                    } else {
+                    } else if (param.options_source.table) {
                         // Fallback for other tables if needed
                         endpoint = `/${param.options_source.table.toLowerCase().replace(/_/g, '-')}/`;
                     }
 
-                    const response = await apiClient.get(endpoint);
+                    if (!endpoint) {
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    const response = await apiClient.get(endpoint, { params: requestParams });
                     const data = response.data;
 
-                    const flatOptions: SelectionItem[] = data
-                        .filter((item: any) => {
-                            if (param.options_source.filters) {
-                                return Object.entries(param.options_source.filters).every(
-                                    ([key, val]) => item[key] === val
-                                );
-                            }
-                            return true;
-                        })
-                        .map((item: any) => ({
-                            id: String(item[param.options_source.value_field]),
-                            name: String(item[param.options_source.label_field]),
+                    let flatOptions: SelectionItem[] = [];
+                    
+                    if (param.options_source.function) {
+                        // Backend for functions already returns {value, label}
+                        flatOptions = data.map((item: any) => ({
+                            id: String(item.value),
+                            name: String(item.label),
                             icon: 'bolt'
                         }));
+                    } else {
+                        flatOptions = data
+                            .filter((item: any) => {
+                                if (param.options_source.filters) {
+                                    return Object.entries(param.options_source.filters).every(
+                                        ([key, val]) => item[key] === val
+                                    );
+                                }
+                                return true;
+                            })
+                            .map((item: any) => ({
+                                id: String(item[param.options_source.value_field]),
+                                name: String(item[param.options_source.label_field]),
+                                icon: 'bolt'
+                            }));
+                    }
                         
                     setOptions(flatOptions);
                 } catch (error) {
@@ -77,7 +99,7 @@ const ParameterRow: React.FC<{
             };
             fetchOptions();
         }
-    }, [param]);
+    }, [param, nodeTypeId]);
 
     const getSelectedLabel = () => {
         if (value === undefined || value === null || value === "") return "";
@@ -336,6 +358,7 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                                             }}
                                             isReadOnly={effectiveReadOnly}
                                             onOpenSqlEditor={() => setSqlEditorParam(param.name)}
+                                            nodeTypeId={nodeTypeData?.id}
                                         />
                                     )}
                                 />
