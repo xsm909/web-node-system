@@ -4,14 +4,14 @@ import urllib.error
 import uuid
 from openai import OpenAI
 from typing import Dict, List, Optional, Any, Union
-from ..credentials import get_credential_by_key
+from ..credentials import get_credential_by_model
 
 # In-memory storage for conversations
 _conversations: Dict[str, List[Dict[str, str]]] = {}
 _system_prompts: Dict[str, str] = {}
 
-def _get_api_key() -> Optional[str]:
-    return get_credential_by_key("OPENAI_API_KEY")
+def _get_api_key(model: str) -> Optional[str]:
+    return get_credential_by_model(model)
 
 def _make_request(api_key: str, messages: list, model: str, tools: Optional[List[Dict]] = None, timeout: int = 60) -> str:
     url = "https://api.openai.com/v1/chat/completions"
@@ -70,9 +70,9 @@ def openai_ask_chat(conversation_id: str, text: str, model: str = "gpt-5.2") -> 
     """
     Sends a message to the conversation and returns the AI's response.
     """
-    api_key = _get_api_key()
+    api_key = _get_api_key(model)
     if not api_key:
-        return "Error: OPENAI_API_KEY not found in credentials."
+        return f"Error: API key for model {model} not found in credentials."
         
     if conversation_id not in _conversations:
         _conversations[conversation_id] = []
@@ -100,18 +100,18 @@ def openai_ask_single(text: str, model: str = "gpt-4o-mini", timeout: int = 60) 
     """
     Simple version to ask AI a single question without conversation history.
     """
-    api_key = _get_api_key()
+    api_key = _get_api_key(model)
     if not api_key:
-        return "Error: OPENAI_API_KEY not found in credentials."
+        return f"Error: API key for model {model} not found in credentials."
         
     messages = [{"role": "user", "content": text}]
     return _make_request(api_key, messages, model, timeout=timeout)
 
 def openai_perform_web_search(query: str, model: str = "gpt-5.2") -> str:
     
-    api_key = _get_api_key()
+    api_key = _get_api_key(model)
     if not api_key:
-        return "Error: OPENAI_API_KEY not found in credentials."
+        return f"Error: API key for model {model} not found in credentials."
     client = OpenAI(api_key=api_key)
 
     response = client.responses.create(

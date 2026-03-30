@@ -1,6 +1,6 @@
 import os
 from google import genai
-from .credentials import get_credential_by_key
+from .credentials import get_credential_by_model
 
 def check_ai () -> str:
     return f"Ok. It's work!!!!"
@@ -11,10 +11,9 @@ def ask_single(prompt: str, model: str = "gemini-2.0-flash") -> str:
     Internal function to ask Gemini AI a question.
     Retrieves GEMINI_API_KEY from database credentials.
     """
-    api_key = get_credential_by_key("GEMINI_API_KEY")
+    api_key = get_credential_by_model(model)
     if not api_key:
-        # Fallback to env var for backward compatibility during transition
-        return "Error api key not found"
+        return f"Error: API key for model {model} not found in credentials."
     
     try:
         client = genai.Client(api_key=api_key)

@@ -107,7 +107,7 @@ def get_provider(model: str) -> Any:
     """
     Factory to retrieve and initialize the correct provider instance.
     """
-    from .credentials import get_credential_by_key
+    from .credentials import get_credential_by_model
     from .common_lib import GetAIByModel
     from .agent_providers import get_provider_class
     
@@ -117,24 +117,21 @@ def get_provider(model: str) -> Any:
     api_key = None
     base_url = None
     
-    if provider_name == "gemini":
-        api_key = get_credential_by_key("GEMINI_API_KEY") or get_credential_by_key("GEMINI_API") or get_credential_by_key("GEMENI_API")
-        if model == "gemini-1.5-flash": model = "gemini-1.5-flash-latest"
-        elif model == "gemini-1.5-pro": model = "gemini-1.5-pro-latest"
-    elif provider_name == "perplexity":
-        api_key = get_credential_by_key("PERPLEXITY_API_KEY")
+    api_key = get_credential_by_model(model)
+    base_url = None
+    
+    if provider_name == "perplexity":
         base_url = "https://api.perplexity.ai"
     elif provider_name == "grok":
-        api_key = get_credential_by_key("XAI_API_KEY") or get_credential_by_key("GROK_API_KEY")
         base_url = "https://api.x.ai/v1"
         # Backward compatibility for old workflows
         if model == "grok-2-latest": model = "grok-2"
-    else:
-        api_key = get_credential_by_key("OPENAI_API_KEY")
-        base_url = None
+    elif provider_name == "gemini":
+        if model == "gemini-1.5-flash": model = "gemini-1.5-flash-latest"
+        elif model == "gemini-1.5-pro": model = "gemini-1.5-pro-latest"
         
     if not api_key:
-        raise ValueError(f"API key not found for provider {provider_name}")
+        raise ValueError(f"API key not found for model {model} (provider: {provider_name})")
         
     ProviderClass = get_provider_class(model)
     return ProviderClass(model=model, api_key=api_key, base_url=base_url), provider_name

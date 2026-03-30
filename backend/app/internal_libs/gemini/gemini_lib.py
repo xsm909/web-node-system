@@ -6,7 +6,7 @@ import mimetypes
 from typing import Dict, List, Optional, Any
 import google.genai as genai
 from google.genai import types
-from ..credentials import get_credential_by_key
+from ..credentials import get_credential_by_model
 
 logger = logging.getLogger(__name__)
 
@@ -14,12 +14,11 @@ logger = logging.getLogger(__name__)
 _conversations: Dict[str, List[Dict[str, str]]] = {}
 _system_prompts: Dict[str, str] = {}
 
-def _get_api_key() -> Optional[str]:
-    # Support common spellings
-    return get_credential_by_key("GEMINI_API_KEY") or get_credential_by_key("GEMINI_API") or get_credential_by_key("GEMENI_API")
+def _get_api_key(model: str) -> Optional[str]:
+    return get_credential_by_model(model)
 
-def _get_client() -> Optional[genai.Client]:
-    api_key = _get_api_key()
+def _get_client(model: Optional[str] = None) -> Optional[genai.Client]:
+    api_key = _get_api_key(model)
     if api_key:
         client = genai.Client(api_key=api_key)
         # Debug: list available models
@@ -46,9 +45,9 @@ def gemini_set_prompt(conversation_id: str, prompt: str) -> bool:
     return True
 
 def gemini_ask_chat(conversation_id: str, text: str, model_name: str = "gemini-1.5-flash") -> str:
-    client = _get_client()
+    client = _get_client(model_name)
     if not client:
-        return "Error: GEMINI_API_KEY not found in credentials."
+        return f"Error: API key for model {model_name} not found in credentials."
         
     if conversation_id not in _conversations:
         _conversations[conversation_id] = []
@@ -81,9 +80,9 @@ def gemini_ask_chat(conversation_id: str, text: str, model_name: str = "gemini-1
         return f"Error calling Gemini API: {str(e)}"
 
 def gemini_ask_single(text: str, model_name: str = "gemini-1.5-flash") -> str:
-    client = _get_client()
+    client = _get_client(model_name)
     if not client:
-        return "Error: GEMINI_API_KEY not found in credentials."
+        return f"Error: API key for model {model_name} not found in credentials."
         
     try:
         response = client.models.generate_content(model=model_name, contents=text)
@@ -96,9 +95,9 @@ def gemini_perform_web_search(query: str, model_name: str = "gemini-2.0-flash") 
     Performs a web search using Gemini with Google Search grounding tool.
     Returns the model's response grounded in real-time search results.
     """
-    client = _get_client()
+    client = _get_client(model_name)
     if not client:
-        return "Error: GEMINI_API_KEY not found in credentials."
+        return f"Error: API key for model {model_name} not found in credentials."
 
     try:
         grounding_tool = types.Tool(

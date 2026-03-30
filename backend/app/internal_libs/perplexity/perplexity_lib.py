@@ -5,14 +5,14 @@ import uuid
 from typing import Dict, List, Optional, Any, Union
 from openai import OpenAI
 from ..agent_providers import AgentProvider
-from ..credentials import get_credential_by_key
+from ..credentials import get_credential_by_model
 
 # In-memory storage for conversations (shared structure with openai_lib)
 _conversations: Dict[str, List[Dict[str, str]]] = {}
 _system_prompts: Dict[str, str] = {}
 
-def _get_api_key() -> Optional[str]:
-    return get_credential_by_key("PERPLEXITY_API_KEY")
+def _get_api_key(model: str) -> Optional[str]:
+    return get_credential_by_model(model)
 
 def _make_request(api_key: str, messages: list, model: str) -> str:
     url = "https://api.perplexity.ai/chat/completions"
@@ -54,9 +54,9 @@ def perplexity_set_prompt(conversation_id: str, prompt: str) -> bool:
     return True
 
 def perplexity_ask_chat(conversation_id: str, text: str, model: str = "sonar") -> str:
-    api_key = _get_api_key()
+    api_key = _get_api_key(model)
     if not api_key:
-        return "Error: PERPLEXITY_API_KEY not found in credentials."
+        return f"Error: API key for model {model} not found in credentials."
         
     if conversation_id not in _conversations:
         _conversations[conversation_id] = []

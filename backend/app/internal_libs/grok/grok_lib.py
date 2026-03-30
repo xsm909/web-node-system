@@ -5,14 +5,14 @@ import uuid
 from typing import Any, Dict, List, Optional, Union
 from openai import OpenAI
 from ..agent_providers import AgentProvider
-from ..credentials import get_credential_by_key
+from ..credentials import get_credential_by_model
 
 # In-memory storage for conversations
 _conversations: Dict[str, List[Dict[str, str]]] = {}
 _system_prompts: Dict[str, str] = {}
 
-def _get_api_key() -> Optional[str]:
-    return get_credential_by_key("XAI_API_KEY") or get_credential_by_key("GROK_API_KEY")
+def _get_api_key(model: str) -> Optional[str]:
+    return get_credential_by_model(model)
 
 def _make_request(api_key: str, messages: list, model: str) -> str:
     url = "https://api.x.ai/v1/chat/completions"
@@ -54,9 +54,9 @@ def grok_set_prompt(conversation_id: str, prompt: str) -> bool:
     return True
 
 def grok_ask_chat(conversation_id: str, text: str, model: str = "grok-2") -> str:
-    api_key = _get_api_key()
+    api_key = _get_api_key(model)
     if not api_key:
-        return "Error: XAI_API_KEY (or GROK_API_KEY) not found in credentials."
+        return f"Error: API key for model {model} not found in credentials."
         
     if conversation_id not in _conversations:
         _conversations[conversation_id] = []
