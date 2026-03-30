@@ -12,6 +12,7 @@ from .prompt import Prompt
 from .lock import LockData
 from .project import Project
 from .preset import Preset
+from .ai_provider import AiProvider
 
 __all__ = [
     "User",
@@ -38,4 +39,5 @@ __all__ = [
     "LockData",
     "Project",
     "Preset",
+    "AiProvider",
 ]
