@@ -165,3 +165,48 @@ All management widgets (Schemas, Hints, Workflows) accept an optional `projectId
 When a pinned tab is in "Global" mode (`projectId: null`), it must be able to fetch global data even if the sidebar is in project mode.
 - Widgets detect the explicit `null` projectId and inject the `X-Project-Skip: true` header into API requests.
 - This forces the backend to ignore any project context set by the sidebar's `X-Project-Id` middleware, ensuring the pinned tab remains a pure global workspace.
+
+---
+
+## 11. Editor Isolation (Anti-Contamination)
+
+To prevent "Maximum update depth exceeded" errors and cross-tab data leakage, the platform implements **Provider-Level Isolation**.
+
+### 1. Independent ReactFlow Stores
+- Each `WorkflowEditorProvider` is wrapped in its own `<ReactFlowProvider>`.
+- This ensures that internal ReactFlow states (nodes, edges, viewport) remain strictly local to the specific pinned tab.
+
+### 2. Viewport Tracking (`WorkflowGraph.tsx`)
+- Tracking of initialization and viewport centering is handled via instance-specific `useRef` (e.g., `isInitializedRef`).
+- Global variables are avoided to prevent interference between parallel workflow instances.
+
+---
+
+## 12. Navigation Guards & "Save and Close"
+
+Closing pinned tabs or navigating away from dirty forms is protected by a unified 3-way confirmation system.
+
+### 1. Blocker Registry (`useNavigationGuard.tsx`)
+- Every pinned form registers a unique `blockId` (format: `entityType:entityId`) with the navigation stack.
+- This allows the `PinnedTabsTray` to precisely target the save/discard logic for a specific background tab when the "X" button is clicked.
+
+### 2. 3-Way Confirmation (`AppCompactModalForm`)
+- Options: **Save Changes**, **Discard**, or **Stay and Edit**.
+- **Save and Close**: The `PinnedTabsTray` retrieves the `onSave` callback from the navigation guard and executes it before closing the tab, ensuring data persistence.
+
+---
+
+## 13. Data Synchronization (TanStack Query)
+
+The platform uses **TanStack Query** as the single source of truth to ensure real-time consistency between pinned tabs and the main list views.
+
+### 1. Global Cache Invalidation
+- All mutations (Save, Rename, Duplicate, Delete) trigger `queryClient.invalidateQueries({ queryKey: ['workflows'] })`.
+- This ensures that saving a workflow in a pinned tab immediately pushes the update to the background `WorkflowList` without requiring a page refresh.
+
+### 2. Force-Fresh Loading
+- To prevent "flicker" of old data when switching tabs or opening renamed items, the `WorkflowEditorProvider` performs a forced fetch by ID.
+- The `loadWorkflow` function bypasses current memory state and retrieves the absolute latest state from the database.
+
+### 3. Loading Feedback
+- Management lists implement an `isLoading` state (pulse animation) triggered by background refetches, providing visual confirmation of synchronization.

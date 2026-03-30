@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
     DndContext, 
     closestCenter,
@@ -17,10 +17,15 @@ import { usePinStore, type PinnedTab } from '../../../features/pinned-tabs/model
 import { Icon } from '../../../shared/ui/icon';
 import { useProjects } from '../../../entities/project/api';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
+import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
+import { useNavigationGuardStore } from '../../../shared/lib/navigation-guard/store';
 
 export const PinnedTabsTray: React.FC = () => {
     const { tabs, activeTabId, focus, unpin, reorderTabs } = usePinStore();
     const { data: projects = [] } = useProjects();
+    const [pendingUnpin, setPendingUnpin] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const getBlockers = useNavigationGuardStore(s => s.blockers);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -36,6 +41,10 @@ export const PinnedTabsTray: React.FC = () => {
             reorderTabs(active.id as string, over.id as string);
         }
     };
+
+    const targetTab = useMemo(() => 
+        tabs.find(t => t.id === pendingUnpin)
+    , [tabs, pendingUnpin]);
 
     if (tabs.length === 0) return null;
 
@@ -62,7 +71,11 @@ export const PinnedTabsTray: React.FC = () => {
                                     onFocus={() => focus(tab.id === activeTabId ? null : tab.id)}
                                     onClose={(e) => {
                                         e.stopPropagation();
-                                        unpin(tab.id);
+                                        if (tab.isDirty) {
+                                            setPendingUnpin(tab.id);
+                                        } else {
+                                            unpin(tab.id);
+                                        }
                                     }}
                                 />
                             );
@@ -70,6 +83,50 @@ export const PinnedTabsTray: React.FC = () => {
                     </SortableContext>
                 </div>
             </DndContext>
+
+            {pendingUnpin && targetTab && (
+                <AppCompactModalForm
+                    isOpen={!!pendingUnpin}
+                    title="Unsaved Changes"
+                    onSubmit={async () => {
+                        const blocker = getBlockers[pendingUnpin];
+                        if (blocker) {
+                            setIsSaving(true);
+                            try {
+                                await blocker.onSave();
+                                unpin(pendingUnpin);
+                                setPendingUnpin(null);
+                            } catch (err) {
+                                console.error('Failed to save pinned tab:', err);
+                            } finally {
+                                setIsSaving(false);
+                            }
+                        } else {
+                            // Fallback if no blocker registered: just focus
+                            focus(pendingUnpin);
+                            setPendingUnpin(null);
+                        }
+                    }}
+                    onClose={() => setPendingUnpin(null)}
+                    onDiscard={() => {
+                        unpin(pendingUnpin);
+                        setPendingUnpin(null);
+                    }}
+                    submitLabel="Save and Close"
+                    discardLabel="Discard and Close"
+                    cancelLabel="Stay Here"
+                    isSaving={isSaving}
+                    width="max-w-md"
+                    icon="warning"
+                >
+                    <div className="py-2">
+                        <p className="text-xs text-[var(--text-muted)] opacity-80 leading-relaxed">
+                            The tab <span className="text-[var(--text-main)] font-bold">"{targetTab.title}"</span> has unsaved changes. 
+                            Would you like to save them before closing?
+                        </p>
+                    </div>
+                </AppCompactModalForm>
+            )}
         </aside>
     );
 };

@@ -1,10 +1,21 @@
 import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../shared/api/client';
 import type { NodeType } from '../../../entities/node-type/model/types';
 
 export function useNodeTypeManagement() {
+    const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingNode, setEditingNode] = useState<NodeType | null>(null);
+
+    // 1. Fetch Node Types (Global Query)
+    const { data: nodeTypes = [], isLoading } = useQuery({
+        queryKey: ['node-types'],
+        queryFn: async () => {
+            const res = await apiClient.get<NodeType[]>(`/workflows/node-types?t=${Date.now()}`);
+            return res.data;
+        }
+    });
 
     const handleOpenModal = (node?: NodeType) => {
         if (node) {
@@ -15,24 +26,26 @@ export function useNodeTypeManagement() {
         setIsModalOpen(true);
     };
 
-    const handleSave = async (data: Partial<NodeType>, nodeId?: string, onSuccess?: (saved: NodeType) => void) => {
-        try {
-            let savedNode: NodeType;
-            if (nodeId) {
-                const res = await apiClient.put<NodeType>(`/admin/node-types/${nodeId}`, data);
-                savedNode = res.data;
+    const saveMutation = useMutation({
+        mutationFn: async ({ data, id }: { data: Partial<NodeType>, id?: string }) => {
+            if (id) {
+                const res = await apiClient.put<NodeType>(`/admin/node-types/${id}`, data);
+                return res.data;
             } else {
                 const res = await apiClient.post<NodeType>('/admin/node-types', data);
-                savedNode = res.data;
+                return res.data;
             }
-            if (onSuccess) onSuccess(savedNode);
-            return savedNode;
-        } catch (error: any) {
-            console.error('Failed to save node type:', error);
-            const message = error.response?.data?.detail || 'Failed to save node type';
-            alert(typeof message === 'string' ? message : JSON.stringify(message));
-            throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['node-types'] });
+            queryClient.invalidateQueries({ queryKey: ['workflows'] }); // Workflow list might depend on node types
         }
+    });
+
+    const handleSave = async (data: Partial<NodeType>, nodeId?: string, onSuccess?: (saved: NodeType) => void) => {
+        const savedNode = await saveMutation.mutateAsync({ data, id: nodeId });
+        if (onSuccess) onSuccess(savedNode);
+        return savedNode;
     };
 
     const handleDuplicateNode = (_node: NodeType) => {
@@ -41,11 +54,14 @@ export function useNodeTypeManagement() {
     };
 
     return useMemo(() => ({
+        nodeTypes,
+        isLoading,
         isModalOpen,
         setIsModalOpen,
         editingNode,
         handleOpenModal,
         handleDuplicateNode,
-        handleSave
-    }), [isModalOpen, setIsModalOpen, editingNode]);
+        handleSave,
+        isSaving: saveMutation.isPending
+    }), [nodeTypes, isLoading, isModalOpen, setIsModalOpen, editingNode, saveMutation]);
 }

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { Node, Edge } from 'reactflow';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../shared/api/client';
 import type { Workflow } from '../../../entities/workflow/model/types';
 import { useRegisterBlocker } from '../../../shared/lib/navigation-guard/useNavigationGuard';
@@ -19,6 +20,7 @@ export function useWorkflowOperations({
     onUpdateLocalWorkflow,
     onExecutionComplete
 }: UseWorkflowOperationsProps) {
+    const queryClient = useQueryClient();
     const [isRunning, setIsRunning] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [executionLogs, setExecutionLogs] = useState([]);
@@ -93,6 +95,9 @@ export function useWorkflowOperations({
                 runtime_data: activeWorkflow.runtime_data,
                 parameters: (activeWorkflow.parameters || []).map(({ id, ...rest }: any) => rest)
             });
+            
+            // Invalidate queries globally to inform other components (lists, tabs) of the change
+            queryClient.invalidateQueries({ queryKey: ['workflows'] });
             
             // Update baseline after successful save
             initialWorkflowRef.current = JSON.stringify({

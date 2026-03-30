@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { AppHeader } from '../../../widgets/app-header';
-import { ConfirmModal } from '../confirm-modal';
+import { AppCompactModalForm } from '../app-compact-modal-form/AppCompactModalForm';
 import { Icon } from '../icon';
 import { AppLockToggle } from '../app-lock-toggle/AppLockToggle';
 import { useRegisterBlocker } from '../../lib/navigation-guard/useNavigationGuard';
@@ -116,8 +116,11 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     }, [isPinned, pinId, updateTab, tabMetadata]);
 
     // Register this form with the navigation guard
+    // For pinned tabs, use the unique pinId as the blockerId to avoid collisions
+    const finalBlockerId = isPinned ? (pinId || blockerId) : blockerId;
+
     useRegisterBlocker(
-        blockerId, 
+        finalBlockerId, 
         isDirty, 
         onSave, 
         onDiscard || onCancel
@@ -253,30 +256,28 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                     </div>
                 </div>
 
-                <ConfirmModal
+                <AppCompactModalForm
                     isOpen={showConfirmBack}
                     title="Unsaved Changes"
-                    description="You have unsaved changes. Do you want to save them before leaving?"
-                    confirmLabel="Save Changes"
-                    cancelLabel="Stay and Edit"
-                    variant="warning"
-                    onConfirm={async () => {
+                    onSubmit={async () => {
                         setShowConfirmBack(false);
                         await onSave();
                         onCancel();
                     }}
-                    onCancel={() => setShowConfirmBack(false)}
+                    onClose={() => setShowConfirmBack(false)}
+                    onDiscard={handleDiscard}
+                    submitLabel="Save Changes"
+                    discardLabel="Discard Changes"
+                    cancelLabel="Stay and Edit"
+                    width="max-w-md"
+                    icon="warning"
                 >
-                     <div className="mt-2">
-                         <button
-                             type="button"
-                             className="w-full px-4 py-3 rounded-2xl text-xs font-bold text-red-500 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all uppercase tracking-widest active:scale-95"
-                             onClick={handleDiscard}
-                         >
-                             Discard Changes
-                         </button>
-                     </div>
-                </ConfirmModal>
+                    <div className="py-2">
+                        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                            You have unsaved changes in this section. Do you want to save them before leaving?
+                        </p>
+                    </div>
+                </AppCompactModalForm>
             </div>
         </div>
     );

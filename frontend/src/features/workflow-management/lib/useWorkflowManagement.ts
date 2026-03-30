@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../shared/api/client';
 import { useAuthStore } from '../../auth/store';
 import type { AssignedUser } from '../../../entities/user/model/types';
@@ -7,7 +8,9 @@ import type { NodeType } from '../../../entities/node-type/model/types';
 import { useClientStore } from '../model/clientStore';
 import { useProjectStore } from '../../projects/store';
 
-export function useWorkflowManagement(refreshTrigger?: number, projectId?: string | null) {
+export function useWorkflowManagement(_refreshTrigger?: number, projectId?: string | null) {
+    const queryClient = useQueryClient();
+    
     // Atomic Selectors for stability
     const currentUser = useAuthStore(s => s.user);
     const activeClientId = useClientStore(s => s.activeClientId);
@@ -15,218 +18,170 @@ export function useWorkflowManagement(refreshTrigger?: number, projectId?: strin
     
     const baseProject = useProjectStore(s => s.baseProject);
     const isBaseProjectMode = useProjectStore(s => s.isBaseProjectMode);
-    const activeProject = useProjectStore(s => s.activeProject);
-    const isProjectMode = useProjectStore(s => s.isProjectMode);
-
-    const [assignedUsers, setAssignedUsersState] = useState<AssignedUser[]>([]);
-    const [workflows, setWorkflows] = useState<Workflow[]>([]);
-    const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
-    const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
     
     // Determine the effective context for this hook instance.
     const effectiveProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? (baseProject?.id || null) : null);
     const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isBaseProjectMode;
 
-    const [isCreating, setIsCreating] = useState(false);
+    const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
     const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
     const [workflowToRename, setWorkflowToRename] = useState<Workflow | null>(null);
     const [workflowError, setWorkflowError] = useState<string | null>(null);
 
-    // Auto-close workflow if it doesn't belong to the active context
-    useEffect(() => {
-        if (activeWorkflow && currentUser) {
-            const isAdmin = currentUser.role === 'admin';
-            const isPersonal = activeWorkflow.owner_id === currentUser.id;
-            const belongsToActiveClient = activeClientId && activeWorkflow.owner_id === activeClientId;
-            
-            // Check Project Alignment
-            const workflowProject = activeWorkflow.project_id || null;
-            const belongsToActiveProject = effectiveIsProjectMode && effectiveProjectId && workflowProject === effectiveProjectId;
-            const matchesGlobalContext = !effectiveIsProjectMode && !workflowProject;
-
-            // admins are generally allowed to see everything, but we still want to maintain some separation.
-            // however, to prevent infinite loops during context switching, we must allow 
-            // shared global workflows in global mode and respect admin status.
-            const isAllowed = isAdmin || isPersonal || belongsToActiveClient || belongsToActiveProject || matchesGlobalContext;
-
-            if (!isAllowed) {
-                console.log('[useWorkflowManagement] Auto-closing workflow due to context mismatch', {
-                    workflowId: activeWorkflow.id,
-                    workflowProject,
-                    effectiveProjectId,
-                    effectiveIsProjectMode
-                });
-                setActiveWorkflow(null);
-            }
-        }
-    }, [activeClientId, activeWorkflow, currentUser, effectiveIsProjectMode, effectiveProjectId]);
-
-    const lastLoadedContextRef = useRef<{ id: string | null, isProjectMode: boolean } | null>(null);
-
-    const init = useCallback(async () => {
-        if (lastLoadedContextRef.current?.id === effectiveProjectId && 
-            lastLoadedContextRef.current?.isProjectMode === effectiveIsProjectMode) {
-            return;
-        }
-        
-        lastLoadedContextRef.current = { id: effectiveProjectId, isProjectMode: effectiveIsProjectMode };
-
-        try {
-            setWorkflows([]);
-            setActiveWorkflow(null);
-            
+    // 1. Fetch Node Types (Global Query)
+    const { data: nodeTypes = [] } = useQuery({
+        queryKey: ['node-types', effectiveProjectId],
+        queryFn: async () => {
             const headers: Record<string, string> = {};
-            const targetProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? (baseProject?.id || null) : null);
+            if (effectiveProjectId) headers['X-Force-Project-Id'] = effectiveProjectId;
+            else headers['X-Project-Skip'] = 'true';
             
-            if (targetProjectId) {
-                headers['X-Force-Project-Id'] = targetProjectId;
-            } else if (projectId === null || (!isBaseProjectMode && projectId === undefined)) {
-                headers['X-Project-Skip'] = 'true';
-            }
+            const res = await apiClient.get<NodeType[]>(`/workflows/node-types?t=${Date.now()}`, { headers });
+            return res.data;
+        },
+        enabled: !!currentUser?.id
+    });
 
-            const [nodeTypesRes, usersRes] = await Promise.all([
-                apiClient.get(`/workflows/node-types?t=${Date.now()}`, { headers }),
-                apiClient.get('/workflows/users', { headers })
-            ]);
+    // 2. Fetch Assigned Users (Global Query)
+    const { data: assignedUsers = [] } = useQuery({
+        queryKey: ['assigned-users', effectiveProjectId],
+        queryFn: async () => {
+            const headers: Record<string, string> = {};
+            if (effectiveProjectId) headers['X-Force-Project-Id'] = effectiveProjectId;
+            else headers['X-Project-Skip'] = 'true';
             
-            setNodeTypes(nodeTypesRes.data);
-            const users = usersRes.data;
-            setAssignedUsersState(users);
-            setAssignedUsers(users);
+            const res = await apiClient.get<AssignedUser[]>('/workflows/users', { headers });
+            setAssignedUsers(res.data); // Keep the store in sync for now
+            return res.data;
+        },
+        enabled: !!currentUser?.id
+    });
+
+    // 3. Fetch All Workflows (Global Query)
+    const { data: workflows = [], isLoading: isWorkflowsLoading, refetch: refetchWorkflows } = useQuery({
+        queryKey: ['workflows', effectiveProjectId],
+        queryFn: async () => {
+            if (!currentUser?.id) return [];
+
+            const headers: Record<string, string> = {};
+            if (effectiveProjectId) headers['X-Force-Project-Id'] = effectiveProjectId;
+            else headers['X-Project-Skip'] = 'true';
 
             let allWfs: Workflow[] = [];
 
-            if (currentUser?.id) {
-                try {
-                    const myWfsRes = await apiClient.get(`/workflows/users/${currentUser.id.toLowerCase()}/workflows`, { headers });
-                    allWfs = [...allWfs, ...myWfsRes.data];
-                } catch (e) {
-                    console.error(`Failed to load workflows for user ${currentUser.id}`, e);
-                }
+            // Fetch my workflows
+            try {
+                const myWfsRes = await apiClient.get<Workflow[]>(`/workflows/users/${currentUser.id.toLowerCase()}/workflows`, { headers });
+                allWfs = [...allWfs, ...myWfsRes.data];
+            } catch (e) {
+                console.error(`Failed to load workflows for user ${currentUser.id}`, e);
             }
 
-            const clientPromises = users
+            // Fetch assigned client workflows
+            const clientPromises = assignedUsers
                 .filter((u: AssignedUser) => u.id.toLowerCase() !== currentUser?.id?.toLowerCase())
-                .map((u: AssignedUser) => apiClient.get(`/workflows/users/${u.id.toLowerCase()}/workflows`, { headers }).catch(() => ({ data: [] })));
+                .map((u: AssignedUser) => apiClient.get<Workflow[]>(`/workflows/users/${u.id.toLowerCase()}/workflows`, { headers }).catch(() => ({ data: [] })));
             
             const clientResults = await Promise.all(clientPromises);
             clientResults.forEach((res: any) => {
                 allWfs = [...allWfs, ...res.data];
             });
 
-            setWorkflows(allWfs);
-        } catch (e) {
-            console.error("Initialization failed", e);
-        }
-    }, [effectiveProjectId, effectiveIsProjectMode, projectId, isBaseProjectMode, baseProject?.id, currentUser?.id, setAssignedUsers]);
+            return allWfs;
+        },
+        enabled: !!currentUser?.id && assignedUsers.length >= 0
+    });
 
+    // Auto-close workflow if context mismatch
     useEffect(() => {
-        if (currentUser?.id) {
-            init();
-        }
-    }, [currentUser?.id, init]);
+        if (activeWorkflow && currentUser) {
+            const isAdmin = currentUser.role === 'admin';
+            const workflowProject = activeWorkflow.project_id || null;
+            const matchesContext = effectiveIsProjectMode ? workflowProject === effectiveProjectId : !workflowProject;
 
-    useEffect(() => {
-        if (refreshTrigger !== undefined && refreshTrigger > 0) {
-            apiClient.get(`/workflows/node-types?t=${Date.now()}`).then(res => setNodeTypes(res.data)).catch(console.error);
+            if (!isAdmin && !matchesContext) {
+                setActiveWorkflow(null);
+            }
         }
-    }, [refreshTrigger]);
+    }, [activeWorkflow, currentUser, effectiveIsProjectMode, effectiveProjectId]);
 
-    const loadWorkflow = useCallback(async (wf: Workflow) => {
+    // Mutations
+    const invalidate = () => {
+        queryClient.invalidateQueries({ queryKey: ['workflows', effectiveProjectId] });
+    };
+
+    const createMutation = useMutation({
+        mutationFn: async ({ name, category, project_id, owner_id }: any) => {
+            const finalProjectId = project_id !== undefined ? project_id : (effectiveProjectId || null);
+            const { data } = await apiClient.post<Workflow>('/workflows/workflows', {
+                name,
+                category,
+                owner_id: owner_id || activeClientId || currentUser?.id,
+                project_id: finalProjectId
+            });
+            return data;
+        },
+        onSuccess: (data) => {
+            invalidate();
+            setActiveWorkflow(data);
+        }
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: async (id: string) => apiClient.delete(`/workflows/workflows/${id}`),
+        onSuccess: () => {
+            invalidate();
+            if (activeWorkflow?.id === workflowToDelete?.id) setActiveWorkflow(null);
+            setWorkflowToDelete(null);
+        },
+        onError: (error: any) => {
+            const detail = error?.response?.data?.detail || error?.message || 'Failed to delete workflow';
+            setWorkflowError(typeof detail === 'string' ? detail : JSON.stringify(detail));
+        }
+    });
+
+    const duplicateMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const { data } = await apiClient.post<Workflow>(`/workflows/workflows/${id}/duplicate`);
+            return data;
+        },
+        onSuccess: invalidate
+    });
+
+    const renameMutation = useMutation({
+        mutationFn: async ({ id, name, category }: any) => {
+            const { data } = await apiClient.patch<Workflow>(`/workflows/workflows/${id}/rename`, { name, category });
+            return data;
+        },
+        onSuccess: (data) => {
+            invalidate();
+            if (activeWorkflow?.id === data.id) setActiveWorkflow(data);
+            setWorkflowToRename(null);
+        },
+        onError: (error: any) => {
+            const detail = error?.response?.data?.detail || error?.message || 'Failed to rename workflow';
+            setWorkflowError(typeof detail === 'string' ? detail : JSON.stringify(detail));
+        }
+    });
+
+    const loadWorkflow = useCallback(async (wfOrId: Workflow | string) => {
+        const id = typeof wfOrId === 'string' ? wfOrId : wfOrId.id;
         try {
-            const r = await apiClient.get(`/workflows/workflows/${wf.id}`);
+            const r = await apiClient.get<Workflow>(`/workflows/workflows/${id}?t=${Date.now()}`);
             setActiveWorkflow(r.data);
             return r.data;
         } catch (err: any) {
-            const detail = err?.response?.data?.detail || err?.message || 'Unknown error';
-            console.error(`[loadWorkflow] Failed to load workflow "${wf.name}":`, err?.response?.data || err);
-            alert(`❌ Failed to load workflow "${wf.name}"\n\n${typeof detail === 'string' ? detail : JSON.stringify(detail)}`);
+            console.error(`[loadWorkflow] Failed to load workflow "${id}":`, err);
             throw err;
         }
-    }, [setActiveWorkflow]);
-
-    const handleCreateWorkflow = useCallback(async (name: string, category: string = 'general', project_id?: string | null, owner_id?: string | null) => {
-        if (!currentUser?.id) return;
-
-        setIsCreating(true);
-        try {
-            const finalOwnerId = owner_id || (isProjectMode ? activeProject?.owner_id : activeClientId) || currentUser.id;
-            const { data } = await apiClient.post('/workflows/workflows', {
-                name,
-                category,
-                owner_id: finalOwnerId,
-                project_id: project_id !== undefined ? project_id : (projectId || activeProject?.id || null)
-            });
-
-            setWorkflows((prev) => [...prev, data]);
-            loadWorkflow(data);
-            return data;
-        } finally {
-            setIsCreating(false);
-        }
-    }, [currentUser?.id, isProjectMode, activeProject?.owner_id, activeProject?.id, activeClientId, projectId, loadWorkflow]);
-
-    const confirmDeleteWorkflow = useCallback(async () => {
-        if (!workflowToDelete) return;
-
-        try {
-            setWorkflowError(null);
-            await apiClient.delete(`/workflows/workflows/${workflowToDelete.id}`);
-
-            setWorkflows((prev) => prev.filter(w => w.id !== workflowToDelete.id));
-
-            if (activeWorkflow?.id === workflowToDelete.id) {
-                setActiveWorkflow(null);
-            }
-            setWorkflowToDelete(null);
-        } catch (error: any) {
-            const detail = error?.response?.data?.detail || error?.message || 'Failed to delete workflow';
-            setWorkflowError(typeof detail === 'string' ? detail : JSON.stringify(detail));
-            console.error('Failed to delete workflow', error);
-        }
-    }, [workflowToDelete, activeWorkflow?.id, setActiveWorkflow]);
-
-    const handleDuplicateWorkflow = useCallback(async (workflowId: string) => {
-        try {
-            const { data } = await apiClient.post(`/workflows/workflows/${workflowId}/duplicate`);
-            setWorkflows((prev) => [...prev, data]);
-            return data;
-        } catch (error) {
-            console.error('Failed to duplicate workflow', error);
-            throw error;
-        }
     }, []);
-
-    const handleRenameWorkflow = useCallback(async (workflowId: string, newName: string, newCategory?: string) => {
-        if (!newName.trim()) return;
-        try {
-            setWorkflowError(null);
-            const { data } = await apiClient.patch(`/workflows/workflows/${workflowId}/rename`, {
-                name: newName,
-                category: newCategory
-            });
-
-            setWorkflows((prev) => {
-                return prev.map(w => w.id === workflowId ? data : w);
-            });
-
-            if (activeWorkflow?.id === workflowId) {
-                setActiveWorkflow(data);
-            }
-            setWorkflowToRename(null);
-        } catch (error: any) {
-            const detail = error?.response?.data?.detail || error?.message || 'Failed to rename workflow';
-            setWorkflowError(typeof detail === 'string' ? detail : JSON.stringify(detail));
-            console.error('Failed to rename workflow', error);
-        }
-    }, [activeWorkflow?.id, setActiveWorkflow]);
 
     return useMemo(() => ({
         assignedUsers,
         workflows,
         activeWorkflow,
         nodeTypes,
-        isCreating,
+        isCreating: createMutation.isPending,
         workflowToDelete,
         workflowToRename,
         workflowError,
@@ -235,17 +190,20 @@ export function useWorkflowManagement(refreshTrigger?: number, projectId?: strin
         setWorkflowToRename,
         setWorkflowError,
         loadWorkflow,
-        handleCreateWorkflow,
-        confirmDeleteWorkflow,
-        handleDuplicateWorkflow,
-        handleRenameWorkflow,
+        handleCreateWorkflow: (name: string, category: string, pid?: string | null, oid?: string | null) => 
+            createMutation.mutateAsync({ name, category, project_id: pid, owner_id: oid }),
+        confirmDeleteWorkflow: () => deleteMutation.mutateAsync(workflowToDelete?.id || ''),
+        handleDuplicateWorkflow: (id: string) => duplicateMutation.mutateAsync(id),
+        handleRenameWorkflow: (id: string, name: string, cat?: string) => renameMutation.mutateAsync({ id, name, category: cat }),
         setActiveWorkflow,
-        setWorkflows,
-        activeProjectId: effectiveProjectId
+        setWorkflows: (wfs: Workflow[]) => queryClient.setQueryData(['workflows', effectiveProjectId], wfs),
+        activeProjectId: effectiveProjectId,
+        isLoading: isWorkflowsLoading,
+        refetch: refetchWorkflows
     }), [
-        assignedUsers, workflows, activeWorkflow, nodeTypes, isCreating, 
+        assignedUsers, workflows, activeWorkflow, nodeTypes, createMutation, 
         workflowToDelete, workflowToRename, workflowError, currentUser,
-        loadWorkflow, handleCreateWorkflow, confirmDeleteWorkflow,
-        handleDuplicateWorkflow, handleRenameWorkflow, effectiveProjectId
+        loadWorkflow, deleteMutation, duplicateMutation, renameMutation, 
+        effectiveProjectId, isWorkflowsLoading, refetchWorkflows, queryClient
     ]);
 }

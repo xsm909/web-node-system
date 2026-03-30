@@ -14,6 +14,7 @@ import { AppInput } from '../../../shared/ui/app-input';
 
 interface WorkflowListProps {
     workflows: Workflow[];
+    isLoading?: boolean;
     isSidebarOpen: boolean;
     onToggleSidebar: () => void;
     onSelectWorkflow: (wf: Workflow) => void;
@@ -27,6 +28,7 @@ const columnHelper = createColumnHelper<Workflow & { categoryLabel: string }>();
 
 export const WorkflowList: React.FC<WorkflowListProps> = ({
     workflows,
+    isLoading,
     isSidebarOpen,
     onToggleSidebar,
     onSelectWorkflow,
@@ -146,17 +148,24 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                 searchPlaceholder="Search workflows..."
             />
 
-            <AppTable
-                data={filteredWorkflows}
-                columns={columns}
-                config={{
-                    categoryExtractor: wf => wf.categoryLabel,
-                    persistCategoryKey: 'workflow_expanded_categories',
-                    emptyMessage: 'No workflows found.',
-                }}
-                onRowClick={(wf) => onSelectWorkflow(wf)}
-                isSearching={searchQuery.trim().length > 0}
-            />
+            {isLoading ? (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 opacity-50 animate-pulse">
+                     <Icon name="workflow" size={48} className="text-[var(--text-muted)]" />
+                     <p className="text-sm font-medium text-[var(--text-muted)] tracking-wide uppercase">Syncing workflows...</p>
+                </div>
+            ) : (
+                <AppTable
+                    data={filteredWorkflows}
+                    columns={columns}
+                    config={{
+                        categoryExtractor: wf => wf.categoryLabel,
+                        persistCategoryKey: 'workflow_expanded_categories',
+                        emptyMessage: 'No workflows found.',
+                    }}
+                    onRowClick={(wf) => onSelectWorkflow(wf)}
+                    isSearching={searchQuery.trim().length > 0}
+                />
+            )}
 
             <AppCompactModalForm
                 isOpen={createModalOpen}

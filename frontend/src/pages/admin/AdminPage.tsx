@@ -18,7 +18,6 @@ import { useProjectStore } from '../../features/projects/store';
 import { Navigator, useNavigator } from '../../shared/ui/navigator';
 import { AppCompactModalForm } from '../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { useNavigationIntercept } from '../../shared/lib/navigation-guard/useNavigationGuard';
-import { ConfirmModal } from '../../shared/ui/confirm-modal';
 import { PinnedTabsTray } from '../../widgets/pinned-tabs-tray/ui/PinnedTabsTray';
 import { PinnedFormRouter } from '../../widgets/pinned-tabs-tray/ui/PinnedFormRouter';
 import { usePinStore } from '../../features/pinned-tabs/model/store';
@@ -401,27 +400,25 @@ export default function AdminPage() {
                 </AppCompactModalForm>
             )}
 
-            <ConfirmModal
+            <AppCompactModalForm
                 isOpen={isIntercepted}
                 title="Unsaved Changes"
-                description="You have unsaved changes in the current section. Would you like to save them before switching?"
-                confirmLabel="Save and Switch"
+                onSubmit={confirmSave}
+                onClose={cancel}
+                onDiscard={confirmDiscard}
+                submitLabel="Save and Switch"
+                discardLabel="Discard and Switch"
                 cancelLabel="Stay Here"
-                variant="warning"
-                isLoading={isInterceptSaving}
-                onConfirm={confirmSave}
-                onCancel={cancel}
+                isSaving={isInterceptSaving}
+                icon="warning"
+                width="max-w-md"
             >
-                <div className="mt-2">
-                    <button
-                        type="button"
-                        className="w-full px-4 py-3 rounded-2xl text-xs font-bold text-red-500 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all uppercase tracking-widest active:scale-95"
-                        onClick={confirmDiscard}
-                    >
-                        Discard and Switch
-                    </button>
+                <div className="py-2">
+                    <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                        You have unsaved changes in the current section. Would you like to save them before switching?
+                    </p>
                 </div>
-            </ConfirmModal>
+            </AppCompactModalForm>
         </div>
     );
 }

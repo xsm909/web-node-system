@@ -39,11 +39,11 @@ interface WorkflowEditorContextType {
     setIsConsoleVisible: (v: boolean) => void;
     setActiveWorkflow: (wf: any) => void;
     
-    loadWorkflow: (wf: any) => Promise<void>;
+    loadWorkflow: (wf: any) => Promise<any>;
     handleCreateWorkflow: (name: string, category: string, projectId?: string | null) => Promise<any>;
-    handleDuplicateWorkflow: (workflowId: string) => Promise<void>;
-    handleRenameWorkflow: (workflowId: string, newName: string, category: string) => Promise<void>;
-    confirmDeleteWorkflow: () => Promise<void>;
+    handleDuplicateWorkflow: (workflowId: string) => Promise<any>;
+    handleRenameWorkflow: (workflowId: string, newName: string, category: string) => Promise<any>;
+    confirmDeleteWorkflow: () => Promise<any>;
     saveWorkflow: () => Promise<void>;
     runWorkflow: (onStart?: () => void, clientId?: string | null) => Promise<void>;
     
@@ -105,13 +105,14 @@ export const WorkflowEditorProvider: React.FC<{
 
     // Auto-load workflow from ID
     useEffect(() => {
-        if (activeWorkflowId && workflows.length > 0 && (!activeWorkflow || activeWorkflow.id !== activeWorkflowId)) {
-            const wf = workflows.find(w => w.id === activeWorkflowId);
-            if (wf) {
-                loadWorkflow(wf);
+        if (activeWorkflowId) {
+            // If the active workflow is different or not loaded, fetch a fresh copy
+            if (!activeWorkflow || activeWorkflow.id !== activeWorkflowId) {
+                // We pass a dummy object with just the ID to trigger a fresh fetch in useWorkflowManagement
+                loadWorkflow({ id: activeWorkflowId } as any);
             }
         }
-    }, [activeWorkflowId, workflows, activeWorkflow, loadWorkflow]);
+    }, [activeWorkflowId, activeWorkflow?.id, loadWorkflow]);
 
     const nodesRef = useRef<Node[]>([]);
     const edgesRef = useRef<Edge[]>([]);
