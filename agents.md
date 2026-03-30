@@ -255,7 +255,10 @@ The system supports 4 static node types and 1 dynamic behavior based on graph co
    - *Outputs*: Moved to the Left edge to naturally wire into the Special node's right edge.
 ## 11. UI Standards for Tables and Forms
 
-- **Library Usage**: Use TanStack libraries (e.g., `@tanstack/react-table`) for all data tables and forms to ensure consistency and performance.
+- **Library Usage**: Use TanStack libraries (e.g., `@tanstack/react-table`, `@tanstack/react-query`) for all data tables, forms, and API interactions to ensure consistency, performance, and robust state management.
+- **Data Fetching Standard**: All management entities (Reports, Credentials, Node Types, etc.) must use `@tanstack/react-query`. 
+    - **Global Cache Invalidation**: The Sidebar and Pinned Tab navigation must trigger a global cache invalidation/refresh to ensure users always see the latest data.
+    - **Manual State Avoidance**: Avoid using local `useState` or `useEffect` for fetching data that is shared across the application.
 - **Unified Header System (`AppHeader`)**:
     - Every management page must integrate the `AppHeader` component at the top.
     - **Sidebar Integration**: Must pass `onToggleSidebar` and `isSidebarOpen` to ensure consistent navigation behavior across desktop and mobile.
@@ -304,18 +307,24 @@ web-grounded information.
 Only the functionality demonstrated in the reference examples is
 allowed.
 
-### 13.1 Allowed Providers
+### 13.1 AI Provider Registry
+
+The platform uses a centralized **AI Provider Registry** (`AiProvider`) to manage model capabilities and credentials. All AI-related nodes must resolve their API keys and provider-specific configurations through this registry based on the selected `model` name.
+
+### 13.2 Allowed Providers
 
 Agents may interact only with:
 
--   Google Gemini via `google.genai`
--   OpenAI models via the `openai` client
+-   **Google Gemini** via `google.genai`
+-   **OpenAI** models via the `openai` client
+-   **DeepSeek** via the `OpenAI` compatible client configuration
+-   **Groq** via the `Groq` or `OpenAI` compatible client configuration
 
 No other SDKs, wrappers, or unofficial libraries should be used.
 
 ------------------------------------------------------------------------
 
-## 13.2 Google Gemini Usage
+## 13.3 Google Gemini Usage
 
 Gemini must be used through the official `google.genai` client.
 
@@ -537,7 +546,19 @@ When a project is active, the following entities are filtered to show ONLY:
 2.  **System/Verified Data**: Global items marked with `is_system: true` or `system_hints: true`.
 
 #### Excluded Data
-Regular "Global" items (those with `project_id: null` but NOT marked as system) are **hidden** in Project Mode. This ensures that personal or unverified global schemas/reports do not leak into specific business projects.
+Regular "Global" items (those with `project_id: null` but NOT marked as system) are **hidden** in Project Mode. This ensures that personal or unverified global schemas/reports do not leak into specific business projects. **Exception**: Global items that are explicitly required for the project's operation (e.g., base schemas) may be visible in a **Read-Only** state if they are verified.
 
 ### 19.2 Global Mode Visibility
 When no project is active, the system displays ONLY Global items (`project_id: null`). Project-specific data is hidden to prevent accidental modification outside of its intended context.
+
+## 20. Dynamic Node Parameter Markers
+
+To support context-aware configuration, node parameters can fetch their selection options dynamically from the backend by executing logic defined within the node's own Python code.
+
+### 20.1 Marker Syntax
+In the `NodeParameters` class definition, use the `@method_name()` syntax in the `source` field (or equivalent metadata) of a parameter to link it to a Python function.
+
+### 20.2 Backend Execution
+- When the frontend requests options for a marked parameter, the backend compiles the node's code in a **Restricted Environment**.
+- The specified function is executed. It expects no arguments and must return a list of options in the format: `[{"value": "...", "label": "..."}]` or a simple list of primitives.
+- **Security Context**: These calls are executed with the `activeProjectId` and `currentUserId` in the session context, allowing the node function to use `inner_database.unsafe_request` to fetch project-specific options (e.g., selecting a project-linked credential).

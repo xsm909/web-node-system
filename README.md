@@ -1,6 +1,6 @@
 # Workflow Engine System
 
-A modern web platform for managing and executing business processes as node graphs. Built with FastAPI, React (React Flow), and PostgreSQL.
+A modern web platform for managing and executing business processes as node graphs. Built with **FastAPI**, **React (React Flow)**, **TanStack Query**, and **PostgreSQL/MySQL**.
 
 ## Prerequisites
 
@@ -109,6 +109,20 @@ def run(inputs, params):
 - **Object `nodeParameters`**: Automatically instantiated and injected into the execution environment.
 - **Types**: `str` (text input), `int`/`float` (number input), `bool` (checkbox).
 
+### Dynamic Selection Options
+You can define dynamic dropdown options by linking a parameter to a method in the node class:
+
+```python
+class NodeParameters:
+    # Use '@' prefix to trigger backend-side function execution
+    client_id: str = "@get_client_list()"
+
+def get_client_list():
+    # inner_database.unsafe_request automatically uses current user's permissions
+    clients = inner_database.unsafe_request("SELECT id, username FROM users WHERE role = 'client'")
+    return [{"value": c['id'], "label": c['username']} for c in clients]
+```
+
 ---
 
 ## Extending Internal Libraries
@@ -178,7 +192,26 @@ def run(inputs, params):
 
  ---
 
- ## Branding & UI
+ ## AI Provider Registry
+
+The platform features a centralized registry for AI models (Gemini, OpenAI, DeepSeek, Groq). 
+
+- **Unified Access**: API keys are managed centrally in the Admin Panel (`/admin`).
+- **Model Resolution**: Nodes select a model by name, and the system automatically resolves the correct endpoint and credentials.
+- **Grounding**: Built-in support for Google Search Grounding (Gemini) and Web Search (OpenAI).
+
+ ---
+
+ ## Advanced Workflow Features
+
+- **Pinned Tabs**: Work on multiple workflows simultaneously with Chromium-style tab management.
+- **Isolated Scopes**: Hotkeys (Copy/Paste, F-keys) are strictly isolated to the active tab to prevent accidental execution.
+- **Viewport Persistence**: Zoom levels and pan positions are saved per workflow and persist across sessions.
+- **System Parameters**: Use `@system_project_id` in SQL queries or Python nodes to automatically context-aware values.
+
+  ---
+
+  ## Branding & UI
 
  To maintain a consistent look across the platform, use these standard corporate colors:
 
