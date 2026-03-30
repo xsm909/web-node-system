@@ -14,6 +14,7 @@ import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { useProjectStore } from '../../../features/projects/store';
+import { usePinnedNavigation } from '../../../features/pinned-tabs/lib/usePinnedCheck';
 
 const hslToHex = (h: number, s: number, l: number) => {
     l /= 100;
@@ -52,6 +53,7 @@ interface ProjectManagementProps {
 }
 
 export const ProjectManagement: React.FC<ProjectManagementProps> = ({ ownerId, onHeaderActionsChange, initialEditId }) => {
+    const { openOrFocus } = usePinnedNavigation();
     const { data: projects = [], isLoading } = useProjects(ownerId);
     
     // Deep link support
@@ -439,12 +441,13 @@ export const ProjectManagement: React.FC<ProjectManagementProps> = ({ ownerId, o
                 data={filteredProjects}
                 columns={columns}
                 isLoading={isLoading}
-                onRowClick={handleEdit}
+                onRowClick={(project) => openOrFocus('projects', project.id, () => handleEdit(project))}
                 isSearching={searchQuery.trim().length > 0}
                 config={{
                     categoryExtractor: p => p.category,
-                    emptyMessage: 'No projects found for this user.',
-                    indentColumnId: 'name'
+                    persistCategoryKey: 'project_expanded_categories',
+                    emptyMessage: 'No projects found.',
+                    indentColumnId: 'key'
                 }}
             />
 

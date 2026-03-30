@@ -1,1 +1,2 @@
-export { CredentialManagement } from './ui/CredentialManagement';
+export { CredentialList } from './ui/CredentialList';
+export { CredentialEditor } from './ui/CredentialEditor';

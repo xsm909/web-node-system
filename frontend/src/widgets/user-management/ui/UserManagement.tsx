@@ -13,6 +13,7 @@ import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
+import { usePinnedNavigation } from '../../../features/pinned-tabs/lib/usePinnedCheck';
 
 const columnHelper = createColumnHelper<User>();
 
@@ -23,6 +24,7 @@ interface UserManagementProps {
 }
 
 export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar, isSidebarOpen, initialEditId }) => {
+    const { openOrFocus } = usePinnedNavigation();
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [view, setView] = useState<'list' | 'edit'>('list');
     const [activeTab, setActiveTab] = useState<'common' | 'projects' | 'metadata' | 'prompts'>('common');
@@ -43,9 +45,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar,
         if (initialEditId && users.length > 0) {
             const user = users.find(u => u.id === initialEditId);
             if (user) {
-                setSelectedUser(user);
-                setView('edit');
-                setActiveTab('common');
+                handleRowClick(user);
             }
         }
     }, [initialEditId, users]);
@@ -248,7 +248,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar,
                 data={filteredUsers}
                 columns={columns}
                 isLoading={isLoading && users.length === 0}
-                onRowClick={handleRowClick}
+                onRowClick={(user) => openOrFocus('users', user.id, () => handleRowClick(user))}
                 isSearching={searchQuery.trim().length > 0}
                 config={{
                     emptyMessage: 'No users found.',

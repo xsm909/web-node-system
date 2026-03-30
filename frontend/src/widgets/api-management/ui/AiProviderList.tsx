@@ -4,6 +4,7 @@ import { AppTableStandardCell } from '../../../shared/ui/app-table/components/Ap
 import { createColumnHelper } from '@tanstack/react-table';
 import type { AiProvider } from '../../../entities/ai-provider/model/types';
 import { Icon } from '../../../shared/ui/icon';
+import { usePinnedNavigation } from '../../../features/pinned-tabs/lib/usePinnedCheck';
 
 const columnHelper = createColumnHelper<AiProvider>();
 
@@ -15,6 +16,8 @@ interface AiProviderListProps {
 }
 
 export function AiProviderList({ providers, searchQuery, onEdit, onDelete }: AiProviderListProps) {
+    const { openOrFocus } = usePinnedNavigation();
+    
     const filteredProviders = useMemo(() => {
         const q = searchQuery.toLowerCase().trim();
         if (!q) return providers;
@@ -99,7 +102,7 @@ export function AiProviderList({ providers, searchQuery, onEdit, onDelete }: AiP
             data={filteredProviders}
             columns={columns}
             isSearching={searchQuery.trim().length > 0}
-            onRowClick={onEdit}
+            onRowClick={(p) => openOrFocus('ai_providers', p.id, () => onEdit(p))}
             config={{
                 emptyMessage: 'No AI Providers configured yet.',
                 indentColumnId: 'key'

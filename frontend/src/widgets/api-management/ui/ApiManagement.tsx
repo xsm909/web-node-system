@@ -11,8 +11,14 @@ import {
 } from '../../../entities/ai-provider/api';
 import { AiProviderList } from './AiProviderList';
 import { AiProviderEditor } from './AiProviderEditor';
-import { CredentialManagement } from '../../credential-management';
+import { CredentialList } from '../../credential-management/ui/CredentialList';
+import { CredentialEditor } from '../../credential-management/ui/CredentialEditor';
+import { 
+    useCredentials, 
+    useDeleteCredential 
+} from '../../../entities/credential/api';
 import type { AiProvider } from '../../../entities/ai-provider/model/types';
+import type { Credential } from '../../../entities/credential/model/types';
 import { useProjectStore } from '../../../features/projects/store';
 
 interface ApiManagementProps {
@@ -31,33 +37,54 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
     const createProvider = useCreateAiProvider();
     const updateProvider = useUpdateAiProvider();
     const deleteProvider = useDeleteAiProvider();
+
+    // Credentials state
+    const { data: credentials = [], isLoading: credentialsLoading } = useCredentials(baseProject?.id);
+    const deleteCredentialMutation = useDeleteCredential();
     
     const [view, setView] = useState<'list' | 'edit'>('list');
     const [selectedProvider, setSelectedProvider] = useState<AiProvider | null>(null);
     const [providerToDelete, setProviderToDelete] = useState<AiProvider | null>(null);
+    const [credentialToDelete, setCredentialToDelete] = useState<Credential | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingCredentialId, setEditingCredentialId] = useState<string | null>(null);
 
     // Internal deep-link support
     useEffect(() => {
         if (initialTab) {
             setActiveTab(initialTab);
         }
-        if (initialEditId && initialTab === 'providers' && providers.length > 0) {
-            const found = providers.find(p => p.id === initialEditId);
-            if (found) {
-                setSelectedProvider(found);
+        if (initialEditId) {
+            if (activeTab === 'providers' && providers.length > 0) {
+                const found = providers.find(p => p.id === initialEditId);
+                if (found) {
+                    setSelectedProvider(found);
+                    setView('edit');
+                }
+            } else if (activeTab === 'credentials') {
+                setEditingCredentialId(initialEditId);
                 setView('edit');
             }
         }
-    }, [initialTab, initialEditId, providers]);
+    }, [initialTab, initialEditId, providers, activeTab]);
 
     const handleCreateProvider = () => {
         setSelectedProvider(null);
         setView('edit');
     };
 
+    const handleCreateCredential = () => {
+        setEditingCredentialId('new');
+        setView('edit');
+    };
+
     const handleEditProvider = (provider: AiProvider) => {
         setSelectedProvider(provider);
+        setView('edit');
+    };
+
+    const handleEditCredential = (cred: Credential) => {
+        setEditingCredentialId(cred.id);
         setView('edit');
     };
 
@@ -70,7 +97,6 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                 result = await createProvider.mutateAsync(data);
             }
             setSelectedProvider(result);
-            // setView('list'); // Keep editor open
         } catch (err) {
             console.error("Failed to save provider", err);
         }
@@ -85,15 +111,34 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
         }
     };
 
-    if (view === 'edit' && activeTab === 'providers') {
-        return (
-            <AiProviderEditor
-                provider={selectedProvider}
-                isSaving={createProvider.isPending || updateProvider.isPending}
-                onSave={handleSaveProvider}
-                onCancel={() => setView('list')}
-            />
-        );
+    const confirmDeleteCredential = async () => {
+        if (!credentialToDelete) return;
+        try {
+            await deleteCredentialMutation.mutateAsync(credentialToDelete.id);
+        } finally {
+            setCredentialToDelete(null);
+        }
+    };
+
+    if (view === 'edit') {
+        if (activeTab === 'providers') {
+            return (
+                <AiProviderEditor
+                    provider={selectedProvider}
+                    isSaving={createProvider.isPending || updateProvider.isPending}
+                    onSave={handleSaveProvider}
+                    onCancel={() => setView('list')}
+                />
+            );
+        } else if (activeTab === 'credentials') {
+            return (
+                <CredentialEditor
+                    credentialId={editingCredentialId}
+                    onCancel={() => setView('list')}
+                    onSaveSuccess={(cred) => setEditingCredentialId(cred.id)}
+                />
+            );
+        }
     }
 
     return (
@@ -112,15 +157,13 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                     </div>
                 }
                 rightContent={
-                    activeTab === 'providers' && (
-                        <AppRoundButton
-                            onClick={handleCreateProvider}
-                            icon="add"
-                            variant="brand"
-                            title="Add AI Provider"
-                            iconSize={20}
-                        />
-                    )
+                    <AppRoundButton
+                        onClick={activeTab === 'providers' ? handleCreateProvider : handleCreateCredential}
+                        icon="add"
+                        variant="brand"
+                        title={activeTab === 'providers' ? "Add AI Provider" : "Add Credential"}
+                        iconSize={20}
+                    />
                 }
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -137,6 +180,7 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                     onTabChange={(id) => {
                         setActiveTab(id as 'providers' | 'credentials');
                         setSearchQuery('');
+                        setView('list');
                     }}
                     variant="underline"
                 />
@@ -155,11 +199,16 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                         />
                     )
                 ) : (
-                    <CredentialManagement 
-                        hideHeader 
-                        externalSearchQuery={searchQuery} 
-                        onExternalSearchQueryChange={setSearchQuery} 
-                    />
+                    credentialsLoading ? (
+                        <div className="p-8 text-center text-[var(--text-muted)] italic">Loading credentials...</div>
+                    ) : (
+                        <CredentialList 
+                            credentials={credentials}
+                            searchQuery={searchQuery}
+                            onEdit={handleEditCredential}
+                            onDelete={setCredentialToDelete}
+                        />
+                    )
                 )}
             </div>
 
@@ -171,6 +220,16 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                 isLoading={deleteProvider.isPending}
                 onConfirm={confirmDeleteProvider}
                 onCancel={() => setProviderToDelete(null)}
+            />
+
+            <ConfirmModal
+                isOpen={!!credentialToDelete}
+                title="Delete Credential"
+                description={`Are you sure you want to delete the credential '${credentialToDelete?.key}'?`}
+                confirmLabel="Delete"
+                isLoading={deleteCredentialMutation.isPending}
+                onConfirm={confirmDeleteCredential}
+                onCancel={() => setCredentialToDelete(null)}
             />
         </div>
     );
