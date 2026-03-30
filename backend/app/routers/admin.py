@@ -256,6 +256,7 @@ class CredentialCreate(BaseModel):
     value: str
     type: str
     description: Optional[str] = None
+    expired: bool = False
 
 
 class CredentialOut(BaseModel):
@@ -264,6 +265,7 @@ class CredentialOut(BaseModel):
     value: str
     type: str
     description: Optional[str] = None
+    expired: bool = False
     is_locked: bool = False
 
     class Config:

@@ -5,4 +5,5 @@ export interface Credential {
     type: string;
     description: string | null;
     is_locked: boolean;
+    expired: boolean;
 }

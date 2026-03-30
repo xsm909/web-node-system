@@ -36,11 +36,12 @@ export const CredentialList = ({ credentials, searchQuery, onEdit, onDelete }: C
                 const cred = info.row.original;
                 return (
                     <AppTableStandardCell
-                        icon="verified"
+                        icon={cred.expired ? "history" : "verified"}
                         label={cred.key}
                         subtitle={cred.description}
                         isLocked={cred.is_locked}
                         isMono={true}
+                        className={cred.expired ? "opacity-50 grayscale" : ""}
                     />
                 );
             },
@@ -93,7 +94,10 @@ export const CredentialList = ({ credentials, searchQuery, onEdit, onDelete }: C
             isSearching={searchQuery.trim().length > 0}
             onRowClick={(cred) => openOrFocus('credentials', cred.id, () => onEdit(cred))}
             config={{
-                categoryExtractor: c => c.type,
+                categoryExtractor: c => {
+                    const type = (c.type || 'api').toUpperCase();
+                    return c.expired ? `${type} | Expired` : type;
+                },
                 persistCategoryKey: 'credential_expanded_categories',
                 emptyMessage: 'No secure credentials detected.',
                 indentColumnId: 'key'

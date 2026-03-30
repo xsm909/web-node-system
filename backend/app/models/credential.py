@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, UUID
+from sqlalchemy import Column, String, Text, UUID, Boolean
 import uuid
 from ..core.database import Base
 
@@ -10,3 +10,4 @@ class Credential(Base):
     value = Column(Text, nullable=False)
     type = Column(String(50), nullable=False)  # e.g., 'ai', 'db', 'telegram', 'api'
     description = Column(String(255), nullable=True)
+    expired = Column(Boolean, default=False, nullable=False)

@@ -30,10 +30,11 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
         key: '',
         value: '',
         type: 'api',
-        description: ''
+        description: '',
+        expired: false
     });
     const [initialFormState, setInitialFormState] = useState<Partial<Credential>>({
-        key: '', value: '', type: 'api', description: ''
+        key: '', value: '', type: 'api', description: '', expired: false
     });
 
     useEffect(() => {
@@ -44,7 +45,7 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
                 setInitialFormState(cred);
             }
         } else if (!credentialId) {
-            const empty = { key: '', value: '', type: 'api', description: '' };
+            const empty = { key: '', value: '', type: 'api', description: '', expired: false };
             setFormData(empty);
             setInitialFormState(empty);
         }
@@ -75,7 +76,8 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
     const isDirty = formData.key !== initialFormState.key ||
                     formData.value !== initialFormState.value ||
                     formData.type !== initialFormState.type ||
-                    formData.description !== initialFormState.description;
+                    formData.description !== initialFormState.description ||
+                    formData.expired !== initialFormState.expired;
 
     const isSaving = createMutation.isPending || updateMutation.isPending;
 
@@ -146,6 +148,20 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
                             placeholder="Short purpose note"
                             disabled={!!formData.is_locked}
                         />
+                    </div>
+                    <div className="flex items-center gap-3 p-4 bg-[var(--bg-app-alt)] border border-[var(--border-base)] rounded-lg">
+                        <input
+                            type="checkbox"
+                            disabled={!!formData.is_locked}
+                            id="expired_checkbox"
+                            checked={!!formData.expired}
+                            onChange={(e) => setFormData({ ...formData, expired: e.target.checked })}
+                            className="w-4 h-4 rounded border-[var(--border-base)] bg-[var(--bg-app)] text-[var(--brand-main)] focus:ring-[var(--brand-main)] cursor-pointer"
+                        />
+                        <label htmlFor="expired_checkbox" className="flex flex-col cursor-pointer">
+                            <span className="text-sm font-bold text-[var(--text-main)]">Mark as Expired</span>
+                            <span className="text-xs text-[var(--text-muted)] opacity-60">This key will be moved to the expired sub-tab and hidden from active selectors.</span>
+                        </label>
                     </div>
                 </div>
             </div>

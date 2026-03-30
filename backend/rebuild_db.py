@@ -106,6 +106,7 @@ CREATE TABLE credentials (
     value TEXT NOT NULL, 
     type VARCHAR(50) NOT NULL, 
     description VARCHAR(255), 
+    expired BOOLEAN DEFAULT 0,
     PRIMARY KEY (id)
 );
 INSERT INTO credentials SELECT * FROM old_db.credentials;
