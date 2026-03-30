@@ -221,26 +221,28 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({ tab, projectColor, isActi
                     </span>
                 </div>
                 
-                <div className="h-4 flex items-center justify-center">
+                {/* Bottom area: Dirty Indicator & Close Button */}
+                <div className="h-6 shrink-0 w-full flex items-center justify-center relative pointer-events-auto">
+                    {/* Dirty Dot (fades out on hover) */}
                     {tab.isDirty && (
                         <div 
-                            className="w-1.5 h-1.5 rounded-full shrink-0 shadow-sm animate-pulse"
+                            className="w-1.5 h-1.5 rounded-full shrink-0 shadow-sm animate-pulse transition-opacity duration-200 group-hover:opacity-0 absolute"
                             style={{ backgroundColor: brandColor }}
                         />
                     )}
+                    {/* Close Button (fades in on hover) */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onClose(e);
+                        }}
+                        className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-all z-20 absolute"
+                        title="Close tab"
+                    >
+                        <Icon name="close" size={12} />
+                    </button>
                 </div>
             </div>
-
-            <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onClose(e);
-                }}
-                className="absolute top-1.5 right-1.5 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-all z-20 pointer-events-auto"
-                title="Close tab"
-            >
-                <Icon name="close" size={10} />
-            </button>
         </div>
     );
 };
