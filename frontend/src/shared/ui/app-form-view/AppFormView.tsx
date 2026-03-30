@@ -121,7 +121,7 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
 
     useRegisterBlocker(
         finalBlockerId, 
-        isDirty, 
+        isPinned ? false : isDirty, 
         onSave, 
         onDiscard || onCancel
     );

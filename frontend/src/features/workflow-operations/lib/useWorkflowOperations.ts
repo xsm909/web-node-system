@@ -11,6 +11,7 @@ interface UseWorkflowOperationsProps {
     edgesRef: React.MutableRefObject<Edge[]>;
     onUpdateLocalWorkflow?: (workflow: Workflow) => void;
     onExecutionComplete?: () => void;
+    isPinned?: boolean;
 }
 
 export function useWorkflowOperations({
@@ -18,7 +19,8 @@ export function useWorkflowOperations({
     nodesRef,
     edgesRef,
     onUpdateLocalWorkflow,
-    onExecutionComplete
+    onExecutionComplete,
+    isPinned = false
 }: UseWorkflowOperationsProps) {
     const queryClient = useQueryClient();
     const [isRunning, setIsRunning] = useState(false);
@@ -122,9 +124,10 @@ export function useWorkflowOperations({
     };
 
     // Register with navigation guard
+    // Pinned workflows don't block global navigation (e.g. sidebar clicks)
     useRegisterBlocker(
         activeWorkflow ? `workflow-${activeWorkflow.id}` : 'workflow-editor',
-        isDirty,
+        isPinned ? false : isDirty,
         saveWorkflow,
         () => {
             // Discard: we don't need to do anything specifically here 

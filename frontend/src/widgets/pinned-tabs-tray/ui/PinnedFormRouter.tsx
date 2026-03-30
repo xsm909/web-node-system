@@ -155,6 +155,7 @@ const PinnedTabContent = React.memo<PinnedTabContentProps>(({
                         isHotkeysEnabled={isHotkeysEnabled}
                         onEditNode={onEditNode}
                         refreshTrigger={refreshTrigger}
+                        isPinned={true}
                     />
                 );
                 

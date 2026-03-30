@@ -76,6 +76,7 @@ export const WorkflowEditorProvider: React.FC<{
     activeWorkflowId?: string;
     projectId?: string | null;
     isHotkeysEnabled?: boolean;
+    isPinned?: boolean;
 }> = ({ 
     children, 
     onToggleSidebar, 
@@ -84,7 +85,8 @@ export const WorkflowEditorProvider: React.FC<{
     refreshTrigger, 
     activeWorkflowId,
     projectId,
-    isHotkeysEnabled
+    isHotkeysEnabled,
+    isPinned = false
 }) => {
     const {
         workflows,
@@ -138,7 +140,8 @@ export const WorkflowEditorProvider: React.FC<{
         onUpdateLocalWorkflow: setActiveWorkflow,
         onExecutionComplete: () => {
              if (activeWorkflow) loadWorkflow(activeWorkflow);
-        }
+        },
+        isPinned
     });
 
     const isSaving = isCreatingWf || isSavingOps;

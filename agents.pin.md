@@ -32,11 +32,21 @@ Any entity that can be opened in `AppFormView.tsx` can be pinned.
 
 ### 2. Pin Activation
 
-- A **Pin button** is added to `AppHeader.tsx` (icon: `agents.md 9.3 keep`).
+- A **Pin button** is added to `AppHeader.tsx` (icon: `keep`).
+- **Constraint**: Only **saved and non-dirty** entities can be pinned. If the form has unsaved changes, the Pin button is disabled with a tooltip ("Cannot pin unsaved data").
 - Clicking the Pin button:
-  - Removes the current form from the navigation stack.
-  - Creates a pinned tab.
-  - Activates pinned mode for that entity.
+  - Detaches the entity from the standard navigation stack.
+  - Creates a persistent pinned tab in the tray.
+  - If already pinned, the Pin button is **hidden** in favor of the tab's dedicated Close (X) button.
+
+---
+
+### 3. Pinned Mode UI (Tab Transformation)
+
+- When an entity is pinned:
+  - The standard **Back** button in `AppHeader.tsx` transforms into a **Close (X)** icon.
+  - The tooltip and aria-label update to "Close tab".
+  - The **Esc** key is rebound to the "Close" action instead of "Go back".
 
 ---
 
@@ -76,9 +86,10 @@ Any entity that can be opened in `AppFormView.tsx` can be pinned.
 - No explicit limit on number of tabs.
 
 #### Actions:
-- Focus tab
-- Close tab
-- Switch between tabs
+- **Focus tab**: Clicking a tab in the tray focuses that entity.
+- **Close tab**: Clicking the "X" on the tab (or in the header) removed it.
+- **Neighbor Selection**: Closing the active tab automatically shifts focus to the neighboring tab (the one to its left, or the next available tab if leftmost).
+- **Switch between tabs**: Users can toggle between multiple parallel workspaces.
 
 ---
 
@@ -120,6 +131,7 @@ The application supports two data contexts:
 
 - Pinned entities remain accessible even if the user navigates away from the project.
 - Project-based color themes must still apply to pinned entities.
+- **Sidebar Restoration**: If the final pinned tab of a specific entity type is closed, the application automatically switches the sidebar to that entity's category list (e.g., closing the last pinned Workflow tab restores the 'Workflows' sidebar view).
 
 ---
 
@@ -182,17 +194,14 @@ To prevent "Maximum update depth exceeded" errors and cross-tab data leakage, th
 
 ---
 
-## 12. Navigation Guards & "Save and Close"
-
-Closing pinned tabs or navigating away from dirty forms is protected by a unified 3-way confirmation system.
-
-### 1. Blocker Registry (`useNavigationGuard.tsx`)
-- Every pinned form registers a unique `blockId` (format: `entityType:entityId`) with the navigation stack.
-- This allows the `PinnedTabsTray` to precisely target the save/discard logic for a specific background tab when the "X" button is clicked.
+### 1. Navigation Guard Isolation
+Pinned tabs are functionally isolated from the global navigation stack to allow unrestricted multitasking.
+- **Global Freedom**: Unsaved changes in a pinned tab **do not block** global navigation (e.g., clicking sidebar categories or switching projects). The user is free to move around the app while pinned data remains in its transient dirty state.
+- **Local Enforcement**: The "Unsaved Changes" guard (Save/Discard/Stay) is **only triggered** when the user explicitly attempts to **Close** the pinned tab (via the 'X' button or `Esc`).
 
 ### 2. 3-Way Confirmation (`AppCompactModalForm`)
 - Options: **Save Changes**, **Discard**, or **Stay and Edit**.
-- **Save and Close**: The `PinnedTabsTray` retrieves the `onSave` callback from the navigation guard and executes it before closing the tab, ensuring data persistence.
+- **Unified Save Flow**: Choosing "Save Changes" executes the entity-specific `onSave` logic and removes the tab from the tray only after a successful write. Selecting "Discard" removes the tab immediately and restores the focus to a neighbor or the sidebar list.
 
 ---
 

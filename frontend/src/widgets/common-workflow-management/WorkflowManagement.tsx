@@ -14,6 +14,7 @@ interface WorkflowManagementProps {
     activeWorkflowId?: string;
     projectId?: string | null;
     isHotkeysEnabled?: boolean;
+    isPinned?: boolean;
 }
 
 export function WorkflowManagement({ 
@@ -23,7 +24,8 @@ export function WorkflowManagement({
     onEditNode,
     projectId,
     refreshTrigger,
-    isHotkeysEnabled
+    isHotkeysEnabled,
+    isPinned = false
 }: WorkflowManagementProps) {
 
     const initialScene = React.useMemo(() => {
@@ -42,6 +44,7 @@ export function WorkflowManagement({
             activeWorkflowId={activeWorkflowId}
             projectId={projectId}
             isHotkeysEnabled={isHotkeysEnabled}
+            isPinned={isPinned}
         >
             <div className="flex-1 flex flex-col min-w-0 relative h-full">
                 <Navigator
