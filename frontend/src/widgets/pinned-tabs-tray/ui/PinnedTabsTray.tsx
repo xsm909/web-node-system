@@ -49,13 +49,13 @@ export const PinnedTabsTray: React.FC = () => {
     if (tabs.length === 0) return null;
 
     return (
-        <aside className="w-[42px] border-l border-[var(--border-base)] bg-[var(--bg-app)] flex flex-col z-40 shrink-0 select-none">
+        <aside className="w-[45px] border-l border-[var(--border-base)] bg-[var(--bg-app)] flex flex-col z-40 shrink-0 select-none">
             <DndContext 
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
             >
-                <div className="flex-1 flex flex-col py-4 gap-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
+                <div className="flex-1 flex flex-col py-2 gap-1 overflow-y-auto custom-scrollbar overflow-x-hidden content-start">
                     <SortableContext 
                         items={tabs.map(t => t.id)} 
                         strategy={verticalListSortingStrategy}
@@ -154,11 +154,13 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({ tab, projectColor, isActi
     const style = {
         transform: CSS.Translate.toString(transform),
         transition,
-        backgroundColor: isActive ? (tab.projectId ? `${brandColor}14` : 'var(--border-muted)') : undefined,
         borderColor: isActive ? brandColor : 'transparent',
         color: isActive ? brandColor : undefined,
         zIndex: isDragging ? 50 : undefined,
         opacity: isDragging ? 0.5 : 1,
+        minHeight: '100px',
+        maxHeight: '300px',
+        flex: '0 1 auto',
     };
 
     return (
@@ -166,40 +168,67 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({ tab, projectColor, isActi
             ref={setNodeRef}
             style={style}
             className={`
-                group relative flex flex-col items-center justify-start w-full h-40 cursor-pointer transition-all duration-200
+                group relative flex flex-col items-center justify-start w-full cursor-pointer transition-all duration-200
                 ${isActive 
                     ? 'border-l-2' 
-                    : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]'}
-                ${isDragging ? 'shadow-lg bg-[var(--bg-hover)]' : ''}
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}
+                ${isDragging ? 'shadow-lg' : ''}
             `}
             onClick={onFocus}
             title={tab.title}
             {...attributes}
             {...listeners}
         >
-            <div className="flex flex-col items-center gap-2 h-full py-3 relative overflow-hidden pointer-events-none">
+            {/* Base Background */}
+            <div 
+                className="absolute inset-0 pointer-events-none transition-colors duration-200"
+                style={{
+                    backgroundColor: isDragging 
+                        ? 'var(--bg-hover)' 
+                        : isActive 
+                            ? (tab.projectId ? `${brandColor}40` : 'var(--bg-hover)')
+                            : (tab.projectId ? `${brandColor}26` : 'transparent')
+                }}
+            />
+            {/* Hover Background */}
+            {!isActive && !isDragging && (
+                <div 
+                    className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    style={{
+                        backgroundColor: tab.projectId ? `${brandColor}1A` : 'var(--bg-hover)'
+                    }}
+                />
+            )}
+
+            <div className="flex flex-col items-center gap-1 h-full w-full py-2 relative z-10 overflow-hidden pointer-events-none px-1">
                 <Icon 
                     name={tab.icon || 'article'} 
-                    size={15} 
-                    className="shrink-0" 
+                    size={16} 
+                    className="shrink-0 mb-1" 
                     style={{ color: isActive ? brandColor : undefined }}
                 />
                 
-                <div className="flex-1 flex flex-col items-center justify-start overflow-hidden w-full">
+                <div className="flex-1 flex flex-col items-center justify-center overflow-hidden w-full relative">
                     <span 
-                        className="whitespace-nowrap text-[10px] uppercase tracking-widest font-light text-center truncate max-h-full"
-                        style={{ color: isActive ? brandColor : undefined, writingMode: 'vertical-rl' }}
+                        className="whitespace-nowrap text-[10px] uppercase tracking-normal font-medium text-center truncate max-h-full opacity-90 group-hover:opacity-100 transition-opacity"
+                        style={{ 
+                            color: isActive ? brandColor : undefined, 
+                            writingMode: 'vertical-rl',
+                            transform: 'rotate(180deg)' // Better readability for vertical text usually
+                        }}
                     >
                         {tab.title}
                     </span>
                 </div>
                 
-                {tab.isDirty && (
-                    <div 
-                        className="w-1.5 h-1.5 rounded-full shrink-0 shadow-sm"
-                        style={{ backgroundColor: brandColor }}
-                    />
-                )}
+                <div className="h-4 flex items-center justify-center">
+                    {tab.isDirty && (
+                        <div 
+                            className="w-1.5 h-1.5 rounded-full shrink-0 shadow-sm animate-pulse"
+                            style={{ backgroundColor: brandColor }}
+                        />
+                    )}
+                </div>
             </div>
 
             <button
@@ -207,7 +236,7 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({ tab, projectColor, isActi
                     e.stopPropagation();
                     onClose(e);
                 }}
-                className="absolute top-1 right-1 p-0.5 rounded-md opacity-0 group-hover:opacity-100 hover:bg-slate-500/10 text-[var(--text-muted)] hover:text-red-500 transition-opacity z-10 pointer-events-auto"
+                className="absolute top-1.5 right-1.5 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-all z-20 pointer-events-auto"
                 title="Close tab"
             >
                 <Icon name="close" size={10} />
