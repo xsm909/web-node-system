@@ -68,7 +68,7 @@ export const PinnedTabsTray: React.FC = () => {
                                     tab={tab}
                                     projectColor={project?.theme_color || UI_CONSTANTS.BRAND}
                                     isActive={activeTabId === tab.id}
-                                    onFocus={() => focus(tab.id === activeTabId ? null : tab.id)}
+                                    onFocus={() => focus(tab.id)}
                                     onClose={(e) => {
                                         e.stopPropagation();
                                         if (tab.isDirty) {
