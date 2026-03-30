@@ -19,6 +19,15 @@ import { StyleEditor, type StyleEditorRef } from './StyleEditor';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { useProjectStore } from '../../../features/projects/store';
 import { usePinnedNavigation } from '../../../features/pinned-tabs/lib/usePinnedCheck';
+import { 
+    useReports, 
+    useStyles, 
+    useDeleteReport, 
+    useDeleteStyle, 
+    useDuplicateReport, 
+    useReorderReports 
+} from '../../../entities/report/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ReportManagementProps {
     onToggleSidebar?: () => void;
@@ -37,12 +46,19 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
     const [view, setView] = useState<ViewState>('list');
     const [topTab, setTopTab] = useState<'reports' | 'styles'>('reports');
     const [activeTab, setActiveTab] = useState<'general' | 'code' | 'template' | 'preview'>('general');
-    const [reports, setReports] = useState<Report[]>([]);
-    const [styles, setStyles] = useState<ReportStyle[]>([]);
+    
+    const { data: reports = [], isLoading: reportsLoading } = useReports(projectId);
+    const { data: styles = [], isLoading: stylesLoading } = useStyles(projectId);
+    const queryClient = useQueryClient();
+
+    const deleteReportMutation = useDeleteReport();
+    const deleteStyleMutation = useDeleteStyle();
+    const duplicateReportMutation = useDuplicateReport();
+    const reorderReportsMutation = useReorderReports();
+
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [selectedGroupReports, setSelectedGroupReports] = useState<Report[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const isLoading = reportsLoading || stylesLoading;
     const { baseProject } = useProjectStore();
     const [creationProjectId, setCreationProjectId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -144,35 +160,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
         enabled: (isHotkeysEnabled !== false) && view === 'edit' && isAdmin && topTab === 'reports' 
     });
 
-    useEffect(() => {
-        const fetchReports = async () => {
-            setIsLoading(true);
-            try {
-                const headers: Record<string, string> = {};
-                if (projectId !== undefined) {
-                    if (projectId) {
-                        headers['X-Force-Project-Id'] = projectId;
-                    } else {
-                        headers['X-Project-Skip'] = 'true';
-                    }
-                }
-
-                const res = await apiClient.get<Report[]>('/reports', { headers });
-                setReports(res.data);
-
-                if (isAdmin) {
-                    const stylesRes = await apiClient.get<ReportStyle[]>('/reports/styles', { headers });
-                    setStyles(stylesRes.data);
-                }
-            } catch (err) {
-                console.error("Failed to load reports", err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchReports();
-    }, [refreshTrigger, isAdmin, projectId]);
+    // Removed manual fetch useEffect
 
     const handleCreate = () => {
         setSelectedReport(null);
@@ -211,8 +199,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
 
     const handleDuplicate = async (report: Report) => {
         try {
-            await apiClient.post(`/reports/${report.id}/duplicate`);
-            setRefreshTrigger(prev => prev + 1);
+            await duplicateReportMutation.mutateAsync(report.id);
         } catch (err) {
             console.error("Failed to duplicate report", err);
             alert("Error duplicating report");
@@ -226,18 +213,10 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
     const handleReorder = async (_item: Report, newOrder: Report[]) => {
         if (!isAdmin) return;
         try {
-            await apiClient.put('/reports/reorder', {
-                ids: newOrder.map(r => r.id)
-            });
-            // Update local state for immediate feedback
-            setReports(prev => {
-                const otherReports = prev.filter(r => !newOrder.find(nr => nr.id === r.id));
-                return [...otherReports, ...newOrder];
-            });
+            await reorderReportsMutation.mutateAsync(newOrder.map(r => r.id));
         } catch (err) {
             console.error("Failed to reorder reports", err);
             alert("Error reordering reports");
-            setRefreshTrigger(prev => prev + 1); // Rollback
         }
     };
 
@@ -246,11 +225,10 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
         setIsDeleting(true);
         try {
             if (topTab === 'reports') {
-                await apiClient.delete(`/reports/${idToDelete}`);
+                await deleteReportMutation.mutateAsync(idToDelete);
             } else {
-                await apiClient.delete(`/reports/styles/${idToDelete}`);
+                await deleteStyleMutation.mutateAsync(idToDelete);
             }
-            setRefreshTrigger(prev => prev + 1);
         } catch (err) {
             console.error("Failed to delete", err);
             alert("Error deleting item");
@@ -275,7 +253,9 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
         setSelectedStyle(null);
         setIsGenerated(false);
         setActiveTab('general');
-        setRefreshTrigger(prev => prev + 1);
+        // Optional: force a refetch when going back to list
+        queryClient.invalidateQueries({ queryKey: ['reports'] });
+        queryClient.invalidateQueries({ queryKey: ['report-styles'] });
     };
 
     const handleDownloadPdf = async () => {
@@ -407,7 +387,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
                     isLocked={selectedReport?.is_locked}
                     onLockToggle={(locked) => {
                         setSelectedReport(prev => prev ? { ...prev, is_locked: locked } : null);
-                        setRefreshTrigger(prev => prev + 1);
+                        queryClient.invalidateQueries({ queryKey: ['reports'] });
                     }}
                     isHotkeysEnabled={isHotkeysEnabled}
                     headerRightContent={
@@ -480,7 +460,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
                     isLocked={selectedStyle?.is_locked}
                     onLockToggle={(locked) => {
                         setSelectedStyle(prev => prev ? { ...prev, is_locked: locked } : null);
-                        setRefreshTrigger(prev => prev + 1);
+                        queryClient.invalidateQueries({ queryKey: ['report-styles'] });
                     }}
                     isHotkeysEnabled={isHotkeysEnabled}
                 >

@@ -1,4 +1,5 @@
 import { useState, forwardRef, useImperativeHandle, useMemo, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Report, ObjectParameter as ReportParameter, ReportStyle, ReportType } from "../../../entities/report/model/types";
 import { Icon } from "../../../shared/ui/icon";
 import { apiClient } from "../../../shared/api/client";
@@ -48,6 +49,7 @@ export interface ReportEditorRef {
 
 export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ report, reports = [], styles, activeTab, onTabChange, onDirtyChange, isLocked }, ref) => {
     const { theme } = useThemeStore();
+    const queryClient = useQueryClient();
     const [isSaving, setIsSaving] = useState(false);
     const [isCompiling, setIsCompiling] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -437,6 +439,7 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
             fetchParamOptions();
 
             // Return saved report so parent can update its state
+            queryClient.invalidateQueries({ queryKey: ['reports'] });
             return savedReport;
         } catch (error) {
             console.error("Failed to save report", error);

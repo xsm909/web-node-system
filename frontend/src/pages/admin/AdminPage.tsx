@@ -354,17 +354,18 @@ export default function AdminPage() {
                     </div>
                     
                     {/* Main Navigation Layer */}
-                    <div className={`bg-[var(--bg-app)] ${activeTabId ? 'absolute inset-0 z-[-1] opacity-0 invisible pointer-events-none flex flex-col' : 'flex-1 flex flex-col min-h-0 w-full'}`}>
+                    <div 
+                        key={`${activeTab}-${resetNonce}`}
+                        className={`bg-[var(--bg-app)] ${activeTabId ? 'absolute inset-0 z-[-1] opacity-0 invisible pointer-events-none flex flex-col' : 'flex-1 flex flex-col min-h-0 w-full'}`}
+                    >
                         {activeTab === 'users' ? (
                             usersScene
                         ) : activeTab === 'nodes' ? (
                             <Navigator
-                                key={`nodes-${resetNonce}`}
                                 initialScene={nodesScene}
                             />
                         ) : activeTab === 'workflows' ? (
                             <Navigator
-                                key={`workflows-${resetNonce}`}
                                 initialScene={workflowsScene}
                             />
                         ) : activeTab === 'schemas' ? (

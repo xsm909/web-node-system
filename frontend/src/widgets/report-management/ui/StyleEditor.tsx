@@ -1,4 +1,5 @@
 import { useState, forwardRef, useImperativeHandle, useMemo, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { ReportStyle } from "../../../entities/report/model/types";
 import { Icon } from "../../../shared/ui/icon";
 import { apiClient } from "../../../shared/api/client";
@@ -27,6 +28,7 @@ export interface StyleEditorRef {
 
 export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style, allStyles = [], onDirtyChange, isLocked }, ref) => {
     const { theme } = useThemeStore();
+    const queryClient = useQueryClient();
     const [isSaving, setIsSaving] = useState(false);
 
     const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(allStyles), [allStyles]);
@@ -110,6 +112,7 @@ export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style
             };
             onDirtyChange?.(false);
             
+            queryClient.invalidateQueries({ queryKey: ['report-styles'] });
             return savedStyle;
         } catch (error) {
             console.error("Failed to save style", error);

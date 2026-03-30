@@ -1,16 +1,23 @@
-import { useState, useEffect, useMemo } from 'react';
-import { apiClient } from '../../../shared/api/client';
+import { useState, useMemo } from 'react';
 import type { Credential } from '../../../entities/credential/model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
-import { AppHeader } from '../../../widgets/app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput, AppFormFieldRect } from '../../../shared/ui/app-input';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
 import { createColumnHelper } from '@tanstack/react-table';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
+import { AppHeader } from '../../../widgets/app-header';
+import { 
+    useCredentials, 
+    useCreateCredential, 
+    useUpdateCredential, 
+    useDeleteCredential 
+} from '../../../entities/credential/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { useProjectStore } from '../../../features/projects/store';
 
 const columnHelper = createColumnHelper<Credential>();
 
@@ -20,26 +27,15 @@ interface CredentialManagementProps {
 }
 
 export const CredentialManagement = ({ onToggleSidebar, isSidebarOpen }: CredentialManagementProps) => {
-    const [credentials, setCredentials] = useState<Credential[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { baseProject } = useProjectStore();
+    const { data: credentials = [], isLoading: loading } = useCredentials(baseProject?.id);
+    const queryClient = useQueryClient();
+
+    const createMutation = useCreateCredential();
+    const updateMutation = useUpdateCredential();
+    const deleteMutation = useDeleteCredential();
 
     const [credentialToDelete, setCredentialToDelete] = useState<Credential | null>(null);
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const { data } = await apiClient.get('/admin/credentials');
-            setCredentials(data);
-        } catch {
-            // handle error
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
 
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<Partial<Credential>>({
@@ -71,17 +67,18 @@ export const CredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Credent
     const handleSave = async () => {
         try {
             let savedCred: Credential;
+            const payload = {
+                ...formData,
+                description: formData.description || null
+            };
             if (editingId) {
-                const { data } = await apiClient.put(`/admin/credentials/${editingId}`, formData);
-                savedCred = data;
+                savedCred = await updateMutation.mutateAsync({ id: editingId, data: payload });
             } else {
-                const { data } = await apiClient.post('/admin/credentials', formData);
-                savedCred = data;
+                savedCred = await createMutation.mutateAsync(payload);
                 setEditingId(savedCred.id);
             }
             setInitialFormState(savedCred);
             setFormData(savedCred);
-            fetchData();
         } catch {
             alert('Failed to save credential');
         }
@@ -99,8 +96,7 @@ export const CredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Credent
     const confirmDelete = async () => {
         if (!credentialToDelete) return;
         try {
-            await apiClient.delete(`/admin/credentials/${credentialToDelete.id}`);
-            fetchData();
+            await deleteMutation.mutateAsync(credentialToDelete.id);
         } catch {
             alert('Failed to delete credential');
         } finally {
@@ -202,7 +198,7 @@ export const CredentialManagement = ({ onToggleSidebar, isSidebarOpen }: Credent
                 isLocked={!!formData.is_locked}
                 onLockToggle={(locked) => {
                     setFormData(prev => ({ ...prev, is_locked: locked }));
-                    fetchData();
+                    queryClient.invalidateQueries({ queryKey: ['credentials'] });
                 }}
             >
                 <div className="max-w-5xl mx-auto w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
