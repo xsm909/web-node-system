@@ -1,17 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../shared/api/client';
+import { useProjectStore } from '../../../features/projects/store';
 import type { Report, ReportStyle } from '../model/types';
 
 // Reports Queries
 export const useReports = (projectId?: string | null) => {
+    const activeProject = useProjectStore(s => s.activeProject);
+    const isProjectMode = useProjectStore(s => s.isProjectMode);
+    
+    // Determine effective project to use for the query (Sidebar vs Prop)
+    const effectiveProjectId = projectId !== undefined ? projectId : (isProjectMode ? activeProject?.id : null);
+    const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isProjectMode;
+
     return useQuery({
-        queryKey: ['reports', projectId],
+        queryKey: ['reports', effectiveIsProjectMode, effectiveProjectId],
         queryFn: async () => {
             const config: any = {};
             if (projectId === null) {
                 config.headers = { 'X-Project-Skip': 'true' };
             } else if (projectId) {
                 config.headers = { 'X-Force-Project-Id': projectId };
+            } else if (projectId === undefined && isProjectMode && activeProject) {
+                config.headers = { 'X-Force-Project-Id': activeProject.id };
             }
             const response = await apiClient.get<Report[]>('/reports', config);
             return response.data;
@@ -98,14 +108,23 @@ export const useReorderReports = () => {
 
 // Styles Queries
 export const useStyles = (projectId?: string | null) => {
+    const activeProject = useProjectStore(s => s.activeProject);
+    const isProjectMode = useProjectStore(s => s.isProjectMode);
+    
+    // Determine effective project to use for the query (Sidebar vs Prop)
+    const effectiveProjectId = projectId !== undefined ? projectId : (isProjectMode ? activeProject?.id : null);
+    const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isProjectMode;
+
     return useQuery({
-        queryKey: ['report-styles', projectId],
+        queryKey: ['report-styles', effectiveIsProjectMode, effectiveProjectId],
         queryFn: async () => {
             const config: any = {};
             if (projectId === null) {
                 config.headers = { 'X-Project-Skip': 'true' };
             } else if (projectId) {
                 config.headers = { 'X-Force-Project-Id': projectId };
+            } else if (projectId === undefined && isProjectMode && activeProject) {
+                config.headers = { 'X-Force-Project-Id': activeProject.id };
             }
             const response = await apiClient.get<ReportStyle[]>('/reports/styles', config);
             return response.data;

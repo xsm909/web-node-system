@@ -40,13 +40,13 @@ apiClient.interceptors.request.use((config) => {
       return config;
   }
 
-  // Fallback to baseProject from store (Stable Sidebar Selection)
+  // Fallback to activeProject from store (Effective Context Tracking)
   try {
       const state = useProjectStore.getState();
-      const baseProject = state.baseProject;
-      if (baseProject) {
-          config.headers['X-Project-Id'] = baseProject.id;
-          config.headers['X-Project-Owner'] = baseProject.owner_id;
+      const activeProject = state.activeProject;
+      if (activeProject) {
+          config.headers['X-Project-Id'] = activeProject.id;
+          config.headers['X-Project-Owner'] = activeProject.owner_id;
       }
   } catch (e) {
       // Ignore

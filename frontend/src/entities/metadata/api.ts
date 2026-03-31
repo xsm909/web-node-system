@@ -37,11 +37,12 @@ export interface UpdateMetadataDto {
 
 // Queries
 export const useMetadataList = (projectId?: string | null) => {
-    const { baseProject, isBaseProjectMode } = useProjectStore();
+    const activeProject = useProjectStore(s => s.activeProject);
+    const isProjectMode = useProjectStore(s => s.isProjectMode);
     
     // Determine effective project to use for the query (Sidebar vs Prop)
-    const effectiveProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null);
-    const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isBaseProjectMode;
+    const effectiveProjectId = projectId !== undefined ? projectId : (isProjectMode ? activeProject?.id : null);
+    const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isProjectMode;
 
     return useQuery({
         queryKey: ['metadata', effectiveIsProjectMode, effectiveProjectId],
@@ -51,8 +52,8 @@ export const useMetadataList = (projectId?: string | null) => {
                 config.headers = { 'X-Project-Skip': 'true' };
             } else if (projectId) {
                 config.headers = { 'X-Force-Project-Id': projectId };
-            } else if (projectId === undefined && isBaseProjectMode && baseProject) {
-                config.headers = { 'X-Force-Project-Id': baseProject.id };
+            } else if (projectId === undefined && isProjectMode && activeProject) {
+                config.headers = { 'X-Force-Project-Id': activeProject.id };
             }
 
             const response = await apiClient.get<Metadata[]>('/metadata', config);
@@ -63,11 +64,12 @@ export const useMetadataList = (projectId?: string | null) => {
 
 // --- Entity Metadata ---
 export const useEntityMetadata = (entityType: string, entityId: string, projectId?: string | null) => {
-  const { baseProject, isBaseProjectMode } = useProjectStore();
+  const activeProject = useProjectStore(s => s.activeProject);
+  const isProjectMode = useProjectStore(s => s.isProjectMode);
   
   // Determine effective context
-  const effectiveProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null);
-  const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isBaseProjectMode;
+  const effectiveProjectId = projectId !== undefined ? projectId : (isProjectMode ? activeProject?.id : null);
+  const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isProjectMode;
 
   return useQuery({
     queryKey: ['metadata', 'entity', entityType, entityId, effectiveIsProjectMode, effectiveProjectId],
@@ -77,8 +79,8 @@ export const useEntityMetadata = (entityType: string, entityId: string, projectI
           config.headers = { 'X-Project-Skip': 'true' };
       } else if (projectId) {
           config.headers = { 'X-Force-Project-Id': projectId };
-      } else if (projectId === undefined && isBaseProjectMode && baseProject) {
-          config.headers = { 'X-Force-Project-Id': baseProject.id };
+      } else if (projectId === undefined && isProjectMode && activeProject) {
+          config.headers = { 'X-Force-Project-Id': activeProject.id };
       }
 
       const response = await apiClient.get<Metadata[]>(`/metadata/entity/${entityType}/${entityId}`, config);

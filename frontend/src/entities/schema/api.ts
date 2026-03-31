@@ -34,15 +34,15 @@ export interface UpdateSchemaDto {
 
 // Queries
 export const useSchemas = (projectId?: string | null) => {
-    const { baseProject, isBaseProjectMode } = useProjectStore();
+    const activeProject = useProjectStore(s => s.activeProject);
+    const isProjectMode = useProjectStore(s => s.isProjectMode);
     
-    // Determine effective project to use for the query
-    // Explicit projectId prop takes precedence (Pinned Tabs).
-    // If undefined, use stable sidebar selection (baseProject).
-    const effectiveProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? baseProject?.id : null);
+    // Determine effective project to use for the query (Sidebar vs Prop)
+    const effectiveProjectId = projectId !== undefined ? projectId : (isProjectMode ? activeProject?.id : null);
+    const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isProjectMode;
 
     return useQuery({
-        queryKey: ['schemas', effectiveProjectId],
+        queryKey: ['schemas', effectiveIsProjectMode, effectiveProjectId],
         queryFn: async () => {
             const config: any = {};
             if (projectId === null) {
@@ -51,9 +51,9 @@ export const useSchemas = (projectId?: string | null) => {
             } else if (projectId) {
                 // Explicit project passed via prop (Pinned Tabs)
                 config.headers = { 'X-Force-Project-Id': projectId };
-            } else if (projectId === undefined && isBaseProjectMode && baseProject) {
-                // Sidebar mode: explicitly set the base project to avoid any shadowed context leaks
-                config.headers = { 'X-Force-Project-Id': baseProject.id };
+            } else if (projectId === undefined && isProjectMode && activeProject) {
+                // Sidebar mode: explicitly set the active project to avoid any context leaks
+                config.headers = { 'X-Force-Project-Id': activeProject.id };
             }
 
             const response = await apiClient.get<Schema[]>('/schemas', config);

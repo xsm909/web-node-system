@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../shared/api/client';
+import { useProjectStore } from '../../projects/store';
 import type { NodeType } from '../../../entities/node-type/model/types';
 
 export function useNodeTypeManagement() {
@@ -8,9 +9,13 @@ export function useNodeTypeManagement() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingNode, setEditingNode] = useState<NodeType | null>(null);
 
+    const activeProject = useProjectStore(s => s.activeProject);
+    const isProjectMode = useProjectStore(s => s.isProjectMode);
+    const effectiveProjectId = isProjectMode ? activeProject?.id : null;
+
     // 1. Fetch Node Types (Global Query)
     const { data: nodeTypes = [], isLoading } = useQuery({
-        queryKey: ['node-types'],
+        queryKey: ['node-types', isProjectMode, effectiveProjectId],
         queryFn: async () => {
             const res = await apiClient.get<NodeType[]>(`/workflows/node-types?t=${Date.now()}`);
             return res.data;

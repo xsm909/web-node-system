@@ -16,12 +16,12 @@ export function useWorkflowManagement(_refreshTrigger?: number, projectId?: stri
     const activeClientId = useClientStore(s => s.activeClientId);
     const setAssignedUsers = useClientStore(s => s.setAssignedUsers);
     
-    const baseProject = useProjectStore(s => s.baseProject);
-    const isBaseProjectMode = useProjectStore(s => s.isBaseProjectMode);
+    const activeProject = useProjectStore(s => s.activeProject);
+    const isProjectMode = useProjectStore(s => s.isProjectMode);
     
     // Determine the effective context for this hook instance.
-    const effectiveProjectId = projectId !== undefined ? projectId : (isBaseProjectMode ? (baseProject?.id || null) : null);
-    const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isBaseProjectMode;
+    const effectiveProjectId = projectId !== undefined ? projectId : (isProjectMode ? (activeProject?.id || null) : null);
+    const effectiveIsProjectMode = projectId !== undefined ? !!projectId : isProjectMode;
 
     const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
     const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
