@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './AppJsonView.css';
 import { Icon } from '../icon';
 import { API_BASE_URL } from '../../api/client';
+import { AppCompactModalForm } from '../app-compact-modal-form/AppCompactModalForm';
 
 interface AppJsonViewProps {
     data: any;
@@ -15,6 +16,24 @@ interface JsonNodeProps {
     depth: number;
     forceExpanded?: boolean | null;
 }
+
+const inferSchema = (val: any): any => {
+    if (val === null) return { type: 'null' };
+    if (Array.isArray(val)) {
+        return {
+            type: 'array',
+            items: val.length > 0 ? inferSchema(val[0]) : { type: 'any' }
+        };
+    }
+    if (typeof val === 'object') {
+        const properties: Record<string, any> = {};
+        Object.entries(val).forEach(([k, v]) => {
+            properties[k] = inferSchema(v);
+        });
+        return { type: 'object', properties };
+    }
+    return { type: typeof val };
+};
 
 const JsonNode: React.FC<JsonNodeProps> = ({ value, label, isLast, depth, forceExpanded }) => {
     const [isExpanded, setIsExpanded] = useState(depth < 2);
@@ -162,33 +181,78 @@ const JsonNode: React.FC<JsonNodeProps> = ({ value, label, isLast, depth, forceE
 
 export const AppJsonView: React.FC<AppJsonViewProps> = ({ data }) => {
     const [globalExpanded, setGlobalExpanded] = useState<boolean | null>(null);
+    const [isSchemaOpen, setIsSchemaOpen] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
 
     const handleExpandAll = () => setGlobalExpanded(true);
     const handleCollapseAll = () => setGlobalExpanded(false);
     const handleReset = () => setGlobalExpanded(null);
 
+    const handleCopy = () => {
+        navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+    };
+
+    const schema = React.useMemo(() => inferSchema(data), [data]);
+
     return (
         <div className="app-json-view">
             <div className="app-json-view-header">
-                <div className="flex items-center gap-2">
-                    <button onClick={handleExpandAll} className="json-action-btn">
-                        <Icon name="expand_all" size={14} />
-                        Expand All
-                    </button>
-                    <button onClick={handleCollapseAll} className="json-action-btn">
-                        <Icon name="collapse_all" size={14} />
-                        Collapse All
-                    </button>
-                    {globalExpanded !== null && (
-                        <button onClick={handleReset} className="json-action-btn opacity-60">
-                            Reset
+                <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2">
+                        <button onClick={handleExpandAll} className="json-action-btn">
+                            <Icon name="expand_all" size={14} />
+                            Expand All
                         </button>
-                    )}
+                        <button onClick={handleCollapseAll} className="json-action-btn">
+                            <Icon name="collapse_all" size={14} />
+                            Collapse All
+                        </button>
+                        {globalExpanded !== null && (
+                            <button onClick={handleReset} className="json-action-btn opacity-60">
+                                Reset
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={handleCopy} 
+                            className={`json-action-btn transition-colors ${isCopied ? 'text-emerald-500' : ''}`}
+                            title="Copy to clipboard"
+                        >
+                            <Icon name={isCopied ? "check" : "content_copy"} size={14} />
+                            {isCopied ? "Copied!" : "Copy JSON"}
+                        </button>
+                        <button 
+                            onClick={() => setIsSchemaOpen(true)} 
+                            className="json-action-btn"
+                            title="Show JSON Schema"
+                        >
+                            <Icon name="schema" size={14} />
+                            Show Schema
+                        </button>
+                    </div>
                 </div>
             </div>
             <div className="app-json-view-content">
                 <JsonNode value={data} isLast={true} depth={0} forceExpanded={globalExpanded} />
             </div>
+
+            <AppCompactModalForm
+                isOpen={isSchemaOpen}
+                onClose={() => setIsSchemaOpen(false)}
+                title="JSON Schema Preview"
+                icon="schema"
+                onSubmit={() => setIsSchemaOpen(false)}
+                submitLabel="Close"
+                width="max-w-2xl"
+                showCancel={false}
+            >
+                <div className="bg-[var(--bg-app)] rounded-lg border border-[var(--border-base)] overflow-hidden">
+                    <AppJsonView data={schema} />
+                </div>
+            </AppCompactModalForm>
         </div>
     );
 };
