@@ -138,4 +138,4 @@ class OpenAIAgentProvider(AgentProvider):
             tools=native_tools if native_tools else None,
             input=formatted_input.strip()
         )
-        return resp.output_text
+        return resp.output_text, resp.model_dump_json()

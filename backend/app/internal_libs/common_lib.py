@@ -104,6 +104,9 @@ def GetAIByModel(Model: str) -> str:
         return "Gemini"
         
     # OpenAI models
+    elif any(x in model_lower for x in ["gpt", "openai"]):
+        return "OpenAI"
+        
     # Grok models
     elif "grok" in model_lower:
         return "Grok"

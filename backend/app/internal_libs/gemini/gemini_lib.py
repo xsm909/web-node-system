@@ -174,5 +174,6 @@ class GeminiAgentProvider(AgentProvider):
                 system_instruction=system_prompt
             )
         )
-        return resp.text
+        # return both text and the full technical response as JSON string
+        return resp.text, json.dumps(resp.model_dump(), ensure_ascii=False)
 

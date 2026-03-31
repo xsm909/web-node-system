@@ -293,7 +293,7 @@ AVAILABLE TOOLS:
         
         try:
             # Delegate response generation to provider
-            response_text = provider_instance.generate_response(
+            response_text, response_raw = provider_instance.generate_response(
                 messages=messages, 
                 system_prompt=system_prompt,
                 native_tools=native_tools,
@@ -371,7 +371,7 @@ AVAILABLE TOOLS:
                 
                 return {
                     "response_text": step.final_answer if isinstance(step.final_answer, str) else json.dumps(step.final_answer, ensure_ascii=False),
-                    "response_raw": response_text,
+                    "response_raw": response_raw,
                     "success": True
                 }
 
@@ -379,7 +379,7 @@ AVAILABLE TOOLS:
             system_log(f"[AGENT] Loop error: {str(e)}", level="error")
             return {
                 "response_text": f"Error: {str(e)}",
-                "response_raw": response_text if 'response_text' in locals() else None,
+                "response_raw": response_raw if 'response_raw' in locals() else (response_text if 'response_text' in locals() else None),
                 "success": False
             }
 

@@ -450,7 +450,10 @@ export const WorkflowGraph = React.memo(({
                 fitView={!initialViewport || (initialViewport.x === 0 && initialViewport.y === 0 && initialViewport.zoom === 1)}
                 snapToGrid={true}
                 snapGrid={[10, 10]}
-                selectionMode={isSelectionMode ? SelectionMode.Full : undefined}
+                selectionMode={isSelectionMode ? SelectionMode.Full : SelectionMode.Partial}
+                selectionKeyCode="Shift"
+                multiSelectionKeyCode="Shift"
+                panOnDrag={!isSelectionMode}
                 selectNodesOnDrag={!isSelectionMode}
                 deleteKeyCode={null}
             >
