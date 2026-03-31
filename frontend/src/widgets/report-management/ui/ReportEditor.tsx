@@ -218,7 +218,22 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     const [name, setName] = useState(report?.name || '');
     const [type, setType] = useState<ReportType>(report?.type || 'global');
     const [description, setDescription] = useState(report?.description || '');
-    const [code, setCode] = useState(report?.code || 'def ParametersProcessing(report_parameters, mode):\n    #ReportExecutor.id\n\n    return report_parameters, True, ""\n\ndef GenerateReport(report_parameters):\n\n    #>>you code here<<\n\n    #result here\n    report_result = {\n    }\n    return report_result, True');
+    const [code, setCode] = useState(report?.code || `def ParametersProcessing(report_parameters, mode):
+    #ReportExecutor.id
+
+    return report_parameters, True, ""
+
+def GenerateReport(report_parameters):
+
+    #query
+    q = """
+    
+    """
+
+    #code
+    report_result = inner_database.unsafe_request (q, report_parameters)
+    
+    return report_result, True`);
     const [template, setTemplate] = useState(report?.template || '<table>\n  {% for row in data %}\n  <tr>\n    <td>{{ row }}</td>\n  </tr>\n  {% endfor %}\n</table>');
     const [styleId, setStyleId] = useState(report?.style_id || '');
     const [category, setCategory] = useState(report?.category || '');
