@@ -77,7 +77,8 @@ useHotkeys([
 
 ## 6. Best Practices
 
-1. **Naming Scopes**: Use descriptive names like `Workflow Editor` or `User Form`. These names appear in the Debug Overlay.
-2. **Key Conflicts**: Prefer `F1-F12` for primary actions to avoid conflicts with standard browser shortcuts or typing.
-3. **Cleanup**: `useHotkeys` handles cleanup automatically. Avoid manual event listeners for hotkeys.
-4. **Levels**: If a hotkey isn't working in a "Pinned Tab" or "Modal", check if it needs a higher `HOTKEY_LEVEL`.
+1. **MODALS ARE ABSOLUTE (RULE #1)**: A modal window is like a separate program with absolute focus. It must always have a higher `HOTKEY_LEVEL` (e.g., `MODAL`) than the parent page or fragment. It overrides all background actions.
+2. **Naming Scopes**: Use descriptive names like `Workflow Editor` or `User Form`. These names appear in the Debug Overlay.
+3. **Key Conflicts**: Prefer `F1-F12` for primary actions to avoid conflicts with standard browser shortcuts or typing.
+4. **Cleanup**: `useHotkeys` handles cleanup automatically. Avoid manual event listeners for hotkeys.
+5. **Levels**: If a hotkey isn't working in a "Pinned Tab" or "Modal", check if it needs a higher `HOTKEY_LEVEL`.

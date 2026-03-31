@@ -33,6 +33,7 @@ import { AppContextMenu } from '../../../shared/ui/app-context-menu';
 import { AppTabulatorTable } from '../../../shared/ui/app-tabulator-table/AppTabulatorTable';
 import { AppJsonView } from '../../../shared/ui/app-json-view/AppJsonView';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { usePresets, type Preset } from '../../../entities/preset';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { AppFormButton } from '../../../shared/ui/app-form-button/AppFormButton';
@@ -1114,7 +1115,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }
     }, [isExecuting, effectiveSql, apiClient, onError, parameterValues]);
 
-    const isModalLayerActive = isResultsOpen || isRecursiveModalOpen || isRenameModalOpen || !!editingField || !!editingCTE || isDeleteConfirmOpen;
+    const isModalLayerActive = isRecursiveModalOpen || isRenameModalOpen || !!editingField || !!editingCTE || isDeleteConfirmOpen;
 
     useHotkeys([
         { key: 'F5', description: 'Execute Query', preventDefault: true, handler: () => handleExecuteQuery() },
@@ -1122,7 +1123,8 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         { key: 'ctrl+r', description: 'Execute Query', preventDefault: true, handler: () => handleExecuteQuery() }
     ], { 
         scopeName: 'Query Builder', 
-        enabled: isOpen && !isModalLayerActive
+        enabled: isOpen && !isModalLayerActive,
+        level: HOTKEY_LEVEL.MODAL
     });
 
     const handleCopyResults = async () => {
@@ -2224,6 +2226,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 width="max-w-7xl"
                 submitLabel={executionError ? "Close" : (isCopied ? 'Copied' : 'Copy Result')}
                 cancelLabel={executionError ? undefined : "Close"}
+                allowedShortcuts={['f5', 'cmd+r', 'ctrl+r']}
                 className={executionError ? "border-red-500/50" : ""}
             >
                 <div className="h-[60vh] flex flex-col">
