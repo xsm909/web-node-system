@@ -170,6 +170,13 @@ const ParameterRow: React.FC<{
                         onChange={(val) => onChange({ [param.name]: val })}
                         placeholder={`Enter SQL query...`}
                         disabled={isReadOnly}
+                        onKeyDown={(e) => {
+                            if (e.key === 'F1') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onOpenSqlEditor?.();
+                            }
+                        }}
                         actions={[
                             {
                                 icon: 'wizard',

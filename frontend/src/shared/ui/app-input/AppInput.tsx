@@ -34,6 +34,7 @@ export interface AppInputProps {
     actions?: AppInputAction[];
     leftActions?: AppInputAction[];
     showClear?: boolean;
+    onKeyDown?: (e: React.KeyboardEvent) => void;
 }
 
 export const AppInput: React.FC<AppInputProps> = ({
@@ -57,6 +58,7 @@ export const AppInput: React.FC<AppInputProps> = ({
     actions = [],
     leftActions = [],
     showClear = false,
+    onKeyDown,
 }) => {
     const [copied, setCopied] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -166,6 +168,7 @@ export const AppInput: React.FC<AppInputProps> = ({
                             onFocus={handleFocus}
                             onBlur={handleBlur}
                             autoFocus={autoFocus}
+                            onKeyDown={onKeyDown}
                         />
                     ) : (
                         <div className="flex items-center w-full h-full">
@@ -184,6 +187,7 @@ export const AppInput: React.FC<AppInputProps> = ({
                                 onFocus={handleFocus}
                                 onBlur={handleBlur}
                                 autoFocus={autoFocus}
+                                onKeyDown={onKeyDown}
                             />
                         </div>
                     )}

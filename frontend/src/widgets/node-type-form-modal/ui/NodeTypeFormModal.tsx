@@ -16,6 +16,9 @@ import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { getPythonHints, type PythonHint } from '../../../shared/api/python-hints';
 import { useThemeStore } from '../../../shared/lib/theme/store';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
+import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
+import { findSqlAtPosition } from '../../../shared/lib/python/sql-extractor';
+import { SYSTEM_PARAMETERS } from '../../../entities/report/model/constants';
 
 
 interface NodeTypeFormViewProps {
@@ -74,6 +77,12 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     const [cursorPosition, setCursorPosition] = useState<{ anchor: number, head: number } | null>(null);
     const [dynamicHints, setDynamicHints] = useState<PythonHint[]>([]);
     
+    // SQL Builder State
+    const [isQueryBuilderOpen, setIsQueryBuilderOpen] = useState(false);
+    const [initialSql, setInitialSql] = useState<string | undefined>(undefined);
+    const [queryRange, setQueryRange] = useState({ from: 0, to: 0 });
+    const [editorRef, setEditorRef] = useState<any>(null);
+    
     const editorTheme = useMemo(() => (theme === "dark" ? vscodeDark : vscodeLight), [theme]);
     
     const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(allNodes), [allNodes]);
@@ -122,8 +131,34 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         }
     }, [currentNode?.id]);
     
+
+    const handleOpenQueryBuilder = () => {
+        if (!editorRef) return;
+        const view = editorRef;
+        const pos = view.state.selection.main.head;
+        const doc = view.state.doc.toString();
+        
+        const match = findSqlAtPosition(doc, pos);
+
+        if (match) {
+            setQueryRange({
+                from: match.from,
+                to: match.to
+            });
+            
+            setInitialSql(match.content);
+            setIsQueryBuilderOpen(true);
+        }
+    };
+
     useHotkeys([
-        { key: 'F4', description: 'Python Code', handler: () => setActiveTab('code') }
+        { key: 'F4', description: 'Python Code', handler: () => setActiveTab('code') },
+        { 
+            key: 'F1', 
+            description: 'SQL Query Builder', 
+            enabled: activeTab === 'code',
+            handler: handleOpenQueryBuilder
+        }
     ], { 
         scopeName: 'Node Type Editor',
         enabled: isHotkeysEnabled !== false 
@@ -296,6 +331,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             }}
             isHotkeysEnabled={isHotkeysEnabled}
             hideHeader={hideHeader}
+            allowedShortcuts={['f1', 'f4']}
         >
             <form
                 onSubmit={(e) => {
@@ -494,6 +530,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                                 }
                                             }}
                                             onChange={(value) => field.handleChange(value)}
+                                            onCreateEditor={(view) => setEditorRef(view)}
                                             className="h-full text-sm font-mono"
                                             placeholder="# Define your executive logic here..."
                                             readOnly={currentNode?.is_locked}
@@ -502,6 +539,32 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                 }}
                             />
                         </div>
+
+                        <QueryBuilderModal
+                            isOpen={isQueryBuilderOpen}
+                            initialSql={initialSql}
+                            onClose={() => setIsQueryBuilderOpen(false)}
+                            onDone={(newSql) => {
+                                if (editorRef && queryRange) {
+                                    // Indent the new SQL if it's multi-line
+                                    const formattedSql = (initialSql?.includes('\n') || newSql.includes('\n')) 
+                                        ? `\n      ${newSql.trim().replace(/\n/g, '\n      ')}\n    `
+                                        : newSql.trim();
+
+                                    editorRef.dispatch({
+                                        changes: {
+                                            from: queryRange.from,
+                                            to: queryRange.to,
+                                            insert: formattedSql
+                                        },
+                                        selection: { anchor: queryRange.from + formattedSql.length }
+                                    });
+                                }
+                                setIsQueryBuilderOpen(false);
+                            }}
+                            parameters={[...(form.state.values.parameters || []), ...SYSTEM_PARAMETERS]}
+                        />
+
                         <div className="mt-4 text-[10px] text-[var(--text-muted)] flex justify-between px-4 font-normal uppercase tracking-widest opacity-40">
                             <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>

@@ -19,6 +19,7 @@ import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
 import { AppConsole, AppConsoleLogLine } from "../../../shared/ui/app-console";
 import { QueryBuilderModal } from "../../../features/query-builder/ui/QueryBuilderModal";
 import { SYSTEM_PARAMETERS } from "../../../entities/report/model/constants";
+import { findSqlAtPosition } from "../../../shared/lib/python/sql-extractor";
 import { AppParameterListEditor } from "../../../shared/ui/app-parameter-list-editor";
 import { ParameterPresetSelector, SaveParameterPresetButton } from "../../../features/parameter-presets";
 import { AppFormButton } from "../../../shared/ui/app-form-button/AppFormButton";
@@ -135,63 +136,22 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     const [queryRange, setQueryRange] = useState({ from: 0, to: 0 });
     const [editorRef, setEditorRef] = useState<any>(null);
 
+
     const handleOpenQueryBuilder = () => {
         if (!editorRef) return;
         const view = editorRef;
         const pos = view.state.selection.main.head;
         const doc = view.state.doc.toString();
         
-        // Search for triple quotes first, then regular quotes
-        const tripleQuoteRegex = /([\w\d_]+\s*=\s*)?("""[\s\S]*?"""|'''[\s\S]*?''')/g;
-        const singleQuoteRegex = /([\w\d_]+\s*=\s*)?("[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*')/g;
-        
-        let match;
-        let foundMatch = null;
+        const match = findSqlAtPosition(doc, pos);
 
-        while ((match = tripleQuoteRegex.exec(doc)) !== null) {
-            const start = match.index;
-            const end = start + match[0].length;
-            if (pos >= start && pos <= end) {
-                foundMatch = match;
-                break;
-            }
-        }
-
-        if (!foundMatch) {
-            singleQuoteRegex.lastIndex = 0;
-            while ((match = singleQuoteRegex.exec(doc)) !== null) {
-                const start = match.index;
-                const end = start + match[0].length;
-                if (pos >= start && pos <= end) {
-                    foundMatch = match;
-                    break;
-                }
-            }
-        }
-
-        if (foundMatch) {
-            const assignmentPart = foundMatch[1] || "";
-            const stringPart = foundMatch[2];
-            
-            let content = "";
-            let quoteLength = 0;
-            if (stringPart.startsWith('"""') || stringPart.startsWith("'''")) {
-                content = stringPart.slice(3, -3);
-                quoteLength = 3;
-            } else {
-                content = stringPart.slice(1, -1);
-                quoteLength = 1;
-            }
-
-            const stringStartPos = foundMatch.index + assignmentPart.length;
-            
+        if (match) {
             setQueryRange({
-                from: stringStartPos + quoteLength,
-                to: stringStartPos + stringPart.length - quoteLength
+                from: match.from,
+                to: match.to
             });
             
-            const trimmedContent = content.trim();
-            setInitialSql(trimmedContent);
+            setInitialSql(match.content);
             setIsQueryBuilderOpen(true);
         } else {
             handleQueryBuilderError("select query: Please place cursor inside a SQL query string.");
