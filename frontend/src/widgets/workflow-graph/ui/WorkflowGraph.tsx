@@ -25,6 +25,7 @@ import type { NodeType } from '../../../entities/node-type/model/types';
 import { NodeContextMenu } from '../../node-context-menu/NodeContextMenu';
 import { StartNode } from '../../../entities/node-type/ui/StartNode';
 import { DefaultNode } from '../../../entities/node-type/ui/DefaultNode';
+import { GroupNode } from '../../../entities/node-type/ui/GroupNode';
 import { AddNodeMenu } from '../../add-node-menu';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
@@ -40,6 +41,7 @@ const nodeTypesConfig = {
     special: DefaultNode,
     agent: DefaultNode,
     provider: DefaultNode,
+    group: GroupNode,
 };
 
 interface WorkflowGraphProps {
@@ -112,6 +114,9 @@ export const WorkflowGraph = React.memo(({
                     if (merged[p.name] === undefined && p.default !== undefined) merged[p.name] = p.default;
                 });
                 base.data = { ...base.data, params: merged, icon: ntDef.icon || base.data?.icon };
+            }
+            if (base.type === 'group') {
+                base.style = { ...base.style, border: 0, backgroundColor: 'transparent' };
             }
             return base;
         });
@@ -343,6 +348,102 @@ export const WorkflowGraph = React.memo(({
         });
     }, [isReadOnly, setEdges, notifyEdgesChange]);
 
+    const handleGroupSelection = useCallback(() => {
+        if (isReadOnly) return;
+        const selectedNodes = nodes.filter(n => n.selected && n.id !== 'node_start' && n.type !== 'start' && n.type !== 'group');
+        if (selectedNodes.length < 1) return;
+
+        // Calculate bounding box
+        const minX = Math.min(...selectedNodes.map(n => n.position.x));
+        const minY = Math.min(...selectedNodes.map(n => n.position.y));
+        const maxX = Math.max(...selectedNodes.map(n => n.position.x + (n.width || 220)));
+        const maxY = Math.max(...selectedNodes.map(n => n.position.y + (n.height || 100)));
+        const contentWidth = maxX - minX;
+        const contentHeight = maxY - minY;
+
+        // Two grid steps horizontal (20px), three grid steps vertical (30px)
+        const paddingX = 20;
+        const paddingY = 30;
+        
+        const finalPaddingX = paddingX;
+        const finalPaddingY = paddingY;
+
+        const width = contentWidth + (finalPaddingX * 2);
+        const height = contentHeight + (finalPaddingY * 2);
+        const groupX = minX - finalPaddingX;
+        const groupY = minY - finalPaddingY;
+        
+        const groupId = `group_${Date.now()}`;
+        const groupNode: Node = {
+            id: groupId,
+            type: 'group',
+            position: { x: groupX, y: groupY },
+            // In React Flow, custom style is used for initial dimensions of subflows
+            // We also set border: 0 and background: transparent to avoid the default React Flow frame
+            style: { width, height, border: 0, backgroundColor: 'transparent' },
+            data: { label: 'New Group' },
+        };
+
+        const updatedNodes = nodes.map(n => {
+            if (n.selected && n.id !== 'node_start' && n.type !== 'start' && n.type !== 'group') {
+                return {
+                    ...n,
+                    selected: false,
+                    parentId: groupId,
+                    position: {
+                        x: n.position.x - groupX,
+                        y: n.position.y - groupY
+                    },
+                    extent: 'parent'
+                } as Node;
+            }
+            return n;
+        });
+
+        const next = [groupNode, ...updatedNodes];
+        setNodes(next);
+        notifyNodesChange(next);
+    }, [isReadOnly, nodes, setNodes, notifyNodesChange]);
+
+    const handleUngroup = useCallback((groupId: string) => {
+        if (isReadOnly) return;
+        const groupNode = nodesRefInternal.current.find(n => n.id === groupId);
+        if (!groupNode) return;
+
+        const nextNodes = nodesRefInternal.current
+            .filter(n => n.id !== groupId)
+            .map(n => {
+                if (n.parentId === groupId) {
+                    return {
+                        ...n,
+                        parentId: undefined,
+                        position: {
+                            x: groupNode.position.x + n.position.x,
+                            y: groupNode.position.y + n.position.y
+                        },
+                        extent: undefined
+                    };
+                }
+                return n;
+            });
+
+        setNodes(nextNodes);
+        notifyNodesChange(nextNodes);
+    }, [isReadOnly, notifyNodesChange, setNodes]);
+
+    const handleGroupRename = useCallback((groupId: string, newLabel: string) => {
+        setNodes(nds => {
+            const next = nds.map(n => {
+                if (n.id === groupId) {
+                    return { ...n, data: { ...n.data, label: newLabel } };
+                }
+                return n;
+            });
+            notifyNodesChange(next);
+            return next;
+        });
+    }, [setNodes, notifyNodesChange]);
+
     const hasSelection = useMemo(() => 
         nodes.some(n => n.selected) || edges.some(e => e.selected)
     , [nodes, edges]);
@@ -387,6 +488,12 @@ export const WorkflowGraph = React.memo(({
             description: 'Delete', 
             handler: handleDeleteSelected, 
             enabled: isHotkeysEnabled && !isReadOnly && hasSelection 
+        },
+        { 
+            key: 'c', 
+            description: 'Group selected nodes', 
+            handler: handleGroupSelection, 
+            enabled: isHotkeysEnabled && !isReadOnly && nodes.some(n => n.selected && n.type !== 'start' && n.type !== 'group')
         },
     ], { 
         scopeName: `workflow-${workflow?.id}`, 
@@ -457,10 +564,12 @@ export const WorkflowGraph = React.memo(({
             data: {
                 ...node.data,
                 isExecuting: activeNodeIds.includes(node.id),
-                isRightInputProvider: !!nodeTypes.find(t => t.id === node.data?.nodeTypeId && (t as any).isRightInputProvider)
+                isRightInputProvider: !!nodeTypes.find(t => t.id === node.data?.nodeTypeId && (t as any).isRightInputProvider),
+                onUngroup: handleUngroup,
+                onRename: handleGroupRename
             }
         }));
-    }, [nodes, nodeTypes, activeNodeIds]);
+    }, [nodes, nodeTypes, activeNodeIds, handleUngroup, handleGroupRename]);
 
     if (!workflow) return <div className="flex items-center justify-center h-full text-slate-500">No workflow data</div>;
 

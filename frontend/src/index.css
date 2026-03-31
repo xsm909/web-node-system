@@ -189,3 +189,22 @@
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+/* React Flow Group Node Override - The "One Frame" */
+.react-flow__node-group {
+  background: rgba(var(--color-brand), 0.03) !important;
+  /* Fixed invalid rgba usage. Using color-mix for translucent brand border. */
+  border: 1px solid color-mix(in srgb, var(--brand), transparent 50%) !important;
+  border-radius: 1.5rem !important; /* rounded-3xl */
+  /* Only transition visual states, NOT the transform/position to avoid drag lag */
+  transition: background-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.react-flow__node-group.selected {
+  background: rgba(var(--color-brand), 0.05) !important;
+  box-shadow: 0 0 20px rgba(var(--color-brand), 0.05) !important;
+}
+
+.react-flow__node-group:hover:not(.selected) {
+  background: rgba(var(--color-brand), 0.04) !important;
+}

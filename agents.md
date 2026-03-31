@@ -573,3 +573,25 @@ In the `NodeParameters` class definition, use the `@method_name()` syntax in the
 - When the frontend requests options for a marked parameter, the backend compiles the node's code in a **Restricted Environment**.
 - The specified function is executed. It expects no arguments and must return a list of options in the format: `[{"value": "...", "label": "..."}]` or a simple list of primitives.
 - **Security Context**: These calls are executed with the `activeProjectId` and `currentUserId` in the session context, allowing the node function to use `inner_database.unsafe_request` to fetch project-specific options (e.g., selecting a project-linked credential).
+
+## 21. Workflow Node Grouping
+
+The platform supports a professional, selection-based grouping feature for workflow nodes, designed for clean visual organization without UI clutter.
+
+### 21.1 Interaction & Hotkeys
+- **Grouping ('C')**: Selecting multiple nodes and pressing the `C` key wraps them in a new group.
+- **Ungrouping ('X')**: A minimalist `X` button appears on the top-right border of the group when selected, allowing users to dissolve the group while preserving node positions.
+- **Renaming**: Double-clicking the group title activates an **Auto-Growing Input**. The field dynamically adjusts its width to match the text but is strictly constrained to never overlap the ungroup button.
+
+### 21.2 Visual Standards ("One Frame" Policy)
+To prevent visual "nesting" artifacts, grouping follows a strict single-frame design:
+- **Native Container**: All styles (border, background) are applied directly to the native `.react-flow__node-group` class.
+- **Border**: A thin `1px` solid border using the **Project's Brand Color** (typically at 40% translucent for subtle styling). The border remains static during hover and selection for consistent focus.
+- **Header Alignment**: Both the title and the action button are pill-shaped and positioned exactly **on the top border line** (vertically centered on the edge).
+- **Title Position**: The title is anchored to the **left edge** of the group with a small internal offset for balance.
+
+### 21.3 Grid & Padding Rules
+Groups are designed to align perfectly with the editor's background grid:
+- **Grid-Aligned Padding**: Vertical padding is fixed at **30px** (three grid steps) and horizontal padding at **20px** (two grid steps). This ensures the frame always overlaps with the grid dots.
+- **Drag Behavior**: Groups act as parent containers; moving a group instantly moves all contained nodes without layout lag.
+```
