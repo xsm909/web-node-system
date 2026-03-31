@@ -90,3 +90,34 @@ def get_runtime_value_by_key(execution_id: str, key: str) -> Any:
     
     system_log(f"[TOOL] Warning: get_runtime_value_by_key(key='{key}') -> Key not found or data is not a dict", level="warning")
     return None
+
+def delete_runtime_value(execution_id: str, key: str) -> str:
+    """Deletes a specific value from the runtime data by its key."""
+    system_log(f"[TOOL] Start: delete_runtime_value(execution_id='{execution_id}', key='{key}')", level="system")
+    if not execution_id:
+        res = "Error: Missing execution_id"
+        system_log(f"[TOOL] Error: delete_runtime_value -> {res}", level="error")
+        return res
+    
+    from .struct_func import get_runtime_data, update_runtime_data
+    data = get_runtime_data(execution_id)
+    if data and isinstance(data, dict):
+        if key in data:
+            del data[key]
+            success = update_runtime_data(execution_id, data)
+            if success:
+                res = f"Key '{key}' deleted successfully."
+                system_log(f"[TOOL] Success: delete_runtime_value(key='{key}')", level="system")
+                return res
+            else:
+                res = "Error: Failed to update runtime data."
+                system_log(f"[TOOL] Error: delete_runtime_value -> {res}", level="error")
+                return res
+        else:
+            res = f"Warning: Key '{key}' not found."
+            system_log(f"[TOOL] Warning: delete_runtime_value -> {res}", level="warning")
+            return res
+    
+    res = "Error: Runtime data not found or is not a dict."
+    system_log(f"[TOOL] Error: delete_runtime_value -> {res}", level="error")
+    return res

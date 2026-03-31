@@ -43,7 +43,8 @@ from ..models.project import Project
 from ..internal_libs.runtime_lib import (
     get_runtime_data as runtime_get_data,
     set_runtime_data as runtime_set_data,
-    get_runtime_value_by_key as runtime_get_value
+    get_runtime_value_by_key as runtime_get_value,
+    delete_runtime_value as runtime_delete_value
 )
 from ..internal_libs import temp_files_lib
 
@@ -255,7 +256,8 @@ SAFE_GLOBALS = {
         runtime=SimpleNamespace(
             get_data=lambda: None,
             set_data=lambda d: None,
-            get_value=lambda k: None
+            get_value=lambda k: None,
+            free=lambda k: None
         )
     ),  # Will be injected per-execution
 }
@@ -812,6 +814,7 @@ class WorkflowExecutor:
             node_globals["workflow"].runtime.get_data = lambda: runtime_get_data(str(self.execution_id))
             node_globals["workflow"].runtime.set_data = lambda data: runtime_set_data(data, str(self.execution_id))
             node_globals["workflow"].runtime.get_value = lambda key: runtime_get_value(str(self.execution_id), key)
+            node_globals["workflow"].runtime.free = lambda key: runtime_delete_value(str(self.execution_id), key)
 
             current_execution_id = str(self.execution_id)
             execution_libs.get_workflow_data = lambda: get_workflow_data(current_execution_id)

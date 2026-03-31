@@ -470,7 +470,7 @@
     {
         "label": "agent.run",
         "type": "function",
-        "detail": "run(model: str, tools: list, hint: str, task: str, schema_key: str = None, iteration_limit: int = 10, files: list = None)",
+        "detail": "agent.run function",
         "boost": 4
     },
     {
@@ -567,6 +567,12 @@
         "label": "files.save",
         "type": "function",
         "detail": "files.save function",
+        "boost": 4
+    },
+    {
+        "label": "files.download",
+        "type": "function",
+        "detail": "files.download function",
         "boost": 4
     },
     {
@@ -717,6 +723,12 @@
         "label": "workflow.runtime.get_value",
         "type": "function",
         "detail": "workflow.runtime.get_value function",
+        "boost": 4
+    },
+    {
+        "label": "workflow.runtime.free",
+        "type": "function",
+        "detail": "workflow.runtime.free function",
         "boost": 4
     },
     {
