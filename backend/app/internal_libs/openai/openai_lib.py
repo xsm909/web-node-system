@@ -124,18 +124,16 @@ def openai_perform_web_search(query: str, model: str = "gpt-5.2") -> str:
 from ..agent_providers import AgentProvider
 
 class OpenAIAgentProvider(AgentProvider):
-    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> str:
+    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> tuple[str, str]:
         client = OpenAI(api_key=self.api_key)
         
         # Section 13: OpenAI responses.create pattern
-        formatted_input = ""
-        for m in messages:
-            prefix = "User: " if m["role"] == "user" else "Assistant: "
-            formatted_input += f"{prefix}{m['content']}\n"
+        # Including system prompt ensures models follow the JSON schema rules
+        input_messages = [{"role": "system", "content": system_prompt}] + messages
             
         resp = client.responses.create(
             model=self.model,
             tools=native_tools if native_tools else None,
-            input=formatted_input.strip()
+            input=input_messages
         )
         return resp.output_text, resp.model_dump_json()

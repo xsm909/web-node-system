@@ -288,6 +288,7 @@ AVAILABLE TOOLS:
     ]
 
     import inspect
+    last_response_raw = None
     for i in range(iteration_limit):
         system_log(f"[AGENT] Iteration {i}", level="system")
         
@@ -299,6 +300,7 @@ AVAILABLE TOOLS:
                 native_tools=native_tools,
                 files=files
             )
+            last_response_raw = response_raw
 
             #system_log(f"[AGENT] AI raw response: {response_text[:300]}...", level="system")
             
@@ -379,12 +381,12 @@ AVAILABLE TOOLS:
             system_log(f"[AGENT] Loop error: {str(e)}", level="error")
             return {
                 "response_text": f"Error: {str(e)}",
-                "response_raw": response_raw if 'response_raw' in locals() else (response_text if 'response_text' in locals() else None),
+                "response_raw": last_response_raw,
                 "success": False
             }
 
     return {
         "response_text": "Error: Maximum iterations reached.",
-        "response_raw": None,
+        "response_raw": last_response_raw,
         "success": False
     }
