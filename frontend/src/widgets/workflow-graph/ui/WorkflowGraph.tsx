@@ -27,6 +27,7 @@ import { StartNode } from '../../../entities/node-type/ui/StartNode';
 import { DefaultNode } from '../../../entities/node-type/ui/DefaultNode';
 import { AddNodeMenu } from '../../add-node-menu';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { useClipboardStore } from '../../../features/workflow-management/model/clipboardStore';
 import { useViewportStore } from '../../../features/workflow-management/model/viewportStore';
 
@@ -342,14 +343,56 @@ export const WorkflowGraph = React.memo(({
         });
     }, [isReadOnly, setEdges, notifyEdgesChange]);
 
+    const hasSelection = useMemo(() => 
+        nodes.some(n => n.selected) || edges.some(e => e.selected)
+    , [nodes, edges]);
+
+    const hasClipboard = useMemo(() => 
+        clipboardNodes.length > 0
+    , [clipboardNodes]);
+
     useHotkeys([
-        { key: 'cmd+c', description: 'Copy', handler: handleCopy, enabled: isHotkeysEnabled && !isReadOnly },
-        { key: 'ctrl+c', description: 'Copy', handler: handleCopy, enabled: isHotkeysEnabled && !isReadOnly },
-        { key: 'cmd+v', description: 'Paste', handler: () => handlePaste(true), enabled: isHotkeysEnabled && !isReadOnly },
-        { key: 'ctrl+v', description: 'Paste', handler: () => handlePaste(true), enabled: isHotkeysEnabled && !isReadOnly },
-        { key: 'backspace', description: 'Delete', handler: handleDeleteSelected, enabled: isHotkeysEnabled && !isReadOnly },
-        { key: 'delete', description: 'Delete', handler: handleDeleteSelected, enabled: isHotkeysEnabled && !isReadOnly },
-    ], { scopeName: `workflow-${workflow?.id}`, enabled: isHotkeysEnabled });
+        { 
+            key: 'cmd+c', 
+            description: 'Copy', 
+            handler: handleCopy, 
+            enabled: isHotkeysEnabled && !isReadOnly && hasSelection 
+        },
+        { 
+            key: 'ctrl+c', 
+            description: 'Copy', 
+            handler: handleCopy, 
+            enabled: isHotkeysEnabled && !isReadOnly && hasSelection 
+        },
+        { 
+            key: 'cmd+v', 
+            description: 'Paste', 
+            handler: () => handlePaste(true), 
+            enabled: isHotkeysEnabled && !isReadOnly && hasClipboard 
+        },
+        { 
+            key: 'ctrl+v', 
+            description: 'Paste', 
+            handler: () => handlePaste(true), 
+            enabled: isHotkeysEnabled && !isReadOnly && hasClipboard 
+        },
+        { 
+            key: 'backspace', 
+            description: 'Delete', 
+            handler: handleDeleteSelected, 
+            enabled: isHotkeysEnabled && !isReadOnly && hasSelection 
+        },
+        { 
+            key: 'delete', 
+            description: 'Delete', 
+            handler: handleDeleteSelected, 
+            enabled: isHotkeysEnabled && !isReadOnly && hasSelection 
+        },
+    ], { 
+        scopeName: `workflow-${workflow?.id}`, 
+        enabled: isHotkeysEnabled,
+        level: HOTKEY_LEVEL.FRAGMENT
+    });
 
     const onMouseMove = useCallback((event: React.MouseEvent) => {
         mousePosition.current = screenToFlowPosition({ x: event.clientX, y: event.clientY });

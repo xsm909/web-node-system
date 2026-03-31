@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Icon } from '../icon';
 import { AppFormButton } from '../app-form-button/AppFormButton';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
+import { HOTKEY_LEVEL } from '../../lib/hotkeys/HotkeysContext';
 import { AppLockToggle } from '../app-lock-toggle/AppLockToggle';
 
 interface AppCompactModalFormProps {
@@ -159,7 +160,8 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
         scopeName: `AppCompactModalForm-${title}`, 
         enabled: isOpen,
         exclusive: true,
-        exclusiveExceptions: allowedShortcuts 
+        exclusiveExceptions: allowedShortcuts,
+        level: HOTKEY_LEVEL.MODAL
     });
 
     if (!isOpen) return null;

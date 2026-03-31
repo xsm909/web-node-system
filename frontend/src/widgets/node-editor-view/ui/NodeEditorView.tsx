@@ -11,6 +11,7 @@ import { AppInput } from '../../../shared/ui/app-input';
 import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { SYSTEM_PARAMETERS } from '../../../entities/report/model/constants';
 
 interface NodeEditorViewProps {
@@ -294,7 +295,8 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
         scopeName: `NodeEditor-${node?.id}`,
         enabled: !inline,
         exclusive: true,
-        exclusiveExceptions: ['F1', 'F5'] // maybe allow standard ones? Actually user said: "Also with workflow, if I go into node editing mode. What was available for workflow is no longer available until I return."
+        exclusiveExceptions: ['F1', 'F5'],
+        level: HOTKEY_LEVEL.FRAGMENT
     });
     return (
         <div className={`flex-1 flex flex-col min-w-0 relative h-full overflow-hidden ${inline ? 'bg-transparent shadow-none' : 'bg-[var(--bg-app)]'}`}>

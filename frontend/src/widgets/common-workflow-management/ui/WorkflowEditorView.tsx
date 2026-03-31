@@ -13,6 +13,7 @@ import { AppConsole, AppConsoleLogLine, type ConsoleLog } from '../../../shared/
 import { AppJsonView } from '../../../shared/ui/app-json-view/AppJsonView';
 import { useWorkflowEditor } from './WorkflowEditorProvider';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { apiClient } from '../../../shared/api/client';
 import { ParameterPresetSelector, SaveParameterPresetButton } from '../../../features/parameter-presets';
 import type { ObjectParameter } from '../../../entities/report/model/types';
@@ -36,7 +37,6 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
         runWorkflow,
         onNodesChange,
         onEdgesChange,
-        onViewportChange,
         onEditNode,
         notifyChange,
         setActiveWorkflow,
@@ -243,7 +243,8 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
         }
     ], {
         scopeName: 'Workflow Editor',
-        enabled: (isHotkeysEnabled !== false) && !!activeWorkflow
+        enabled: (isHotkeysEnabled !== false) && !!activeWorkflow,
+        level: HOTKEY_LEVEL.FRAGMENT
     });
 
     return (
@@ -292,7 +293,6 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                                     isReadOnly={activeWorkflow?.is_locked}
                                     onNodesChangeCallback={onNodesChange}
                                     onEdgesChangeCallback={onEdgesChange}
-                                    onViewportChangeCallback={onViewportChange}
                                     onNodeDoubleClickCallback={onEditNode}
                                     onNodeSelectCallback={handleNodeSelect}
                                     activeNodeIds={activeNodeIds}

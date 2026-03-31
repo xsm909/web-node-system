@@ -5,6 +5,7 @@ import { Icon } from '../icon';
 import { AppLockToggle } from '../app-lock-toggle/AppLockToggle';
 import { useRegisterBlocker } from '../../lib/navigation-guard/useNavigationGuard';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
+import { HOTKEY_LEVEL } from '../../lib/hotkeys/HotkeysContext';
 import { usePinStore } from '../../../features/pinned-tabs/model/store';
 
 import { AppTabs, type AppTab } from '../app-tabs';
@@ -162,7 +163,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
         scopeName: 'Form View',
         exclusive: true,
         exclusiveExceptions: allowedShortcuts,
-        enabled: isHotkeysEnabled !== false
+        enabled: isHotkeysEnabled !== false,
+        level: HOTKEY_LEVEL.PAGE
     });
 
     const handleDiscard = () => {

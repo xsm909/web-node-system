@@ -17,6 +17,7 @@ import { ReportViewer, type ReportViewerRef } from './ReportViewer';
 import { StyleList } from './StyleList';
 import { StyleEditor, type StyleEditorRef } from './StyleEditor';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { useProjectStore } from '../../../features/projects/store';
 import { usePinnedNavigation } from '../../../features/pinned-tabs/lib/usePinnedCheck';
 import { 
@@ -150,7 +151,8 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
         { key: 'Escape', description: 'Go Back', handler: () => handleBack() }
     ], { 
         scopeName: 'Report Viewer', 
-        enabled: (isHotkeysEnabled !== false) && view === 'view' 
+        enabled: (isHotkeysEnabled !== false) && view === 'view',
+        level: HOTKEY_LEVEL.FRAGMENT
     });
 
     // Editor shortcuts
@@ -171,7 +173,8 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
         { key: 'F9', description: 'Generate', handler: () => handleHeaderGenerate() }
     ], { 
         scopeName: 'Report Editor', 
-        enabled: (isHotkeysEnabled !== false) && view === 'edit' && isAdmin && topTab === 'reports' 
+        enabled: (isHotkeysEnabled !== false) && view === 'edit' && isAdmin && topTab === 'reports',
+        level: HOTKEY_LEVEL.FRAGMENT
     });
 
     // Removed manual fetch useEffect

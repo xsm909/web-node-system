@@ -12,13 +12,23 @@ export interface Hotkey {
 export interface HotkeyScope {
     id: string;
     name?: string;
+    level: number;       // Higher level = higher priority (e.g. 0=global, 10=page, 20=modal)
     exclusive?: boolean; // If true, stops hotkey propagation down the stack
     exclusiveExceptions?: string[]; // Keys allowed to propagate even if exclusive is true
     hotkeys: Hotkey[];
+    registrationIndex: number; // Used for stable sorting within the same level
 }
 
+export const HOTKEY_LEVEL = {
+    GLOBAL: 0,
+    PAGE: 10,
+    FRAGMENT: 15,
+    MODAL: 20,
+    OVERLAY: 30
+};
+
 export interface HotkeysActions {
-    addScope: (scope: HotkeyScope) => void;
+    addScope: (scope: Omit<HotkeyScope, 'registrationIndex'>) => void;
     removeScope: (id: string) => void;
     addHotkeyToScope: (scopeId: string, hotkey: Hotkey) => void;
     removeHotkeyFromScope: (scopeId: string, key: string) => void;
@@ -48,13 +58,31 @@ export const GLOBAL_SCOPE_ID = 'global';
 
 export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [scopes, setScopes] = useState<HotkeyScope[]>([
-        { id: GLOBAL_SCOPE_ID, name: 'Global', hotkeys: [] }
+        { id: GLOBAL_SCOPE_ID, name: 'Global', level: HOTKEY_LEVEL.GLOBAL, hotkeys: [], registrationIndex: 0 }
     ]);
+    const registrationCounter = React.useRef(1);
+    const scopesRef = React.useRef<HotkeyScope[]>(scopes);
 
-    const addScope = useCallback((scope: HotkeyScope) => {
+    // Keep ref in sync for keydown listener
+    useEffect(() => {
+        scopesRef.current = scopes;
+    }, [scopes]);
+
+    const addScope = useCallback((scope: Omit<HotkeyScope, 'registrationIndex'>) => {
         setScopes(prev => {
             if (prev.find(s => s.id === scope.id)) return prev;
-            return [...prev, scope];
+            
+            const newScope: HotkeyScope = {
+                ...scope,
+                registrationIndex: registrationCounter.current++
+            };
+
+            const updated = [...prev, newScope].sort((a, b) => {
+                if (a.level !== b.level) return a.level - b.level;
+                return a.registrationIndex - b.registrationIndex;
+            });
+            
+            return updated;
         });
     }, []);
 
@@ -66,7 +94,6 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
     const addHotkeyToScope = useCallback((scopeId: string, hotkey: Hotkey) => {
         setScopes(prev => prev.map(scope => {
             if (scope.id !== scopeId) return scope;
-            // Filter out existing hotkey with same key to avoid duplicates
             const updatedHotkeys = [...scope.hotkeys.filter(h => h.key.toLowerCase() !== hotkey.key.toLowerCase()), hotkey];
             return { ...scope, hotkeys: updatedHotkeys };
         }));
@@ -85,29 +112,51 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
     // Global Keydown Listener
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Do not naturally intercept if we are typing in an input/textarea
-            // UNLESS it's a specific global hotkey like Escape, F4, F5, F9, ctrl+s, etc.
-            const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName) || (e.target as HTMLElement).isContentEditable;
+            const currentScopes = scopesRef.current;
+            const target = e.target as HTMLElement;
+            const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable;
             
             // Normalize key
             let pressedKey = e.key;
+            const isMod = e.ctrlKey || e.metaKey || e.altKey;
+
             if (e.ctrlKey && !e.metaKey && e.key.toLowerCase() !== 'control') pressedKey = `ctrl+${e.key.toLowerCase()}`;
             if (e.metaKey && !e.ctrlKey && e.key.toLowerCase() !== 'meta') pressedKey = `cmd+${e.key.toLowerCase()}`;
             if (e.ctrlKey && e.metaKey) pressedKey = `ctrl+cmd+${e.key.toLowerCase()}`;
             
             const lowerPressedKey = pressedKey.toLowerCase();
             
-            // Iterate scopes from top (most recent) to bottom
-            for (let i = scopes.length - 1; i >= 0; i--) {
-                const scope = scopes[i];
+            // Iterate scopes from top (priority) to bottom
+            for (let i = currentScopes.length - 1; i >= 0; i--) {
+                const scope = currentScopes[i];
                 const matchedHotkey = scope.hotkeys.find(h => h.key.toLowerCase() === lowerPressedKey && h.enabled !== false);
                 
                 if (matchedHotkey) {
-                    // If we are typing and the hotkey is a standard text editing shortcut or Enter in a textarea, skip
+                    // PROTECTION RULES FOR TYPING
                     if (isTyping) {
-                        const isClipboardShortcut = ['cmd+c', 'ctrl+c', 'cmd+v', 'ctrl+v', 'cmd+x', 'ctrl+x', 'cmd+z', 'ctrl+z', 'cmd+a', 'ctrl+a'].includes(lowerPressedKey);
-                        if (isClipboardShortcut || (lowerPressedKey === 'enter' && (e.target as HTMLElement).tagName === 'TEXTAREA')) {
-                            continue; // skip this match and let standard behavior work
+                        // 1. Always allow Escape, F-keys even when typing
+                        const isSystemKey = lowerPressedKey === 'escape' || /^f\d+$/.test(lowerPressedKey);
+                        
+                        // 2. Allow modifiers (Ctrl/Cmd/Alt) shortcuts
+                        const hasModifier = isMod;
+
+                        // 3. Block single character keys, Backspace, Delete, Enter, Arrows, Space
+                        const isEditingKey = 
+                            lowerPressedKey === 'backspace' || 
+                            lowerPressedKey === 'delete' || 
+                            lowerPressedKey === 'enter' || 
+                            lowerPressedKey === ' ' || 
+                            lowerPressedKey === 'space' ||
+                            lowerPressedKey.startsWith('arrow') ||
+                            lowerPressedKey === 'tab' ||
+                            lowerPressedKey === 'home' ||
+                            lowerPressedKey === 'end' ||
+                            lowerPressedKey === 'pageup' ||
+                            lowerPressedKey === 'pagedown' ||
+                            (lowerPressedKey.length === 1 && !hasModifier);
+
+                        if (isEditingKey && !isSystemKey && !hasModifier) {
+                            return; // Let standard browser/input behavior work
                         }
                     }
 
@@ -121,8 +170,7 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
                     return; // Stop processing further scopes
                 }
                 
-                // If the scope is exclusive and we didn't match, we stop propagation 
-                // for commonly intercepted shortcuts to prevent parent actions
+                // Exclusive logic
                 if (scope.exclusive) {
                     const isGlobalShortcut = 
                         /^f\d+$/.test(lowerPressedKey) || 
@@ -135,8 +183,10 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
                     );
 
                     if (isGlobalShortcut && !isException) {
-                        e.preventDefault();
-                        e.stopPropagation();
+                        if (!isTyping || (lowerPressedKey !== 'enter' && lowerPressedKey !== 'backspace')) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }
                     }
                     if (!isException) {
                         return; // Stop processing further scopes
@@ -145,10 +195,9 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
             }
         };
 
-        // Use capture phase to ensure we intercept before other possibly rogue listeners
         window.addEventListener('keydown', handleKeyDown, { capture: true });
         return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
-    }, [scopes]);
+    }, []); // Empty deps: listener is stable and uses scopesRef
 
     const actions = useMemo(() => ({ 
         addScope, 

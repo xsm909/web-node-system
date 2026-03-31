@@ -1,11 +1,12 @@
 import { useEffect, useId, useRef } from 'react';
-import { useHotkeysActions, GLOBAL_SCOPE_ID, type Hotkey } from './HotkeysContext';
+import { useHotkeysActions, GLOBAL_SCOPE_ID, HOTKEY_LEVEL, type Hotkey } from './HotkeysContext';
 
 interface UseHotkeysOptions {
     scopeName?: string; // If provided, creates a new scope when the component mounts
     enabled?: boolean;  // If false, the scope and hotkeys are not registered
     exclusive?: boolean;
     exclusiveExceptions?: string[];
+    level?: number;
 }
 
 export const useHotkeys = (hotkeys: Hotkey[], options?: UseHotkeysOptions) => {
@@ -31,6 +32,7 @@ export const useHotkeys = (hotkeys: Hotkey[], options?: UseHotkeysOptions) => {
                 name: options.scopeName,
                 exclusive: options.exclusive,
                 exclusiveExceptions: options.exclusiveExceptions,
+                level: options.level ?? HOTKEY_LEVEL.PAGE,
                 hotkeys: []
             });
         }
@@ -47,7 +49,7 @@ export const useHotkeys = (hotkeys: Hotkey[], options?: UseHotkeysOptions) => {
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [addScope, removeScope, addHotkeyToScope, removeHotkeyFromScope, scopeId, options?.scopeName, options?.enabled]); // intentional: run once on mount or when scope setup/enabled changes
+    }, [addScope, removeScope, scopeId, options?.scopeName, options?.enabled, options?.exclusive, options?.level]); // intentional: run once on mount or when scope setup/enabled changes
 
     const hotkeysStringified = JSON.stringify(hotkeys.map(hk => ({
         key: hk.key,
