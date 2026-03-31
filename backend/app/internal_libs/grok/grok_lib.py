@@ -109,4 +109,5 @@ class GrokAgentProvider(AgentProvider):
             kwargs["tools"] = native_tools
             
         resp = client.responses.create(**kwargs)
-        return resp.output_text, resp.model_dump_json()
+        from ..common_lib import safe_json_dumps
+        return resp.output_text, safe_json_dumps(resp)

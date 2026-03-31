@@ -136,4 +136,5 @@ class OpenAIAgentProvider(AgentProvider):
             tools=native_tools if native_tools else None,
             input=input_messages
         )
-        return resp.output_text, resp.model_dump_json()
+        from ..common_lib import safe_json_dumps
+        return resp.output_text, safe_json_dumps(resp)

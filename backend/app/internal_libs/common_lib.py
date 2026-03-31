@@ -150,3 +150,25 @@ def is_valid_json(result_json: str, schema_json: str) -> bool:
         return True
     except ValidationError:
         return False
+
+def safe_json_dumps(obj: Any) -> str:
+    """
+    Safely serializes an object to JSON, handling bytes and other non-serializable objects.
+    """
+    def handler(o):
+        if hasattr(o, 'model_dump'):
+            return o.model_dump()
+        if hasattr(o, 'dict'):
+            return o.dict()
+        if isinstance(o, bytes):
+            return f"<binary: {len(o)} bytes>"
+        # Handle decimal, datetime etc if needed
+        import datetime
+        if isinstance(o, (datetime.datetime, datetime.date)):
+            return o.isoformat()
+        try:
+            return str(o)
+        except:
+            return repr(o)
+            
+    return json.dumps(obj, default=handler, ensure_ascii=False)

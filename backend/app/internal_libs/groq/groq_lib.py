@@ -100,4 +100,5 @@ class GroqAgentProvider(AgentProvider):
             messages=full_messages,
             response_format={"type": "text"}
         )
-        return resp.choices[0].message.content, resp.model_dump_json()
+        from ..common_lib import safe_json_dumps
+        return resp.choices[0].message.content, safe_json_dumps(resp)
