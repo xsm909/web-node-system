@@ -19,6 +19,7 @@ import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
 import { findSqlAtPosition } from '../../../shared/lib/python/sql-extractor';
 import { SYSTEM_PARAMETERS } from '../../../entities/report/model/constants';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 
 interface NodeTypeFormViewProps {
@@ -531,7 +532,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                             }}
                                             onChange={(value) => field.handleChange(value)}
                                             onCreateEditor={(view) => setEditorRef(view)}
-                                            className="h-full text-sm font-mono"
+                                            className={`h-full ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}
                                             placeholder="# Define your executive logic here..."
                                             readOnly={currentNode?.is_locked}
                                         />

@@ -20,11 +20,14 @@ export const UI_CONSTANTS = {
     DEBUG_BG: 'bg-transparent',
 
     /** Default brand color (Strictly Neutral Gray / Neutral 600) */
-    BRAND: '#525252',
+    BRAND: '#4a435aff',
     /** Default brand hover color (Neutral 700) */
     BRAND_HOVER: '#404040',
     /** Default brand color for dark mode (Neutral 400) */
     BRAND_DARK: '#a3a3a3',
     /** Default brand hover color for dark mode (Neutral 300) */
-    BRAND_HOVER_DARK: '#d4d4d4',
+    BRAND_HOVER_DARK: '#d4d4d4ff',
+
+    /** Standard class for code editors to ensure consistent font and size. */
+    CODE_EDITOR_CLASS: 'font-mono text-[13px] leading-relaxed',
 };

@@ -586,7 +586,7 @@ def GenerateReport(report_parameters):
                             onCreateEditor={(view) => {
                                 setEditorRef(view);
                             }}
-                            className="h-full text-sm font-mono"
+                            className={`h-full ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}
                             readOnly={isLocked}
                         />
                     </div>
@@ -626,7 +626,7 @@ def GenerateReport(report_parameters):
                         onTabChange={(id) => setActiveOutputTab(id as any)}
                         className="h-48"
                     >
-                        <div className="p-4 font-mono text-xs whitespace-pre-wrap selection:bg-brand/20 h-full">
+                        <div className={`p-4 whitespace-pre-wrap selection:bg-brand/20 h-full ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}>
                             {activeOutputTab === 'console' ? (
                                 consoleOutput ? (
                                     consoleOutput.split('\n').map((line, i) => (
@@ -676,7 +676,7 @@ def GenerateReport(report_parameters):
                             theme={editorTheme}
                             extensions={htmlExtensions}
                             onChange={(value) => setTemplate(value)}
-                            className="h-full text-sm font-mono"
+                            className={`h-full ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}
                         />
                     </div>
                 </div>

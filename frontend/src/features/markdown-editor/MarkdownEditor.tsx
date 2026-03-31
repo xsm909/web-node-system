@@ -3,6 +3,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 import { useThemeStore } from '../../shared/lib/theme/store';
+import { UI_CONSTANTS } from '../../shared/ui/constants';
 
 interface MarkdownEditorProps {
     initialValue: string;
@@ -40,7 +41,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
                     ]}
                     onChange={handleChange}
                     readOnly={readOnly}
-                    className="h-full font-mono text-sm"
+                    className={`h-full ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}
                     basicSetup={{
                         lineNumbers: true,
                         foldGutter: true,

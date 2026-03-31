@@ -3,6 +3,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeStore } from '../../../shared/lib/theme/store';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 interface WorkflowDataEditorProps {
     data: any;
@@ -50,7 +51,7 @@ export const WorkflowDataEditorTabs: React.FC<WorkflowDataEditorProps> = ({
                             theme={editorTheme}
                             extensions={codeMirrorExtensions}
                             onChange={handleChange}
-                            className="h-full text-sm font-mono"
+                            className={`h-full ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}
                         />
                     </div>
                 </div>

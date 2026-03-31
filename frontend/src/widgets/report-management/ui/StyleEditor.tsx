@@ -12,6 +12,7 @@ import { useThemeStore } from "../../../shared/lib/theme/store";
 import { AppInput } from "../../../shared/ui/app-input";
 import { AppCategoryInput } from "../../../shared/ui/app-category-input/AppCategoryInput";
 import { getUniqueCategoryPaths } from "../../../shared/lib/categoryUtils";
+import { UI_CONSTANTS } from "../../../shared/ui/constants";
 
 
 interface StyleEditorProps {
@@ -180,7 +181,7 @@ export const StyleEditor = forwardRef<StyleEditorRef, StyleEditorProps>(({ style
                         theme={editorTheme}
                         extensions={cssExtensions}
                         onChange={(value) => setCssContent(value)}
-                        className="h-full text-sm font-mono"
+                        className={`h-full ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}
                         readOnly={isLocked}
                     />
                 </div>

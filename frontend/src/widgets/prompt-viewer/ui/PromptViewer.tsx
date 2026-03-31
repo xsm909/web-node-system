@@ -4,6 +4,7 @@ import { AppTable } from '../../../shared/ui/app-table/AppTable';
 import { Icon } from '../../../shared/ui/icon';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useProjectStore } from '../../../features/projects/store';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 interface Prompt {
     id: string;
@@ -65,7 +66,7 @@ const MinimalistPromptView: React.FC<{ content: any, meta?: any }> = ({ content,
                                         <span className="opacity-30 min-w-[20px] pt-1">{i + 1}.</span>
                                         <div className="flex-1 min-w-0">
                                             {isObject ? (
-                                                <pre className="p-3 bg-[var(--border-muted)]/10 rounded-lg font-mono text-[12px] opacity-70 border border-[var(--border-base)]/50 overflow-x-auto">
+                                                <pre className={`p-3 bg-[var(--border-muted)]/10 rounded-lg opacity-70 border border-[var(--border-base)]/50 overflow-x-auto ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}>
                                                     {JSON.stringify(p, null, 2)}
                                                 </pre>
                                             ) : (
@@ -84,7 +85,7 @@ const MinimalistPromptView: React.FC<{ content: any, meta?: any }> = ({ content,
                 {!description && prompts.length === 0 && (
                     <div className="space-y-2">
                         <div className="opacity-40 text-[11px] font-bold uppercase tracking-wider">Raw content:</div>
-                        <pre className="p-4 bg-[var(--border-muted)]/10 rounded-xl font-mono text-[12px] opacity-70 border border-[var(--border-base)] overflow-x-auto">
+                        <pre className={`p-4 bg-[var(--border-muted)]/10 rounded-xl opacity-70 border border-[var(--border-base)] overflow-x-auto ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}>
                             {JSON.stringify(content, null, 2)}
                         </pre>
                     </div>
@@ -96,7 +97,7 @@ const MinimalistPromptView: React.FC<{ content: any, meta?: any }> = ({ content,
                             <Icon name="info" size={14} />
                             <span className="text-[11px] font-bold uppercase tracking-wider">Technical Metadata</span>
                         </div>
-                        <pre className="p-4 bg-[var(--border-muted)]/10 rounded-xl font-mono text-[11px] opacity-70 border border-[var(--border-base)] overflow-x-auto">
+                        <pre className={`p-4 bg-[var(--border-muted)]/10 rounded-xl opacity-70 border border-[var(--border-base)] overflow-x-auto ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}>
                             {JSON.stringify(meta, null, 2)}
                         </pre>
                     </div>

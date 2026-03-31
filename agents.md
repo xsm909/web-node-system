@@ -281,6 +281,17 @@ To maintain visual cohesion, all form controls, buttons, and layouts must refere
 
 Avoid hardcoded pixel values for control heights in new components.
 
+### 11.2 Standardized Code Editor Typography
+
+To ensure a clean and consistent developer experience, all code editors, JSON viewers, and monospace text elements must follow the platform's standardized typography.
+
+- **Standard Font Stack**: Use the JetBrains Mono-based stack for maximum readability.
+- **Standard Font Size**: Use `13px` (`text-[13px]`) for all code-related content.
+- **Centralized Application**:
+    - **CSS Variables**: Reference `--font-code` and `--font-size-code` in CSS files.
+    - **Tailwind Utility**: Use `UI_CONSTANTS.CODE_EDITOR_CLASS` (defined as `font-mono text-[13px] leading-relaxed`) for all `CodeMirror` instances and monospace inputs.
+- **Scope**: Includes Python, HTML, CSS, JSON, and Markdown editors, as well as console logs (`AppConsole`) and metadata previews.
+
 ## 12. Standardized Form Layouts (AppFormView)
 
 - **Navigation Stack Principle**: All entity editing forms accessed from the administrator sidebar must act as a distinct layer in a "navigation stack", replacing the list view rather than rendering as a floating card or popup.

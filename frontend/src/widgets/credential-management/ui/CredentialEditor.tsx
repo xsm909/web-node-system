@@ -115,7 +115,7 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
                         value={formData.key || ''}
                         onChange={(val) => setFormData({ ...formData, key: val })}
                         placeholder="e.g. GEMINI_API_KEY"
-                        className="font-mono font-bold"
+                        className={UI_CONSTANTS.CODE_EDITOR_CLASS}
                         disabled={!!formData.is_locked}
                     />
                     <AppInput
@@ -126,7 +126,7 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
                         value={formData.value || ''}
                         onChange={(val) => setFormData({ ...formData, value: val })}
                         placeholder="Paste secret value here..."
-                        className="font-mono font-bold"
+                        className={UI_CONSTANTS.CODE_EDITOR_CLASS}
                         disabled={!!formData.is_locked}
                     />
                     <div className="grid grid-cols-2 gap-6">

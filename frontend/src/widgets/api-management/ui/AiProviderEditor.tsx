@@ -7,6 +7,7 @@ import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButt
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { useCredentials } from '../../../entities/credential/api';
 import { useProjectStore } from '../../../features/projects/store';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 interface AiProviderEditorProps {
     provider: AiProvider | null;
@@ -116,7 +117,7 @@ export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiPro
                             value={formData.key || ''}
                             onChange={(val) => setFormData({ ...formData, key: val })}
                             placeholder="e.g. current_openai"
-                            className="font-mono font-bold"
+                            className={UI_CONSTANTS.CODE_EDITOR_CLASS}
                         />
                         
                         <div className="flex flex-col gap-1.5">
@@ -171,7 +172,7 @@ export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiPro
                                                 value={model}
                                                 onChange={(val) => handleUpdateModel(index, val)}
                                                 placeholder="Model name (e.g. gpt-4o)"
-                                                className="font-mono"
+                                                className={UI_CONSTANTS.CODE_EDITOR_CLASS}
                                             />
                                         </div>
                                         <button

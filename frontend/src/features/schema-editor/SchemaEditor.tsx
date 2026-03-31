@@ -4,6 +4,7 @@ import { json, jsonParseLinter } from '@codemirror/lang-json';
 import { linter, lintGutter } from '@codemirror/lint';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 import { useThemeStore } from '../../shared/lib/theme/store';
+import { UI_CONSTANTS } from '../../shared/ui/constants';
 
 interface SchemaEditorProps {
   initialValue: string;
@@ -43,7 +44,7 @@ export const SchemaEditor: React.FC<SchemaEditorProps> = ({
           ]}
           onChange={handleChange}
           readOnly={readOnly}
-          className="h-full font-mono text-sm"
+          className={`h-full ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}
           basicSetup={{
             lineNumbers: true,
             foldGutter: true,

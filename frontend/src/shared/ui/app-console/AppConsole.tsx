@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { AppTabs } from '../app-tabs/AppTabs';
 import type { AppTab } from '../app-tabs/AppTabs';
 import { Icon } from '../icon';
+import { UI_CONSTANTS } from '../../ui/constants';
 
 export interface ConsoleLog {
     timestamp: string;
@@ -130,7 +131,7 @@ export const AppConsoleLogLine: React.FC<AppConsoleLogLineProps> = ({ log }) => 
     };
 
     return (
-        <div className="flex gap-4 px-2 py-0.5 -mx-2 relative font-mono text-[13px] group/line">
+        <div className={`flex gap-4 px-2 py-0.5 -mx-2 relative group/line ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}>
             <span className="text-[var(--text-muted)] shrink-0 select-none opacity-60 pl-1 w-[65px] pt-1">
                 {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
             </span>

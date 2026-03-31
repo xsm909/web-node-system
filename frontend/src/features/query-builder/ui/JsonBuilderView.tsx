@@ -3,6 +3,7 @@ import type { JsonTreeNode, JsonNodeType } from '../model/types';
 import { Icon } from '../../../shared/ui/icon';
 import { generateJsonSQL } from '../lib/sqlGenerator';
 import type { MultiQueryState } from '../model/types';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -157,7 +158,7 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
                     >
                         {node.key}
                         {node.type === 'field' && node.fieldRef && node.fieldRef !== node.key && (
-                            <span className="ml-2 text-[10px] text-[var(--text-muted)] font-mono">{node.fieldRef}</span>
+                            <span className={`ml-2 text-[10px] text-[var(--text-muted)] ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}>{node.fieldRef}</span>
                         )}
                     </span>
                 )}
@@ -385,7 +386,7 @@ export const JsonBuilderView: React.FC<JsonBuilderViewProps> = ({
                                 >
                                     <Icon name="drag_indicator" size={12} className="text-[var(--text-muted)] opacity-50 group-hover:opacity-100" />
                                     <Icon name="table_rows" size={12} className="text-brand/60" />
-                                    <span className="text-xs font-mono text-[var(--text-main)] truncate">{field}</span>
+                                    <span className={`text-xs text-[var(--text-main)] truncate ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}>{field}</span>
                                 </div>
                             ))
                         )}
@@ -469,7 +470,7 @@ export const JsonBuilderView: React.FC<JsonBuilderViewProps> = ({
                                 <Icon name="sql" size={12} className="text-[var(--text-muted)]" />
                                 <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Generated SQL Preview</span>
                             </div>
-                            <pre className="px-4 py-3 text-[10px] font-mono text-[var(--text-muted)] overflow-x-auto max-h-40 whitespace-pre leading-relaxed">
+                            <pre className={`px-4 py-3 text-[var(--text-muted)] overflow-x-auto max-h-40 whitespace-pre leading-relaxed ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}>
                                 {previewSql}
                             </pre>
                         </div>
