@@ -4,40 +4,37 @@ import { Icon } from '../../../shared/ui/icon';
 export function StartNode({ data, selected }: any) {
     return (
         <div
-            style={{ width: 250, height: 130 }}
-            className={`group relative bg-surface-800 border-2 rounded-[1.5rem] p-5 shadow-2xl transition-all hover:border-emerald-500 hover:shadow-emerald-500/20 animate-in fade-in duration-300 ${data?.isActive
-                ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] ring-2 ring-emerald-500 ring-offset-2 ring-offset-surface-900 animate-pulse'
+            style={{ width: 220, minHeight: 80 }}
+            className={`group relative bg-surface-700 border rounded-xl p-3 shadow-md transition-all animate-in fade-in duration-300 ${data?.isActive
+                ? 'border-brand shadow-[0_0_10px_rgba(var(--color-brand),0.3)]'
                 : selected
-                    ? 'border-emerald-500 shadow-emerald-500/20'
-                    : 'border-emerald-500/40 shadow-emerald-500/5'
+                    ? 'border-brand shadow-brand/20'
+                    : 'border-[var(--border-base)] shadow-black/5 hover:border-brand/40'
                 }`}
         >
-            <div className="flex items-center gap-4 mb-2">
-                <div className="w-10 h-10 rounded-[1rem] bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-all shadow-inner">
+            <div className="flex items-center gap-2 pb-2 mb-2 border-b border-[var(--border-base)]/50">
+                <div className="text-brand shrink-0">
                     {data?.isActive ? (
-                        <Icon name="clock" size={20} className="animate-pulse" />
+                        <Icon name="clock" size={16} className="animate-pulse" />
                     ) : (
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" className="animate-pulse">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                             <path d="M5 3l14 9-14 9V3z" />
                         </svg>
                     )}
                 </div>
-                <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-emerald-500/80 uppercase tracking-[0.2em] leading-tight">
-                        {data?.isActive ? 'Running...' : 'Initialization'}
-                    </span>
-                    <span className="text-sm font-black text-[var(--text-main)] leading-tight">Start Process</span>
+                <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-sm font-semibold text-brand truncate block w-full">Start Process</span>
                 </div>
             </div>
 
-            <p className="text-[11px] text-[var(--text-muted)] font-bold leading-relaxed px-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                The absolute beginning of your automated workflow logic.
+            <p className="text-[10px] text-[var(--text-muted)] font-medium leading-tight opacity-80 group-hover:opacity-100 transition-opacity">
+                {data?.isActive ? 'Running initialization...' : 'The beginning of your automated workflow logic.'}
             </p>
 
             <Handle
                 type="source"
                 position={Position.Bottom}
-                className="!w-4 !h-4 !bg-emerald-500 !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair"
+                className="!w-4 !h-4 !bg-brand !border-[3px] !border-surface-800 !shadow-xl transition-transform hover:scale-125 cursor-crosshair"
             />
         </div>
     );

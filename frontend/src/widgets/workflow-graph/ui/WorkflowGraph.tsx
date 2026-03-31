@@ -235,8 +235,8 @@ export const WorkflowGraph = React.memo(({
 
         const minX = Math.min(...selectedNodes.map(n => n.position.x));
         const minY = Math.min(...selectedNodes.map(n => n.position.y));
-        const maxX = Math.max(...selectedNodes.map(n => n.position.x + (n.width || 250)));
-        const maxY = Math.max(...selectedNodes.map(n => n.position.y + (n.height || 100)));
+        const maxX = Math.max(...selectedNodes.map(n => n.position.x + (n.width || 220)));
+        const maxY = Math.max(...selectedNodes.map(n => n.position.y + (n.height || 80)));
 
         setClipboard(
             selectedNodes.map(n => ({ ...n, selected: false })),
@@ -419,7 +419,7 @@ export const WorkflowGraph = React.memo(({
 
     const addNodeWithConnection = (type: NodeType, position: { x: number, y: number }, connectionStart: OnConnectStartParams) => {
         const newNodeId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-        const flowPos = screenToFlowPosition({ x: position.x - 125, y: position.y });
+        const flowPos = screenToFlowPosition({ x: position.x - 110, y: position.y });
         const initialParams = (type.parameters || []).reduce((acc: any, p: any) => {
             if (p.default !== undefined) acc[p.name] = p.default;
             return acc;

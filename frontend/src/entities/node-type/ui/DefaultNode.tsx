@@ -22,16 +22,16 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
         <div
             style={data.isRightInputProvider
                 ? { width: 70, height: 70 }
-                : { width: 250, minHeight: isCustomMode ? 120 : 100 }
+                : { width: 220, minHeight: isCustomMode ? 100 : 80 }
             }
-            className={`group relative bg-surface-800 border-2 shadow-2xl transition-all animate-in fade-in duration-300 flex flex-col ${data.isRightInputProvider
+            className={`group relative bg-surface-700 border shadow-md transition-all animate-in fade-in duration-300 flex flex-col ${data.isRightInputProvider
                 ? 'rounded-full items-center justify-center p-0'
-                : 'rounded-[1.5rem] p-5'
+                : 'rounded-xl p-3'
                 } ${data.isActive
-                    ? 'border-brand shadow-[0_0_15px_rgba(var(--color-brand),0.5)] ring-2 ring-brand ring-offset-2 ring-offset-surface-900 animate-pulse'
+                    ? 'border-brand shadow-[0_0_10px_rgba(var(--color-brand),0.3)]'
                     : selected
                         ? 'border-brand shadow-brand/20'
-                        : 'border-[var(--border-base)] shadow-black/10 hover:border-brand/50'
+                        : 'border-[var(--border-base)] shadow-black/5 hover:border-brand/40'
                 }`}
         >
             {data.isRightInputProvider && (
@@ -42,7 +42,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                                 Running...
                             </span>
                         )}
-                        <span className="text-sm font-black text-[var(--text-main)] drop-shadow-lg">
+                        <span className="text-sm font-semibold text-[var(--text-main)] drop-shadow-lg">
                             {data.label}
                         </span>
                     </div>
@@ -50,7 +50,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
             )}
 
             {data.isRightInputProvider ? (
-                <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center transition-all shadow-inner ${data.isActive || selected ? 'bg-brand/20 text-brand border-brand/30' : 'bg-surface-700 text-[var(--text-muted)] border-[var(--border-base)] group-hover:bg-brand/10 group-hover:text-brand'
+                <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center transition-all ${data.isActive || selected ? 'text-brand' : 'text-[var(--text-muted)] group-hover:text-brand'
                     }`}>
                     <Icon
                         name={data.isActive ? "clock" : nodeIcon}
@@ -61,28 +61,22 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                 </div>
             ) : (
                 <>
-                    <div className="flex items-center gap-3 w-full">
-                        <div className={`w-10 h-10 shrink-0 rounded-[1rem] flex items-center justify-center transition-all shadow-inner ${data.isActive || selected ? 'bg-brand/20 text-brand border-brand/30' : 'bg-surface-700 text-[var(--text-muted)] border-[var(--border-base)] group-hover:bg-brand/10 group-hover:text-brand'
-                            }`}>
-                            <Icon
-                                name={data.isActive ? "clock" : (data.icon || 'task')}
-                                dir={data.isActive ? 'icons' : 'node_icons'}
-                                size={20}
-                                className={selected ? 'text-brand' : 'text-[var(--text-muted)] group-hover:text-brand'}
-                            />
-                        </div>
+                    <div className="flex items-center gap-2 w-full pb-2 mb-2 border-b border-[var(--border-base)]/50">
+                        <Icon
+                            name={data.isActive ? "clock" : (data.icon || 'task')}
+                            dir={data.isActive ? 'icons' : 'node_icons'}
+                            size={16}
+                            className="text-brand"
+                        />
                         <div className="flex flex-col min-w-0 flex-1">
-                            <span className={`text-[10px] font-black uppercase tracking-[0.2em] leading-tight ${data.isActive || selected ? 'text-brand/80' : 'text-[var(--text-muted)]'}`}>
-                                {data.isActive ? 'Running...' : (data.params?.NODE_TYPE || (isCustomMode ? 'Condition' : ''))}
-                            </span>
-                            <span className="text-sm font-black text-[var(--text-main)] leading-tight truncate block w-full">
+                            <span className="text-sm font-semibold text-brand leading-tight truncate block w-full">
                                 {data.label}
                             </span>
                         </div>
                     </div>
 
                     {data.params && Object.keys(data.params).length > 0 && (
-                        <div className="mt-4 space-y-1.5 opacity-80 overflow-hidden">
+                        <div className="space-y-1 opacity-90 overflow-hidden">
                             {Object.entries(data.params)
                                 .filter(([key]) => !(/^[A-Z0-9_]+$/.test(key)) && !key.startsWith('_DISPLAY_'))
                                 .map(([key, value]) => {
@@ -96,8 +90,8 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
 
                                     return (
                                         <div key={key} className="flex items-baseline gap-2 min-w-0">
-                                            <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider shrink-0">{key}:</span>
-                                            <span className="text-[10px] font-bold text-[var(--text-main)] truncate" title={String(finalValue)}>
+                                            <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-tight shrink-0">{key}:</span>
+                                            <span className="text-[10px] font-medium text-[var(--text-main)] truncate" title={String(finalValue)}>
                                                 {String(finalValue)}
                                             </span>
                                         </div>
@@ -107,6 +101,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                     )}
                 </>
             )}
+
 
             {/* Input handles (right edge) dynamically based on input_schema.inputs */}
             {data.inputs && Array.isArray(data.inputs) && data.inputs.length > 0 && !data.isRightInputProvider && (
