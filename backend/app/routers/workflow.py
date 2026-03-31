@@ -5,6 +5,7 @@ from pydantic import BaseModel, field_validator
 from datetime import datetime
 import uuid
 import json
+import re
 from ..core.database import get_db
 from ..core.security import require_role, get_current_user
 from ..models.user import User
@@ -632,9 +633,13 @@ def get_node_parameter_options(
         # This allows unsafe_request to resolve permissions in configuration mode
         token = execution_context.set(str(current_user.id))
         
+        # Clean the code to handle assignments with markers (e.g., model: str = #@get_model)
+        # This prevents SyntaxError during compilation by removing the '=' before the comment
+        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*#', r'\1 #', node.code)
+
         # Compile the node's code in restricted mode
         byte_code = compile_restricted(
-            node.code, 
+            cleaned_code, 
             f"<node-options:{node_id}>", 
             "exec", 
             policy=CustomRestrictingNodeTransformer

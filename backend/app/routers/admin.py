@@ -106,7 +106,7 @@ def extract_node_parameters(code: str) -> list:
                         # Extract @table marker from comments on the same line
                         options_source = None
                         line_content = code.splitlines()[item.lineno-1] if item.lineno <= len(code.splitlines()) else ""
-                        marker_match = re.search(r"@table[-|>]+([\w]+)->([\w]+),([\w]+)->([\w]+)", line_content)
+                        marker_match = re.search(r"@=table[-|>]+([\w]+)->([\w]+),([\w]+)->([\w]+)", line_content)
                         if marker_match:
                             table_name = marker_match.group(1)
                             options_source = {
@@ -141,7 +141,9 @@ def extract_node_parameters(code: str) -> list:
 
     # Try full parse first
     try:
-        tree = ast.parse(code)
+        # Replace problematic assignment-to-comment shorthand to prevent SyntaxError
+        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*#', r'\1 #', code)
+        tree = ast.parse(cleaned_code)
         return _parse_class_body(tree)
     except SyntaxError:
         pass
@@ -151,7 +153,9 @@ def extract_node_parameters(code: str) -> list:
         match = re.search(r'(class\s+NodeParameters\s*:.*?)(?=\n(?:class\s|def\s)|\Z)', code, re.DOTALL)
         if match:
             class_code = match.group(1)
-            tree = ast.parse(class_code)
+            # Also clean the fallback
+            cleaned_class_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*#', r'\1 #', class_code)
+            tree = ast.parse(cleaned_class_code)
             return _parse_class_body(tree)
     except Exception:
         pass
