@@ -41,14 +41,26 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar,
         },
     });
 
+    const { data: directUser, isLoading: isDirectLoading } = useQuery({
+        queryKey: ['admin-user', initialEditId],
+        queryFn: async () => {
+            if (!initialEditId) return null;
+            const response = await apiClient.get<User>(`/admin/users/${initialEditId}`);
+            return response.data;
+        },
+        enabled: !!initialEditId,
+    });
+
     useEffect(() => {
-        if (initialEditId && users.length > 0) {
+        if (initialEditId && view === 'list') {
             const user = users.find(u => u.id === initialEditId);
             if (user) {
                 handleRowClick(user);
+            } else if (directUser && !isDirectLoading) {
+                handleRowClick(directUser);
             }
         }
-    }, [initialEditId, users]);
+    }, [initialEditId, users, directUser, isDirectLoading, view]);
 
     const columns = useMemo(() => [
         columnHelper.accessor('username', {

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useSchemas, useCreateSchema, useUpdateSchema, useDeleteSchema } from '../../../entities/schema/api';
+import { useSchemas, useSchema, useCreateSchema, useUpdateSchema, useDeleteSchema } from '../../../entities/schema/api';
 import type { Schema } from '../../../entities/schema/api';
 import { SchemaEditor } from '../../../features/schema-editor/SchemaEditor';
 import { Icon } from '../../../shared/ui/icon';
@@ -31,6 +31,7 @@ interface SchemaManagementProps {
 
 export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId, isHotkeysEnabled }: SchemaManagementProps) => {
     const { data: schemas = [], isLoading } = useSchemas(projectId);
+    const { data: directSchema, isLoading: isDirectLoading } = useSchema(initialEditId);
     const createMutation = useCreateSchema(projectId);
     const updateMutation = useUpdateSchema();
     const deleteMutation = useDeleteSchema();
@@ -40,13 +41,17 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId
     
     // Auto-edit from ID
     React.useEffect(() => {
-        if (initialEditId && !isLoading && !isEditing && schemas.length > 0) {
+        if (initialEditId && !isEditing) {
+            // Try to find in the list first (it might already be there and have more context)
             const found = schemas.find(s => s.id === initialEditId);
             if (found) {
                 handleEdit(found);
+            } else if (directSchema && !isDirectLoading) {
+                // If not in the list but loaded directly (e.g. global schema pinned in project mode)
+                handleEdit(directSchema);
             }
         }
-    }, [initialEditId, schemas, isLoading, isEditing]);
+    }, [initialEditId, schemas, directSchema, isDirectLoading, isEditing]);
 
     const [searchQuery, setSearchQuery] = useState('');
 

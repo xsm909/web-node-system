@@ -18,6 +18,19 @@ export const useCredentials = (projectId?: string | null) => {
     });
 };
 
+export const useCredential = (id: string | undefined | null) => {
+    return useQuery({
+        queryKey: ['credential', id],
+        queryFn: async () => {
+            if (!id || id === 'new') return null;
+            const response = await apiClient.get<Credential>(`/admin/credentials/${id}`);
+            return response.data;
+        },
+        enabled: !!id && id !== 'new',
+    });
+};
+
+
 export const useCreateCredential = () => {
     const queryClient = useQueryClient();
     return useMutation({

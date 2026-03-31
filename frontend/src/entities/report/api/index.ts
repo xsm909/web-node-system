@@ -113,6 +113,19 @@ export const useStyles = (projectId?: string | null) => {
     });
 };
 
+export const useStyle = (id: string | undefined) => {
+    return useQuery({
+        queryKey: ['report-style', id],
+        queryFn: async () => {
+            if (!id) throw new Error("id is required");
+            const response = await apiClient.get<ReportStyle>(`/reports/styles/${id}`);
+            return response.data;
+        },
+        enabled: !!id,
+    });
+};
+
+
 // Style Mutations
 export const useCreateStyle = () => {
     const queryClient = useQueryClient();

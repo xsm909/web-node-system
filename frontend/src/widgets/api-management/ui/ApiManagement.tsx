@@ -5,6 +5,7 @@ import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButt
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { 
     useAiProviders, 
+    useAiProvider,
     useCreateAiProvider, 
     useUpdateAiProvider, 
     useDeleteAiProvider 
@@ -34,6 +35,7 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
     
     // AI Providers state
     const { data: providers = [], isLoading: providersLoading } = useAiProviders(baseProject?.id);
+    const { data: directProvider, isLoading: directProviderLoading } = useAiProvider(initialEditId);
     const createProvider = useCreateAiProvider();
     const updateProvider = useUpdateAiProvider();
     const deleteProvider = useDeleteAiProvider();
@@ -55,10 +57,13 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
             setActiveTab(initialTab);
         }
         if (initialEditId) {
-            if (activeTab === 'providers' && providers.length > 0) {
+            if (activeTab === 'providers') {
                 const found = providers.find(p => p.id === initialEditId);
                 if (found) {
                     setSelectedProvider(found);
+                    setView('edit');
+                } else if (directProvider && !directProviderLoading) {
+                    setSelectedProvider(directProvider);
                     setView('edit');
                 }
             } else if (activeTab === 'credentials') {
@@ -66,7 +71,7 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                 setView('edit');
             }
         }
-    }, [initialTab, initialEditId, providers, activeTab]);
+    }, [initialTab, initialEditId, providers, directProvider, directProviderLoading, activeTab]);
 
     const handleCreateProvider = () => {
         setSelectedProvider(null);

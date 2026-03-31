@@ -21,7 +21,9 @@ import { useProjectStore } from '../../../features/projects/store';
 import { usePinnedNavigation } from '../../../features/pinned-tabs/lib/usePinnedCheck';
 import { 
     useReports, 
+    useReport,
     useStyles, 
+    useStyle,
     useDeleteReport, 
     useDeleteStyle, 
     useDuplicateReport, 
@@ -49,6 +51,8 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
     
     const { data: reports = [], isLoading: reportsLoading } = useReports(projectId);
     const { data: styles = [], isLoading: stylesLoading } = useStyles(projectId);
+    const { data: directReport, isLoading: directReportLoading } = useReport(initialEditId);
+    const { data: directStyle, isLoading: directStyleLoading } = useStyle(initialEditId);
     const queryClient = useQueryClient();
 
     const deleteReportMutation = useDeleteReport();
@@ -66,20 +70,30 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
 
     // Auto-edit from ID
     useEffect(() => {
-        if (initialEditId && !isLoading && view === 'list') {
+        if (initialEditId && view === 'list') {
+            // Try reports
             const report = reports.find(r => r.id === initialEditId);
             if (report) {
                 setTopTab('reports');
                 handleEdit(report);
                 return;
+            } else if (directReport && !directReportLoading) {
+                setTopTab('reports');
+                handleEdit(directReport);
+                return;
             }
+
+            // Try styles
             const style = styles.find(s => s.id === initialEditId);
             if (style) {
                 setTopTab('styles');
                 handleEditStyle(style);
+            } else if (directStyle && !directStyleLoading) {
+                setTopTab('styles');
+                handleEditStyle(directStyle);
             }
         }
-    }, [initialEditId, reports, styles, isLoading, view]);
+    }, [initialEditId, reports, styles, directReport, directReportLoading, directStyle, directStyleLoading, view]);
 
     const [idToDelete, setIdToDelete] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);

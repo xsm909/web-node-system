@@ -4,6 +4,7 @@ import { AppInput, AppFormFieldRect } from '../../../shared/ui/app-input';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
 import { 
     useCredentials,
+    useCredential,
     useCreateCredential, 
     useUpdateCredential 
 } from '../../../entities/credential/api';
@@ -21,6 +22,7 @@ interface CredentialEditorProps {
 export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: CredentialEditorProps) => {
     const { baseProject } = useProjectStore();
     const { data: credentials = [] } = useCredentials(baseProject?.id);
+    const { data: directCredential, isLoading: isDirectLoading } = useCredential(credentialId);
     const queryClient = useQueryClient();
 
     const createMutation = useCreateCredential();
@@ -38,18 +40,21 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
     });
 
     useEffect(() => {
-        if (credentialId && credentials.length > 0) {
+        if (credentialId && credentialId !== 'new') {
             const cred = credentials.find(c => c.id === credentialId);
             if (cred) {
                 setFormData(cred);
                 setInitialFormState(cred);
+            } else if (directCredential && !isDirectLoading) {
+                setFormData(directCredential);
+                setInitialFormState(directCredential);
             }
-        } else if (!credentialId) {
+        } else if (!credentialId || credentialId === 'new') {
             const empty = { key: '', value: '', type: 'api', description: '', expired: false };
             setFormData(empty);
             setInitialFormState(empty);
         }
-    }, [credentialId, credentials]);
+    }, [credentialId, credentials, directCredential, isDirectLoading]);
 
     const handleSave = async () => {
         try {

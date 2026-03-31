@@ -19,6 +19,19 @@ export const useAiProviders = (projectId?: string | null) => {
     });
 };
 
+export const useAiProvider = (id: string | undefined | null) => {
+    return useQuery({
+        queryKey: ['ai-provider', id],
+        queryFn: async () => {
+            if (!id) throw new Error("id is required");
+            const response = await apiClient.get<AiProvider>(`/admin/ai-providers/${id}`);
+            return response.data;
+        },
+        enabled: !!id,
+    });
+};
+
+
 export const useCreateAiProvider = () => {
     const queryClient = useQueryClient();
     return useMutation({

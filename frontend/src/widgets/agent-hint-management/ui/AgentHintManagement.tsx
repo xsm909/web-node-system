@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useAgentHints, useCreateAgentHint, useUpdateAgentHint, useDeleteAgentHint } from '../../../entities/agent-hint/api';
+import { useAgentHints, useAgentHint, useCreateAgentHint, useUpdateAgentHint, useDeleteAgentHint } from '../../../entities/agent-hint/api';
 import type { AgentHint } from '../../../entities/agent-hint/api';
 import { MarkdownEditor } from '../../../features/markdown-editor/MarkdownEditor';
 import { Icon } from '../../../shared/ui/icon';
@@ -33,6 +33,7 @@ interface AgentHintManagementProps {
 export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId, onClose, projectId, isHotkeysEnabled }: AgentHintManagementProps) => {
     const { baseProject } = useProjectStore();
     const { data: hints = [], isLoading } = useAgentHints(projectId);
+    const { data: directHint, isLoading: isDirectLoading } = useAgentHint(initialEditId);
     const createMutation = useCreateAgentHint(projectId);
     const updateMutation = useUpdateAgentHint();
     const deleteMutation = useDeleteAgentHint();
@@ -51,13 +52,17 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen, initialEdi
 
     // Auto-edit from ID
     React.useEffect(() => {
-        if (initialEditId && !isLoading && !isEditing && hints.length > 0) {
+        if (initialEditId && !isEditing) {
+            // Try to find in the list first (it might already be there and have more context)
             const found = hints.find(h => h.id === initialEditId);
             if (found) {
                 handleEdit(found);
+            } else if (directHint && !isDirectLoading) {
+                // If not in the list but loaded directly (e.g. global hint pinned in project mode)
+                handleEdit(directHint);
             }
         }
-    }, [initialEditId, hints, isLoading, isEditing]);
+    }, [initialEditId, hints, directHint, isDirectLoading, isEditing]);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [isPreview, setIsPreview] = useState(false);
