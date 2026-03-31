@@ -230,7 +230,6 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
         onSubmit: async ({ value }) => {
             if (node) {
                 onChange(node.id, value);
-                onBack();
             }
         },
     });

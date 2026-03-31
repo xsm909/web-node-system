@@ -426,7 +426,6 @@ export default function AdminPage() {
                             return handleNodeSave(data, data.id || editingNodeForModal.id, () => {
                                 setIsModalDirty(false);
                                 setRefreshCount(r => r + 1);
-                                setEditingNodeForModal(null);
                             });
                         }}
                         onRefresh={() => setRefreshCount(r => r + 1)}
