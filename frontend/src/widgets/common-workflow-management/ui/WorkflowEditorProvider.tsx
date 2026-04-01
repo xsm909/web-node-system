@@ -6,9 +6,8 @@ import { useWorkflowOperations } from '../../../features/workflow-operations';
 import { useAuthStore } from '../../../features/auth/store';
 import { useClientStore } from '../../../features/workflow-management/model/clientStore';
 import { useProjectStore } from '../../../features/projects/store';
-import { useWorkflowPresets } from '../../../features/workflow-presets/model/useWorkflowPresets';
+import { usePresets, type Preset } from '../../../entities/preset';
 import type { NodeType } from '../../../entities/node-type/model/types';
-import type { Preset } from '../../../entities/preset';
 
 interface WorkflowEditorContextType {
     workflows: any[];
@@ -163,14 +162,13 @@ export const WorkflowEditorProvider: React.FC<{
         isPinned
     });
 
-    const { saveWorkflowPreset } = useWorkflowPresets();
+    const { savePreset: saveWorkflowPreset, isLoading: isSavingPreset } = usePresets('workflow');
 
     // Presets Management
     const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
     const [isPresetPickerOpen, setIsPresetPickerOpen] = useState(false);
     const [presetPickerPosition, setPresetPickerPosition] = useState<{ x: number, y: number } | undefined>();
     const [capturedPresetData, setCapturedPresetData] = useState<any>(null);
-    const [isSavingPreset] = useState(false);
     const [lastExternalUpdate, setLastExternalUpdate] = useState(0);
 
     const captureSelection = useCallback(() => {

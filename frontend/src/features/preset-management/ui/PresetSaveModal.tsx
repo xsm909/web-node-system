@@ -1,26 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { AppFormFieldRect } from '../../../shared/ui/app-input';
 
-interface WorkflowPresetCreateModalProps {
+interface PresetSaveModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (name: string) => void;
     isSaving?: boolean;
+    title?: string;
+    description?: string;
+    initialName?: string;
 }
 
-export const WorkflowPresetCreateModal: React.FC<WorkflowPresetCreateModalProps> = ({
+export const PresetSaveModal: React.FC<PresetSaveModalProps> = ({
     isOpen,
     onClose,
     onSave,
-    isSaving = false
+    isSaving = false,
+    title = 'Save Preset',
+    description = 'Enter a name for your preset to reuse this configuration later.',
+    initialName = ''
 }) => {
-    const [name, setName] = useState('');
+    const [name, setName] = useState(initialName);
+
+    useEffect(() => {
+        if (isOpen) {
+            setName(initialName);
+        }
+    }, [isOpen, initialName]);
 
     const handleSubmit = () => {
         if (name.trim()) {
             onSave(name.trim());
-            setName('');
         }
     };
 
@@ -29,14 +40,14 @@ export const WorkflowPresetCreateModal: React.FC<WorkflowPresetCreateModalProps>
             isOpen={isOpen}
             onClose={onClose}
             onSubmit={handleSubmit}
-            title="Create Workflow Preset"
+            title={title}
             icon="bookmark_add"
-            submitLabel={isSaving ? 'Saving...' : 'Create'}
+            submitLabel={isSaving ? 'Saving...' : 'Save'}
             isSubmitDisabled={!name.trim() || isSaving}
         >
             <div className="space-y-4 py-2">
-                <p className="text-xs text-[var(--text-muted)]">
-                    Enter a name for your preset. This will save the selected nodes, groups, and their connections.
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                    {description}
                 </p>
                 <AppFormFieldRect>
                     <input
@@ -50,7 +61,7 @@ export const WorkflowPresetCreateModal: React.FC<WorkflowPresetCreateModalProps>
                             }
                         }}
                         className="w-full bg-transparent outline-none h-full text-xs"
-                        placeholder="Preset name (e.g., Auth Flow, Data Processor)"
+                        placeholder="Preset name (e.g. Default Config, My Template)"
                     />
                 </AppFormFieldRect>
             </div>

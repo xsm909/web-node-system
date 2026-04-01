@@ -357,7 +357,7 @@ export const SelectionList: React.FC<SelectionListProps> = ({
 
 
     return createPortal(
-        <div className="fixed inset-0 z-[4000] selection-list-container">
+        <div className="fixed inset-0 z-[10000] selection-list-container">
             {/* Click-outside backdrop */}
             <div
                 className="fixed inset-0 bg-black/5 backdrop-blur-[0.7px] cursor-default"

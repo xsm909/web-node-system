@@ -34,10 +34,10 @@ import { AppTabulatorTable } from '../../../shared/ui/app-tabulator-table/AppTab
 import { AppJsonView } from '../../../shared/ui/app-json-view/AppJsonView';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
-import { usePresets, type Preset } from '../../../entities/preset';
-import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { AppFormButton } from '../../../shared/ui/app-form-button/AppFormButton';
 import { useProjectStore } from '../../../features/projects/store';
+import { PresetSelector, PresetSaveModal } from '../../preset-management';
+import { usePresets } from '../../../entities/preset';
 
 // Note: copyToClipboard is now handled inside QueryBuilderModal component to manage local state feedback
 
@@ -927,11 +927,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
     const [renameValue, setRenameValue] = useState('');
     const [isDraggingInProgress, setIsDraggingInProgress] = useState(false);
     const [isSavePresetModalOpen, setIsSavePresetModalOpen] = useState(false);
-    const [presetName, setPresetName] = useState('');
-    const { presets, fetchPresets, savePreset, renamePreset, deletePreset } = usePresets('query');
-    const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
-    const [deletingPreset, setDeletingPreset] = useState<Preset | null>(null);
-    const [newPresetName, setNewPresetName] = useState('');
+    const { savePreset, isLoading: isSavingPreset } = usePresets('query');
     const lastParsedSqlRef = useRef<string | null>(null);
     const prevIsOpenRef = useRef(false);
     const [isEssentialOnly, setIsEssentialOnly] = useState(true);
@@ -1068,24 +1064,16 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }
     }, [parameters, activeProject?.id, isOpen]);
     
-    useEffect(() => {
-        if (isOpen) {
-            fetchPresets();
-        }
-    }, [isOpen, fetchPresets]);
-
-    const handleSavePreset = async () => {
-        if (!presetName.trim()) return;
+    const handleSavePreset = async (name: string) => {
         try {
-            await savePreset(presetName, fullState);
+            await savePreset(name, fullState);
             setIsSavePresetModalOpen(false);
-            setPresetName('');
         } catch (err) {
             console.error('Failed to save preset:', err);
         }
     };
 
-    const handleLoadPreset = (preset: Preset) => {
+    const handleLoadPreset = (preset: any) => {
         setFullState(preset.preset_data);
         setActiveBlockId('main');
     };
@@ -1718,47 +1706,16 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                     />
                     <div className="w-px h-4 bg-[var(--border-base)] mx-1" />
                     <AppFormButton
-                        onClick={() => {
-                            setPresetName('');
-                            setIsSavePresetModalOpen(true);
-                        }}
+                        onClick={() => setIsSavePresetModalOpen(true)}
                         icon="bookmark_add"
                         withFrame={false}
                         title="Save as Preset"
                         iconSize={18}
                     />
-                    <ComboBox
-                        icon="bookmark"
-                        placeholder=""
-                        title="Load Preset"
-                        variant="ghost"
-                        size="small"
-                        hideChevron
+                    <PresetSelector
+                        entityType="query"
                         align="right"
-                        config={{
-                            allowRename: true,
-                            allowDelete: true
-                        }}
-                        items={presets.map(p => ({
-                            id: p.id,
-                            label: p.name,
-                            name: p.name,
-                            icon: 'article'
-                        }))}
-                        onSelect={(item) => {
-                            const preset = presets.find(p => p.id === item.id);
-                            if (preset) handleLoadPreset(preset);
-                        }}
-                        onAction={(action, item) => {
-                            const preset = presets.find(p => p.id === item.id);
-                            if (!preset) return;
-                            if (action === 'rename') {
-                                setEditingPreset(preset);
-                                setNewPresetName(preset.name);
-                            } else if (action === 'delete') {
-                                setDeletingPreset(preset);
-                            }
-                        }}
+                        onSelect={handleLoadPreset}
                     />
                 </>
             }
@@ -2346,80 +2303,12 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                 )}
             </AppCompactModalForm>
 
-            <AppCompactModalForm
+            <PresetSaveModal
                 isOpen={isSavePresetModalOpen}
                 onClose={() => setIsSavePresetModalOpen(false)}
-                onSubmit={handleSavePreset}
-                title="Save Preset"
-                icon="bookmark_add"
-                width="max-w-md"
-            >
-                <div className="space-y-4">
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Preset Name</label>
-                        <AppFormFieldRect>
-                            <input
-                                autoFocus
-                                value={presetName}
-                                onChange={e => setPresetName(e.target.value)}
-                                placeholder="Enter preset name..."
-                                className="w-full bg-transparent outline-none h-full text-xs"
-                                onKeyDown={e => {
-                                    if (e.key === 'Enter') handleSavePreset();
-                                }}
-                            />
-                        </AppFormFieldRect>
-                    </div>
-                </div>
-            </AppCompactModalForm>
-            <AppCompactModalForm
-                isOpen={!!editingPreset}
-                onClose={() => setEditingPreset(null)}
-                onSubmit={async () => {
-                    if (editingPreset && newPresetName.trim()) {
-                        await renamePreset(editingPreset.id, newPresetName.trim());
-                        setEditingPreset(null);
-                    }
-                }}
-                title="Rename Preset"
-                icon="drive_file_rename_outline"
-                submitLabel="Save"
-            >
-                <div className="space-y-4 py-2">
-                    <p className="text-xs text-[var(--text-muted)]">Enter a new name for the preset:</p>
-                    <AppFormFieldRect>
-                        <input
-                            autoFocus
-                            value={newPresetName}
-                            onChange={(e) => setNewPresetName(e.target.value)}
-                            className="w-full bg-transparent outline-none h-full text-xs"
-                            placeholder="Preset name"
-                        />
-                    </AppFormFieldRect>
-                </div>
-            </AppCompactModalForm>
-
-            <AppCompactModalForm
-                isOpen={!!deletingPreset}
-                onClose={() => setDeletingPreset(null)}
-                onSubmit={async () => {
-                    if (deletingPreset) {
-                        await deletePreset(deletingPreset.id);
-                        setDeletingPreset(null);
-                    }
-                }}
-                title="Delete Preset"
-                icon="delete"
-                submitLabel="Delete"
-                cancelLabel="Cancel"
-            >
-                <div className="py-2">
-                    <p className="text-xs text-[var(--text-muted)]">
-                        Are you sure you want to delete preset <strong className="text-[var(--text-main)]">"{deletingPreset?.name}"</strong>?
-                    </p>
-                    <p className="text-[10px] text-red-500 mt-2">This action cannot be undone.</p>
-                </div>
-            </AppCompactModalForm>
+                onSave={handleSavePreset}
+                isSaving={isSavingPreset}
+            />
         </>
     );
 };

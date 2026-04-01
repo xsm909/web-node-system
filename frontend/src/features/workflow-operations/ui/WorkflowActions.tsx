@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
-import { WorkflowPresetPicker } from '../../workflow-presets/ui/WorkflowPresetPicker';
+import { PresetSelector } from '../../preset-management';
 import type { Preset } from '../../../entities/preset';
 
 interface WorkflowActionsProps {
@@ -64,9 +64,11 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
             )}
 
             {showExtra && onApplyPreset && (
-                <WorkflowPresetPicker
+                <PresetSelector
+                    entityType="workflow"
                     mode="header"
                     onSelect={(preset) => onApplyPreset(preset, false)}
+                    title="Load Preset (F7)"
                 />
             )}
         </div>

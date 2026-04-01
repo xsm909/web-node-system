@@ -32,7 +32,7 @@ import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { useClipboardStore } from '../../../features/workflow-management/model/clipboardStore';
 import { useViewportStore } from '../../../features/workflow-management/model/viewportStore';
 import { useWorkflowEditor } from '../../common-workflow-management/ui/WorkflowEditorProvider';
-import { WorkflowPresetCreateModal, WorkflowPresetPicker } from '../../../features/workflow-presets';
+import { PresetSelector, PresetSaveModal } from '../../../features/preset-management';
 import type { Preset } from '../../../entities/preset';
 
 type Node = RFNode;
@@ -752,20 +752,22 @@ export const WorkflowGraph = React.memo(({
                 />
             )}
 
-            <WorkflowPresetCreateModal
+            <PresetSaveModal
                 isOpen={isPresetModalOpen}
                 onClose={() => setIsPresetModalOpen(false)}
                 onSave={handleSavePreset}
                 isSaving={isSavingPreset}
+                title="Save Workflow Preset"
+                description="Enter a name for your preset. This will save the selected nodes, groups, and their connections."
             />
 
-            <WorkflowPresetPicker
+            <PresetSelector
+                entityType="workflow"
                 mode="floating"
                 isOpen={isPresetPickerOpen}
                 position={presetPickerPosition}
                 onClose={() => setIsPresetPickerOpen(false)}
                 onSelect={(preset: Preset) => {
-                    // Convert screen coordinates to flow coordinates before applying the preset
                     const flowPos = presetPickerPosition ? screenToFlowPosition({ x: presetPickerPosition.x, y: presetPickerPosition.y }) : undefined;
                     onApplyPreset(preset, !!presetPickerPosition, flowPos);
                 }}

@@ -21,7 +21,9 @@ import { QueryBuilderModal } from "../../../features/query-builder/ui/QueryBuild
 import { SYSTEM_PARAMETERS } from "../../../entities/report/model/constants";
 import { findSqlAtPosition } from "../../../shared/lib/python/sql-extractor";
 import { AppParameterListEditor } from "../../../shared/ui/app-parameter-list-editor";
-import { ParameterPresetSelector, SaveParameterPresetButton } from "../../../features/parameter-presets";
+import { ParameterPresetSelector } from "../../../features/parameter-presets";
+import { PresetSaveModal } from "../../../features/preset-management";
+import { usePresets } from "../../../entities/preset";
 import { AppFormButton } from "../../../shared/ui/app-form-button/AppFormButton";
 import { AppJsonView } from "../../../shared/ui/app-json-view/AppJsonView";
 
@@ -54,6 +56,8 @@ export const ReportEditor = forwardRef<ReportEditorRef, ReportEditorProps>(({ re
     const [isSaving, setIsSaving] = useState(false);
     const [isCompiling, setIsCompiling] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [savingParam, setSavingParam] = useState<ReportParameter | null>(null);
+    const { savePreset, isLoading: isSavingParamPreset } = usePresets('parameter');
 
     const allCategoryPaths = useMemo(() => getUniqueCategoryPaths(reports), [reports]);
 
@@ -562,9 +566,29 @@ def GenerateReport(report_parameters):
                              )}
                              renderParameterActions={(param) => (
                                  param.parameter_type === 'select' && (
-                                     <SaveParameterPresetButton parameter={param} />
+                                     <button
+                                         type="button"
+                                         onClick={(e) => { e.stopPropagation(); setSavingParam(param); }}
+                                         className="p-1 hover:bg-[var(--border-base)] rounded-lg transition-colors text-[var(--text-muted)] hover:text-brand"
+                                         title="Save as Preset"
+                                     >
+                                         <Icon name="bookmark_add" size={14} />
+                                     </button>
                                  )
                              )}
+                        />
+                        <PresetSaveModal
+                            isOpen={!!savingParam}
+                            onClose={() => setSavingParam(null)}
+                            onSave={async (name) => {
+                                if (savingParam) {
+                                    await savePreset(name, savingParam);
+                                    setSavingParam(null);
+                                }
+                            }}
+                            isSaving={isSavingParamPreset}
+                            title="Save Parameter Preset"
+                            description={`Save settings for "${savingParam?.parameter_name}" as a reusable preset.`}
                         />
                     </div>
                 </div>
