@@ -190,23 +190,60 @@
   scrollbar-width: none; /* Firefox */
 }
 
-/* React Flow Group Node Override - The "One Frame" */
+/* React Flow Layering for Interleaved Groups (3D Model) */
+.react-flow__renderer {
+  perspective: 1000px !important;
+}
+
+.react-flow__viewport, 
+.react-flow__nodes, 
+.react-flow__edges {
+  transform-style: preserve-3d !important;
+}
+
+.react-flow__edges {
+  z-index: 5 !important;
+}
+
+/* Ensure nodes are at a baseline that allows 3D interleaving */
+.react-flow__node {
+  z-index: 10 !important;
+  transform-style: preserve-3d !important;
+}
+
+/* 
+  React Flow Group Node Override - The "One Frame" 
+  We remove the background from the container and move it to an inner div
+  so it can be pushed back in 3D without affecting the node bounds.
+*/
 .react-flow__node-group {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 1.5rem !important; /* rounded-3xl */
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* The actual 3D Background layer */
+.group-background {
+  position: absolute;
+  inset: 0;
   background: color-mix(in srgb, var(--brand), transparent 90%) !important;
   backdrop-filter: blur(2px) !important;
   -webkit-backdrop-filter: blur(2px) !important;
-  /* Fixed invalid rgba usage. Using color-mix for translucent brand border. */
   border: 1px solid color-mix(in srgb, var(--brand), transparent 50%) !important;
-  border-radius: 1.5rem !important; /* rounded-3xl */
-  /* Only transition visual states, NOT the transform/position to avoid drag lag */
-  transition: background-color 0.2s ease, box-shadow 0.2s ease !important;
+  border-radius: 1.5rem !important;
+  pointer-events: none;
+  transform: translateZ(-50px);
+  z-index: -1;
 }
 
-.react-flow__node-group.selected {
-  background: color-mix(in srgb, var(--brand), transparent 85%) !important;
-  box-shadow: 0 0 24px color-mix(in srgb, var(--brand), transparent 90%) !important;
-}
-
-.react-flow__node-group:hover:not(.selected) {
-  background: color-mix(in srgb, var(--brand), transparent 88%) !important;
+/* 
+  Selection and Hover states - REMOVED per user request. 
+  Groups should remain visually static.
+*/
+.react-flow__node-group.selected,
+.react-flow__node-group:hover {
+  box-shadow: none !important;
+  border: none !important;
 }

@@ -135,7 +135,8 @@ export const WorkflowGraph = React.memo(({
                 base.data = { ...base.data, params: merged, icon: ntDef.icon || base.data?.icon };
             }
             if (base.type === 'group') {
-                base.style = { ...base.style, border: 0, backgroundColor: 'transparent' };
+                base.style = { ...base.style, border: 0, backgroundColor: 'transparent', padding: 0 };
+                base.zIndex = -1;
             }
             return base;
         });
@@ -482,10 +483,10 @@ export const WorkflowGraph = React.memo(({
             id: groupId,
             type: 'group',
             position: { x: groupX, y: groupY },
-            // In React Flow, custom style is used for initial dimensions of subflows
             // We also set border: 0 and background: transparent to avoid the default React Flow frame
-            style: { width, height, border: 0, backgroundColor: 'transparent' },
+            style: { width, height, border: 0, backgroundColor: 'transparent', padding: 0 },
             data: { label: 'New Group' },
+            zIndex: -1,
         };
 
         const updatedNodes = nodes.map(n => {
@@ -676,16 +677,27 @@ export const WorkflowGraph = React.memo(({
     };
 
     const renderedNodes = useMemo(() => {
-        return nodes.map(node => ({
-            ...node,
-            data: {
-                ...node.data,
-                isExecuting: activeNodeIds.includes(node.id),
-                isRightInputProvider: !!nodeTypes.find(t => t.id === node.data?.nodeTypeId && (t as any).isRightInputProvider),
-                onUngroup: handleUngroup,
-                onRename: handleGroupRename
-            }
-        }));
+        return nodes.map(node => {
+            // 3D STACKING MODEL:
+            // The background/edges/header sandwich is now handled via translateZ in CSS.
+            // Here we only manage the absolute node selection layer.
+            const nodeSelected = node.selected;
+            const parentSelected = node.parentId ? nodes.find(n => n.id === node.parentId)?.selected : false;
+
+            const zIndex = (nodeSelected || parentSelected) ? 100 : 10;
+
+            return {
+                ...node,
+                zIndex,
+                data: {
+                    ...node.data,
+                    isExecuting: activeNodeIds.includes(node.id),
+                    isRightInputProvider: !!nodeTypes.find(t => t.id === node.data?.nodeTypeId && (t as any).isRightInputProvider),
+                    onUngroup: handleUngroup,
+                    onRename: handleGroupRename
+                }
+            };
+        });
     }, [nodes, nodeTypes, activeNodeIds, handleUngroup, handleGroupRename]);
 
     if (!workflow) return <div className="flex items-center justify-center h-full text-slate-500">No workflow data</div>;
@@ -724,6 +736,7 @@ export const WorkflowGraph = React.memo(({
                 multiSelectionKeyCode="Shift"
                 panOnDrag={!isSelectionMode}
                 selectNodesOnDrag={!isSelectionMode}
+                elevateNodesOnSelect={true}
                 deleteKeyCode={null}
             >
                 <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
