@@ -7,8 +7,7 @@ import {
     useSensors,
     type DragEndEvent,
     type DragStartEvent,
-    DragOverlay,
-    defaultDropAnimationSideEffects
+    DragOverlay
 } from '@dnd-kit/core';
 import {
     SortableContext,
@@ -64,7 +63,7 @@ export const PinnedTabsTray: React.FC = () => {
     if (tabs.length === 0) return null;
 
     return (
-        <aside className="w-[45px] border-l border-[var(--border-base)] bg-[var(--bg-app)]/80 flex flex-col z-40 shrink-0 select-none overflow-hidden backdrop-blur-xl transition-all duration-300">
+        <aside className="w-[45px] border-l border-[var(--border-base)] bg-[var(--bg-app)]/80 flex flex-col z-40 shrink-0 select-none overflow-hidden backdrop-blur-xl">
             <DndContext 
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -104,15 +103,7 @@ export const PinnedTabsTray: React.FC = () => {
 
                 <DragOverlay 
                     modifiers={[restrictToVerticalAxis]}
-                    dropAnimation={{
-                        sideEffects: defaultDropAnimationSideEffects({
-                            styles: {
-                                active: {
-                                    opacity: '0.4',
-                                },
-                            },
-                        }),
-                    }}
+                    dropAnimation={null}
                 >
                     {activeId ? (
                         <PinnedTabItem 
@@ -240,10 +231,10 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
             style={style}
             className={`
                 group relative flex flex-col items-center justify-start w-full h-full cursor-pointer
-                ${isOverlay ? 'z-50 min-h-[44px]' : 'transition-all duration-300'}
+                ${isOverlay ? 'z-50 min-h-[44px] text-white' : ''}
                 ${isActive && !isOverlay
                     ? 'z-10' 
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}
+                    : !isOverlay ? 'text-[var(--text-muted)] hover:text-[var(--text-main)]' : ''}
             `}
             onClick={onFocus}
             title={tab.title}
@@ -252,7 +243,7 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
             <div className={`
                 absolute inset-0 transition-all duration-200 pointer-events-none
                 ${isOverlay 
-                    ? 'shadow-[0_12px_40px_rgba(0,0,0,0.5)] scale-[1.05] !bg-[var(--bg-popover)] ring-1 ring-[var(--brand)]/40 rounded-sm' 
+                    ? 'shadow-[0_15px_50px_rgba(0,0,0,0.6)] scale-[1.07] ring-1 ring-white/20 rounded-md' 
                     : 'bg-transparent'}
             `} />
 
@@ -260,7 +251,7 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
                 className="absolute inset-0 pointer-events-none transition-all duration-300"
                 style={{
                     backgroundColor: isOverlay 
-                        ? 'transparent' 
+                        ? (tab.projectId ? brandColor : 'var(--bg-popover)') // Solid project color or popover
                         : tab.projectId 
                             ? `${brandColor}${isActive ? '1A' : '0F'}` // 10% if active/hover, 6% if default
                             : isActive ? 'var(--bg-hover)' : 'transparent'
@@ -268,7 +259,7 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
             />
 
             {/* Active Indicator Bar */}
-            {isActive && (
+            {isActive && !isOverlay && (
                 <div 
                     className="absolute inset-y-0 left-0 w-[3px] shadow-[2px_0_10px_rgba(var(--brand-rgb),0.3)] z-30 animate-in fade-in slide-in-from-left-1 duration-300"
                     style={{ backgroundColor: brandColor }}
@@ -289,15 +280,15 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
                 <Icon 
                     name={tab.icon || 'article'} 
                     size={14} 
-                    className="shrink-0 mb-0.5 transition-transform duration-300 group-hover:scale-110" 
-                    style={{ color: isActive ? brandColor : undefined }}
+                    className={`shrink-0 mb-0.5 transition-transform duration-300 ${!isOverlay ? 'group-hover:scale-110' : ''}`} 
+                    style={{ color: isOverlay ? 'white' : (isActive ? brandColor : undefined) }}
                 />
                 
                 <div className="flex-1 flex flex-col items-center justify-center overflow-hidden w-full relative">
                     <span 
-                        className="whitespace-nowrap text-[10px] uppercase font-light text-center truncate max-h-full opacity-80 transition-opacity"
+                        className={`whitespace-nowrap text-[10px] uppercase font-light text-center truncate max-h-full transition-opacity ${!isOverlay ? 'opacity-80' : 'opacity-100'}`}
                         style={{ 
-                            color: isActive ? brandColor : undefined, 
+                            color: isOverlay ? 'white' : (isActive ? brandColor : undefined), 
                             writingMode: 'vertical-rl',
                         }}
                     >
