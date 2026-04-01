@@ -20,6 +20,7 @@ import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuild
 import { findSqlAtPosition } from '../../../shared/lib/python/sql-extractor';
 import { SYSTEM_PARAMETERS } from '../../../entities/report/model/constants';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
+import { apiClient } from '../../../shared/api/client';
 
 
 interface NodeTypeFormViewProps {
@@ -77,6 +78,10 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     const [activeTab, setActiveTab] = useState<FormTab>(defaultTab || 'info');
     const [cursorPosition, setCursorPosition] = useState<{ anchor: number, head: number } | null>(null);
     const [dynamicHints, setDynamicHints] = useState<PythonHint[]>([]);
+    
+    // Validation State
+    const [validationResult, setValidationResult] = useState<{success?: boolean, error?: string, line?: number, text?: string} | null>(null);
+    const [isValidating, setIsValidating] = useState(false);
     
     // SQL Builder State
     const [isQueryBuilderOpen, setIsQueryBuilderOpen] = useState(false);
@@ -152,6 +157,22 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         }
     };
 
+    const handleValidateCode = async () => {
+        const code = form.state.values.code;
+        if (!code) return;
+        
+        setIsValidating(true);
+        setValidationResult(null);
+        try {
+            const res = await apiClient.post('/workflows/node-types/validate-code', { code });
+            setValidationResult(res.data);
+        } catch (e: any) {
+            setValidationResult({ success: false, error: e.response?.data?.detail || e.message || 'Connection Error' });
+        } finally {
+            setIsValidating(false);
+        }
+    };
+
     useHotkeys([
         { key: 'F4', description: 'Python Code', handler: () => setActiveTab('code') },
         { 
@@ -159,6 +180,15 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             description: 'SQL Query Builder', 
             enabled: activeTab === 'code',
             handler: handleOpenQueryBuilder
+        },
+        {
+            key: 'f5',
+            description: 'Check Syntax',
+            enabled: activeTab === 'code',
+            handler: (e) => {
+                e.preventDefault();
+                handleValidateCode();
+            }
         }
     ], { 
         scopeName: 'Node Type Editor',
@@ -228,10 +258,8 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         }
     }, [externalSubmitRef, form]);
 
-    const componentId = useRef(Math.random().toString(36).substring(7));
     const [isDirty, setIsDirty] = useState(false);
     
-    console.log(`[NodeTypeFormView:${componentId.current}] Rendered. onDirtyChange prop exists:`, !!onDirtyChange, 'id:', editingNode?.id);
     const initialValuesRef = useRef({
         name: editingNode?.name || '',
         code: editingNode?.code || '',
@@ -246,10 +274,6 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         };
     }, [editingNode?.id]);
     
-    console.log('[NodeTypeFormView] currentNode:', currentNode);
-    console.log('[NodeTypeFormView] editingNode prop:', editingNode);
-    console.log('[NodeTypeFormView] form values:', form.state.values);
-
     const codeMirrorExtensions = useMemo(() => [
         python(),
         indentUnit.of('    '),
@@ -332,7 +356,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             }}
             isHotkeysEnabled={isHotkeysEnabled}
             hideHeader={hideHeader}
-            allowedShortcuts={['f1', 'f4']}
+            allowedShortcuts={['f1', 'f4', 'f5']}
         >
             <form
                 onSubmit={(e) => {
@@ -350,21 +374,13 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                                vals.name !== initialValuesRef.current.name ||
                                                vals.version !== initialValuesRef.current.version;
                         
-                        console.log(`[NodeTypeFormView:${componentId.current}] Subscribe detected dirty:`, isCurrentlyDirty, {
-                            formDirty: state.isDirty,
-                            codeDirty: vals.code !== initialValuesRef.current.code
-                        });
-                        
                         return (
                             <DirtyNotifier
                                 isDirty={isCurrentlyDirty}
                                 onDirtyChange={(val) => {
                                     setIsDirty(val);
                                     if (onDirtyChange) {
-                                        console.log(`[NodeTypeFormView:${componentId.current}] Calling onDirtyChange prop with:`, val);
                                         onDirtyChange(val);
-                                    } else {
-                                        console.warn(`[NodeTypeFormView:${componentId.current}] onDirtyChange prop IS MISSING!`);
                                     }
                                 }}
                             />
@@ -532,7 +548,7 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                             }}
                                             onChange={(value) => field.handleChange(value)}
                                             onCreateEditor={(view) => setEditorRef(view)}
-                                            className={`h-full ${UI_CONSTANTS.CODE_EDITOR_CLASS}`}
+                                            className={`h-full ${UI_CONSTANTS.CODE_EDITOR_CLASS} ${isValidating ? 'opacity-70' : ''}`}
                                             placeholder="# Define your executive logic here..."
                                             readOnly={currentNode?.is_locked}
                                         />
@@ -540,6 +556,27 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                 }}
                             />
                         </div>
+
+                        {validationResult && !validationResult.success && (
+                            <div className="mt-3 px-4 py-3 bg-red-500/5 border border-red-500/20 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                                <Icon name="error" className="text-red-500 mt-0.5" size={18} />
+                                <div className="flex-1 flex flex-col gap-1 min-w-0">
+                                    <span className="text-xs font-bold text-red-500">Syntax Error{validationResult.line ? ` at Line ${validationResult.line}` : ''}</span>
+                                    <span className="text-[11px] text-red-500/80 font-mono break-words">{validationResult.error}</span>
+                                    {validationResult.text && (
+                                        <div className="mt-1.5 p-2 bg-red-500/5 rounded border border-red-500/10 text-[10px] text-red-500/70 font-mono whitespace-pre overflow-x-auto custom-scrollbar">
+                                            {validationResult.text.trimEnd()}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        {validationResult && validationResult.success && (
+                            <div className="mt-3 px-4 py-2 bg-emerald-500/5 border border-emerald-500/20 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                                <Icon name="check_circle" className="text-emerald-500" size={18} />
+                                <span className="text-xs font-bold text-emerald-500">Syntax is valid!</span>
+                            </div>
+                        )}
 
                         <QueryBuilderModal
                             isOpen={isQueryBuilderOpen}
@@ -572,8 +609,8 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                 Python Node Runtime
                             </div>
                             <div className="flex items-center gap-4">
-                                <span>3.10+ Standard</span>
-                                <span>IntelliSense Active</span>
+                                <span>[F1] SQL Query Builder</span>
+                                <span>[F5] Check Syntax</span>
                             </div>
                         </div>
                     </div>

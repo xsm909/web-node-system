@@ -607,6 +607,33 @@ def run_workflow(workflow_id: uuid.UUID, data: Optional[RunWorkflowRequest] = No
     return {"execution_id": execution.id, "status": "started"}
 
 
+class NodeCodeValidateRequest(BaseModel):
+    code: str
+
+@router.post("/node-types/validate-code")
+def validate_node_code(data: NodeCodeValidateRequest, current_user: User = Depends(get_current_user), _=workflow_access):
+    from RestrictedPython import compile_restricted
+    from ..services.executor import CustomRestrictingNodeTransformer
+    import re
+
+    try:
+        # Clean the code to handle assignments with markers (e.g., model: str = #@get_model)
+        # This prevents SyntaxError during compilation by removing the '=' before the comment
+        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*#', r'\1 #', data.code)
+
+        compile_restricted(
+            cleaned_code, 
+            "<node-validation>", 
+            "exec",
+            policy=CustomRestrictingNodeTransformer
+        )
+        return {"success": True, "error": None, "line": None}
+    except SyntaxError as e:
+        return {"success": False, "error": getattr(e, 'msg', str(e)), "line": getattr(e, 'lineno', None), "offset": getattr(e, 'offset', None), "text": getattr(e, 'text', None)}
+    except Exception as e:
+        return {"success": False, "error": str(e), "line": None}
+
+
 @router.get("/node-types/{node_id}/parameter-options/{parameter_name}")
 def get_node_parameter_options(
     node_id: uuid.UUID, 
