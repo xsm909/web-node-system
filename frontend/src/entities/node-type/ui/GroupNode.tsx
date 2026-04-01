@@ -57,7 +57,8 @@ export const GroupNode = memo(({ id, data, selected }: NodeProps) => {
                     <div 
                         className={`relative min-w-[60px] px-3 py-1.5 rounded-2xl text-xs font-light transition-all bg-surface-900 text-brand ${isEditing ? 'border-brand' : ''}`}
                         style={{ 
-                            border: isEditing ? undefined : '1px solid color-mix(in srgb, var(--brand), transparent 50%)'
+                            border: isEditing ? undefined : `1px solid color-mix(in srgb, var(--brand), transparent ${selected ? '30%' : '50%'})`,
+                            borderWidth: selected ? '2px' : '1px'
                         }}
                     >
                         {/* Measurement / Hidden mirror for height & width auto-sizing */}
@@ -101,7 +102,8 @@ export const GroupNode = memo(({ id, data, selected }: NodeProps) => {
                         onClick={handleUngroup}
                         className="absolute right-4 flex items-center justify-center w-6 h-6 rounded-full bg-surface-900 text-[var(--text-muted)] hover:text-red-400 hover:border-red-400/50 transition-all pointer-events-auto opacity-100 animate-in fade-in zoom-in duration-200"
                         style={{ 
-                            border: '1px solid color-mix(in srgb, var(--brand), transparent 50%)' 
+                            border: `1px solid color-mix(in srgb, var(--brand), transparent ${selected ? '30%' : '50%'})`,
+                            borderWidth: selected ? '2px' : '1px'
                         }}
                         title="Ungroup nodes"
                     >

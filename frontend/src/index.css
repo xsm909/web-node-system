@@ -221,7 +221,7 @@
   border: none !important;
   padding: 0 !important;
   border-radius: 1.5rem !important; /* rounded-3xl */
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 
 /* The actual 3D Background layer */
@@ -239,11 +239,15 @@
 }
 
 /* 
-  Selection and Hover states - REMOVED per user request. 
-  Groups should remain visually static.
+  Selection and Hover states - RE-ENABLED for border-width specifically.
 */
-.react-flow__node-group.selected,
-.react-flow__node-group:hover {
+.react-flow__node-group.selected .group-background {
+  border-width: 2px !important;
+  border-color: color-mix(in srgb, var(--brand), transparent 30%) !important;
+}
+
+.react-flow__node-group:hover,
+.react-flow__node-group.selected {
   box-shadow: none !important;
   border: none !important;
 }
