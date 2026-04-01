@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import { Sidebar } from '../../../shared/ui/sidebar';
 import { Icon } from '../../../shared/ui/icon';
-import { ThemeToggle } from '../../../shared/ui/theme-toggle/ThemeToggle';
+import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { useAuthStore } from '../../../features/auth/store';
 import { useProjectStore } from '../../../features/projects/store';
 import { usePinStore } from '../../../features/pinned-tabs/model/store';
+import { useThemeStore } from '../../../shared/lib/theme/store';
 
 export interface NavItem {
     id: string;
@@ -36,6 +37,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     const { user, logout } = useAuthStore();
     const { baseProject, isBaseProjectMode, exitProject } = useProjectStore();
     const { focus, activeTabId } = usePinStore();
+    const { theme, toggleTheme } = useThemeStore();
 
     return (
         <Sidebar
@@ -101,20 +103,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             }
             footer={
                 <div className="space-y-4">
-                    {user && (
-                        <div className="flex items-center gap-3 px-3">
-                            <div className="w-10 h-10 rounded-2xl bg-brand/10 flex items-center justify-center text-brand font-medium text-xs border border-brand/20">
-                                {user.username?.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-xs font-medium text-[var(--text-main)] truncate">{user.username}</div>
-                                <div className="text-[10px] text-[var(--text-muted)] font-semibold uppercase tracking-wider truncate opacity-60">
-                                    {user.role}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {isBaseProjectMode && baseProject && (
                         <div className="mx-2 p-3 rounded-2xl bg-brand/5 border border-brand/10 flex flex-col gap-2">
                             <div className="flex items-center gap-2">
@@ -134,15 +122,38 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                         </div>
                     )}
 
-                    <div className="flex gap-2">
-                        <button
-                            className="flex-1 px-4 py-3 rounded-2xl text-xs font-medium text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 border border-[var(--border-base)] hover:border-red-500/20 transition-all flex items-center justify-center gap-2 active:scale-95"
-                            onClick={logout}
-                        >
-                            <Icon name="signout" size={16} />
-                            <span>Sign Out</span>
-                        </button>
-                        <ThemeToggle />
+                    <div className="flex items-center justify-between gap-2 px-3">
+                        {user && (
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-2xl bg-brand/10 flex items-center justify-center text-brand font-medium text-xs border border-brand/20 shrink-0">
+                                    {user.username?.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-medium text-[var(--text-main)] truncate">{user.username}</div>
+                                    <div className="text-[10px] text-[var(--text-muted)] font-semibold uppercase tracking-wider truncate opacity-60">
+                                        {user.role}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-0.5">
+                            <AppRoundButton
+                                icon={theme === 'dark' ? 'light_mode' : 'dark_mode'}
+                                onClick={toggleTheme}
+                                variant="ghost"
+                                size="small"
+                                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                            />
+                            <AppRoundButton
+                                icon="signout"
+                                onClick={logout}
+                                variant="ghost"
+                                size="small"
+                                title="Sign Out"
+                                iconClassName="text-red-500/70 group-hover:text-red-500"
+                            />
+                        </div>
                     </div>
                 </div>
             }

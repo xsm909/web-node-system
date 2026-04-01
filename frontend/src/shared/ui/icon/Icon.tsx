@@ -15,7 +15,11 @@ export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, clas
     const [svgContent, setSvgContent] = useState<string | null>(null);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [viewBox, setViewBox] = useState<string>("0 -960 960 960");
-    const [sourceFill, setSourceFill] = useState<string | null>(null);
+    const [sourceFill, setSourceFill] = useState<string | undefined>(undefined);
+    const [sourceStroke, setSourceStroke] = useState<string | undefined>(undefined);
+    const [sourceStrokeWidth, setSourceStrokeWidth] = useState<string | undefined>(undefined);
+    const [sourceStrokeLinecap, setSourceStrokeLinecap] = useState<string | undefined>(undefined);
+    const [sourceStrokeLinejoin, setSourceStrokeLinejoin] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         const modules = dir === 'icons' ? iconModules : nodeIconModules;
@@ -37,8 +41,11 @@ export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, clas
                 } else {
                     setViewBox("0 -960 960 960");
                 }
-                const rootFill = svgElement.getAttribute('fill');
-                setSourceFill(rootFill);
+                setSourceFill(svgElement.getAttribute('fill') || undefined);
+                setSourceStroke(svgElement.getAttribute('stroke') || undefined);
+                setSourceStrokeWidth(svgElement.getAttribute('stroke-width') || undefined);
+                setSourceStrokeLinecap(svgElement.getAttribute('stroke-linecap') || undefined);
+                setSourceStrokeLinejoin(svgElement.getAttribute('stroke-linejoin') || undefined);
                 
                 // Use XMLSerializer to get all internal content properly
                 const serializer = new XMLSerializer();
@@ -90,6 +97,8 @@ export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, clas
     if (!svgContent) return <div style={{ width: size, height: size }} className={className} />;
 
     const finalFill = propFill || (sourceFill === 'none' ? 'none' : 'currentColor');
+    const finalStroke = props.stroke || (sourceStroke === 'none' ? 'none' : sourceStroke || (sourceStrokeWidth ? 'currentColor' : undefined));
+    const finalStrokeWidth = props.strokeWidth || sourceStrokeWidth;
 
     return (
         <svg
@@ -97,6 +106,10 @@ export const Icon: React.FC<IconProps> = ({ name, dir = 'icons', size = 20, clas
             height={size}
             viewBox={viewBox}
             fill={finalFill}
+            stroke={finalStroke}
+            strokeWidth={finalStrokeWidth}
+            strokeLinecap={(props.strokeLinecap || sourceStrokeLinecap) as any}
+            strokeLinejoin={(props.strokeLinejoin || sourceStrokeLinejoin) as any}
             className={`icon icon-${name} ${className}`}
             dangerouslySetInnerHTML={{ __html: svgContent }}
             {...props}
