@@ -35,6 +35,7 @@ import { AppJsonView } from '../../../shared/ui/app-json-view/AppJsonView';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { AppFormButton } from '../../../shared/ui/app-form-button/AppFormButton';
+import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { useProjectStore } from '../../../features/projects/store';
 import { PresetSelector, PresetSaveModal } from '../../preset-management';
 import { usePresets } from '../../../entities/preset';
@@ -1957,17 +1958,17 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                             ))}
 
                             {/* Add Button */}
-                            <div className="relative ml-2 pb-px flex-shrink-0">
-                                <AppFormButton
+                            <div className="flex-shrink-0 mb-1.5 ml-2">
+                                <AppRoundButton
                                     ref={addButtonRef}
                                     onClick={() => {
                                         setAddAnchorRect(addButtonRef.current?.getBoundingClientRect() || null);
                                         setIsAddMenuOpen(!isAddMenuOpen);
                                     }}
                                     icon="add"
-                                    withFrame={false}
+                                    variant="outline"
+                                    size="xs"
                                     title="Add new query block"
-                                    className={isAddMenuOpen ? '!bg-brand !text-white' : ''}
                                 />
 
                                 <AppContextMenu

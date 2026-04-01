@@ -12,7 +12,7 @@ interface AppRoundButtonProps {
     iconSize?: number;
     iconDir?: 'icons' | 'node_icons';
     iconClassName?: string;
-    size?: 'normal' | 'small';
+    size?: 'normal' | 'small' | 'xs';
     type?: 'button' | 'submit' | 'reset';
 }
 
@@ -31,9 +31,14 @@ export const AppRoundButton = React.forwardRef<HTMLButtonElement, AppRoundButton
     type = 'button'
 }, ref) => {
     const isSmall = size === 'small';
-    const computedIconSize = iconSize || (isSmall ? 13 : 18);
+    const isXS = size === 'xs';
+    const computedIconSize = iconSize || (isXS ? 10 : isSmall ? 13 : 18);
     
-    const baseStyles = `flex items-center justify-center rounded-full transition-all active:scale-95 shrink-0 ${isSmall ? 'w-[26px] h-[26px]' : 'w-8 h-8'}`;
+    let sizeStyles = 'w-8 h-8';
+    if (isSmall) sizeStyles = 'w-[26px] h-[26px]';
+    if (isXS) sizeStyles = 'w-[21px] h-[21px]';
+    
+    const baseStyles = `flex items-center justify-center rounded-full transition-all active:scale-95 shrink-0 ${sizeStyles}`;
     
     const variantStyles = {
         brand: "bg-brand text-white hover:brightness-110 shadow-sm shadow-brand/20",

@@ -22,7 +22,7 @@ export const AppContextMenu: React.FC<AppContextMenuProps> = ({
     anchorRect, 
     children, 
     className = '',
-    zIndex = 2000
+    zIndex = 8000
 }) => {
     const menuRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState<{ top: number, left: number } | null>(null);
@@ -34,7 +34,7 @@ export const AppContextMenu: React.FC<AppContextMenuProps> = ({
             const menuHeight = 130; 
             
             let top = anchorRect.bottom + 8;
-            let left = anchorRect.right - menuWidth;
+            let left = anchorRect.left;
 
             // Flip up if space below is tight (viewport bottom constraint)
             if (top + menuHeight > window.innerHeight - 20) {
