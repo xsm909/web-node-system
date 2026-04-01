@@ -13,6 +13,7 @@ import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
+import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { getPythonHints, type PythonHint } from '../../../shared/api/python-hints';
 import { useThemeStore } from '../../../shared/lib/theme/store';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
@@ -82,6 +83,8 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
     // Validation State
     const [validationResult, setValidationResult] = useState<{success?: boolean, error?: string, line?: number, text?: string} | null>(null);
     const [isValidating, setIsValidating] = useState(false);
+    const [isSuccessVisible, setIsSuccessVisible] = useState(false);
+    const validationTimeoutRef = useRef<any>(null);
     
     // SQL Builder State
     const [isQueryBuilderOpen, setIsQueryBuilderOpen] = useState(false);
@@ -99,6 +102,10 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
             setDynamicHints(hints);
         };
         fetchHints();
+        
+        return () => {
+            if (validationTimeoutRef.current) clearTimeout(validationTimeoutRef.current);
+        };
     }, []);
 
     // Sync state with props if they change
@@ -166,8 +173,22 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         try {
             const res = await apiClient.post('/workflows/node-types/validate-code', { code });
             setValidationResult(res.data);
+            
+            // Auto-hide success message after 2 seconds
+            if (res.data.success) {
+                setIsSuccessVisible(true);
+                if (validationTimeoutRef.current) clearTimeout(validationTimeoutRef.current);
+                validationTimeoutRef.current = setTimeout(() => {
+                    setIsSuccessVisible(false);
+                    // We keep the validationResult for the UI but hide the success state
+                    validationTimeoutRef.current = null;
+                }, 2000);
+            } else {
+                setIsSuccessVisible(false);
+            }
         } catch (e: any) {
             setValidationResult({ success: false, error: e.response?.data?.detail || e.message || 'Connection Error' });
+            setIsSuccessVisible(false);
         } finally {
             setIsValidating(false);
         }
@@ -192,7 +213,8 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
         }
     ], { 
         scopeName: 'Node Type Editor',
-        enabled: isHotkeysEnabled !== false 
+        enabled: isHotkeysEnabled !== false,
+        level: HOTKEY_LEVEL.FRAGMENT
     });
 
     const form = useForm({
@@ -571,12 +593,15 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                                 </div>
                             </div>
                         )}
-                        {validationResult && validationResult.success && (
-                            <div className="mt-3 px-4 py-2 bg-emerald-500/5 border border-emerald-500/20 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                                <Icon name="check_circle" className="text-emerald-500" size={18} />
-                                <span className="text-xs font-bold text-emerald-500">Syntax is valid!</span>
+                        
+                        <div className={`grid transition-all duration-300 ease-in-out ${isSuccessVisible ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0 mt-0'}`}>
+                            <div className="overflow-hidden">
+                                <div className="px-4 py-2 bg-emerald-500/5 border border-emerald-500/20 rounded-xl flex items-center gap-3">
+                                    <Icon name="check_circle" className="text-emerald-500" size={18} />
+                                    <span className="text-xs font-bold text-emerald-500">Syntax is valid!</span>
+                                </div>
                             </div>
-                        )}
+                        </div>
 
                         <QueryBuilderModal
                             isOpen={isQueryBuilderOpen}
@@ -603,16 +628,6 @@ export const NodeTypeFormView: React.FC<NodeTypeFormViewProps> = ({
                             parameters={[...(form.state.values.parameters || []), ...SYSTEM_PARAMETERS]}
                         />
 
-                        <div className="mt-4 text-[10px] text-[var(--text-muted)] flex justify-between px-4 font-normal uppercase tracking-widest opacity-40">
-                            <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                Python Node Runtime
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <span>[F1] SQL Query Builder</span>
-                                <span>[F5] Check Syntax</span>
-                            </div>
-                        </div>
                     </div>
                 )}
             </form>

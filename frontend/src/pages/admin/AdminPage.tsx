@@ -415,6 +415,7 @@ export default function AdminPage() {
                         setRefreshCount(r => r + 1);
                     }}
                     isDirty={isModalDirty}
+                    allowedShortcuts={['f1', 'f4', 'f5']}
                 >
                     <NodeTypeFormView
                         onClose={() => {

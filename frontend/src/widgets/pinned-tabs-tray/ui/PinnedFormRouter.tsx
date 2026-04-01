@@ -102,6 +102,7 @@ export const PinnedFormRouter: React.FC = () => {
                         setRefreshCount(r => r + 1);
                     }}
                     isDirty={isModalDirty}
+                    allowedShortcuts={['f1', 'f4', 'f5']}
                 >
                     <NodeTypeFormView
                         onClose={closeNodeModal}

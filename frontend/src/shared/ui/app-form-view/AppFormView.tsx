@@ -255,9 +255,11 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                         {children}
                     </div>
 
-                    <div className={`${footer ? 'px-10 py-6' : 'h-[10px] opacity-50'} bg-[var(--border-muted)]/30 border-t border-[var(--border-base)] flex flex-row items-center gap-4 overflow-hidden transition-all duration-300`}>
-                        {footer}
-                    </div>
+                    {footer && (
+                        <div className="px-10 py-6 bg-[var(--border-muted)]/30 border-t border-[var(--border-base)] flex flex-row items-center gap-4 overflow-hidden transition-all duration-300">
+                            {footer}
+                        </div>
+                    )}
                 </div>
 
                 <AppCompactModalForm
