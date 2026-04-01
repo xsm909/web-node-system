@@ -15,6 +15,7 @@ import { AppLockToggle } from '../../../shared/ui/app-lock-toggle';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { SlidePanel } from '../../../shared/ui/slide-panel';
 import { AppHeader } from '../../app-header';
+import { AppSectionTitle } from '../../../shared/ui/app-section-title/AppSectionTitle';
 import {
     DndContext,
     closestCenter,
@@ -704,12 +705,10 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
                 leftContent={
-                    <div className="flex items-center gap-3 px-2 lg:px-0">
-                        <Icon name="metadata" size={24} className="text-brand" />
-                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
-                            Client Metadata
-                        </h1>
-                    </div>
+                    <AppSectionTitle 
+                        icon="metadata" 
+                        title="Client Metadata" 
+                    />
                 }
                 rightContent={
                     <div className="flex items-center gap-2">

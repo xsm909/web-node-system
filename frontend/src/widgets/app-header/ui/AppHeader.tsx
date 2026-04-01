@@ -2,10 +2,6 @@ import React from 'react';
 import { Icon } from '../../../shared/ui/icon';
 import { Header } from '../../../shared/ui/header';
 import { AppInput } from '../../../shared/ui/app-input';
-import { useProjectStore } from '../../../features/projects/store';
-import { useProjects } from '../../../entities/project/api';
-import { UI_CONSTANTS } from '../../../shared/ui/constants';
-
 interface AppHeaderProps {
     onToggleSidebar: () => void;
     isSidebarOpen?: boolean;
@@ -19,38 +15,7 @@ interface AppHeaderProps {
     isPinned?: boolean;
     canPin?: boolean;
     onPinToggle?: () => void;
-    projectId?: string | null;
 }
-
-const ProjectBadge: React.FC<{ projectId?: string | null }> = ({ projectId: propProjectId }) => {
-    const { activeProject, isProjectMode } = useProjectStore();
-    const { data: projects = [] } = useProjects();
-    
-    // Resolve which project to show: either from prop or from global store
-    const effectiveProjectId = propProjectId !== undefined ? propProjectId : (isProjectMode ? activeProject?.id : null);
-    
-    if (!effectiveProjectId) return null;
-    
-    const project = projects.find(p => p.id === effectiveProjectId) || (effectiveProjectId === activeProject?.id ? activeProject : null);
-    if (!project) return null;
-    
-    const brandColor = project.theme_color || UI_CONSTANTS.BRAND;
-    
-    return (
-        <div 
-            className="flex items-center gap-2 px-2.5 py-1 rounded-full border bg-white/5 backdrop-blur-sm shadow-sm transition-all animate-in fade-in slide-in-from-left-2"
-            style={{ 
-                borderColor: `${brandColor}40`,
-                color: brandColor
-            }}
-        >
-            <Icon name="project" size={12} />
-            <span className="text-[10px] font-black uppercase tracking-widest truncate max-w-[120px]">
-                {project.name}
-            </span>
-        </div>
-    );
-};
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
     onToggleSidebar,
@@ -65,48 +30,43 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     isPinned = false,
     canPin = false,
     onPinToggle,
-    projectId
 }) => {
-    const { isProjectMode } = useProjectStore();
     return (
         <Header
             leftContent={
                 <>
                     <button
-                        className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] lg:hidden transition-colors shrink-0"
+                        className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] lg:hidden transition-all shrink-0 active:scale-95"
                         onClick={onToggleSidebar}
                         aria-label="Toggle menu"
                     >
-                        <Icon name={isSidebarOpen ? "close" : "menu"} size={22} className={!isSidebarOpen ? "text-brand" : ""} />
+                        <Icon name={isSidebarOpen ? "close" : "menu"} size={18} className={!isSidebarOpen ? "text-brand" : ""} />
                     </button>
                     {onBack && (
-                        <div className="flex items-center">
+                        <div className="flex items-center gap-1">
                             <button
-                                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-colors shrink-0 mr-1 hidden lg:flex"
+                                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] transition-all shrink-0 hidden lg:flex active:scale-95"
                                 onClick={onBack}
                                 aria-label={isPinned ? "Close tab" : "Go back"}
                                 title={isPinned ? "Close tab (Esc)" : "Go back (Esc)"}
                             >
-                                <Icon name={isPinned ? "close" : "arrow_back"} size={22} />
+                                <Icon name={isPinned ? "close" : "arrow_back"} size={18} />
                             </button>
                             {canPin && onPinToggle && !isPinned && (
                                 <button
-                                    className={`p-2 rounded-lg transition-colors shrink-0 mr-1 hidden lg:flex text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] ${isDirty ? 'opacity-30 cursor-not-allowed grayscale' : ''}`}
+                                    className={`p-1.5 rounded-lg transition-all shrink-0 hidden lg:flex text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] active:scale-95 ${isDirty ? 'opacity-30 cursor-not-allowed grayscale' : ''}`}
                                     onClick={isDirty ? undefined : onPinToggle}
                                     disabled={isDirty}
                                     aria-label="Pin form"
                                     title={isDirty ? "Cannot pin unsaved data" : "Pin (detach)"}
                                 >
-                                    <Icon name="keep" size={20} />
+                                    <Icon name="keep" size={18} />
                                 </button>
                             )}
                         </div>
                     )}
                     <div className="relative flex items-center">
-                        <ProjectBadge projectId={projectId} />
-                        <div className={(isProjectMode || !!projectId) ? 'ml-3' : ''}>
-                            {leftContent}
-                        </div>
+                        {leftContent}
                         {isDirty && (
                             <div className="flex items-center ml-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shadow-sm shadow-brand/50" title="Unsaved changes" />

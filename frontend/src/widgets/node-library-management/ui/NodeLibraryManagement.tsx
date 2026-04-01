@@ -7,6 +7,7 @@ import { getCookie, setCookie, eraseCookie } from '../../../shared/lib/cookieUti
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppHeader } from '../../app-header';
+import { AppSectionTitle } from '../../../shared/ui/app-section-title/AppSectionTitle';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { createColumnHelper } from '@tanstack/react-table';
 
@@ -157,9 +158,11 @@ export const NodeLibraryManagement = ({
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
                 leftContent={
-                    <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
-                        Node Library
-                    </h1>
+                    <AppSectionTitle 
+                        icon="function" 
+                        title="Node Library" 
+                        projectId={null}
+                    />
                 }
                 rightContent={
                     <AppRoundButton

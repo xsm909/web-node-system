@@ -10,6 +10,7 @@ import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/A
 import { AppFormView } from '../../../shared/ui/app-form-view/AppFormView';
 import { AppTabs } from '../../../shared/ui/app-tabs/AppTabs';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
+import { AppSectionTitle } from '../../../shared/ui/app-section-title/AppSectionTitle';
 
 import { ReportList } from './ReportList';
 import { ReportEditor, type ReportEditorRef } from './ReportEditor';
@@ -507,15 +508,13 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
                                         <Icon name="back" size={24} />
                                     </button>
                                 )}
-                                <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90">
-                                    {view === 'list' ? 'Reports Management' : (
-                                        view === 'group-view' ? (
-                                             <span><span className="opacity-50 font-normal">Reports / </span>Group Report</span>
-                                        ) : (
-                                            <span><span className="opacity-50 font-normal">Reports / </span>{selectedReport?.name || 'New Report'}</span>
-                                        )
+                                <AppSectionTitle 
+                                    icon="article" 
+                                    title={view === 'list' ? 'Reports Management' : (
+                                        view === 'group-view' ? 'Group Report' : (selectedReport?.name || 'New Report')
                                     )}
-                                </h1>
+                                    parentTitle={view !== 'list' ? 'Reports' : undefined}
+                                />
                             </div>
                         }
                         rightContent={

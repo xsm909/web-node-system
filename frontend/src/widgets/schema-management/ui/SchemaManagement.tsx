@@ -8,6 +8,7 @@ import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { AppHeader } from '../../../widgets/app-header';
+import { AppSectionTitle } from '../../../shared/ui/app-section-title/AppSectionTitle';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
@@ -353,14 +354,12 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId
             <AppHeader
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
-                projectId={projectId}
                 leftContent={
-                    <div className="flex items-center gap-3 px-2 lg:px-0">
-                        <Icon name="schema" size={24} className="text-brand" />
-                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate">
-                            Schema Registry
-                        </h1>
-                    </div>
+                    <AppSectionTitle 
+                        icon="schema" 
+                        title="Schema Registry" 
+                        projectId={projectId}
+                    />
                 }
                 rightContent={
                     <AppRoundButton

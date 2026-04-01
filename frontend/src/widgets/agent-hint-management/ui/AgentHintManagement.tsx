@@ -7,6 +7,7 @@ import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppHeader } from '../../../widgets/app-header';
+import { AppSectionTitle } from '../../../shared/ui/app-section-title/AppSectionTitle';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { AppInput } from '../../../shared/ui/app-input';
@@ -339,11 +340,12 @@ export const AgentHintManagement = ({ onToggleSidebar, isSidebarOpen, initialEdi
             <AppHeader
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
-                projectId={projectId}
                 leftContent={
-                    <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
-                        Agent Hints
-                    </h1>
+                    <AppSectionTitle 
+                        icon="lightbulb_circle" 
+                        title="Agent Hints" 
+                        projectId={projectId}
+                    />
                 }
                 rightContent={
                     <AppRoundButton

@@ -6,7 +6,12 @@ export const UI_CONSTANTS = {
     FORM_CONTROL_HEIGHT: 'h-[28px]',
 
     /** Numeric height in pixels for calculations (e.g. for absolute positioning). */
-    FORM_CONTROL_HEIGHT_PX: 32,
+    FORM_CONTROL_HEIGHT_PX: 28,
+
+    /** Header: Height for standard top navigation. */
+    HEADER_HEIGHT: 'h-[52px]',
+    /** Header: Numeric height in pixels. */
+    HEADER_HEIGHT_PX: 52,
 
     /** Vertical padding for form controls when not using fixed height. */
     FORM_CONTROL_PY: 'py-0.5',

@@ -6,6 +6,7 @@ import { AppTableStandardCell } from '../../../shared/ui/app-table/components/Ap
 import { createColumnHelper } from '@tanstack/react-table';
 import { Icon } from '../../../shared/ui/icon';
 import { AppHeader } from '../../app-header';
+import { AppSectionTitle } from '../../../shared/ui/app-section-title/AppSectionTitle';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
@@ -127,9 +128,10 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({
                 onToggleSidebar={onToggleSidebar}
                 isSidebarOpen={isSidebarOpen}
                 leftContent={
-                    <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
-                        Workflows
-                    </h1>
+                    <AppSectionTitle 
+                        icon="workflow" 
+                        title="Workflows" 
+                    />
                 }
                 rightContent={
                     <AppRoundButton

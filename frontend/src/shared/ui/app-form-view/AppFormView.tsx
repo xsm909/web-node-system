@@ -9,6 +9,7 @@ import { HOTKEY_LEVEL } from '../../lib/hotkeys/HotkeysContext';
 import { usePinStore } from '../../../features/pinned-tabs/model/store';
 
 import { AppTabs, type AppTab } from '../app-tabs';
+import { AppSectionTitle } from '../app-section-title/AppSectionTitle';
 
 export type { AppTab as AppFormTab };
 
@@ -199,33 +200,14 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                     isPinned={isPinned}
                     canPin={!!(entityId && entityType)}
                     onPinToggle={handlePinToggle}
-                    projectId={projectId}
                     leftContent={
-                        <div className="flex items-center gap-3 ml-2 lg:ml-0">
-                            {icon && (
-                                <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
-                                    <Icon name={icon} size={18} />
-                                </div>
-                            )}
-                            <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate flex items-center gap-2">
-                                {parentTitle ? (
-                                    <div className="flex items-center gap-2">
-                                        <span className="opacity-50 hover:opacity-100 cursor-pointer transition-opacity text-sm lg:text-base" onClick={handleBack}>{parentTitle}</span>
-                                        <span className="opacity-40 text-sm">/</span>
-                                        <span>{title}</span>
-                                    </div>
-                                ) : (
-                                    <span>{title}</span>
-                                )}
-                                {isLocked && (
-                                    <Icon 
-                                        name="lock" 
-                                        size={16} 
-                                        className="text-amber-500 ml-1" 
-                                    />
-                                )}
-                            </h1>
-                        </div>
+                        <AppSectionTitle
+                            icon={icon}
+                            title={title}
+                            parentTitle={parentTitle}
+                            projectId={projectId}
+                            isLocked={isLocked}
+                        />
                     }
                     rightContent={
                         <div className="flex items-center gap-3">

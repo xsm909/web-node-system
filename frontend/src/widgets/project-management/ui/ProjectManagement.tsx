@@ -7,6 +7,7 @@ import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { AppHeader } from '../../app-header';
+import { AppSectionTitle } from '../../../shared/ui/app-section-title/AppSectionTitle';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
 import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
@@ -418,11 +419,10 @@ export const ProjectManagement: React.FC<ProjectManagementProps> = ({ ownerId, o
             <AppHeader
                 onToggleSidebar={() => {}}
                 leftContent={
-                    <div className="flex items-center gap-3 px-2 lg:px-0">
-                        <h1 className="text-lg font-semibold tracking-tight text-[var(--text-main)] opacity-90">
-                            Projects
-                        </h1>
-                    </div>
+                    <AppSectionTitle 
+                        icon="project" 
+                        title="Projects" 
+                    />
                 }
                 rightContent={
                     <AppRoundButton

@@ -6,6 +6,7 @@ import { createColumnHelper } from '@tanstack/react-table';
 import { apiClient } from '../../../shared/api/client';
 import type { AITask } from '../../../entities/ai-task/model/types';
 import { AppHeader } from '../../app-header';
+import { AppSectionTitle } from '../../../shared/ui/app-section-title/AppSectionTitle';
 import { AppTable } from '../../../shared/ui/app-table';
 import { AppTableStandardCell } from '../../../shared/ui/app-table/components/AppTableStandardCell';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
@@ -167,11 +168,10 @@ export const AITaskManagement: React.FC<AITaskManagementProps> = ({ activeClient
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
                 leftContent={
-                    <div className="flex flex-col">
-                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
-                            AI Tasks
-                        </h1>
-                    </div>
+                    <AppSectionTitle 
+                        icon="psychology" 
+                        title="AI Tasks" 
+                    />
                 }
                 rightContent={
                     <AppRoundButton

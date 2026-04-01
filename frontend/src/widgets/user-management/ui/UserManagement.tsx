@@ -7,6 +7,7 @@ import { apiClient } from '../../../shared/api/client';
 import type { User } from '../../../entities/user/model/types';
 import { AppHeader } from '../../app-header';
 import { AppFormView } from '../../../shared/ui/app-form-view';
+import { AppSectionTitle } from '../../../shared/ui/app-section-title/AppSectionTitle';
 import { UserEditor, type UserEditorRef } from './UserEditor';
 import { Icon } from '../../../shared/ui/icon';
 import { AppTable } from '../../../shared/ui/app-table';
@@ -235,9 +236,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar,
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
                 leftContent={
-                    <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 px-2 lg:px-0">
-                        User Management
-                    </h1>
+                    <AppSectionTitle 
+                        icon="user" 
+                        title="User Management" 
+                        projectId={null}
+                    />
                 }
                 rightContent={
                     <AppRoundButton

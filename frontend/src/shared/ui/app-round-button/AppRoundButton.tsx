@@ -31,17 +31,17 @@ export const AppRoundButton = React.forwardRef<HTMLButtonElement, AppRoundButton
     type = 'button'
 }, ref) => {
     const isSmall = size === 'small';
-    const computedIconSize = iconSize || (isSmall ? 14 : 20);
+    const computedIconSize = iconSize || (isSmall ? 13 : 18);
     
-    const baseStyles = `flex items-center justify-center rounded-full transition-all shadow-lg active:scale-95 shrink-0 ${isSmall ? 'w-7 h-7' : 'w-10 h-10'}`;
+    const baseStyles = `flex items-center justify-center rounded-full transition-all active:scale-95 shrink-0 ${isSmall ? 'w-[26px] h-[26px]' : 'w-8 h-8'}`;
     
     const variantStyles = {
-        brand: "bg-brand text-white hover:brightness-110 shadow-brand/20",
-        outline: "bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] hover:bg-[var(--bg-hover)]",
-        ghost: "bg-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)] shadow-none"
+        brand: "bg-brand text-white hover:brightness-110 shadow-sm shadow-brand/20",
+        outline: "bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] hover:bg-[var(--bg-hover)] shadow-sm",
+        ghost: "bg-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]"
     };
 
-    const disabledStyles = "opacity-50 pointer-events-none";
+    const disabledStyles = "opacity-50 pointer-events-none grayscale";
 
     return (
         <button

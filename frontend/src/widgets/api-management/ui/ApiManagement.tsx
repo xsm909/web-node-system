@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AppHeader } from '../../app-header';
 import { AppTabs } from '../../../shared/ui/app-tabs/AppTabs';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
+import { AppSectionTitle } from '../../../shared/ui/app-section-title/AppSectionTitle';
 import { ConfirmModal } from '../../../shared/ui/confirm-modal';
 import { 
     useAiProviders, 
@@ -152,14 +153,11 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
                 leftContent={
-                    <div className="flex flex-col">
-                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 truncate px-2 lg:px-0">
-                            API Management
-                        </h1>
-                        <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60 px-2 lg:px-0">
-                            Configure AI providers and secure credentials.
-                        </p>
-                    </div>
+                    <AppSectionTitle 
+                        icon="verified" 
+                        title="API Management" 
+                        projectId={null}
+                    />
                 }
                 rightContent={
                     <AppRoundButton
