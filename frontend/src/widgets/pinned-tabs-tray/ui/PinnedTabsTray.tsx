@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { 
-    DndContext, 
+import {
+    DndContext,
     closestCenter,
     PointerSensor,
+    MouseSensor,
+    TouchSensor,
     useSensor,
     useSensors,
     type DragEndEvent,
@@ -33,9 +35,19 @@ export const PinnedTabsTray: React.FC = () => {
     const [activeId, setActiveId] = useState<string | null>(null);
 
     const sensors = useSensors(
+        useSensor(MouseSensor, {
+            activationConstraint: {
+                distance: 3,
+            },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        }),
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8, // Avoid accidental drags when clicking
+                distance: 3,
             },
         })
     );
@@ -56,31 +68,31 @@ export const PinnedTabsTray: React.FC = () => {
         setActiveId(null);
     };
 
-    const targetTab = useMemo(() => 
+    const targetTab = useMemo(() =>
         tabs.find(t => t.id === pendingUnpin)
-    , [tabs, pendingUnpin]);
+        , [tabs, pendingUnpin]);
 
     if (tabs.length === 0) return null;
 
     return (
-        <aside className="w-[45px] border-l border-[var(--border-base)] bg-[var(--bg-app)]/80 flex flex-col z-40 shrink-0 select-none overflow-hidden backdrop-blur-xl">
-            <DndContext 
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragCancel={handleDragCancel}
-                modifiers={[restrictToVerticalAxis]}
-            >
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+            modifiers={[restrictToVerticalAxis]}
+        >
+            <aside className="w-[45px] border-l border-[var(--border-base)] bg-[var(--bg-app)]/80 flex flex-col z-40 shrink-0 select-none overflow-hidden backdrop-blur-xl">
                 <div className="flex-1 flex flex-col pt-0 pb-8 overflow-y-auto no-scrollbar overflow-x-hidden content-start">
-                    <SortableContext 
-                        items={tabs.map(t => t.id)} 
+                    <SortableContext
+                        items={tabs.map(t => t.id)}
                         strategy={verticalListSortingStrategy}
                     >
                         {tabs.map((tab) => {
                             const project = tab.projectId ? projects.find(p => p.id === tab.projectId) : null;
                             return (
-                                <SortablePinnedTabItem 
+                                <SortablePinnedTabItem
                                     key={tab.id}
                                     tab={tab}
                                     projectColor={project?.theme_color || UI_CONSTANTS.BRAND}
@@ -101,68 +113,68 @@ export const PinnedTabsTray: React.FC = () => {
                     </SortableContext>
                 </div>
 
-                <DragOverlay 
-                    modifiers={[restrictToVerticalAxis]}
-                    dropAnimation={null}
-                >
-                    {activeId ? (
-                        <PinnedTabItem 
-                            tab={tabs.find(t => t.id === activeId)!}
-                            projectColor={tabs.find(t => t.id === activeId)?.projectId 
-                                ? projects.find(p => p.id === tabs.find(t => t.id === activeId)!.projectId)?.theme_color || UI_CONSTANTS.BRAND 
-                                : UI_CONSTANTS.BRAND
-                            }
-                            isActive={activeTabId === activeId}
-                            isOverlay
-                        />
-                    ) : null}
-                </DragOverlay>
-            </DndContext>
-
-            {pendingUnpin && targetTab && (
-                <AppCompactModalForm
-                    isOpen={!!pendingUnpin}
-                    title="Unsaved Changes"
-                    onSubmit={async () => {
-                        const blocker = getBlockers[pendingUnpin];
-                        if (blocker) {
-                            setIsSaving(true);
-                            try {
-                                await blocker.onSave();
-                                unpin(pendingUnpin);
+                {pendingUnpin && targetTab && (
+                    <AppCompactModalForm
+                        isOpen={!!pendingUnpin}
+                        title="Unsaved Changes"
+                        onSubmit={async () => {
+                            const blocker = getBlockers[pendingUnpin!];
+                            if (blocker) {
+                                setIsSaving(true);
+                                try {
+                                    await blocker.onSave();
+                                    unpin(pendingUnpin!);
+                                    setPendingUnpin(null);
+                                } catch (err) {
+                                    console.error('Failed to save pinned tab:', err);
+                                } finally {
+                                    setIsSaving(false);
+                                }
+                            } else {
+                                focus(pendingUnpin!);
                                 setPendingUnpin(null);
-                            } catch (err) {
-                                console.error('Failed to save pinned tab:', err);
-                            } finally {
-                                setIsSaving(false);
                             }
-                        } else {
-                            // Fallback if no blocker registered: just focus
-                            focus(pendingUnpin);
+                        }}
+                        onClose={() => setPendingUnpin(null)}
+                        onDiscard={() => {
+                            unpin(pendingUnpin!);
                             setPendingUnpin(null);
+                        }}
+                        submitLabel="Save and Close"
+                        discardLabel="Discard and Close"
+                        cancelLabel="Stay Here"
+                        isSaving={isSaving}
+                        width="max-w-md"
+                        icon="warning"
+                    >
+                        <div className="py-2">
+                            <p className="text-xs text-[var(--text-muted)] opacity-80 leading-relaxed">
+                                The tab <span className="text-[var(--text-main)] font-bold">"{targetTab.title}"</span> has unsaved changes.
+                                Would you like to save them before closing?
+                            </p>
+                        </div>
+                    </AppCompactModalForm>
+                )}
+            </aside>
+
+            <DragOverlay
+                modifiers={[restrictToVerticalAxis]}
+                dropAnimation={null}
+                style={{ opacity: 1 }}
+            >
+                {activeId ? (
+                    <PinnedTabItem
+                        tab={tabs.find(t => t.id === activeId)!}
+                        projectColor={tabs.find(t => t.id === activeId)?.projectId
+                            ? projects.find(p => p.id === tabs.find(t => t.id === activeId)!.projectId)?.theme_color || UI_CONSTANTS.BRAND
+                            : UI_CONSTANTS.BRAND
                         }
-                    }}
-                    onClose={() => setPendingUnpin(null)}
-                    onDiscard={() => {
-                        unpin(pendingUnpin);
-                        setPendingUnpin(null);
-                    }}
-                    submitLabel="Save and Close"
-                    discardLabel="Discard and Close"
-                    cancelLabel="Stay Here"
-                    isSaving={isSaving}
-                    width="max-w-md"
-                    icon="warning"
-                >
-                    <div className="py-2">
-                        <p className="text-xs text-[var(--text-muted)] opacity-80 leading-relaxed">
-                            The tab <span className="text-[var(--text-main)] font-bold">"{targetTab.title}"</span> has unsaved changes. 
-                            Would you like to save them before closing?
-                        </p>
-                    </div>
-                </AppCompactModalForm>
-            )}
-        </aside>
+                        isActive={activeTabId === activeId}
+                        isOverlay
+                    />
+                ) : null}
+            </DragOverlay>
+        </DndContext>
     );
 };
 
@@ -183,92 +195,94 @@ const SortablePinnedTabItem: React.FC<PinnedTabItemProps> = (props) => {
         setNodeRef,
         transform,
         transition,
+        isDragging
     } = useSortable({ id: props.tab.id });
 
     const style = {
-        transform: CSS.Translate.toString(transform),
+        transform: isDragging ? undefined : CSS.Translate.toString(transform),
         transition,
         maxHeight: 'max-content',
+        zIndex: isDragging ? 100 : undefined,
     };
 
     return (
-        <div 
-            ref={setNodeRef} 
-            style={style} 
-            {...attributes} 
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
             {...listeners}
             className="flex-1 w-full flex flex-col min-h-[44px]"
         >
-            <PinnedTabItem {...props} />
+            <PinnedTabItem {...props} isGhost={isDragging} />
         </div>
     );
 };
 
-const PinnedTabItem: React.FC<PinnedTabItemProps> = ({ 
-    tab, 
-    projectColor, 
-    isActive, 
+const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
+    tab,
+    projectColor,
+    isActive,
     isOverlay,
-    isGhost, 
-    onFocus, 
-    onClose 
+    isGhost,
+    onFocus,
+    onClose
 }) => {
     const brandColor = projectColor || UI_CONSTANTS.BRAND;
-    
+
     const style = {
         borderColor: isOverlay ? brandColor : (tab.projectId ? `${brandColor}26` : 'var(--border-muted)'),
         borderTopWidth: isOverlay ? '1px' : '0px',
         borderBottomWidth: '1px',
         borderStyle: 'solid' as const,
         color: isActive ? brandColor : undefined,
-        opacity: isGhost ? 0.3 : 1,
+        opacity: isOverlay ? 1 : (isGhost ? 0.3 : 1), // 30% ghost, 100% overlay
+        maxHeight: 'max-content',
         height: '100%',
-        maxHeight: isOverlay ? 'max-content' : undefined,
     };
 
     return (
-        <div 
+        <div
             style={style}
             className={`
                 group relative flex flex-col items-center justify-start w-full h-full cursor-pointer
-                ${isOverlay ? 'z-50 min-h-[44px] text-white' : ''}
+                ${isOverlay ? 'z-[9999] min-h-[44px] text-white !opacity-100' : ''}
                 ${isActive && !isOverlay
-                    ? 'z-10' 
+                    ? 'z-10'
                     : !isOverlay ? 'text-[var(--text-muted)] hover:text-[var(--text-main)]' : ''}
             `}
             onClick={onFocus}
             title={tab.title}
         >
-            {/* Visual Wrapper: Handles all float/scale/shadow effects without affecting layout footprint */}
-            <div className={`
-                absolute inset-0 transition-all duration-200 pointer-events-none
-                ${isOverlay 
-                    ? 'shadow-[0_15px_50px_rgba(0,0,0,0.6)] scale-[1.07] ring-1 ring-white/20 rounded-md' 
-                    : 'bg-transparent'}
-            `} />
-
-            <div 
+            <div
                 className="absolute inset-0 pointer-events-none transition-all duration-300"
                 style={{
                     backgroundColor: isOverlay 
-                        ? (tab.projectId ? brandColor : 'var(--bg-popover)') // Solid project color or popover
+                        ? (tab.projectId ? `${brandColor}26` : 'var(--bg-hover)') // 15% project tint for overlay
                         : tab.projectId 
-                            ? `${brandColor}${isActive ? '1A' : '0F'}` // 10% if active/hover, 6% if default
+                            ? `${brandColor}${isActive ? '1A' : '0F'}` 
                             : isActive ? 'var(--bg-hover)' : 'transparent'
                 }}
             />
 
+            {/* Visual Wrapper: Handles all float/scale/shadow effects without affecting layout footprint */}
+            <div className={`
+                absolute inset-0 transition-all duration-200 pointer-events-none
+                ${isOverlay
+                    ? 'shadow-xl scale-[1.03] border border-white/10 rounded-sm !opacity-100'
+                    : 'bg-transparent'}
+            `} />
+
             {/* Active Indicator Bar */}
             {isActive && !isOverlay && (
-                <div 
+                <div
                     className="absolute inset-y-0 left-0 w-[3px] shadow-[2px_0_10px_rgba(var(--brand-rgb),0.3)] z-30 animate-in fade-in slide-in-from-left-1 duration-300"
                     style={{ backgroundColor: brandColor }}
                 />
             )}
-            
+
             {/* Hover State Adjuster (adds to existing bg if project tab) */}
             {!isOverlay && !isActive && (
-                <div 
+                <div
                     className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     style={{
                         backgroundColor: tab.projectId ? `${brandColor}0B` : 'var(--bg-hover)' // Adds ~4% more color on hover to reach 10% total
@@ -277,30 +291,30 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
             )}
 
             <div className="flex flex-col items-center gap-1 h-full w-full py-2 relative z-10 overflow-hidden pointer-events-none px-1">
-                <Icon 
-                    name={tab.icon || 'article'} 
-                    size={14} 
-                    className={`shrink-0 mb-0.5 transition-transform duration-300 ${!isOverlay ? 'group-hover:scale-110' : ''}`} 
-                    style={{ color: isOverlay ? 'white' : (isActive ? brandColor : undefined) }}
+                <Icon
+                    name={tab.icon || 'article'}
+                    size={14}
+                    className={`shrink-0 mb-0.5 transition-transform duration-300 ${!isOverlay ? 'group-hover:scale-110' : ''}`}
+                    style={{ color: isOverlay ? (tab.projectId ? brandColor : 'var(--text-main)') : (isActive ? brandColor : undefined), opacity: isOverlay ? 1 : undefined }}
                 />
-                
+
                 <div className="flex-1 flex flex-col items-center justify-center overflow-hidden w-full relative">
-                    <span 
-                        className={`whitespace-nowrap text-[10px] uppercase font-light text-center truncate max-h-full transition-opacity ${!isOverlay ? 'opacity-80' : 'opacity-100'}`}
-                        style={{ 
-                            color: isOverlay ? 'white' : (isActive ? brandColor : undefined), 
+                    <span
+                        className={`whitespace-nowrap text-[10px] uppercase font-light text-center truncate max-h-full transition-opacity ${!isOverlay ? 'opacity-80' : '!opacity-100'}`}
+                        style={{
+                            color: isOverlay ? (tab.projectId ? brandColor : 'var(--text-main)') : (isActive ? brandColor : undefined),
                             writingMode: 'vertical-rl',
                         }}
                     >
                         {tab.title}
                     </span>
                 </div>
-                
+
                 {/* Bottom area: Dirty Indicator & Close Button */}
                 <div className="h-5 shrink-0 w-full flex items-center justify-center relative pointer-events-auto mt-auto">
                     {/* Dirty Dot (fades out on hover) */}
                     {tab.isDirty && (
-                        <div 
+                        <div
                             className="w-1.5 h-1.5 rounded-full shrink-0 shadow-sm animate-pulse transition-opacity duration-300 group-hover:opacity-0 absolute"
                             style={{ backgroundColor: brandColor }}
                         />
