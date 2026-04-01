@@ -78,6 +78,13 @@ Any entity that can be opened in `AppFormView.tsx` can be pinned.
 - Active state (highlighted)
 - Dirty state indicator (if applicable)
 
+#### Visual Standard:
+- **Default State**: 15% project tint base.
+- **Backdrop Blur**: `backdrop-blur-[2px]` for the dragging overlay.
+- **Active Overlay**: 15% branded tint, 2px blur, 1.03 scale lift.
+- **Content colors**: Integrated tone-on-tone (brand color for text/icon vs brand tint background).
+- **Stability**: Elements must remain stationary in the list while a portal-based `DragOverlay` handles movement.
+
 ---
 
 ### 6. Tab Management

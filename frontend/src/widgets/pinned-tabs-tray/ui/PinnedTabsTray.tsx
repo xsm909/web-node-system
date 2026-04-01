@@ -254,7 +254,7 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
             title={tab.title}
         >
             <div
-                className="absolute inset-0 pointer-events-none transition-all duration-300"
+                className={`absolute inset-0 pointer-events-none transition-all duration-300 ${isOverlay ? 'backdrop-blur-[2px]' : ''}`}
                 style={{
                     backgroundColor: isOverlay 
                         ? (tab.projectId ? `${brandColor}26` : 'var(--bg-hover)') // 15% project tint for overlay

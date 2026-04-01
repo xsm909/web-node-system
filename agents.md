@@ -195,6 +195,13 @@ design like  - https://protocol.tailwindui.com/pagination
 
 ### 8.1 using tailwindcss
 
+### 8.2 Glassmorphism & Blur
+
+- **Principle**: Use subtle "Glassmorphism" for all floating elements, overlays, and dragging states to enhance depth and visual premiumness.
+- **Backdrop Blur**: Prefer subtle blurs (`backdrop-blur-[2px]` to `backdrop-blur-sm`). Use `md` (12px) only for large overlays.
+- **Branded Tints**: For floating elements linked to projects, use a 10-15% semi-transparent brand color as the background tint.
+- **Contrast**: Ensure high-contrast typography (using the primary brand color or solid white) over blurred backgrounds.
+
 ## 9 icons
 
 ### 9.1 using icons from https://fonts.google.com/icons and download them as svg to assets/icons folder
