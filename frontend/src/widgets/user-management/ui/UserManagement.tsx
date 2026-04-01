@@ -81,7 +81,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar,
             cell: info => {
                 const role = info.getValue();
                 return (
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] tracking-widest ring-1 ring-inset bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-slate-500/20 uppercase`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] tracking-widest ring-1 ring-inset bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-slate-500/20 uppercase font-medium`}>
                         {role}
                     </span>
                 );
@@ -93,11 +93,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar,
             cell: info => {
                 const user = info.row.original;
                 return user.role === 'client' ? (
-                    user.assigned_managers?.[0]?.username || (
-                        <span className="text-[10px] uppercase tracking-widest opacity-30 italic">Unassigned</span>
-                    )
+                    <span className="text-[11px] font-light text-[var(--text-main)] italic">
+                        {user.assigned_managers?.[0]?.username || (
+                            <span className="text-[10px] uppercase tracking-widest opacity-30 italic font-normal">Unassigned</span>
+                        )}
+                    </span>
                 ) : (
-                    <span className="text-[10px] uppercase tracking-widest opacity-10">—</span>
+                    <span className="text-[10px] uppercase tracking-widest opacity-10 font-normal">—</span>
                 );
             },
         }),
@@ -233,11 +235,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onToggleSidebar,
                 onToggleSidebar={onToggleSidebar || (() => { })}
                 isSidebarOpen={isSidebarOpen}
                 leftContent={
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 px-2 lg:px-0">
-                            User Management
-                        </h1>
-                    </div>
+                    <h1 className="text-lg lg:text-xl font-semibold tracking-tight text-[var(--text-main)] opacity-90 px-2 lg:px-0">
+                        User Management
+                    </h1>
                 }
                 rightContent={
                     <AppRoundButton

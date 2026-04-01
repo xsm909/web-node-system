@@ -199,6 +199,8 @@ design like  - https://protocol.tailwindui.com/pagination
 
 ### 9.1 using icons from https://fonts.google.com/icons and download them as svg to assets/icons folder
 
+### 9.1.1 weight: 100
+
 ### 9.2 icons rule
 separate name in fillename using underscore and use lowercase
 

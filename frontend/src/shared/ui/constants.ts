@@ -30,4 +30,13 @@ export const UI_CONSTANTS = {
 
     /** Standard class for code editors to ensure consistent font and size. */
     CODE_EDITOR_CLASS: 'font-mono text-[13px] leading-relaxed',
+
+    /** Table: Vertical padding for headers. */
+    TABLE_HEADER_PY: 'py-1.5',
+    /** Table: Vertical padding for standard rows. */
+    TABLE_ROW_PY: 'py-1',
+    /** Table: Horizontal padding for cells. */
+    TABLE_CELL_PX: 'px-4',
+    /** Table: Standard font class for data cells (thin and compact). */
+    TABLE_FONT_CLASS: 'text-[13px] font-light leading-snug',
 };

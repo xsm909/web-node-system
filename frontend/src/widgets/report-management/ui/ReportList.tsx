@@ -42,7 +42,7 @@ export function ReportList({ reports, isAdmin, onEdit, onView, onDelete, onDupli
         columnHelper.accessor('type', {
             header: 'Type',
             cell: info => (
-                <span className="text-[10px] uppercase tracking-wider text-slate-600 bg-slate-500/10 px-2 py-0.5 rounded-full ring-1 ring-inset ring-slate-500/20">
+                <span className="text-[10px] uppercase tracking-wider text-slate-600 bg-slate-500/10 px-2 py-0.5 rounded-full ring-1 ring-inset ring-slate-500/20 font-medium">
                     {info.getValue()}
                 </span>
             ),

@@ -4,6 +4,7 @@ import { useProjectStore } from '../../../features/projects/store';
 import type { Metadata } from '../../../entities/metadata/api';
 import { useSchemas } from '../../../entities/schema/api';
 import { RjsfForm } from '../../../features/data-editor/RjsfForm';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 interface ClientMetadataEditorProps {
     assignment: Metadata | null;
@@ -186,7 +187,7 @@ export const ClientMetadataEditor = React.forwardRef<ClientMetadataEditorRef, Cl
 
     return (
         <div className="flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+            <div className={`flex-1 overflow-y-auto ${UI_CONSTANTS.TABLE_CELL_PX} py-3 custom-scrollbar`}>
                 {saveError && (
                     <div className="mb-4 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
                         <div className="font-bold flex items-center gap-1.5 mb-1 text-red-300">

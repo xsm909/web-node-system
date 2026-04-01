@@ -21,6 +21,7 @@ import { AppTableCategoryRows, type TWithCategory } from './components/AppTableC
 import { buildCategoryTree } from '../../lib/categoryUtils';
 import { getCookie, setCookie } from '../../lib/cookieUtils';
 import type { AppTableProps } from './types';
+import { UI_CONSTANTS } from '../constants';
 
 export function AppTable<TData extends { id: string | number | any }>({
     data,
@@ -106,12 +107,12 @@ export function AppTable<TData extends { id: string | number | any }>({
             <thead className="sticky top-0 z-10 bg-surface-800 shadow-sm border-b border-brand/20">
                 {table.getHeaderGroups().map(headerGroup => (
                     <tr key={headerGroup.id} className="bg-brand">
-                        {headerGroup.headers.map((header, index) => (
+                        {headerGroup.headers.map((header) => (
                             <th 
                                 key={header.id} 
                                 className={`
-                                    py-4 text-[11px] font-semibold text-white uppercase tracking-widest
-                                    ${index === 0 ? 'px-4' : 'px-6'}
+                                    ${UI_CONSTANTS.TABLE_HEADER_PY} text-[11px] font-medium text-white uppercase tracking-widest
+                                    ${UI_CONSTANTS.TABLE_CELL_PX}
                                 `}
                             >
                                 {flexRender(header.column.columnDef.header, header.getContext())}
@@ -123,7 +124,7 @@ export function AppTable<TData extends { id: string | number | any }>({
             <tbody className="divide-y divide-[var(--border-base)]/30">
                 {isLoading && data.length === 0 ? (
                     <tr>
-                        <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)]">
+                        <td colSpan={columns.length} className={`${UI_CONSTANTS.TABLE_CELL_PX} py-8 text-center text-[var(--text-muted)]`}>
                             <div className="flex justify-center flex-col items-center gap-4">
                                 <div className="w-8 h-8 rounded-full border-2 border-[var(--border-base)] border-t-brand animate-spin" />
                                 <span className="text-sm">Loading data...</span>
@@ -132,7 +133,7 @@ export function AppTable<TData extends { id: string | number | any }>({
                     </tr>
                 ) : data.length === 0 ? (
                     <tr>
-                        <td colSpan={columns.length} className="px-6 py-12 text-center text-[var(--text-muted)] italic opacity-50">
+                        <td colSpan={columns.length} className={`${UI_CONSTANTS.TABLE_CELL_PX} py-8 text-center text-[var(--text-muted)] italic opacity-50`}>
                             {config?.emptyMessage || "No matches found."}
                         </td>
                     </tr>

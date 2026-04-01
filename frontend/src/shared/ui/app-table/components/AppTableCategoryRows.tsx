@@ -7,6 +7,7 @@ import { Icon } from '../../icon';
 import type { CategoryTreeNode } from '../../../lib/categoryUtils';
 import { AppTableDataRow } from './AppTableDataRow';
 import type { AppTableConfig } from '../types';
+import { UI_CONSTANTS } from '../../constants';
 
 export type TWithCategory<TData extends { id: any }> = {
     original: TData;
@@ -61,10 +62,10 @@ export function AppTableCategoryRows<TData extends { id: any }>({
                 ))}
                 {node.nodes.length > 0 && (
                     <tr className="bg-brand/5 border-b border-brand/10">
-                        <td colSpan={colSpan} className="px-6 py-1.5 opacity-40">
+                        <td colSpan={colSpan} className={`${UI_CONSTANTS.TABLE_CELL_PX} py-1 opacity-40`}>
                             <div className="flex items-center gap-2">
                                 <Icon name="folder_open" size={14} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-brand/80">Uncategorized</span>
+                                <span className={`text-[10px] font-medium uppercase tracking-widest text-brand/80`}>Uncategorized</span>
                             </div>
                         </td>
                     </tr>
@@ -93,7 +94,7 @@ export function AppTableCategoryRows<TData extends { id: any }>({
                 className="bg-brand/10 hover:bg-brand/20 cursor-pointer transition-colors border-b border-brand/20 group/row"
                 onClick={() => onToggle(path)}
             >
-                <td colSpan={colSpan} className="px-6 py-2" style={{ paddingLeft: `${1 + level * 1}rem` }}>
+                <td colSpan={colSpan} className={`${UI_CONSTANTS.TABLE_CELL_PX} py-1.5`} style={{ paddingLeft: `${1 + level * 1}rem` }}>
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 flex-1">
                             <Icon
@@ -102,7 +103,7 @@ export function AppTableCategoryRows<TData extends { id: any }>({
                                 className="text-[var(--text-muted)] opacity-60"
                             />
                             <Icon name="folder" size={16} className="text-brand/70" />
-                            <span className="text-xs font-bold text-brand uppercase tracking-wider">{node.name}</span>
+                            <span className="text-xs font-medium text-brand uppercase tracking-wider">{node.name}</span>
                         </div>
                         
                         {config.categoryActions && (
@@ -115,7 +116,7 @@ export function AppTableCategoryRows<TData extends { id: any }>({
                                             action.onClick();
                                         }}
                                         disabled={action.disabled}
-                                        className={`flex items-center gap-1 px-2 py-1 rounded bg-brand/10 hover:bg-brand/20 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                                        className={`flex items-center gap-1 px-2 py-0.5 rounded bg-brand/10 hover:bg-brand/20 text-[10px] font-medium tracking-tight transition-colors ${
                                             action.variant === 'danger' ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-brand'
                                         }`}
                                         title={action.label}

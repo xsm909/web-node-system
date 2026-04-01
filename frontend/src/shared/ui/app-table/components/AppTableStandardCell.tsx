@@ -25,15 +25,15 @@ export const AppTableStandardCell: React.FC<AppTableStandardCellProps> = ({
     return (
         <div className={`flex items-center gap-3 min-w-0 ${className}`}>
             {icon && (
-                <div className={`flex-shrink-0 p-2 rounded-lg bg-surface-700 text-brand group-hover:bg-brand group-hover:text-white transition-colors ${iconClassName}`}>
-                    <Icon name={icon} dir={iconDir} size={18} />
+                <div className={`flex-shrink-0 p-1.5 rounded-lg bg-surface-700 text-brand group-hover:bg-brand group-hover:text-white transition-colors ${iconClassName}`}>
+                    <Icon name={icon} dir={iconDir} size={16} />
                 </div>
             )}
             <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-2">
                     <span className={`
                         text-sm transition-colors truncate
-                        ${isMono ? 'font-mono text-brand group-hover:brightness-110' : 'font-semibold text-[var(--text-main)] group-hover:text-brand'}
+                        ${isMono ? 'font-mono font-light text-brand group-hover:brightness-110' : 'font-medium text-[var(--text-main)] group-hover:text-brand'}
                     `}>
                         {label}
                     </span>

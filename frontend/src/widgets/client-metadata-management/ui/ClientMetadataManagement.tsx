@@ -32,6 +32,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 interface ClientMetadataManagementProps {
     activeClientId?: string | null;
@@ -84,7 +85,7 @@ const SortableRow = ({
             className={`group transition-colors border-l-2 border-transparent hover:bg-surface-700/30 ${isDragging ? 'bg-surface-700/50' : ''} ${className}`}
             onClick={() => onRowClick(item)}
         >
-            <td className="px-6 py-4">
+            <td className={`${UI_CONSTANTS.TABLE_CELL_PX} ${UI_CONSTANTS.TABLE_ROW_PY}`}>
                 <div className="flex items-center gap-2">
                     {isAdmin && !readOnly && (
                         <div
@@ -115,7 +116,7 @@ const SortableRow = ({
                     )}
                 </div>
             </td>
-            <td className="px-6 py-4" style={{ paddingLeft: '1.5rem' }}>
+            <td className={`${UI_CONSTANTS.TABLE_CELL_PX} ${UI_CONSTANTS.TABLE_ROW_PY}`} style={{ paddingLeft: '1.5rem' }}>
                 <div className="flex items-center gap-3">
                     {depth > 0 && (
                         <div className="w-4 h-px bg-gray-600 opacity-40 shrink-0" />
@@ -139,19 +140,19 @@ const SortableRow = ({
                             </div>
                         )}
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 ${item.is_locked ? 'ring-1 ring-amber-500/20 text-amber-400/80' : ''}`}>
+                    <span className={`px-2 py-0.5 rounded-full bg-surface-700 border border-[var(--border-base)] text-[10px] font-medium uppercase tracking-widest text-[var(--text-muted)] flex items-center gap-2 ${item.is_locked ? 'ring-1 ring-amber-500/20 text-amber-400/80' : ''}`}>
                         <Icon name="schema" size={12} className="opacity-70" />
                         {depth > 0 && <Icon name="arrow_split" size={12} />}
                         {item.schema?.key || 'Unknown'}
                     </span>
                 </div>
             </td>
-            <td className="px-6 py-4">
-                <div className="max-w-xs truncate text-sm text-[var(--text-main)] opacity-80 font-mono">
+            <td className={`${UI_CONSTANTS.TABLE_CELL_PX} ${UI_CONSTANTS.TABLE_ROW_PY}`}>
+                <div className={`max-w-xs truncate ${UI_CONSTANTS.TABLE_FONT_CLASS} text-[var(--text-main)] opacity-80 font-mono`}>
                     {JSON.stringify(item.data || {})}
                 </div>
             </td>
-            <td className="px-6 py-4 text-right">
+            <td className={`${UI_CONSTANTS.TABLE_CELL_PX} ${UI_CONSTANTS.TABLE_ROW_PY} text-right`}>
                 <div className="flex justify-end gap-2 items-center">
                     {item.is_locked && (
                         <div className="p-1.5 text-amber-500/40" title="Locked">
@@ -518,16 +519,16 @@ export const ClientMetadataManagement: React.FC<ClientMetadataManagementProps> =
                             <table className="w-full text-left border-collapse min-w-[700px]">
                             <thead className="sticky top-0 z-10 bg-surface-800">
                                 <tr className="bg-brand">
-                                    <th className="px-6 py-4 text-[11px] font-extrabold text-white uppercase tracking-widest w-24">
+                                    <th className={`${UI_CONSTANTS.TABLE_CELL_PX} ${UI_CONSTANTS.TABLE_HEADER_PY} text-[11px] font-medium text-white uppercase tracking-widest w-24`}>
                                         Sub
                                     </th>
-                                    <th className="px-6 py-4 text-[11px] font-extrabold text-white uppercase tracking-widest">
+                                    <th className={`${UI_CONSTANTS.TABLE_CELL_PX} ${UI_CONSTANTS.TABLE_HEADER_PY} text-[11px] font-medium text-white uppercase tracking-widest`}>
                                         Schema
                                     </th>
-                                    <th className="px-6 py-4 text-[11px] font-extrabold text-white uppercase tracking-widest">
+                                    <th className={`${UI_CONSTANTS.TABLE_CELL_PX} ${UI_CONSTANTS.TABLE_HEADER_PY} text-[11px] font-medium text-white uppercase tracking-widest`}>
                                         Record Data
                                     </th>
-                                    <th className="px-6 py-4 text-right text-[11px] font-extrabold text-white uppercase tracking-widest">
+                                    <th className={`${UI_CONSTANTS.TABLE_CELL_PX} ${UI_CONSTANTS.TABLE_HEADER_PY} text-right text-[11px] font-medium text-white uppercase tracking-widest`}>
                                         Action
                                     </th>
                                 </tr>

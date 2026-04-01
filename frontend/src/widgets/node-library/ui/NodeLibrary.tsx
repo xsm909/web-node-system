@@ -3,6 +3,7 @@ import type { NodeType } from '../../../entities/node-type/model/types';
 import { Icon } from '../../../shared/ui/icon/Icon';
 import { AppInput } from '../../../shared/ui/app-input';
 import { buildCategoryTree, type CategoryTreeNode } from '../../../shared/lib/categoryUtils';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 import { getCookie, setCookie } from '../../../shared/lib/cookieUtils';
 
@@ -70,7 +71,7 @@ export const NodeLibrary: React.FC<NodeLibraryProps> = ({ nodeTypes, onAddNode }
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="border-b border-gray-700 bg-surface-900/50">
-                            <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Name</th>
+                            <th className={`${UI_CONSTANTS.TABLE_CELL_PX} ${UI_CONSTANTS.TABLE_HEADER_PY} text-[11px] font-medium text-gray-500 uppercase tracking-wider`}>Name</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700/50">
@@ -116,16 +117,16 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, onClick, level = 0 }) => (
         onClick={() => onClick(node)}
         className="group hover:bg-brand/5 transition-colors cursor-pointer"
     >
-        <td className="px-6 py-4" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
+        <td className={`${UI_CONSTANTS.TABLE_CELL_PX} ${UI_CONSTANTS.TABLE_ROW_PY}`} style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
             <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-surface-700 text-brand group-hover:bg-brand group-hover:text-white transition-colors">
                     <Icon name={node.icon || 'function'} dir="node_icons" size={18} />
                 </div>
                 <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-bold text-[var(--text-main)] group-hover:text-brand transition-colors truncate">
+                    <span className={`text-sm font-medium text-[var(--text-main)] group-hover:text-brand transition-colors truncate`}>
                         {node.name}
                     </span>
-                    <span className="text-[10px] text-[var(--text-muted)] truncate opacity-60">
+                    <span className={`text-[10px] font-light text-[var(--text-muted)] truncate opacity-60`}>
                         {node.description}
                     </span>
                 </div>
@@ -173,10 +174,10 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
                 ))}
                 {node.nodes.length > 0 && (
                     <tr className="bg-surface-900/10 border-l-2 border-gray-700/30">
-                        <td className="px-6 py-1.5 opacity-40">
+                        <td className={`${UI_CONSTANTS.TABLE_CELL_PX} py-1 opacity-40`}>
                             <div className="flex items-center gap-2">
                                 <Icon name="folder_open" size={14} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">Uncategorized</span>
+                                <span className="text-[10px] font-medium uppercase tracking-widest">Uncategorized</span>
                             </div>
                         </td>
                     </tr>
@@ -199,7 +200,7 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
                 className="bg-surface-900/30 hover:bg-surface-700/50 cursor-pointer transition-colors border-l-2 border-brand/30"
                 onClick={() => onToggle(path)}
             >
-                <td className="px-6 py-2" style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
+                <td className={`${UI_CONSTANTS.TABLE_CELL_PX} py-1.5`} style={{ paddingLeft: `${1.5 + level * 1.5}rem` }}>
                     <div className="flex items-center gap-2">
                         <Icon
                             name={isExpanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
@@ -207,7 +208,7 @@ const CategoryRows: React.FC<CategoryRowsProps> = ({
                             className="text-gray-500 opacity-60"
                         />
                         <Icon name="folder" size={16} className="text-brand/70" />
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{node.name}</span>
+                        <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">{node.name}</span>
                     </div>
                 </td>
             </tr>

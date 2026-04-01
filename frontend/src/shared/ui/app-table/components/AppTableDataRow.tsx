@@ -2,6 +2,7 @@ import { flexRender, type Row } from '@tanstack/react-table';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { AppTableConfig } from '../types';
+import { UI_CONSTANTS } from '../../constants';
 
 interface AppTableDataRowProps<TData> {
     row: Row<TData>;
@@ -57,11 +58,11 @@ export function AppTableDataRow<TData extends { id: string | number | any }>({ r
                     <td
                         key={cell.id}
                         className={`
-                            text-sm transition-all
-                            ${isIndentCell ? 'px-4' : 'px-6'}
-                            ${config?.layout === 'compact' ? 'whitespace-nowrap overflow-hidden text-ellipsis max-w-[300px] h-10 py-0' : 'py-2'}
+                            ${UI_CONSTANTS.TABLE_FONT_CLASS} transition-all
+                            ${isIndentCell ? UI_CONSTANTS.TABLE_CELL_PX : UI_CONSTANTS.TABLE_CELL_PX}
+                            ${config?.layout === 'compact' ? `whitespace-nowrap overflow-hidden text-ellipsis max-w-[300px] h-[28px] py-0` : UI_CONSTANTS.TABLE_ROW_PY}
                         `}
-                        style={isIndentCell && level > 0 ? { paddingLeft: `${1 + level * 1.5}rem` } : undefined}
+                        style={isIndentCell && level > 0 ? { paddingLeft: `calc(${1 + level * 1.5}rem + var(--table-indent, 0px))` } : undefined}
                     >
                         <div className={`
                             flex items-center gap-2 w-full h-full
