@@ -605,7 +605,10 @@ class WorkflowExecutor:
                     allow_reexecution=allow_reexecution
                 )
             except Exception as e:
-                self.log(f"Error executing node {node_id}: {str(e)}", level="error")
+                msg = str(e)
+                if not msg.startswith("Error in node"):
+                    msg = f"Error executing node {node_id}: {msg}"
+                self.log(msg, level="error")
                 all_success = False
 
             self.db.commit()
@@ -975,8 +978,16 @@ class WorkflowExecutor:
             error_msg = traceback.format_exc()
             node_exec.status = WorkflowStatus.failed
             node_exec.error = error_msg
-            self.log(f"Error {node_name}:\n{str(e)}", level="error")
-            raise e
+            
+            # Extract line number from traceback
+            tb = traceback.extract_tb(e.__traceback__)
+            line_info = ""
+            for frame in reversed(tb):
+                if frame.filename == f"<node:{node_id}>":
+                    line_info = f" at line {frame.lineno}"
+                    break
+            
+            raise Exception(f"Error in node '{node_name}'{line_info}: {str(e)}") from e
 
 
 def execute_workflow(execution_id: uuid.UUID):
