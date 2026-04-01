@@ -15,6 +15,8 @@ interface AppHeaderProps {
     isPinned?: boolean;
     canPin?: boolean;
     onPinToggle?: () => void;
+    extraActions?: React.ReactNode;
+    mainActions?: React.ReactNode;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -22,6 +24,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     isSidebarOpen = false,
     leftContent,
     rightContent,
+    onPinToggle,
+    extraActions,
+    mainActions,
     searchQuery,
     onSearchChange,
     searchPlaceholder = "Search...",
@@ -29,7 +34,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     isDirty,
     isPinned = false,
     canPin = false,
-    onPinToggle,
 }) => {
     return (
         <Header
@@ -76,7 +80,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 </>
             }
             rightContent={
-                <>
+                <div className="flex items-center gap-3">
                     {onSearchChange && (
                         <AppInput
                             value={searchQuery || ''}
@@ -87,8 +91,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                             className="flex-1 min-w-[200px] lg:w-[320px] ml-auto"
                         />
                     )}
+                    {extraActions}
+                    {extraActions && (rightContent || mainActions) && (
+                        <div className="w-px h-4 bg-[var(--border-base)] opacity-50 mx-1" />
+                    )}
                     {rightContent}
-                </>
+                    {rightContent && mainActions && (
+                        <div className="w-px h-4 bg-[var(--border-base)] opacity-50 mx-1" />
+                    )}
+                    {mainActions}
+                </div>
             }
         />
     );

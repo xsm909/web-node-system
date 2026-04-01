@@ -270,17 +270,27 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                 setActiveWorkflow({ ...activeWorkflow, is_locked: locked });
             }}
             isHotkeysEnabled={isHotkeysEnabled}
-            headerRightContent={
-                <div className="flex items-center gap-2">
-                    <WorkflowActions
-                        isRunning={isRunning}
-                        onRun={handleRunWorkflow}
-                        onOpenParameters={onOpenParameters}
-                        onSavePreset={saveSelectionAsPreset}
-                        onApplyPreset={onApplyPreset}
-                        isDisabled={isSaving}
-                    />
-                </div>
+            extraHeaderContent={
+                <WorkflowActions
+                    isRunning={isRunning}
+                    onRun={handleRunWorkflow}
+                    onOpenParameters={onOpenParameters}
+                    onSavePreset={saveSelectionAsPreset}
+                    onApplyPreset={onApplyPreset}
+                    isDisabled={isSaving}
+                    mode="extra"
+                />
+            }
+            mainHeaderContent={
+                <WorkflowActions
+                    isRunning={isRunning}
+                    onRun={handleRunWorkflow}
+                    onOpenParameters={onOpenParameters}
+                    onSavePreset={saveSelectionAsPreset}
+                    onApplyPreset={onApplyPreset}
+                    isDisabled={isSaving}
+                    mode="main"
+                />
             }
         >
             <div className="flex-1 flex flex-col min-h-0 relative">

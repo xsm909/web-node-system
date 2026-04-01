@@ -11,6 +11,7 @@ interface WorkflowActionsProps {
     onSavePreset?: () => void;
     onApplyPreset?: (preset: Preset, useMouse: boolean) => void;
     isDisabled?: boolean;
+    mode?: 'main' | 'extra' | 'all';
 }
 
 export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
@@ -20,10 +21,14 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
     onSavePreset,
     onApplyPreset,
     isDisabled = false,
+    mode = 'all',
 }) => {
+    const showMain = mode === 'all' || mode === 'main';
+    const showExtra = mode === 'all' || mode === 'extra';
+
     return (
         <div className="flex items-center gap-2">
-            {onOpenParameters && (
+            {showMain && onOpenParameters && (
                 <AppRoundButton
                     icon="parameters"
                     variant="brand"
@@ -33,26 +38,32 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
                 />
             )}
 
-            <AppRoundButton
-                icon="play"
-                variant="brand"
-                onClick={onRun}
-                isLoading={isRunning}
-                isDisabled={isDisabled}
-                title="Run Workflow"
-            />
+            {showMain && (
+                <AppRoundButton
+                    icon="play"
+                    variant="brand"
+                    onClick={onRun}
+                    isLoading={isRunning}
+                    isDisabled={isDisabled}
+                    title="Run Workflow"
+                />
+            )}
 
-            <div className="w-px h-4 bg-[var(--border-base)] mx-1 opacity-50" />
+            {mode === 'all' && (
+                <div className="w-px h-4 bg-[var(--border-base)] mx-1 opacity-50" />
+            )}
 
-            <AppRoundButton
-                icon="bookmark_add"
-                variant="ghost"
-                onClick={onSavePreset}
-                isDisabled={isDisabled}
-                title="Save Selection as Preset (F6)"
-            />
+            {showExtra && (
+                <AppRoundButton
+                    icon="bookmark_add"
+                    variant="ghost"
+                    onClick={onSavePreset}
+                    isDisabled={isDisabled}
+                    title="Save Selection as Preset (F6)"
+                />
+            )}
 
-            {onApplyPreset && (
+            {showExtra && onApplyPreset && (
                 <WorkflowPresetPicker
                     mode="header"
                     onSelect={(preset) => onApplyPreset(preset, false)}

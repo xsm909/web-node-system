@@ -30,6 +30,8 @@ export interface AppFormViewProps {
     onDiscard?: () => void;
     
     headerRightContent?: React.ReactNode;
+    extraHeaderContent?: React.ReactNode;
+    mainHeaderContent?: React.ReactNode;
     footer?: React.ReactNode;
     children: React.ReactNode;
     
@@ -63,6 +65,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
     onCancel,
     onDiscard,
     headerRightContent,
+    extraHeaderContent,
+    mainHeaderContent,
     footer,
     children,
     saveLabel = 'Save Changes',
@@ -200,6 +204,8 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                     isPinned={isPinned}
                     canPin={!!(entityId && entityType)}
                     onPinToggle={handlePinToggle}
+                    extraActions={extraHeaderContent}
+                    mainActions={mainHeaderContent}
                     leftContent={
                         <AppSectionTitle
                             icon={icon}
@@ -220,7 +226,6 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
                                 isSaving={isSaving}
                                 isDirty={isDirty}
                                 saveLabel={saveLabel}
-                                className="mr-1"
                             />
                             {headerRightContent}
                         </div>

@@ -408,7 +408,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
                         queryClient.invalidateQueries({ queryKey: ['reports'] });
                     }}
                     isHotkeysEnabled={isHotkeysEnabled}
-                    headerRightContent={
+                    mainHeaderContent={
                         <div className="flex gap-2">
                             {activeTab === 'code' && (
                                 <AppRoundButton
