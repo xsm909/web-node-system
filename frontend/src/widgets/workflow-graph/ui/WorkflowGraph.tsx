@@ -238,13 +238,32 @@ export const WorkflowGraph = React.memo(({
         const selectedEdges = edges.filter(e => e.selected);
         if (!selectedNodes.length) return;
 
-        const minX = Math.min(...selectedNodes.map(n => n.position.x));
-        const minY = Math.min(...selectedNodes.map(n => n.position.y));
-        const maxX = Math.max(...selectedNodes.map(n => n.position.x + (n.width || 220)));
-        const maxY = Math.max(...selectedNodes.map(n => n.position.y + (n.height || 80)));
+        // Calculate absolute positions for all selected nodes
+        const nodesWithAbsolutePositions = selectedNodes.map(n => {
+            let absX = n.position.x;
+            let absY = n.position.y;
+            let parentId = n.parentId;
+            
+            while (parentId) {
+                const parent = nodes.find(node => node.id === parentId);
+                if (parent) {
+                    absX += parent.position.x;
+                    absY += parent.position.y;
+                    parentId = parent.parentId;
+                } else {
+                    break;
+                }
+            }
+            return { ...n, position: { x: absX, y: absY } };
+        });
+
+        const minX = Math.min(...nodesWithAbsolutePositions.map(n => n.position.x));
+        const minY = Math.min(...nodesWithAbsolutePositions.map(n => n.position.y));
+        const maxX = Math.max(...nodesWithAbsolutePositions.map(n => n.position.x + (n.width || 220)));
+        const maxY = Math.max(...nodesWithAbsolutePositions.map(n => n.position.y + (n.height || 80)));
 
         setClipboard(
-            selectedNodes.map(n => ({ ...n, selected: false })),
+            nodesWithAbsolutePositions.map(n => ({ ...n, selected: false })),
             selectedEdges.map(e => ({ ...e, selected: false })),
             { x: minX + (maxX - minX) / 2, y: minY + (maxY - minY) / 2 }
         );
@@ -257,13 +276,46 @@ export const WorkflowGraph = React.memo(({
             : { x: 40, y: 40 };
 
         const nodeIdMap: Record<string, string> = {};
-        const newNodes = clipboardNodes
+        
+        // 1. First pass: generate new IDs and set absolute pasted positions
+        const intermediateNodes = clipboardNodes
             .filter(n => n.id !== 'node_start' && n.type !== 'start')
             .map((node: any) => {
                 const newId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
                 nodeIdMap[node.id] = newId;
-                return { ...node, id: newId, position: { x: node.position.x + offset.x, y: node.position.y + offset.y }, selected: true };
+                return { 
+                    ...node, 
+                    id: newId, 
+                    position: { x: node.position.x + offset.x, y: node.position.y + offset.y }, 
+                    selected: true 
+                };
             });
+
+        // 2. Second pass: handle parenting
+        const newNodes = intermediateNodes.map((node: any) => {
+            const oldParentId = node.parentId;
+            const newParentId = oldParentId ? nodeIdMap[oldParentId] : undefined;
+
+            if (newParentId) {
+                // If parent was also pasted, maintain relationship but convert position to relative
+                const newParent = intermediateNodes.find(n => n.id === newParentId);
+                if (newParent) {
+                    return {
+                        ...node,
+                        parentId: newParentId,
+                        position: {
+                            x: node.position.x - newParent.position.x,
+                            y: node.position.y - newParent.position.y
+                        }
+                    };
+                }
+            }
+
+            // Otherwise, make it top-level (clear parentId)
+            // Position is already absolute from step 1
+            const { parentId, ...rest } = node;
+            return { ...rest, selected: true };
+        });
 
         const newEdges = (clipboardEdges || [])
             .filter(e => nodeIdMap[e.source] && nodeIdMap[e.target])
