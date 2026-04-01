@@ -43,7 +43,7 @@ export const GroupNode = memo(({ id, data, selected }: NodeProps) => {
 
             {/* Header / Title Container - Pulled FORWARD in 3D to stay on top of connections */}
             <div
-                className="absolute top-0 left-0 right-0 flex items-center px-0 pointer-events-auto"
+                className="absolute top-0 left-0 right-0 flex items-center pl-[15px] pointer-events-auto"
                 style={{ 
                     transformStyle: 'preserve-3d', 
                     transform: 'translateZ(50px) translateY(-50%)',
@@ -54,8 +54,12 @@ export const GroupNode = memo(({ id, data, selected }: NodeProps) => {
             >
                 {/* Left-aligned Label */}
                 <div className="max-w-[calc(100%-48px)] flex justify-start pointer-events-auto">
-                    <div className={`relative min-w-[60px] px-3 py-1.5 rounded-2xl text-xs font-light transition-all bg-surface-900 border text-brand ${isEditing ? 'border-brand/50 shadow-2xl' : selected ? 'border-brand/30 shadow-lg' : 'border-[var(--border-base)]'
-                        }`}>
+                    <div 
+                        className={`relative min-w-[60px] px-3 py-1.5 rounded-2xl text-xs font-light transition-all bg-surface-900 text-brand ${isEditing ? 'border-brand' : ''}`}
+                        style={{ 
+                            border: isEditing ? undefined : '1px solid color-mix(in srgb, var(--brand), transparent 50%)'
+                        }}
+                    >
                         {/* Measurement / Hidden mirror for height & width auto-sizing */}
                         <div className="invisible whitespace-pre-wrap break-words min-h-[1.2em] font-light" aria-hidden="true">
                             {label || ' '}
@@ -95,7 +99,10 @@ export const GroupNode = memo(({ id, data, selected }: NodeProps) => {
                 {(selected || isHovered) && (
                     <button
                         onClick={handleUngroup}
-                        className="absolute right-4 flex items-center justify-center w-6 h-6 rounded-full bg-surface-900 border border-[var(--border-base)] text-[var(--text-muted)] hover:text-red-400 hover:border-red-400/50 transition-all shadow-xl pointer-events-auto opacity-100 animate-in fade-in zoom-in duration-200"
+                        className="absolute right-4 flex items-center justify-center w-6 h-6 rounded-full bg-surface-900 text-[var(--text-muted)] hover:text-red-400 hover:border-red-400/50 transition-all pointer-events-auto opacity-100 animate-in fade-in zoom-in duration-200"
+                        style={{ 
+                            border: '1px solid color-mix(in srgb, var(--brand), transparent 50%)' 
+                        }}
                         title="Ungroup nodes"
                     >
                         <Icon name="close" size={14} />
