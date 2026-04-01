@@ -8,8 +8,8 @@ import ReactFlow, {
     useEdgesState,
     useReactFlow,
     Panel,
-    type Node,
-    type Edge,
+    type Node as RFNode,
+    type Edge as RFEdge,
     type Connection,
     type OnConnectStartParams,
     type XYPosition,
@@ -31,6 +31,12 @@ import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { useClipboardStore } from '../../../features/workflow-management/model/clipboardStore';
 import { useViewportStore } from '../../../features/workflow-management/model/viewportStore';
+import { useWorkflowEditor } from '../../common-workflow-management/ui/WorkflowEditorProvider';
+import { WorkflowPresetCreateModal, WorkflowPresetPicker } from '../../../features/workflow-presets';
+import type { Preset } from '../../../entities/preset';
+
+type Node = RFNode;
+type Edge = RFEdge;
 
 const nodeTypesConfig = {
     start: StartNode,
@@ -68,8 +74,19 @@ export const WorkflowGraph = React.memo(({
     isHotkeysEnabled = true
 }: WorkflowGraphProps) => {
     const lastInitializedIdRef = useRef<string | null>(null);
+    const lastInitializedUpdateRef = useRef<number>(0);
     const nodesRefInternal = useRef<Node[]>([]);
     const edgesRefInternal = useRef<Edge[]>([]);
+
+    const { 
+        isPresetModalOpen, setIsPresetModalOpen,
+        isPresetPickerOpen, setIsPresetPickerOpen,
+        presetPickerPosition,
+        isSavingPreset,
+        saveSelectionAsPreset, openPresetPicker,
+        onApplyPreset, handleSavePreset,
+        lastExternalUpdate
+    } = useWorkflowEditor();
 
     const initialNodes = useMemo(() => 
         (workflow?.graph?.nodes || []).map((n: any) => n.type === 'default' ? { ...n, type: 'action' } : n)
@@ -81,6 +98,7 @@ export const WorkflowGraph = React.memo(({
     const [isSelectionMode] = useState(false);
     const { screenToFlowPosition, fitView } = useReactFlow();
     const mousePosition = useRef<XYPosition>({ x: 0, y: 0 });
+    const screenMousePosition = useRef<{ x: number, y: number }>({ x: 0, y: 0 });
     const { nodes: clipboardNodes, edges: clipboardEdges, center: clipboardCenter, setClipboard } = useClipboardStore();
     const setPersistentViewport = useViewportStore(state => state.setViewport);
 
@@ -97,10 +115,11 @@ export const WorkflowGraph = React.memo(({
         }
 
         // Check if we need to re-initialize nodes even if ID hasn't changed.
-        // This happens right after workflow creation where we might have a skeleton object first.
-        const needsDataSync = lastInitializedIdRef.current === workflow.id && 
-                            nodes.length === 0 && 
-                            (workflow.graph?.nodes?.length || 0) > 0;
+        // This happens right after workflow creation or when external updates (presets) occur.
+        const needsDataSync = (lastInitializedIdRef.current === workflow.id && 
+                             nodes.length === 0 && 
+                             (workflow.graph?.nodes?.length || 0) > 0) ||
+                             (lastExternalUpdate > lastInitializedUpdateRef.current);
 
         if (lastInitializedIdRef.current === workflow.id && !needsDataSync) return;
 
@@ -128,7 +147,8 @@ export const WorkflowGraph = React.memo(({
         nodesRefInternal.current = graphNodes;
         edgesRefInternal.current = graphEdges;
         lastInitializedIdRef.current = workflow?.id;
-    }, [workflow?.id, workflow?.graph?.nodes, setNodes, setEdges, nodeTypes, nodes.length]);
+        lastInitializedUpdateRef.current = lastExternalUpdate || 0;
+    }, [workflow?.id, workflow?.graph?.nodes, setNodes, setEdges, nodeTypes, nodes.length, lastExternalUpdate]);
 
     // Compute initial viewport once per workflow ID TO avoid blinking
     const initialViewport = useMemo(() => {
@@ -339,6 +359,16 @@ export const WorkflowGraph = React.memo(({
         });
     }, [clipboardNodes, clipboardEdges, clipboardCenter, setNodes, setEdges, notifyNodesChange, notifyEdgesChange]);
 
+
+    const handleSavePresetShortcut = useCallback(() => {
+        saveSelectionAsPreset();
+    }, [saveSelectionAsPreset]);
+
+    const handleLoadPresetShortcut = useCallback(() => {
+        const flowPos = screenToFlowPosition({ x: screenMousePosition.current.x, y: screenMousePosition.current.y });
+        openPresetPicker(flowPos);
+    }, [openPresetPicker, screenToFlowPosition]);
+
     const handleDeleteSelected = useCallback(() => {
         if (isReadOnly) return;
         const selectedNds = nodes.filter(n => n.selected && n.id !== 'node_start' && n.type !== 'start');
@@ -346,11 +376,19 @@ export const WorkflowGraph = React.memo(({
         
         if (selectedNds.length === 0 && selectedEds.length === 0) return;
 
+        // Recursive child discovery to avoid dangling parentId references (crashes)
+        const findDescendants = (parentIds: string[]): string[] => {
+            const children = nodes.filter(n => n.parentId && parentIds.includes(n.parentId)).map(n => n.id);
+            if (children.length === 0) return [];
+            return [...children, ...findDescendants(children)];
+        };
+
         const selectedNodeIds = selectedNds.map(n => n.id);
+        const allDeletedNodeIds = Array.from(new Set([...selectedNodeIds, ...findDescendants(selectedNodeIds)]));
         const selectedEdgeIds = selectedEds.map(e => e.id);
 
         setNodes(nds => {
-            const next = nds.filter(n => !selectedNodeIds.includes(n.id));
+            const next = nds.filter(n => !allDeletedNodeIds.includes(n.id));
             if (next.length !== nds.length) notifyNodesChange(next);
             return next;
         });
@@ -358,14 +396,14 @@ export const WorkflowGraph = React.memo(({
         setEdges(eds => {
             const next = eds.filter(e => 
                 !selectedEdgeIds.includes(e.id) &&
-                !selectedNodeIds.includes(e.source) && 
-                !selectedNodeIds.includes(e.target)
+                !allDeletedNodeIds.includes(e.source) && 
+                !allDeletedNodeIds.includes(e.target)
             );
             if (next.length !== eds.length) notifyEdgesChange(next);
             return next;
         });
 
-        if (selectedNodeIds.includes(selectedNodeId as string)) {
+        if (allDeletedNodeIds.includes(selectedNodeId as string)) {
             setSelectedNodeId(null);
             onNodeSelectCallback?.(null);
         }
@@ -374,22 +412,36 @@ export const WorkflowGraph = React.memo(({
 
     const handleDeleteNode = useCallback((nodeId: string) => {
         if (isReadOnly || nodeId === 'node_start') return;
+
+        const findDescendants = (parentIds: string[]): string[] => {
+            const children = nodes.filter(n => n.parentId && parentIds.includes(n.parentId)).map(n => n.id);
+            if (children.length === 0) return [];
+            return [...children, ...findDescendants(children)];
+        };
+
+        const allDeletedNodeIds = Array.from(new Set([nodeId, ...findDescendants([nodeId])]));
+
         setNodes(nds => {
-            const next = nds.filter(n => n.id !== nodeId);
+            const next = nds.filter(n => !allDeletedNodeIds.includes(n.id));
             notifyNodesChange(next);
             return next;
         });
+
         setEdges(eds => {
-            const next = eds.filter(e => e.source !== nodeId && e.target !== nodeId);
+            const next = eds.filter(e => 
+                !allDeletedNodeIds.includes(e.source) && 
+                !allDeletedNodeIds.includes(e.target)
+            );
             notifyEdgesChange(next);
             return next;
         });
+
         setMenu(null);
-        if (selectedNodeId === nodeId) {
+        if (allDeletedNodeIds.includes(selectedNodeId as string)) {
             setSelectedNodeId(null);
             onNodeSelectCallback?.(null);
         }
-    }, [isReadOnly, setNodes, setEdges, selectedNodeId, onNodeSelectCallback, notifyNodesChange, notifyEdgesChange]);
+    }, [isReadOnly, nodes, selectedNodeId, onNodeSelectCallback, notifyNodesChange, notifyEdgesChange]);
 
     const onDisconnectInput = useCallback((nodeId: string) => {
         if (isReadOnly) return;
@@ -463,8 +515,8 @@ export const WorkflowGraph = React.memo(({
         if (!groupNode) return;
 
         const nextNodes = nodesRefInternal.current
-            .filter(n => n.id !== groupId)
-            .map(n => {
+            .filter((n: Node) => n.id !== groupId)
+            .map((n: Node) => {
                 if (n.parentId === groupId) {
                     return {
                         ...n,
@@ -547,6 +599,18 @@ export const WorkflowGraph = React.memo(({
             handler: handleGroupSelection, 
             enabled: isHotkeysEnabled && !isReadOnly && nodes.some(n => n.selected && n.type !== 'start' && n.type !== 'group')
         },
+        { 
+            key: 'f6', 
+            description: 'Save Preset', 
+            handler: (e) => { e?.preventDefault(); handleSavePresetShortcut(); }, 
+            enabled: isHotkeysEnabled && !isReadOnly && hasSelection 
+        },
+        { 
+            key: 'f7', 
+            description: 'Load Preset', 
+            handler: (e) => { e?.preventDefault(); handleLoadPresetShortcut(); }, 
+            enabled: isHotkeysEnabled && !isReadOnly 
+        },
     ], { 
         scopeName: `workflow-${workflow?.id}`, 
         enabled: isHotkeysEnabled,
@@ -555,6 +619,7 @@ export const WorkflowGraph = React.memo(({
 
     const onMouseMove = useCallback((event: React.MouseEvent) => {
         mousePosition.current = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+        screenMousePosition.current = { x: event.clientX, y: event.clientY };
     }, [screenToFlowPosition]);
 
     const onConnectStart = useCallback((_: any, params: OnConnectStartParams) => {
@@ -686,6 +751,21 @@ export const WorkflowGraph = React.memo(({
                     onAddNode={(type) => addNodeWithConnection(type, { x: addNodeMenu.clientX, y: addNodeMenu.clientY }, addNodeMenu.connectionStart)}
                 />
             )}
+
+            <WorkflowPresetCreateModal
+                isOpen={isPresetModalOpen}
+                onClose={() => setIsPresetModalOpen(false)}
+                onSave={handleSavePreset}
+                isSaving={isSavingPreset}
+            />
+
+            <WorkflowPresetPicker
+                mode="floating"
+                isOpen={isPresetPickerOpen}
+                position={presetPickerPosition}
+                onClose={() => setIsPresetPickerOpen(false)}
+                onSelect={(preset: Preset) => onApplyPreset(preset, !!presetPickerPosition, presetPickerPosition)}
+            />
         </div>
     );
 });

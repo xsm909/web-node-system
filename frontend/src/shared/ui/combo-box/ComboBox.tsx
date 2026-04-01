@@ -3,6 +3,7 @@ import { Icon } from '../icon';
 import { SelectionList, type SelectionGroup, type SelectionItem, type SelectionAction, type SelectionListConfig } from '../selection-list';
 import { AppFormFieldRect } from '../app-input/AppFormFieldRect';
 import { AppFormButton } from '../app-form-button/AppFormButton';
+import { AppRoundButton } from '../app-round-button/AppRoundButton';
 import { UI_CONSTANTS } from '../constants';
 
 interface ComboBoxProps {
@@ -22,7 +23,7 @@ interface ComboBoxProps {
     triggerClassName?: string;
     labelClassName?: string;
     iconSize?: number;
-    variant?: 'primary' | 'ghost' | 'sidebar' | 'brand';
+    variant?: 'primary' | 'ghost' | 'sidebar' | 'brand' | 'round';
     searchPlaceholder?: string;
     disabled?: boolean;
     iconClassName?: string;
@@ -91,17 +92,30 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     return (
         <div className={`relative ${isSidebar ? 'w-full' : ''} ${className}`}>
             {isIconOnly ? (
-                <AppFormButton
-                    ref={triggerRef}
-                    icon={icon || ''}
-                    onClick={toggleOpen}
-                    isDisabled={disabled}
-                    isDefault={isBrand}
-                    withFrame={variant !== 'ghost'}
-                    iconSize={computedIconSize}
-                    title={title}
-                    className={triggerClassName}
-                />
+                variant === 'round' ? (
+                    <AppRoundButton
+                        ref={triggerRef}
+                        icon={icon || ''}
+                        onClick={toggleOpen}
+                        variant="ghost"
+                        isDisabled={disabled}
+                        iconSize={computedIconSize}
+                        title={title}
+                        className={triggerClassName}
+                    />
+                ) : (
+                    <AppFormButton
+                        ref={triggerRef}
+                        icon={icon || ''}
+                        onClick={toggleOpen}
+                        isDisabled={disabled}
+                        isDefault={isBrand}
+                        withFrame={variant !== 'ghost'}
+                        iconSize={computedIconSize}
+                        title={title}
+                        className={triggerClassName}
+                    />
+                )
             ) : (
                 <AppFormFieldRect
                     as="button"

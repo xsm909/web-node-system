@@ -6,7 +6,9 @@ import { useWorkflowOperations } from '../../../features/workflow-operations';
 import { useAuthStore } from '../../../features/auth/store';
 import { useClientStore } from '../../../features/workflow-management/model/clientStore';
 import { useProjectStore } from '../../../features/projects/store';
+import { useWorkflowPresets } from '../../../features/workflow-presets/model/useWorkflowPresets';
 import type { NodeType } from '../../../entities/node-type/model/types';
+import type { Preset } from '../../../entities/preset';
 
 interface WorkflowEditorContextType {
     workflows: any[];
@@ -30,6 +32,21 @@ interface WorkflowEditorContextType {
     activeProjectId: string | null;
     creationProjectId: string | null;
     isHotkeysEnabled?: boolean;
+    lastExternalUpdate: number;
+    setLastExternalUpdate: (v: number) => void;
+    
+    // Presets
+    isPresetModalOpen: boolean;
+    isPresetPickerOpen: boolean;
+    presetPickerPosition: { x: number, y: number } | undefined;
+    isSavingPreset: boolean;
+    setIsPresetModalOpen: (v: boolean) => void;
+    setIsPresetPickerOpen: (v: boolean) => void;
+    setPresetPickerPosition: (v: { x: number, y: number } | undefined) => void;
+    saveSelectionAsPreset: () => void;
+    openPresetPicker: (position?: { x: number, y: number }) => void;
+    onApplyPreset: (preset: Preset, useMouse?: boolean, mousePos?: { x: number, y: number }) => void;
+    handleSavePreset: (name: string) => void;
     
     setWorkflowToDelete: (wf: any) => void;
     setWorkflowToRename: (wf: any) => void;
@@ -146,6 +163,163 @@ export const WorkflowEditorProvider: React.FC<{
         isPinned
     });
 
+    const { saveWorkflowPreset } = useWorkflowPresets();
+
+    // Presets Management
+    const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
+    const [isPresetPickerOpen, setIsPresetPickerOpen] = useState(false);
+    const [presetPickerPosition, setPresetPickerPosition] = useState<{ x: number, y: number } | undefined>();
+    const [capturedPresetData, setCapturedPresetData] = useState<any>(null);
+    const [isSavingPreset] = useState(false);
+    const [lastExternalUpdate, setLastExternalUpdate] = useState(0);
+
+    const captureSelection = useCallback(() => {
+        const nodes = nodesRef.current;
+        const edges = edgesRef.current;
+        const selectedNodes = nodes.filter(n => n.selected);
+        if (selectedNodes.length === 0) return null;
+
+        const allCapturedNodeIds = new Set<string>();
+        const nodesToProcess = [...selectedNodes];
+
+        while (nodesToProcess.length > 0) {
+            const node = nodesToProcess.pop()!;
+            if (allCapturedNodeIds.has(node.id)) continue;
+            allCapturedNodeIds.add(node.id);
+
+            if (node.type === 'group') {
+                const children = nodes.filter(n => n.parentId === node.id);
+                nodesToProcess.push(...children);
+            }
+        }
+
+        const capturedNodes = nodes.filter((n: Node) => allCapturedNodeIds.has(n.id));
+        const capturedEdges = edges.filter((e: Edge) => allCapturedNodeIds.has(e.source) && allCapturedNodeIds.has(e.target));
+
+        const nodesWithAbsolutePositions = capturedNodes.map((n: Node) => {
+            let absX = n.position.x;
+            let absY = n.position.y;
+            let parentId = n.parentId;
+            
+            while (parentId) {
+                const parent = nodes.find((node: Node) => node.id === parentId);
+                if (parent) {
+                    absX += parent.position.x;
+                    absY += parent.position.y;
+                    parentId = parent.parentId;
+                } else {
+                    break;
+                }
+            }
+            return { ...n, position: { x: absX, y: absY } };
+        });
+
+        const minX = Math.min(...nodesWithAbsolutePositions.map(n => n.position.x));
+        const minY = Math.min(...nodesWithAbsolutePositions.map(n => n.position.y));
+        const maxX = Math.max(...nodesWithAbsolutePositions.map(n => n.position.x + (n.width || 220)));
+        const maxY = Math.max(...nodesWithAbsolutePositions.map(n => n.position.y + (n.height || 80)));
+
+        return {
+            nodes: nodesWithAbsolutePositions.map(n => ({ ...n, selected: false })),
+            edges: capturedEdges.map(e => ({ ...e, selected: false })),
+            center: { x: minX + (maxX - minX) / 2, y: minY + (maxY - minY) / 2 }
+        };
+    }, [nodesRef, edgesRef]);
+
+    const saveSelectionAsPreset = useCallback(() => {
+        const data = captureSelection();
+        if (!data) return;
+        setCapturedPresetData(data);
+        setIsPresetModalOpen(true);
+    }, [captureSelection]);
+
+    const openPresetPicker = useCallback((position?: { x: number, y: number }) => {
+        setPresetPickerPosition(position);
+        setIsPresetPickerOpen(true);
+    }, []);
+
+    const handleSavePreset = useCallback(async (name: string) => {
+        if (!capturedPresetData) return;
+        try {
+            await saveWorkflowPreset(name, capturedPresetData);
+            setIsPresetModalOpen(false);
+            setCapturedPresetData(null);
+        } catch (err) {
+            console.error('Failed to save preset:', err);
+        }
+    }, [capturedPresetData, saveWorkflowPreset]);
+
+    const onApplyPreset = useCallback((preset: Preset, useMouse = true, mousePos?: { x: number, y: number }) => {
+        const data = preset.preset_data;
+        if (!data || !data.nodes) return;
+
+        const targetPos = mousePos || { x: 0, y: 0 };
+        const offset = useMouse 
+            ? { x: targetPos.x - (data.center?.x || 0), y: targetPos.y - (data.center?.y || 0) }
+            : { x: 0, y: 0 };
+
+        const nodeIdMap: Record<string, string> = {};
+        const intermediateNodes = data.nodes.map((node: any) => {
+            const newId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            nodeIdMap[node.id] = newId;
+            return { 
+                ...node, 
+                id: newId, 
+                position: { x: node.position.x + offset.x, y: node.position.y + offset.y }, 
+                selected: true 
+            };
+        });
+
+        const newNodes = intermediateNodes.map((node: any) => {
+            const oldParentId = node.parentId;
+            const newParentId = oldParentId ? nodeIdMap[oldParentId] : undefined;
+
+            if (newParentId) {
+                const newParent = intermediateNodes.find((n: any) => n.id === newParentId);
+                if (newParent) {
+                    return {
+                        ...node,
+                        parentId: newParentId,
+                        position: {
+                            x: node.position.x - newParent.position.x,
+                            y: node.position.y - newParent.position.y
+                        }
+                    };
+                }
+            }
+            const { parentId, ...rest } = node;
+            return { ...rest, selected: true };
+        });
+
+        const newEdges = (data.edges || [])
+            .filter((e: any) => nodeIdMap[e.source] && nodeIdMap[e.target])
+            .map((edge: any) => ({
+                ...edge,
+                id: `e_${nodeIdMap[edge.source]}-${nodeIdMap[edge.target]}`,
+                source: nodeIdMap[edge.source],
+                target: nodeIdMap[edge.target],
+                selected: true
+            }));
+
+        nodesRef.current = nodesRef.current.map((n: Node) => ({ ...n, selected: false })).concat(newNodes);
+        edgesRef.current = edgesRef.current.map((e: Edge) => ({ ...e, selected: false })).concat(newEdges);
+        
+        setActiveWorkflow((prev: any) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                graph: {
+                    nodes: nodesRef.current,
+                    edges: edgesRef.current
+                }
+            };
+        });
+
+        setIsPresetPickerOpen(false);
+        setLastExternalUpdate(Date.now());
+        notifyChange();
+    }, [setActiveWorkflow, notifyChange, nodesRef, edgesRef]);
+
     const isSaving = isCreatingWf || isSavingOps;
 
     // Only INITIALIZE from backend data when ID changes. 
@@ -218,7 +392,7 @@ export const WorkflowEditorProvider: React.FC<{
         workflowToDelete,
         workflowToRename,
         workflowError,
-        isSaving: isSavingOps,
+        isSaving,
         isRunning,
         activeNodeIds,
         isConsoleVisible,
@@ -232,6 +406,18 @@ export const WorkflowEditorProvider: React.FC<{
         activeProjectId: activeProjectIdFromContext,
         creationProjectId: creationProjectId,
         isHotkeysEnabled,
+        
+        isPresetModalOpen,
+        isPresetPickerOpen,
+        presetPickerPosition,
+        isSavingPreset,
+        setIsPresetModalOpen,
+        setIsPresetPickerOpen,
+        setPresetPickerPosition,
+        saveSelectionAsPreset,
+        openPresetPicker,
+        onApplyPreset,
+        handleSavePreset,
         
         setWorkflowToDelete,
         setWorkflowToRename,
@@ -258,7 +444,9 @@ export const WorkflowEditorProvider: React.FC<{
         
         onToggleSidebar,
         isSidebarOpen,
-        onEditNode
+        onEditNode,
+        lastExternalUpdate,
+        setLastExternalUpdate
     }), [
         workflows, activeWorkflow, nodeTypes, isCreatingWf, isSavingOps, 
         workflowToDelete, workflowToRename, workflowError, isRunning, 
@@ -270,7 +458,8 @@ export const WorkflowEditorProvider: React.FC<{
         setActiveWorkflow, loadWorkflow, handleCreateWorkflowWithProject, 
         handleDuplicateWorkflow, handleRenameWorkflow, confirmDeleteWorkflow, 
         saveWorkflow, handleRunWorkflow, onNodesChange, onEdgesChange, notifyChange, 
-        onToggleSidebar, isSidebarOpen, onEditNode
+        onToggleSidebar, isSidebarOpen, onEditNode,
+        lastExternalUpdate, setLastExternalUpdate
     ]);
 
     return (

@@ -38,6 +38,7 @@ interface AppCompactModalFormProps {
     initialLocked?: boolean;
     onLockToggle?: (isLocked: boolean) => void;
     isSaving?: boolean;
+    isSubmitDisabled?: boolean;
 }
 
 export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
@@ -68,6 +69,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     initialLocked = false,
     onLockToggle,
     isSaving = false,
+    isSubmitDisabled = false,
 }) => {
     const [showDirtyConfirm, setShowDirtyConfirm] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -168,7 +170,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
 
     const modalContent = (
         <div 
-            className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/20 backdrop-blur-none animate-in fade-in duration-200"
+            className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/20 backdrop-blur-none animate-in fade-in duration-200"
             onMouseDown={(e) => {
                 if (e.target === e.currentTarget) e.stopPropagation();
             }}
@@ -267,6 +269,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                         label={submitLabel}
                         isDefault={true}
                         onClick={() => onSubmit()}
+                        isDisabled={isSubmitDisabled || isSaving}
                     />
                 </div>
             </div>

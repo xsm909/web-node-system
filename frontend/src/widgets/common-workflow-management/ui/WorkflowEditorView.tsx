@@ -45,7 +45,9 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
         activeProjectId,
         setIsConsoleVisible,
         isConsoleVisible,
-        isHotkeysEnabled
+        isHotkeysEnabled,
+        saveSelectionAsPreset,
+        onApplyPreset
     } = useWorkflowEditor();
 
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -274,6 +276,8 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                         isRunning={isRunning}
                         onRun={handleRunWorkflow}
                         onOpenParameters={onOpenParameters}
+                        onSavePreset={saveSelectionAsPreset}
+                        onApplyPreset={onApplyPreset}
                         isDisabled={isSaving}
                     />
                 </div>
