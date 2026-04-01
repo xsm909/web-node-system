@@ -1064,9 +1064,9 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
         }
     }, [parameters, activeProject?.id, isOpen]);
     
-    const handleSavePreset = async (name: string) => {
+    const handleSavePreset = async (name: string, category?: string) => {
         try {
-            await savePreset(name, fullState);
+            await savePreset(name, fullState, category);
             setIsSavePresetModalOpen(false);
         } catch (err) {
             console.error('Failed to save preset:', err);
@@ -2306,6 +2306,7 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             <PresetSaveModal
                 isOpen={isSavePresetModalOpen}
                 onClose={() => setIsSavePresetModalOpen(false)}
+                entityType="query"
                 onSave={handleSavePreset}
                 isSaving={isSavingPreset}
             />

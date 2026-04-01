@@ -755,6 +755,7 @@ export const WorkflowGraph = React.memo(({
             <PresetSaveModal
                 isOpen={isPresetModalOpen}
                 onClose={() => setIsPresetModalOpen(false)}
+                entityType="workflow"
                 onSave={handleSavePreset}
                 isSaving={isSavingPreset}
                 title="Save Workflow Preset"

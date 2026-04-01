@@ -78,15 +78,32 @@ export function buildCategoryTree<T extends { category?: string | null, key?: st
  * Returns a sorted array of unique full category paths from a list of objects with a 'category' property.
  */
 export function getUniqueCategoryPaths<T extends { category?: string | null }>(nodes: T[]): string[] {
-    const paths = new Set<string>();
+    const paths = new Map<string, string>(); // lowercase -> canonical
+    
     for (const node of nodes) {
         if (node.category) {
-            // Also add all ancestor paths so the combo-box offers them
             const parts = node.category.split('|').map(p => p.trim()).filter(Boolean);
+            
+            // Build and add each ancestor segment
             for (let i = 1; i <= parts.length; i++) {
-                paths.add(parts.slice(0, i).join('|'));
+                const subPath = parts.slice(0, i).join('|');
+                const lower = subPath.toLowerCase();
+                
+                // Keep the "best" casing: prefer the one with more uppercase letters 
+                // or keep the first one found if both are equal
+                if (!paths.has(lower)) {
+                    paths.set(lower, subPath);
+                } else {
+                    const existing = paths.get(lower)!;
+                    const existingUpperCount = (existing.match(/[A-Z]/g) || []).length;
+                    const currentUpperCount = (subPath.match(/[A-Z]/g) || []).length;
+                    if (currentUpperCount > existingUpperCount) {
+                        paths.set(lower, subPath);
+                    }
+                }
             }
         }
     }
-    return Array.from(paths).sort();
+    return Array.from(paths.values()).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 }
+

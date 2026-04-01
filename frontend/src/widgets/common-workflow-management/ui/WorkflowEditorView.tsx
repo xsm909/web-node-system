@@ -409,9 +409,10 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                             <PresetSaveModal
                                 isOpen={!!savingParam}
                                 onClose={() => setSavingParam(null)}
-                                onSave={async (name) => {
+                                entityType="parameter"
+                                onSave={async (name, category) => {
                                     if (savingParam) {
-                                        await savePreset(name, savingParam);
+                                        await savePreset(name, savingParam, category);
                                         setSavingParam(null);
                                     }
                                 }}

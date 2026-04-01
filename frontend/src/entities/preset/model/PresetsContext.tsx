@@ -39,14 +39,16 @@ export const PresetsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }));
     }, []);
 
+    const contextValue = React.useMemo(() => ({
+        presetsMap,
+        setPresetsForType,
+        updatePresetInMap,
+        removePresetFromMap,
+        addPresetToMap
+    }), [presetsMap, setPresetsForType, updatePresetInMap, removePresetFromMap, addPresetToMap]);
+
     return (
-        <PresetsContext.Provider value={{
-            presetsMap,
-            setPresetsForType,
-            updatePresetInMap,
-            removePresetFromMap,
-            addPresetToMap
-        }}>
+        <PresetsContext.Provider value={contextValue}>
             {children}
         </PresetsContext.Provider>
     );

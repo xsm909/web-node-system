@@ -73,18 +73,25 @@ export const usePresets = (entityType: string) => {
         }
     }, [entityType, removePresetFromMap]);
 
-    const renamePreset = useCallback(async (presetId: string, newName: string) => {
+    const updatePreset = useCallback(async (presetId: string, updates: { name?: string, category?: string }) => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await apiClient.patch(`/presets/${presetId}`, { name: newName });
+            const response = await apiClient.patch<Preset>(`/presets/${presetId}`, updates);
             updatePresetInMap(entityType, response.data);
+            return response.data;
         } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to rename preset');
+            const msg = err.response?.data?.detail || 'Failed to update preset';
+            setError(msg);
+            throw new Error(msg);
         } finally {
             setIsLoading(false);
         }
     }, [entityType, updatePresetInMap]);
+
+    const renamePreset = useCallback(async (presetId: string, newName: string) => {
+        return updatePreset(presetId, { name: newName });
+    }, [updatePreset]);
 
     return {
         presets,
@@ -93,6 +100,7 @@ export const usePresets = (entityType: string) => {
         fetchPresets,
         savePreset,
         deletePreset,
-        renamePreset
+        renamePreset,
+        updatePreset
     };
 };

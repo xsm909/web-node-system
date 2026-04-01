@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePresets, type Preset } from '../../../entities/preset';
+import { getUniqueCategoryPaths } from '../../../shared/lib/categoryUtils';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { SelectionList, type SelectionItem, type SelectionAction, type SelectionGroup } from '../../../shared/ui/selection-list/SelectionList';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { AppFormFieldRect } from '../../../shared/ui/app-input';
+import { AppCategoryInput } from '../../../shared/ui/app-category-input/AppCategoryInput';
 
 interface PresetSelectorProps {
     entityType: string;
@@ -33,12 +35,13 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
     placeholder = 'Select...',
     searchPlaceholder = 'Search presets...'
 }) => {
-    const { presets, fetchPresets, deletePreset, renamePreset } = usePresets(entityType);
+    const { presets, fetchPresets, deletePreset, updatePreset } = usePresets(entityType);
     
     // Internal management state
     const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
     const [deletingPreset, setDeletingPreset] = useState<Preset | null>(null);
     const [newName, setNewName] = useState('');
+    const [newCategory, setNewCategory] = useState('');
 
     useEffect(() => {
         if (isOpen || mode === 'header') {
@@ -46,12 +49,62 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
         }
     }, [isOpen, mode, fetchPresets]);
 
-    const selectionItems: SelectionItem[] = presets.map(p => ({
-        id: p.id,
-        name: p.name,
-        icon: 'bookmark',
-        description: p.category
-    }));
+    // Recursive helper to build nested groups
+    const getGroupedData = (presets: Preset[]) => {
+        const rootItems: SelectionItem[] = [];
+        const groups: Record<string, SelectionGroup> = {};
+
+        const allCategories = getUniqueCategoryPaths(presets);
+
+        presets.forEach(p => {
+            const item: SelectionItem = {
+                id: p.id,
+                name: p.name,
+                icon: 'bookmark',
+                description: p.category
+            };
+
+            if (!p.category) {
+                rootItems.push(item);
+            } else {
+                const parts = p.category.split('|').map(s => s.trim()).filter(Boolean);
+                let currentGroups = groups;
+                let currentPath = '';
+
+                parts.forEach((part, index) => {
+                    const partLower = part.toLowerCase();
+                    currentPath = currentPath ? `${currentPath}|${partLower}` : partLower;
+                    
+                    // Resolve the canonical display name from allCategories for this specific level
+                    // allCategories contains "AI" if "AI|Chat" exists. 
+                    // We find the segment in allCategories that matches currentPath.
+                    const canonicalPath = allCategories.find(c => c.toLowerCase() === currentPath) || part;
+                    const canonicalName = canonicalPath.split('|').pop() || part;
+
+                    if (!currentGroups[partLower]) {
+                        currentGroups[partLower] = {
+                            id: `group-${currentPath}`,
+                            name: canonicalName,
+                            items: [],
+                            children: {},
+                            icon: 'folder_code'
+                        };
+                    }
+
+                    if (index === parts.length - 1) {
+                        currentGroups[partLower].items.push(item);
+                    } else {
+                        currentGroups = currentGroups[partLower].children;
+                    }
+                });
+            }
+        });
+
+        return { rootItems, groups, allCategories };
+    };
+
+
+    const { rootItems, groups, allCategories } = useMemo(() => getGroupedData(presets), [presets]);
 
     const handleSelect = (item: SelectionItem) => {
         const preset = presets.find(p => p.id === item.id);
@@ -70,13 +123,16 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
         } else if (action === 'rename') {
             setEditingPreset(preset);
             setNewName(preset.name);
+            setNewCategory(preset.category || '');
         }
-        // SelectionList/ComboBox will automatically close on action handler
     };
 
-    const handleRenameSubmit = async () => {
+    const handleUpdateSubmit = async () => {
         if (editingPreset && newName.trim()) {
-            await renamePreset(editingPreset.id, newName.trim());
+            await updatePreset(editingPreset.id, { 
+                name: newName.trim(), 
+                category: newCategory.trim() || undefined 
+            });
             setEditingPreset(null);
         }
     };
@@ -94,30 +150,38 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
             <AppCompactModalForm
                 isOpen={!!editingPreset}
                 onClose={() => setEditingPreset(null)}
-                onSubmit={handleRenameSubmit}
-                title="Rename Preset"
+                onSubmit={handleUpdateSubmit}
+                title="Edit Preset"
                 icon="drive_file_rename_outline"
                 submitLabel="Save"
             >
                 <div className="space-y-4 py-2">
                     <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                        Enter a new name for the preset:
+                        Update preset name and category:
                     </p>
-                    <AppFormFieldRect>
-                        <input
-                            autoFocus
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && newName.trim()) {
-                                    e.preventDefault();
-                                    handleRenameSubmit();
-                                }
-                            }}
-                            className="w-full bg-transparent outline-none h-full text-xs"
-                            placeholder="Preset name"
+                    <div className="space-y-3">
+                        <AppFormFieldRect>
+                            <input
+                                autoFocus
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && newName.trim()) {
+                                        e.preventDefault();
+                                        handleUpdateSubmit();
+                                    }
+                                }}
+                                className="w-full bg-transparent outline-none h-full text-xs"
+                                placeholder="Preset name"
+                            />
+                        </AppFormFieldRect>
+                        <AppCategoryInput
+                            value={newCategory}
+                            onChange={setNewCategory}
+                            allPaths={allCategories}
+                            placeholder="Category (Optional)"
                         />
-                    </AppFormFieldRect>
+                    </div>
                 </div>
             </AppCompactModalForm>
 
@@ -143,8 +207,8 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
         return (
             <>
                 <SelectionList
-                    data={{} as Record<string, SelectionGroup>}
-                    items={selectionItems}
+                    data={groups}
+                    items={rootItems}
                     onSelect={handleSelect}
                     onClose={onClose}
                     position={position}
@@ -172,7 +236,8 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
                     placeholder={placeholder}
                     hideChevron
                     align={align}
-                    items={selectionItems}
+                    data={groups}
+                    items={rootItems}
                     onSelect={handleSelect}
                     config={{
                         allowDelete: true,

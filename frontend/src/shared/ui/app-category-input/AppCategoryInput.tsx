@@ -67,13 +67,22 @@ export const AppCategoryInput: React.FC<AppCategoryInputProps> = ({
         };
     }, [open]);
 
+    const normalizePath = (p: string) => p.split('|').map(s => s.trim()).filter(Boolean).join('|').toLowerCase();
+
     const filtered = useMemo(() => {
-        const q = (inputValue || '').toLowerCase();
-        return q ? allPaths.filter(p => p.toLowerCase().includes(q)) : allPaths;
+        const q = (inputValue || '').toLowerCase().trim();
+        if (!q) return allPaths;
+
+        const normalizedQuery = normalizePath(q);
+
+        return allPaths.filter(p => {
+            const normalizedP = normalizePath(p);
+            return normalizedP.includes(normalizedQuery);
+        });
     }, [allPaths, inputValue]);
 
     const handleSelect = (path: string) => {
-        setInputValue(path);
+        setInputValue(path); // Use the canonical path from allPaths
         onChange(path);
         setOpen(false);
     };
@@ -84,13 +93,18 @@ export const AppCategoryInput: React.FC<AppCategoryInputProps> = ({
         setOpen(true);
     };
 
+    const normalizedSelectedValue = useMemo(() => normalizePath(value), [value]);
+
     return (
         <div ref={ref} className={`relative ${className}`}>
             <AppInput
                 label={label}
                 value={inputValue}
                 onChange={handleInputChange}
-                onFocus={() => !disabled && setOpen(true)}
+                onFocus={() => {
+                    !disabled && setOpen(true);
+                    updateCoords(); // Ensure coords are fresh on focus
+                }}
                 placeholder={placeholder}
                 disabled={disabled}
                 required={required}
@@ -107,7 +121,7 @@ export const AppCategoryInput: React.FC<AppCategoryInputProps> = ({
             {open && !disabled && filtered.length > 0 && coords.width > 0 && typeof document !== 'undefined' && createPortal(
                 <div 
                     ref={dropdownRef}
-                    className="fixed z-[3000] mt-1 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-300 ease-out"
+                    className="fixed z-[9000] mt-1 bg-[var(--bg-app)] border border-[var(--border-base)] rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-300 ease-out"
                     style={{
                         top: coords.top + coords.height,
                         left: coords.left,
@@ -117,14 +131,21 @@ export const AppCategoryInput: React.FC<AppCategoryInputProps> = ({
                     {filtered.map(path => {
                         const parts = path.split('|');
                         const depth = parts.length - 1;
-                        const isLeaf = !allPaths.some(p => p.startsWith(path + '|'));
+                        const pathLower = path.toLowerCase();
+                        const isLeaf = !allPaths.some(p => p.toLowerCase().startsWith(pathLower + '|'));
+                        const isSelected = normalizedSelectedValue === pathLower;
+
                         return (
                             <button
                                 key={path}
                                 type="button"
-                                className={`w-full text-left px-5 py-2.5 text-sm transition-colors hover:bg-brand/10 hover:text-brand flex items-center gap-2 ${value === path ? 'bg-brand/10 text-brand' : 'text-[var(--text-muted)]'}`}
+                                className={`w-full text-left px-5 py-2.5 text-sm transition-colors hover:bg-brand/10 hover:text-brand flex items-center gap-2 ${isSelected ? 'bg-brand/10 text-brand' : 'text-[var(--text-muted)]'}`}
                                 style={{ paddingLeft: `${20 + depth * 16}px` }}
-                                onClick={() => handleSelect(path)}
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleSelect(path);
+                                }}
                             >
                                 <span className={`text-[10px] mr-1 opacity-40 ${isLeaf ? '' : 'text-brand'}`}>
                                     {isLeaf ? '●' : '▶'}
@@ -144,3 +165,4 @@ export const AppCategoryInput: React.FC<AppCategoryInputProps> = ({
         </div>
     );
 };
+

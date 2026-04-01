@@ -45,7 +45,7 @@ interface WorkflowEditorContextType {
     saveSelectionAsPreset: () => void;
     openPresetPicker: (position?: { x: number, y: number }) => void;
     onApplyPreset: (preset: Preset, useMouse?: boolean, mousePos?: { x: number, y: number }) => void;
-    handleSavePreset: (name: string) => void;
+    handleSavePreset: (name: string, category?: string) => void;
     
     setWorkflowToDelete: (wf: any) => void;
     setWorkflowToRename: (wf: any) => void;
@@ -236,10 +236,10 @@ export const WorkflowEditorProvider: React.FC<{
         setIsPresetPickerOpen(true);
     }, []);
 
-    const handleSavePreset = useCallback(async (name: string) => {
+    const handleSavePreset = useCallback(async (name: string, category?: string) => {
         if (!capturedPresetData) return;
         try {
-            await saveWorkflowPreset(name, capturedPresetData);
+            await saveWorkflowPreset(name, capturedPresetData, category);
             setIsPresetModalOpen(false);
             setCapturedPresetData(null);
         } catch (err) {
