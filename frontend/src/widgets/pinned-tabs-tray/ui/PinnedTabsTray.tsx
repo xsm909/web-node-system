@@ -83,7 +83,7 @@ export const PinnedTabsTray: React.FC = () => {
             onDragCancel={handleDragCancel}
             modifiers={[restrictToVerticalAxis]}
         >
-            <aside className="w-[45px] border-l border-[var(--border-base)] bg-[var(--bg-app)]/80 flex flex-col z-40 shrink-0 select-none overflow-hidden backdrop-blur-xl">
+            <aside className="w-[36px] border-l border-[var(--border-base)] bg-[var(--bg-app)]/80 flex flex-col z-40 shrink-0 select-none overflow-hidden backdrop-blur-xl">
                 <div className="flex-1 flex flex-col pt-0 pb-8 overflow-y-auto no-scrollbar overflow-x-hidden content-start">
                     <SortableContext
                         items={tabs.map(t => t.id)}
@@ -211,7 +211,7 @@ const SortablePinnedTabItem: React.FC<PinnedTabItemProps> = (props) => {
             style={style}
             {...attributes}
             {...listeners}
-            className="flex-1 w-full flex flex-col min-h-[44px]"
+            className="flex-1 w-full flex flex-col min-h-[38px]"
         >
             <PinnedTabItem {...props} isGhost={isDragging} />
         </div>
@@ -245,7 +245,7 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
             style={style}
             className={`
                 group relative flex flex-col items-center justify-start w-full h-full cursor-pointer
-                ${isOverlay ? 'z-[9999] min-h-[44px] text-white !opacity-100' : ''}
+                ${isOverlay ? 'z-[9999] min-h-[38px] text-white !opacity-100' : ''}
                 ${isActive && !isOverlay
                     ? 'z-10'
                     : !isOverlay ? 'text-[var(--text-muted)] hover:text-[var(--text-main)]' : ''}
@@ -256,10 +256,10 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
             <div
                 className={`absolute inset-0 pointer-events-none transition-all duration-300 ${isOverlay ? 'backdrop-blur-[2px]' : ''}`}
                 style={{
-                    backgroundColor: isOverlay 
+                    backgroundColor: isOverlay
                         ? (tab.projectId ? `${brandColor}26` : 'var(--bg-hover)') // 15% project tint for overlay
-                        : tab.projectId 
-                            ? `${brandColor}${isActive ? '1A' : '0F'}` 
+                        : tab.projectId
+                            ? `${brandColor}${isActive ? '1A' : '0F'}`
                             : isActive ? 'var(--bg-hover)' : 'transparent'
                 }}
             />
@@ -290,17 +290,17 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
                 />
             )}
 
-            <div className="flex flex-col items-center gap-1 h-full w-full py-2 relative z-10 overflow-hidden pointer-events-none px-1">
+            <div className="flex flex-col items-center gap-0.5 h-full w-full py-1.5 relative z-10 overflow-hidden pointer-events-none px-1">
                 <Icon
                     name={tab.icon || 'article'}
-                    size={14}
+                    size={13}
                     className={`shrink-0 mb-0.5 transition-transform duration-300 ${!isOverlay ? 'group-hover:scale-110' : ''}`}
                     style={{ color: isOverlay ? (tab.projectId ? brandColor : 'var(--text-main)') : (isActive ? brandColor : undefined), opacity: isOverlay ? 1 : undefined }}
                 />
 
                 <div className="flex-1 flex flex-col items-center justify-center overflow-hidden w-full relative">
                     <span
-                        className={`whitespace-nowrap text-[10px] uppercase font-light text-center truncate max-h-full transition-opacity ${!isOverlay ? 'opacity-80' : '!opacity-100'}`}
+                        className={`whitespace-nowrap text-[9px] uppercase font-light text-center truncate max-h-full transition-opacity ${!isOverlay ? 'opacity-80' : '!opacity-100'}`}
                         style={{
                             color: isOverlay ? (tab.projectId ? brandColor : 'var(--text-main)') : (isActive ? brandColor : undefined),
                             writingMode: 'vertical-rl',
@@ -311,7 +311,7 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
                 </div>
 
                 {/* Bottom area: Dirty Indicator & Close Button */}
-                <div className="h-5 shrink-0 w-full flex items-center justify-center relative pointer-events-auto mt-auto">
+                <div className="h-[18px] shrink-0 w-full flex items-center justify-center relative pointer-events-auto mt-auto">
                     {/* Dirty Dot (fades out on hover) */}
                     {tab.isDirty && (
                         <div
@@ -329,7 +329,7 @@ const PinnedTabItem: React.FC<PinnedTabItemProps> = ({
                             className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-all z-20 absolute scale-90 group-hover:scale-100"
                             title="Close tab"
                         >
-                            <Icon name="close" size={10} />
+                            <Icon name="close" size={9} />
                         </button>
                     )}
                 </div>
