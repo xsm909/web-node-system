@@ -1,6 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
-import { Icon } from '../icon/Icon';
 import { apiClient } from '../../api/client';
 import { AppRoundButton } from '../app-round-button/AppRoundButton';
 
@@ -13,7 +12,6 @@ interface AppLockToggleProps {
     isSaving?: boolean;
     isDirty?: boolean;
     saveLabel?: string;
-    size?: number;
     className?: string;
     disabled?: boolean;
 }
@@ -27,7 +25,6 @@ export const AppLockToggle: React.FC<AppLockToggleProps> = ({
     isSaving = false,
     isDirty = false,
     saveLabel = 'Save Changes',
-    size = 20,
     className = '',
     disabled = false
 }) => {
@@ -80,32 +77,18 @@ export const AppLockToggle: React.FC<AppLockToggleProps> = ({
     return (
         <div className={`flex items-center gap-2 ${className}`}>
             {entityId && entityType && (
-                <button
-                    type="button"
+                <AppRoundButton
+                    icon={isLocked ? "lock" : "unlock"}
                     onClick={handleToggle}
-                    className={`
-                        p-1 rounded-md transition-colors duration-200
-                        ${isLoading ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
-                        ${isLocked 
-                            ? 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20' 
-                            : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-slate-800'}
-                    `}
+                    variant={isLocked ? 'danger' : 'outline'}
+                    isLoading={isLoading}
+                    isDisabled={disabled || (isDirty && !isLocked)}
                     title={
                         isLocked 
                             ? 'Unlock' 
                             : (isDirty ? 'Save changes before locking' : 'Lock')
                     }
-                    disabled={isLoading || disabled || (isDirty && !isLocked)}
-                >
-                    <Icon 
-                        name={isLocked ? 'lock' : 'unlock'} 
-                        size={size} 
-                        className={`
-                            ${isLoading ? 'animate-pulse' : ''}
-                            ${(isDirty && !isLocked) ? 'opacity-30' : ''}
-                        `}
-                    />
-                </button>
+                />
             )}
 
             {onSave && (

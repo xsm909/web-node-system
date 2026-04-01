@@ -4,7 +4,7 @@ import { Icon } from '../icon';
 interface AppRoundButtonProps {
     icon: string;
     onClick?: (e: React.MouseEvent) => void;
-    variant?: 'brand' | 'outline' | 'ghost';
+    variant?: 'brand' | 'outline' | 'ghost' | 'danger' | 'success';
     isLoading?: boolean;
     isDisabled?: boolean;
     title?: string;
@@ -37,8 +37,10 @@ export const AppRoundButton = React.forwardRef<HTMLButtonElement, AppRoundButton
     
     const variantStyles = {
         brand: "bg-brand text-white hover:brightness-110 shadow-sm shadow-brand/20",
-        outline: "bg-[var(--bg-app)] border border-[var(--border-base)] text-[var(--text-main)] hover:bg-[var(--bg-hover)] shadow-sm",
-        ghost: "bg-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]"
+        outline: "bg-[var(--bg-app)] border border-brand/50 text-brand hover:bg-brand/5",
+        ghost: "bg-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-muted)]",
+        danger: "bg-[var(--bg-app)] border border-red-500/50 text-red-500 hover:bg-red-500/5",
+        success: "bg-[var(--bg-app)] border border-emerald-500/50 text-emerald-500 hover:bg-emerald-500/5"
     };
 
     const disabledStyles = "opacity-50 pointer-events-none grayscale";
