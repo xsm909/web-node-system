@@ -87,7 +87,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
 
     const isSidebar = variant === 'sidebar';
     const isBrand = variant === 'brand';
-    const isIconOnly = !label && !subLabel && (!placeholder || placeholder === '');
+    const isIconOnly = variant === 'round' || (!label && !subLabel && (!placeholder || placeholder === ''));
 
     return (
         <div className={`relative ${isSidebar ? 'w-full' : ''} ${className}`}>

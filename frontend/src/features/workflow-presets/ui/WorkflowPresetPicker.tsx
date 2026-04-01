@@ -108,6 +108,7 @@ export const WorkflowPresetPicker: React.FC<WorkflowPresetPickerProps> = ({
                     title="Load Preset"
                     size="small"
                     variant="round"
+                    placeholder=""
                     hideChevron
                     align="right"
                     items={selectionItems}

@@ -365,9 +365,9 @@ export const WorkflowGraph = React.memo(({
     }, [saveSelectionAsPreset]);
 
     const handleLoadPresetShortcut = useCallback(() => {
-        const flowPos = screenToFlowPosition({ x: screenMousePosition.current.x, y: screenMousePosition.current.y });
-        openPresetPicker(flowPos);
-    }, [openPresetPicker, screenToFlowPosition]);
+        // Pass RAW screen coordinates to the picker so the SelectionList can position itself on the DOM
+        openPresetPicker({ x: screenMousePosition.current.x, y: screenMousePosition.current.y });
+    }, [openPresetPicker]);
 
     const handleDeleteSelected = useCallback(() => {
         if (isReadOnly) return;
@@ -764,7 +764,11 @@ export const WorkflowGraph = React.memo(({
                 isOpen={isPresetPickerOpen}
                 position={presetPickerPosition}
                 onClose={() => setIsPresetPickerOpen(false)}
-                onSelect={(preset: Preset) => onApplyPreset(preset, !!presetPickerPosition, presetPickerPosition)}
+                onSelect={(preset: Preset) => {
+                    // Convert screen coordinates to flow coordinates before applying the preset
+                    const flowPos = presetPickerPosition ? screenToFlowPosition({ x: presetPickerPosition.x, y: presetPickerPosition.y }) : undefined;
+                    onApplyPreset(preset, !!presetPickerPosition, flowPos);
+                }}
             />
         </div>
     );
