@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
+import inspect
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, field_validator
@@ -633,12 +634,12 @@ def validate_node_code(data: NodeCodeValidateRequest, current_user: User = Depen
     except Exception as e:
         return {"success": False, "error": str(e), "line": None}
 
-
 @router.get("/node-types/{node_id}/parameter-options/{parameter_name}")
 def get_node_parameter_options(
     node_id: uuid.UUID, 
     parameter_name: str, 
     source_func: str, 
+    params: str = Query("{}"),
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
@@ -656,6 +657,12 @@ def get_node_parameter_options(
     from ..internal_libs.context_lib import execution_context
     
     try:
+        # Parse current parameters if provided
+        try:
+            current_params = json.loads(params)
+        except Exception:
+            current_params = {}
+
         # Set the execution context to the current user's ID
         # This allows unsafe_request to resolve permissions in configuration mode
         token = execution_context.set(str(current_user.id))
@@ -694,8 +701,22 @@ def get_node_parameter_options(
         if source_func not in node_globals or not callable(node_globals[source_func]):
              raise HTTPException(status_code=400, detail=f"Options function '{source_func}' not found in node code or is not callable.")
              
-        # Call the function (expects no arguments)
-        res = node_globals[source_func]()
+        # Call the function. 
+        # We check if the function accepts arguments to maintain backward compatibility.
+        # If it does, we pass the current parameters.
+        target_func = node_globals[source_func]
+        try:
+            sig = inspect.signature(target_func)
+            if len(sig.parameters) > 0:
+                res = target_func(current_params)
+            else:
+                res = target_func()
+        except (ValueError, TypeError):
+            # Fallback for built-ins or complex objects where signature fails
+            try:
+                res = target_func(current_params)
+            except TypeError:
+                res = target_func()
         
         # Standardize the output format for the frontend ComboBox:
         # Expected: [{"value": "...", "label": "..."}]

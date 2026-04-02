@@ -33,7 +33,8 @@ const ParameterRow: React.FC<{
     isReadOnly: boolean;
     onOpenSqlEditor?: () => void;
     nodeTypeId?: string;
-}> = ({ param, value, displayValue, onChange, isReadOnly, onOpenSqlEditor, nodeTypeId }) => {
+    allParams?: any;
+}> = ({ param, value, displayValue, onChange, isReadOnly, onOpenSqlEditor, nodeTypeId, allParams }) => {
     const [options, setOptions] = useState<SelectionItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -62,7 +63,12 @@ const ParameterRow: React.FC<{
                         return;
                     }
 
-                    const response = await apiClient.get(endpoint, { params: requestParams });
+                    const response = await apiClient.get(endpoint, { 
+                        params: { 
+                            ...requestParams,
+                            params: JSON.stringify(allParams || {})
+                        } 
+                    });
                     const data = response.data;
 
                     let flatOptions: SelectionItem[] = [];
@@ -100,7 +106,7 @@ const ParameterRow: React.FC<{
             };
             fetchOptions();
         }
-    }, [param, nodeTypeId]);
+    }, [param, nodeTypeId, JSON.stringify(allParams || {})]);
 
     const getSelectedLabel = () => {
         if (value === undefined || value === null || value === "") return "";
@@ -367,6 +373,7 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                                             isReadOnly={effectiveReadOnly}
                                             onOpenSqlEditor={() => setSqlEditorParam(param.name)}
                                             nodeTypeId={nodeTypeData?.id}
+                                            allParams={form.state.values}
                                         />
                                     )}
                                 />

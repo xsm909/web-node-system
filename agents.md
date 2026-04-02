@@ -12,6 +12,10 @@ Key characteristics:
 - Dockerized deployment for easy local and production setup
 - Local testing support with immediate workflow execution
 
+### 1.1 Code rules
+Please do not use Chrome. If you need anything, just ask, and I will send the logs or/and a screenshot. Or share my oppinion
+
+
 ## 2. User Roles
 
 | Role              | Access Paths                  | Main Permissions                                                                                      |
@@ -556,6 +560,7 @@ Pinned tabs and distinct management layers can "shadow" the global context:
 - When a pinned tab is focused, it pushes its own `projectId` into the `activeProject` state.
 - This instantly updates the UI (colors change to project theme) and redirects all API traffic to that project's scope.
 - Unfocusing the tab restores the `activeProject` to match the `baseProject`.
+- **Save Persistence**: Pinned tabs must remain open after a successful "Save" operation. Unlike standard navigation stack forms that may return to the list view, pinned tabs preserve the editing context to allow for continued modifications.
 
 ## 19. Strict Data Visibility Rules
 
