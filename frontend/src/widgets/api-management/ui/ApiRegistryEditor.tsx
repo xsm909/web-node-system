@@ -55,7 +55,7 @@ function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUp
         <div 
             ref={setNodeRef} 
             style={style}
-            className={`flex flex-col gap-3 p-4 rounded-xl bg-surface-900/50 border border-[var(--border-base)] group animate-in fade-in slide-in-from-left-2 duration-200 ${isDragging ? 'shadow-2xl ring-2 ring-brand/50 bg-surface-800' : ''}`}
+            className={`flex flex-col gap-3 p-4 rounded-xl bg-surface-900/40 backdrop-blur-sm border border-[var(--border-base)] group animate-in fade-in slide-in-from-left-2 duration-200 ${isDragging ? 'shadow-2xl ring-2 ring-brand/50 bg-surface-800/80' : 'hover:border-brand/30'}`}
         >
             {/* Header with Drag Handle, Summary, and Collapse Toggle */}
             <div className="flex items-center gap-3">
@@ -64,11 +64,11 @@ function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUp
                 </div>
                 
                 <div className="flex-1 flex items-center gap-4 cursor-pointer min-w-0" onClick={() => onToggleExpand(func._dndId)}>
-                    <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${
-                        func.method === 'GET' ? 'bg-blue-500/20 text-blue-400' :
-                        func.method === 'POST' ? 'bg-green-500/20 text-green-400' :
-                        func.method === 'PUT' ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-red-500/20 text-red-400'
+                    <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase shrink-0 border tracking-wider ${
+                        func.method === 'GET' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                        func.method === 'POST' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        func.method === 'PUT' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                        'bg-rose-500/10 text-rose-400 border-rose-500/20'
                     }`}>
                         {func.method}
                     </div>
@@ -81,19 +81,22 @@ function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUp
                 </div>
 
                 <div className="flex items-center gap-1">
-                     <button
+                    <AppRoundButton
+                        icon="delete"
                         onClick={(e) => { e.stopPropagation(); onRemove(index); }}
-                        className="p-1.5 rounded-lg text-red-400 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-red-500/10 transition-opacity duration-200"
+                        variant="danger"
+                        size="small"
                         title="Remove Function"
-                    >
-                        <Icon name="delete" size={16} />
-                    </button>
-                    <button 
+                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    />
+                    <AppRoundButton
+                        icon={isExpanded ? 'expand_less' : 'expand_more'}
                         onClick={(e) => { e.stopPropagation(); onToggleExpand(func._dndId); }}
-                        className={`p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--border-base)] transition-all ${isExpanded ? 'rotate-180' : ''}`}
-                    >
-                        <Icon name={isExpanded ? 'expand_less' : 'expand_more'} size={16} />
-                    </button>
+                        variant="ghost"
+                        size="small"
+                        title={isExpanded ? "Collapse" : "Expand"}
+                        className={`transition-all duration-300 ${isExpanded ? 'bg-[var(--border-base)]' : ''}`}
+                    />
                 </div>
             </div>
 
@@ -150,9 +153,9 @@ function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUp
                                     const current = func.default_params || [];
                                     onUpdate(index, { default_params: [...current, { key: '', value: '' }] });
                                 }}
-                                className="text-[10px] font-bold text-brand hover:opacity-80 transition-opacity flex items-center gap-1"
+                                className="h-6 px-2 rounded-lg bg-brand/10 text-[10px] font-bold text-brand hover:bg-brand/20 transition-all flex items-center gap-1 border border-brand/20"
                             >
-                                <Icon name="add" size={10} />
+                                <Icon name="add" size={12} />
                                 <span>Add Parameter</span>
                             </button>
                         </div>
@@ -184,16 +187,17 @@ function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUp
                                             className={UI_CONSTANTS.CODE_EDITOR_CLASS}
                                         />
                                     </div>
-                                    <button
+                                    <AppRoundButton
+                                        icon="close"
                                         onClick={() => {
                                             const newParams = (func.default_params as any[]).filter((_, i) => i !== pIdx);
                                             onUpdate(index, { default_params: newParams });
                                         }}
-                                        className="p-2 mt-0.5 rounded-lg text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 transition-all"
+                                        variant="danger"
+                                        size="xs"
                                         title="Remove Parameter"
-                                    >
-                                        <Icon name="close" size={14} />
-                                    </button>
+                                        className="mt-1"
+                                    />
                                 </div>
                             ))}
                             {(!func.default_params || func.default_params.length === 0) && (
@@ -401,22 +405,22 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
                             <div className="flex items-center gap-1">
                                 {functionsList.length > 0 && (
                                     <>
-                                        <button
-                                            type="button"
+                                        <AppRoundButton
+                                            icon="collapse_all"
                                             onClick={() => setExpandedIds(new Set())}
-                                            className="p-1 rounded text-[var(--text-muted)] hover:text-brand hover:bg-brand/10 transition-all mr-1"
+                                            variant="ghost"
+                                            size="small"
                                             title="Collapse All"
-                                        >
-                                            <Icon name="collapse_all" size={14} />
-                                        </button>
-                                        <button
-                                            type="button"
+                                            className="mr-0.5"
+                                        />
+                                        <AppRoundButton
+                                            icon="expand_all"
                                             onClick={() => setExpandedIds(new Set(functionsList.map(f => f._dndId)))}
-                                            className="p-1 rounded text-[var(--text-muted)] hover:text-brand hover:bg-brand/10 transition-all mr-2"
+                                            variant="ghost"
+                                            size="small"
                                             title="Expand All"
-                                        >
-                                            <Icon name="expand_all" size={14} />
-                                        </button>
+                                            className="mr-1.5"
+                                        />
                                     </>
                                 )}
                                 <AppRoundButton
@@ -429,7 +433,7 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
                             </div>
                         </div>
 
-                        <div className="space-y-3 bg-surface-800/30 p-4 rounded-2xl border border-[var(--border-base)] min-h-[100px]">
+                        <div className="space-y-3 bg-surface-900/20 backdrop-blur-[2px] p-4 rounded-2xl border border-[var(--border-base)] min-h-[100px]">
                             {functionsList.length === 0 ? (
                                 <div className="h-16 flex items-center justify-center text-[var(--text-muted)] italic text-xs opacity-50">
                                     No functions mapped. Click + to add your first function.
