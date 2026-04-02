@@ -100,23 +100,23 @@
 }
 
 .markdown-content h1 {
-  font-size: 1.875rem;
-  font-weight: 800;
+  font-size: 1.25rem;
+  font-weight: 700;
   margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   color: var(--text-main);
 }
 
 .markdown-content h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.125rem;
+  font-weight: 600;
   margin-top: 1.25rem;
   margin-bottom: 0.5rem;
   color: var(--text-main);
 }
 
 .markdown-content h3 {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
@@ -179,6 +179,30 @@
   border: 0;
   border-top: 1px solid var(--border-base);
   margin: 2rem 0;
+}
+
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid var(--border-muted);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.markdown-content th {
+  background-color: var(--bg-app-alt);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.markdown-content tr:nth-child(even) {
+  background-color: color-mix(in srgb, var(--bg-app-alt), transparent 50%);
 }
 
 .no-scrollbar::-webkit-scrollbar {
