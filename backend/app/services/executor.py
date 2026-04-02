@@ -270,7 +270,8 @@ SAFE_GLOBALS = {
 ALLOWED_MODULES = [
     "math", "json", "datetime", "re", "random", 
     "base64", "hashlib", "time", "collections", 
-    "itertools", "functools", "decimal", "statistics"
+    "itertools", "functools", "decimal", "statistics",
+    "dataclasses"
 ]
 
 
@@ -871,12 +872,15 @@ class WorkflowExecutor:
 
             if node_params_inst:
                 node_type_params = node_type.parameters if node_type else []
-                param_types = {p["name"]: p["type"] for p in node_type_params if "name" in p and "type" in p}
+                # Create a map of parameter name to its full metadata
+                param_info_map = {p["name"]: p for p in node_type_params if "name" in p}
 
                 for key, value in params.items():
                     if hasattr(node_params_inst, key):
                         try:
-                            ptype = param_types.get(key)
+                            p_info = param_info_map.get(key, {})
+                            ptype = p_info.get("type")
+                            
                             if ptype == "number":
                                 value = float(value) if "." in str(value) else int(value)
                             elif ptype == "boolean":
@@ -884,6 +888,25 @@ class WorkflowExecutor:
                                     value = value.lower() in ("true", "1", "yes")
                                 else:
                                     value = bool(value)
+                            elif ptype == "list_dataclass" and isinstance(value, list):
+                                dc_name = p_info.get("dataclass_name")
+                                dc_class = node_globals.get(dc_name) if dc_name else None
+                                
+                                if dc_class and callable(dc_class):
+                                    reconstructed_list = []
+                                    for item in value:
+                                        if isinstance(item, dict):
+                                            try:
+                                                # Instantiate the dataclass with the dict values
+                                                # Note: This assumes the dataclass constructor accepts these fields as kwargs
+                                                reconstructed_list.append(dc_class(**item))
+                                            except Exception as de:
+                                                self.log(f"Warning: Failed to reconstruct dataclass {dc_name}: {str(de)}", level="warning")
+                                                reconstructed_list.append(item)
+                                        else:
+                                            reconstructed_list.append(item)
+                                    value = reconstructed_list
+                                    
                         except (ValueError, TypeError):
                             pass
                         setattr(node_params_inst, key, value)

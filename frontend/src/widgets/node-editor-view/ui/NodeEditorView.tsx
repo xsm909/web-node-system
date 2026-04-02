@@ -13,6 +13,7 @@ import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/A
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { SYSTEM_PARAMETERS } from '../../../entities/report/model/constants';
+import { DataclassListEditor } from './DataclassListEditor';
 
 interface NodeEditorViewProps {
     node: Node | null;
@@ -116,6 +117,18 @@ const ParameterRow: React.FC<{
         if (isLoading) return "Loading...";
         return value;
     };
+
+    if (param.type === 'list_dataclass') {
+        return (
+            <DataclassListEditor
+                schema={param.schema}
+                value={value}
+                onChange={(newVal) => onChange({ [param.name]: newVal })}
+                isReadOnly={isReadOnly}
+                label={param.label}
+            />
+        );
+    }
 
     return (
         <div className="space-y-1.5 group">
@@ -347,36 +360,37 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
 
                         <div className={`grid grid-cols-1 ${inline ? '' : 'md:grid-cols-2'} gap-4 relative z-10`}>
                             {parameters.map((param: any) => (
-                                <form.Field
-                                    key={param.name}
-                                    name={param.name}
-                                    children={(field) => (
-                                        <ParameterRow
-                                            param={param}
-                                            value={field.state.value}
-                                            displayValue={form.state.values[`_DISPLAY_${param.name}`]}
-                                            onChange={(updates) => {
-                                                Object.entries(updates).forEach(([key, val]) => {
-                                                    if (key === param.name) {
-                                                        field.handleChange(val);
-                                                    } else {
-                                                        form.setFieldValue(key as any, val as any);
+                                <div key={param.name} className={param.type === 'list_dataclass' ? 'col-span-full' : ''}>
+                                    <form.Field
+                                        name={param.name}
+                                        children={(field) => (
+                                            <ParameterRow
+                                                param={param}
+                                                value={field.state.value}
+                                                displayValue={form.state.values[`_DISPLAY_${param.name}`]}
+                                                onChange={(updates) => {
+                                                    Object.entries(updates).forEach(([key, val]) => {
+                                                        if (key === param.name) {
+                                                            field.handleChange(val);
+                                                        } else {
+                                                            form.setFieldValue(key as any, val as any);
+                                                        }
+                                                    });
+                                                    // Trigger upstream update immediately for real-time application
+                                                    if (node) {
+                                                        const updatedFormData = { ...(node.data.params || {}), ...updates };
+                                                        console.log('[NodeEditorView] onChange triggered for node:', node.id, 'updates:', updates, 'final params:', updatedFormData);
+                                                        onChange(node.id, updatedFormData);
                                                     }
-                                                });
-                                                // Trigger upstream update immediately for real-time application
-                                                if (node) {
-                                                    const updatedFormData = { ...(node.data.params || {}), ...updates };
-                                                    console.log('[NodeEditorView] onChange triggered for node:', node.id, 'updates:', updates, 'final params:', updatedFormData);
-                                                    onChange(node.id, updatedFormData);
-                                                }
-                                            }}
-                                            isReadOnly={effectiveReadOnly}
-                                            onOpenSqlEditor={() => setSqlEditorParam(param.name)}
-                                            nodeTypeId={nodeTypeData?.id}
-                                            allParams={form.state.values}
-                                        />
-                                    )}
-                                />
+                                                }}
+                                                isReadOnly={effectiveReadOnly}
+                                                onOpenSqlEditor={() => setSqlEditorParam(param.name)}
+                                                nodeTypeId={nodeTypeData?.id}
+                                                allParams={form.state.values}
+                                            />
+                                        )}
+                                    />
+                                </div>
                             ))}
                         </div>
                     </div>
