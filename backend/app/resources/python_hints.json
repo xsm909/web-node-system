@@ -690,6 +690,18 @@
         "boost": 2
     },
     {
+        "label": "API",
+        "type": "variable",
+        "detail": "API namespace",
+        "boost": 3
+    },
+    {
+        "label": "API.CallAPIFunction",
+        "type": "function",
+        "detail": "API.CallAPIFunction function",
+        "boost": 4
+    },
+    {
         "label": "workflow",
         "type": "variable",
         "detail": "workflow namespace",

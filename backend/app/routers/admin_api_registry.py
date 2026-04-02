@@ -8,6 +8,7 @@ from ..core.database import get_db
 from ..models.api_registry import ApiRegistry as ApiRegistryModel
 from ..models.lock import LockData
 from ..schemas.api_registry import ApiRegistry, ApiRegistryCreate, ApiRegistryUpdate
+from ..core.locks import raise_if_locked
 
 router = APIRouter(prefix="/admin/api-registry", tags=["api-registry"])
 
@@ -99,6 +100,9 @@ def update_api_registry(api_id: UUID, api_in: ApiRegistryUpdate, db: Session = D
             if existing:
                 raise HTTPException(status_code=400, detail=f"API with name '{update_data['name']}' already exists")
                 
+        # 1. ENFORCE LOCKS (RULE 15)
+        raise_if_locked(db, api_id, "api_registry")
+            
         for field, value in update_data.items():
             setattr(db_obj, field, value)
         
@@ -109,6 +113,8 @@ def update_api_registry(api_id: UUID, api_in: ApiRegistryUpdate, db: Session = D
         print(f"DEBUG Error in update_api_registry: {str(e)}")
         import traceback
         traceback.print_exc()
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=f"Database error during API update: {str(e)}")
 
 @router.delete("/{api_id}/")
@@ -118,6 +124,9 @@ def delete_api_registry(api_id: UUID, db: Session = Depends(get_db)):
         if not db_obj:
             raise HTTPException(status_code=404, detail="API not found")
              
+        # 1. ENFORCE LOCKS (RULE 15)
+        raise_if_locked(db, api_id, "api_registry")
+        
         db.delete(db_obj)
         db.commit()
         return {"message": "API deleted"}
