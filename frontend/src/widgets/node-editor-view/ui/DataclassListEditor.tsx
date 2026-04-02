@@ -141,7 +141,7 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
                 )}
             </div>
 
-            <div className="border-t border-b border-[var(--border-base)]/30 bg-transparent overflow-hidden">
+            <div className="border-b border-[var(--border-base)]/60 bg-transparent overflow-hidden">
                 <div 
                     ref={tableRef} 
                     className="w-full text-[12px] compact-dataclass-table no-scrollbar custom-scrollbar" 
@@ -199,7 +199,7 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
                 .compact-dataclass-table .tabulator-row {
                     min-height: 26px !important;
                     background-color: transparent !important;
-                    border-bottom: 1px solid var(--border-base) !important;
+                    border-bottom: none !important;
                     display: flex !important;
                     align-items: center !important;
                 }
