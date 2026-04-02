@@ -141,6 +141,7 @@ SAFE_GLOBALS = {
         "_iter_unpack_sequence_": Guards.guarded_iter_unpack_sequence,
         "_getiter_": iter,
         "_getitem_": lambda obj, key: obj[key],
+        "_getattr_": custom_getattr,
         "_write_": lambda obj: obj,  # Allow attribute writes inside sandbox
         "_apply_": lambda f, *a, **kw: f(*a, **kw),  # Allow **kwargs unpacking in function calls
         "_inplacevar_": _inplace_handler,
@@ -286,23 +287,15 @@ class CustomRestrictingNodeTransformer(RestrictingNodeTransformer):
     """Custom RestrictedPython transformer to allow type annotations in assignments."""
 
     def visit_AnnAssign(self, node):
-        """Allow AnnAssign (type annotated assignments) by converting them to regular assignments."""
-        value = node.value
-        if value is None:
-            # For cases like 'x: int', convert to 'x = None' to ensure it's a valid statement
-            # and that the attribute exists on the class/module.
-            value = ast.copy_location(ast.Constant(value=None), node)
-        
-        # Convert to a regular assignment
-        assign_node = ast.copy_location(
-            ast.Assign(
-                targets=[node.target],
-                value=value
-            ),
-            node
-        )
-        # Inherit the rest of the safety checks from visit_Assign
-        return self.visit_Assign(assign_node)
+        """
+        Allow AnnAssign (type annotated assignments) but visit components for safety.
+        We must preserve AnnAssign because 'dataclasses' relies on __annotations__.
+        """
+        if node.value:
+            node.value = self.visit(node.value)
+        # Target must be visited to ensure it's a valid/safe assignment target
+        node.target = self.visit(node.target)
+        return node
 
 
 def _topological_sort(nodes: list, edges: list) -> list:
@@ -875,20 +868,28 @@ class WorkflowExecutor:
                 # Create a map of parameter name to its full metadata
                 param_info_map = {p["name"]: p for p in node_type_params if "name" in p}
 
-                for key, value in params.items():
-                    if hasattr(node_params_inst, key):
-                        try:
-                            p_info = param_info_map.get(key, {})
-                            ptype = p_info.get("type")
+                for key, p_info in param_info_map.items():
+                    # Get value from instance params or fallback to metadata default
+                    value = params.get(key)
+                    if value is None:
+                        value = p_info.get("default")
+                    
+                    ptype = p_info.get("type")
+                    
+                    try:
+                        if ptype == "number" and value is not None:
+                            value = float(value) if "." in str(value) else int(value)
+                        elif ptype == "boolean" and value is not None:
+                            if isinstance(value, str):
+                                value = value.lower() in ("true", "1", "yes")
+                            else:
+                                value = bool(value)
+                        elif ptype == "list_dataclass":
+                            # Ensure it's always a list, never None
+                            if value is None:
+                                value = []
                             
-                            if ptype == "number":
-                                value = float(value) if "." in str(value) else int(value)
-                            elif ptype == "boolean":
-                                if isinstance(value, str):
-                                    value = value.lower() in ("true", "1", "yes")
-                                else:
-                                    value = bool(value)
-                            elif ptype == "list_dataclass" and isinstance(value, list):
+                            if isinstance(value, list):
                                 dc_name = p_info.get("dataclass_name")
                                 dc_class = node_globals.get(dc_name) if dc_name else None
                                 
@@ -897,8 +898,6 @@ class WorkflowExecutor:
                                     for item in value:
                                         if isinstance(item, dict):
                                             try:
-                                                # Instantiate the dataclass with the dict values
-                                                # Note: This assumes the dataclass constructor accepts these fields as kwargs
                                                 reconstructed_list.append(dc_class(**item))
                                             except Exception as de:
                                                 self.log(f"Warning: Failed to reconstruct dataclass {dc_name}: {str(de)}", level="warning")
@@ -906,10 +905,11 @@ class WorkflowExecutor:
                                         else:
                                             reconstructed_list.append(item)
                                     value = reconstructed_list
-                                    
-                        except (ValueError, TypeError):
-                            pass
-                        setattr(node_params_inst, key, value)
+                    except (ValueError, TypeError):
+                        pass
+                    
+                    # Always set the attribute, even if it's None (unless it's a list_dataclass which we forced to [])
+                    setattr(node_params_inst, key, value)
 
             run_fn = node_globals.get("run")
             if not run_fn:
