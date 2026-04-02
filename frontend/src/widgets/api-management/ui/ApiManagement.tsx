@@ -141,7 +141,8 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                 result = await createProvider.mutateAsync(data);
             }
             setSelectedProvider(result);
-            setView('list');
+            // Stay in edit mode after save to follow pinned data persistence rule
+            // setView('list');
         } catch (err) {
             console.error("Failed to save provider", err);
             alert("Failed to save provider. Check console for details.");
@@ -157,7 +158,8 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                 result = await createApi.mutateAsync(data);
             }
             setSelectedApi(result);
-            setView('list');
+            // Stay in edit mode after save to follow pinned data persistence rule
+            // setView('list');
         } catch (err) {
             console.error("Failed to save API Registry entry", err);
             alert("Failed to save API Registry entry. Check console for details.");
