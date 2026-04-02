@@ -7,6 +7,205 @@ import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButt
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { useCredentials } from '../../../entities/credential/api';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
+import { 
+    DndContext, 
+    closestCenter, 
+    KeyboardSensor, 
+    PointerSensor, 
+    useSensor, 
+    useSensors, 
+    type DragEndEvent 
+} from '@dnd-kit/core';
+import { 
+    arrayMove, 
+    SortableContext, 
+    sortableKeyboardCoordinates, 
+    verticalListSortingStrategy, 
+    useSortable 
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+interface SortableApiFunctionItemProps {
+    func: ApiFunction & { _dndId: string };
+    index: number;
+    isExpanded: boolean;
+    onToggleExpand: (id: string) => void;
+    onUpdate: (index: number, updates: Partial<ApiFunction>) => void;
+    onRemove: (index: number) => void;
+}
+
+function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUpdate, onRemove }: SortableApiFunctionItemProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: func._dndId });
+
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : 0,
+        opacity: isDragging ? 0.6 : 1,
+    };
+
+    return (
+        <div 
+            ref={setNodeRef} 
+            style={style}
+            className={`flex flex-col gap-3 p-4 rounded-xl bg-surface-900/50 border border-[var(--border-base)] group animate-in fade-in slide-in-from-left-2 duration-200 ${isDragging ? 'shadow-2xl ring-2 ring-brand/50 bg-surface-800' : ''}`}
+        >
+            {/* Header with Drag Handle, Summary, and Collapse Toggle */}
+            <div className="flex items-center gap-3">
+                <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
+                    <Icon name="drag_indicator" size={16} />
+                </div>
+                
+                <div className="flex-1 flex items-center gap-4 cursor-pointer min-w-0" onClick={() => onToggleExpand(func._dndId)}>
+                    <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${
+                        func.method === 'GET' ? 'bg-blue-500/20 text-blue-400' :
+                        func.method === 'POST' ? 'bg-green-500/20 text-green-400' :
+                        func.method === 'PUT' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-red-500/20 text-red-400'
+                    }`}>
+                        {func.method}
+                    </div>
+                    <span className="font-mono text-xs font-bold text-[var(--text-main)] truncate max-w-[200px]">
+                        {func.name || <span className="opacity-40 italic font-normal">unnamed_function</span>}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-muted)] opacity-60 truncate flex-1 font-mono">
+                        {func.path || <span className="italic">no path</span>}
+                    </span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                     <button
+                        onClick={(e) => { e.stopPropagation(); onRemove(index); }}
+                        className="p-1.5 rounded-lg text-red-400 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-red-500/10 transition-opacity duration-200"
+                        title="Remove Function"
+                    >
+                        <Icon name="delete" size={16} />
+                    </button>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onToggleExpand(func._dndId); }}
+                        className={`p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--border-base)] transition-all ${isExpanded ? 'rotate-180' : ''}`}
+                    >
+                        <Icon name={isExpanded ? 'expand_less' : 'expand_more'} size={16} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Expanded Content */}
+            {isExpanded && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-3 gap-3">
+                        <AppInput
+                            label="Name"
+                            value={func.name}
+                            onChange={(val) => onUpdate(index, { name: val })}
+                            placeholder="get_weather"
+                            className={UI_CONSTANTS.CODE_EDITOR_CLASS}
+                        />
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">Method</label>
+                            <select
+                                value={func.method}
+                                onChange={(e) => onUpdate(index, { method: e.target.value as any })}
+                                className={`bg-surface-800 border border-[var(--border-base)] rounded-lg px-2 text-xs focus:border-brand/50 outline-none h-8`}
+                            >
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                            </select>
+                        </div>
+                        <AppInput
+                            label="Path"
+                            value={func.path}
+                            onChange={(val) => onUpdate(index, { path: val })}
+                            placeholder="/v1/weather"
+                            className={UI_CONSTANTS.CODE_EDITOR_CLASS}
+                        />
+                    </div>
+                    
+                    <AppInput
+                        label="Description (for AI tools)"
+                        value={func.description || ''}
+                        onChange={(val) => onUpdate(index, { description: val })}
+                        placeholder="Fetches current weather for a city"
+                        className="text-xs mb-1"
+                    />
+                    
+                    <div className="mt-1 pt-3 border-t border-[var(--border-base)]/30">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                <Icon name="parameters" size={12} className="text-[var(--text-muted)]" />
+                                <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Default Parameters</label>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const current = func.default_params || [];
+                                    onUpdate(index, { default_params: [...current, { key: '', value: '' }] });
+                                }}
+                                className="text-[10px] font-bold text-brand hover:opacity-80 transition-opacity flex items-center gap-1"
+                            >
+                                <Icon name="add" size={10} />
+                                <span>Add Parameter</span>
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            {(func.default_params || []).map((param, pIdx: number) => (
+                                <div key={pIdx} className="flex gap-2 items-start animate-in fade-in slide-in-from-top-1 duration-200">
+                                    <div className="flex-1">
+                                        <AppInput
+                                            value={param.key || ''}
+                                            onChange={(val) => {
+                                                const newParams = [...(func.default_params || [])];
+                                                newParams[pIdx] = { ...newParams[pIdx], key: val };
+                                                onUpdate(index, { default_params: newParams });
+                                            }}
+                                            placeholder="Param name (e.g. format)"
+                                            className={UI_CONSTANTS.CODE_EDITOR_CLASS}
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <AppInput
+                                            value={param.value || ''}
+                                            onChange={(val) => {
+                                                const newParams = [...(func.default_params || [])];
+                                                newParams[pIdx] = { ...newParams[pIdx], value: val };
+                                                onUpdate(index, { default_params: newParams });
+                                            }}
+                                            placeholder="Value (e.g. json)"
+                                            className={UI_CONSTANTS.CODE_EDITOR_CLASS}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            const newParams = (func.default_params as any[]).filter((_, i) => i !== pIdx);
+                                            onUpdate(index, { default_params: newParams });
+                                        }}
+                                        className="p-2 mt-0.5 rounded-lg text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 transition-all"
+                                        title="Remove Parameter"
+                                    >
+                                        <Icon name="close" size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                            {(!func.default_params || func.default_params.length === 0) && (
+                                <p className="text-[10px] text-[var(--text-muted)] italic opacity-40 py-1 px-1">No default parameters defined for this function.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
 
 interface ApiRegistryEditorProps {
     api: ApiRegistry | null;
@@ -27,26 +226,52 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
 
     const { data: credentials = [] } = useCredentials();
 
-    const [functionsList, setFunctionsList] = useState<ApiFunction[]>(() => {
-        return api?.functions || [];
+    const [functionsList, setFunctionsList] = useState<(ApiFunction & { _dndId: string })[]>(() => {
+        return (api?.functions || []).map(f => ({ ...f, _dndId: crypto.randomUUID() }));
     });
+
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
 
     useEffect(() => {
         if (api) {
             setFormData(api);
-            setFunctionsList(api.functions || []);
+            setFunctionsList((api.functions || []).map(f => ({ ...f, _dndId: crypto.randomUUID() })));
         }
     }, [api]);
 
     const isDirty = useMemo(() => {
         const initialFunctions = api?.functions || [];
         
+        // Helper to normalize function objects for comparison
+        const normalize = (f: any) => ({
+            name: f.name || '',
+            method: f.method || 'GET',
+            path: f.path || '',
+            description: f.description || '',
+            default_params: (f.default_params || []).map((p: any) => ({
+                key: p.key || '',
+                value: p.value || ''
+            }))
+        });
+
+        const basicFieldsChanged = 
+            (formData.name || '') !== (api?.name || '') || 
+            (formData.base_url || '') !== (api?.base_url || '') || 
+            (formData.credential_key || '') !== (api?.credential_key || '') || 
+            (formData.description || '') !== (api?.description || '');
+
+        const currentNormalized = functionsList.map(normalize);
+        const initialNormalized = initialFunctions.map(normalize);
+        
+        const functionsChanged = JSON.stringify(currentNormalized) !== JSON.stringify(initialNormalized);
+
         return api 
-            ? (formData.name !== api.name || 
-               formData.base_url !== api.base_url || 
-               formData.credential_key !== api.credential_key || 
-               formData.description !== api.description ||
-               JSON.stringify(functionsList) !== JSON.stringify(initialFunctions))
+            ? (basicFieldsChanged || functionsChanged)
             : (formData.name !== '' || formData.base_url !== '' || formData.credential_key !== '' || functionsList.length > 0);
     }, [formData, functionsList, api]);
 
@@ -58,7 +283,16 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
     };
 
     const handleAddFunction = () => {
-        setFunctionsList([...functionsList, { name: '', method: 'GET', path: '', description: '' }]);
+        const newId = crypto.randomUUID();
+        setFunctionsList([...functionsList, { 
+            name: '', 
+            method: 'GET', 
+            path: '', 
+            description: '', 
+            default_params: [], 
+            _dndId: newId 
+        }]);
+        toggleExpand(newId);
     };
 
     const handleUpdateFunction = (index: number, updates: Partial<ApiFunction>) => {
@@ -69,6 +303,26 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
 
     const handleRemoveFunction = (index: number) => {
         setFunctionsList(functionsList.filter((_, i) => i !== index));
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            setFunctionsList((items) => {
+                const oldIndex = items.findIndex((item) => item._dndId === active.id);
+                const newIndex = items.findIndex((item) => item._dndId === over.id);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+        }
+    };
+
+    const toggleExpand = (id: string) => {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
     };
 
     return (
@@ -144,13 +398,35 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
                                     Expose endpoints as callable functions
                                 </p>
                             </div>
-                            <AppRoundButton
-                                icon="add"
-                                onClick={handleAddFunction}
-                                variant="brand"
-                                size="small"
-                                title="Add Function"
-                            />
+                            <div className="flex items-center gap-1">
+                                {functionsList.length > 0 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setExpandedIds(new Set())}
+                                            className="p-1 rounded text-[var(--text-muted)] hover:text-brand hover:bg-brand/10 transition-all mr-1"
+                                            title="Collapse All"
+                                        >
+                                            <Icon name="collapse_all" size={14} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setExpandedIds(new Set(functionsList.map(f => f._dndId)))}
+                                            className="p-1 rounded text-[var(--text-muted)] hover:text-brand hover:bg-brand/10 transition-all mr-2"
+                                            title="Expand All"
+                                        >
+                                            <Icon name="expand_all" size={14} />
+                                        </button>
+                                    </>
+                                )}
+                                <AppRoundButton
+                                    icon="add"
+                                    onClick={handleAddFunction}
+                                    variant="brand"
+                                    size="small"
+                                    title="Add Function"
+                                />
+                            </div>
                         </div>
 
                         <div className="space-y-3 bg-surface-800/30 p-4 rounded-2xl border border-[var(--border-base)] min-h-[100px]">
@@ -159,55 +435,30 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
                                     No functions mapped. Click + to add your first function.
                                 </div>
                             ) : (
-                                functionsList.map((func, index) => (
-                                    <div key={index} className="flex flex-col gap-3 p-4 rounded-xl bg-surface-900/50 border border-[var(--border-base)] group animate-in fade-in slide-in-from-left-2 duration-200">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-1 grid grid-cols-3 gap-3">
-                                                <AppInput
-                                                    label="Name"
-                                                    value={func.name}
-                                                    onChange={(val) => handleUpdateFunction(index, { name: val })}
-                                                    placeholder="get_weather"
-                                                    className={UI_CONSTANTS.CODE_EDITOR_CLASS}
+                                <DndContext 
+                                    sensors={sensors} 
+                                    collisionDetection={closestCenter} 
+                                    onDragEnd={handleDragEnd}
+                                >
+                                    <SortableContext 
+                                        items={functionsList.map(f => f._dndId)} 
+                                        strategy={verticalListSortingStrategy}
+                                    >
+                                        <div className="space-y-3">
+                                            {functionsList.map((func, index) => (
+                                                <SortableApiFunctionItem
+                                                    key={func._dndId}
+                                                    func={func}
+                                                    index={index}
+                                                    isExpanded={expandedIds.has(func._dndId)}
+                                                    onToggleExpand={toggleExpand}
+                                                    onUpdate={handleUpdateFunction}
+                                                    onRemove={handleRemoveFunction}
                                                 />
-                                                <div className="flex flex-col gap-1">
-                                                    <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">Method</label>
-                                                    <select
-                                                        value={func.method}
-                                                        onChange={(e) => handleUpdateFunction(index, { method: e.target.value as any })}
-                                                        className={`bg-surface-800 border border-[var(--border-base)] rounded-lg px-2 text-xs focus:border-brand/50 outline-none h-8`}
-                                                    >
-                                                        <option value="GET">GET</option>
-                                                        <option value="POST">POST</option>
-                                                        <option value="PUT">PUT</option>
-                                                        <option value="DELETE">DELETE</option>
-                                                    </select>
-                                                </div>
-                                                <AppInput
-                                                    label="Path"
-                                                    value={func.path}
-                                                    onChange={(val) => handleUpdateFunction(index, { path: val })}
-                                                    placeholder="/v1/weather"
-                                                    className={UI_CONSTANTS.CODE_EDITOR_CLASS}
-                                                />
-                                            </div>
-                                            <button
-                                                onClick={() => handleRemoveFunction(index)}
-                                                className="mt-4 p-2 rounded-lg text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 transition-all"
-                                                title="Remove Function"
-                                            >
-                                                <Icon name="delete" size={16} />
-                                            </button>
+                                            ))}
                                         </div>
-                                        <AppInput
-                                            label="Description (for AI tools)"
-                                            value={func.description || ''}
-                                            onChange={(val) => handleUpdateFunction(index, { description: val })}
-                                            placeholder="Fetches current weather for a city"
-                                            className="text-xs"
-                                        />
-                                    </div>
-                                ))
+                                    </SortableContext>
+                                </DndContext>
                             )}
                         </div>
                     </div>

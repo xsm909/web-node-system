@@ -276,6 +276,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(admin_api_registry.router, prefix="/admin/api-registry", tags=["api-registry"])
 app.include_router(admin.router)
 app.include_router(workflow.router)
 app.include_router(client.router)
@@ -295,7 +296,6 @@ app.include_router(projects.router)
 app.include_router(presets.router)
 app.include_router(files.router)
 app.include_router(ai_providers.router)
-app.include_router(admin_api_registry.router)
 
 @app.get("/")
 def root():

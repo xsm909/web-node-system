@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, attributes
 from sqlalchemy import and_
 from typing import List, Optional
 from uuid import UUID
@@ -10,9 +10,9 @@ from ..models.lock import LockData
 from ..schemas.api_registry import ApiRegistry, ApiRegistryCreate, ApiRegistryUpdate
 from ..core.locks import raise_if_locked
 
-router = APIRouter(prefix="/admin/api-registry", tags=["api-registry"])
+router = APIRouter()
 
-@router.get("/", response_model=List[ApiRegistry])
+@router.get("", response_model=List[ApiRegistry])
 def list_api_registry(
     project_id: Optional[UUID] = Query(None),
     db: Session = Depends(get_db)
@@ -43,7 +43,7 @@ def list_api_registry(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/", response_model=ApiRegistry)
+@router.post("", response_model=ApiRegistry)
 def create_api_registry(api_in: ApiRegistryCreate, db: Session = Depends(get_db)):
     try:
         # 1. Check if name already exists
@@ -87,10 +87,43 @@ def create_api_registry(api_in: ApiRegistryCreate, db: Session = Depends(get_db)
             raise e
         raise HTTPException(status_code=500, detail=f"Database error: {err_msg}")
 
-@router.patch("/{api_id}/", response_model=ApiRegistry)
-def update_api_registry(api_id: UUID, api_in: ApiRegistryUpdate, db: Session = Depends(get_db)):
+@router.get("/{api_id}", response_model=ApiRegistry)
+def get_api_registry(api_id: str, db: Session = Depends(get_db)):
     try:
-        db_obj = db.query(ApiRegistryModel).filter(ApiRegistryModel.id == api_id).first()
+        try:
+            api_uuid = UUID(api_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid API ID format")
+            
+        result = db.query(ApiRegistryModel, LockData.id.isnot(None).label("is_locked")) \
+            .outerjoin(LockData, and_(
+                LockData.entity_id == ApiRegistryModel.id,
+                LockData.entity_type == "api_registry"
+            )) \
+            .filter(ApiRegistryModel.id == api_uuid) \
+            .first()
+            
+        if not result:
+            raise HTTPException(status_code=404, detail="API not found")
+        
+        api, is_locked = result
+        api_dict = ApiRegistry.model_validate(api).model_dump()
+        api_dict["is_locked"] = is_locked
+        return api_dict
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/{api_id}", response_model=ApiRegistry)
+def update_api_registry(api_id: str, api_in: ApiRegistryUpdate, db: Session = Depends(get_db)):
+    try:
+        try:
+            api_uuid = UUID(api_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid API ID format")
+            
+        db_obj = db.query(ApiRegistryModel).filter(ApiRegistryModel.id == api_uuid).first()
         if not db_obj:
             raise HTTPException(status_code=404, detail="API not found")
         
@@ -101,10 +134,12 @@ def update_api_registry(api_id: UUID, api_in: ApiRegistryUpdate, db: Session = D
                 raise HTTPException(status_code=400, detail=f"API with name '{update_data['name']}' already exists")
                 
         # 1. ENFORCE LOCKS (RULE 15)
-        raise_if_locked(db, api_id, "api_registry")
+        raise_if_locked(db, api_uuid, "api_registry")
             
         for field, value in update_data.items():
             setattr(db_obj, field, value)
+            if field == "functions":
+                attributes.flag_modified(db_obj, "functions")
         
         db.commit()
         db.refresh(db_obj)
@@ -117,10 +152,15 @@ def update_api_registry(api_id: UUID, api_in: ApiRegistryUpdate, db: Session = D
             raise e
         raise HTTPException(status_code=500, detail=f"Database error during API update: {str(e)}")
 
-@router.delete("/{api_id}/")
-def delete_api_registry(api_id: UUID, db: Session = Depends(get_db)):
+@router.delete("/{api_id}")
+def delete_api_registry(api_id: str, db: Session = Depends(get_db)):
     try:
-        db_obj = db.query(ApiRegistryModel).filter(ApiRegistryModel.id == api_id).first()
+        try:
+            api_uuid = UUID(api_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid API ID format")
+            
+        db_obj = db.query(ApiRegistryModel).filter(ApiRegistryModel.id == api_uuid).first()
         if not db_obj:
             raise HTTPException(status_code=404, detail="API not found")
              

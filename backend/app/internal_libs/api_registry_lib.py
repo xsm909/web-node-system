@@ -7,6 +7,8 @@ from ..core.database import SessionLocal
 from ..models.api_registry import ApiRegistry as ApiRegistryModel
 from .logger_lib import system_log
 
+DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+
 def call_api_function(api_name: str, function_name: str, params: dict = None) -> any:
     """
     Core engine to call a function from the registered external APIs.
@@ -40,7 +42,9 @@ def call_api_function(api_name: str, function_name: str, params: dict = None) ->
         full_url = f"{base_url}/{path.lstrip('/')}"
         
         # 3. Handle Authentication via Credentials
-        headers = {}
+        headers = {
+            "User-Agent": DEFAULT_USER_AGENT
+        }
         query_params = {}
         
         if api_entry.credential_key:
@@ -56,13 +60,21 @@ def call_api_function(api_name: str, function_name: str, params: dict = None) ->
                 system_log(f"[API_REGISTRY] Warning: Credential '{api_entry.credential_key}' not found.", level="error")
 
         # 4. Handle Parameters (Body for POST/PUT, Query for GET)
+        # Merge with default parameters from function definition
+        default_params = func_def.get("default_params", {})
+        # Convert list format if needed (if stored as [{key, value}, ...])
+        if isinstance(default_params, list):
+            default_params = {p["key"]: p["value"] for p in default_params if "key" in p and "value" in p}
+        
+        merged_params = {**default_params, **(params or {})}
+
         data = None
         if method in ("GET", "DELETE"):
-            if params:
-                query_params.update(params)
+            if merged_params:
+                query_params.update(merged_params)
         else:
-            if params:
-                data = json.dumps(params).encode("utf-8")
+            if merged_params:
+                data = json.dumps(merged_params).encode("utf-8")
                 headers["Content-Type"] = "application/json"
 
         # Append query params to URL

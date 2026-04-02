@@ -4,6 +4,7 @@ export interface ApiFunction {
     path: string;
     description?: string;
     parameters?: any; // JSON Schema for parameters
+    default_params?: Array<{ key: string; value: string }>;
 }
 
 export interface ApiRegistry {
