@@ -464,11 +464,15 @@ const ConditionsView: React.FC<ViewProps> = ({ state, setState, getColumns, quer
                                         className="w-full bg-transparent outline-none h-full text-xs font-normal text-brand cursor-pointer"
                                     >
                                         <option value="">Param...</option>
-                                        {parameters.map(p => (
-                                            <option key={p.parameter_name} value={p.parameter_name}>
-                                                {p.parameter_name.toUpperCase()}
-                                            </option>
-                                        ))}
+                                         {parameters.map(p => {
+                                            const pName = p.parameter_name || (p as any).name;
+                                            if (!pName) return null;
+                                            return (
+                                                <option key={pName} value={pName}>
+                                                    {pName.toString().toUpperCase()}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                 </AppFormFieldRect>
                             ) : (
@@ -1048,7 +1052,8 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
             setParameterValues(prev => {
                 const next = { ...prev };
                 parameters.forEach(p => {
-                    const name = p.parameter_name;
+                    const name = p.parameter_name || (p as any).name;
+                    if (!name) return;
                     if (name === 'system_project_id') {
                         next[name] = activeProject?.id || '';
                     } else {
@@ -2098,29 +2103,37 @@ export const QueryBuilderModal: React.FC<QueryBuilderModalProps> = ({ isOpen, on
                                                     </div>
                                                 </div>
                                                 <div className="space-y-1 mt-2">
-                                                    {[...parameters].sort((a, b) => a.parameter_name.localeCompare(b.parameter_name)).map(p => (
-                                                        <div key={p.parameter_name} className="flex items-center gap-2 px-2 py-0.5 hover:bg-brand/5 rounded transition-colors group">
-                                                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                                <span className="text-[10px] font-bold uppercase tracking-tight text-[var(--text-main)] shrink-0">
-                                                                    {p.parameter_name.toUpperCase()}
-                                                                </span>
-                                                                <span className="text-[10px] text-[var(--text-muted)] shrink-0">—</span>
-                                                                <span className="text-[11px] font-medium text-[var(--text-main)] truncate">
-                                                                    {(() => {
-                                                                        // Prioritize the live resolved state (parameterValues) first —
-                                                                        // it holds the project ID for system params and the initialized defaults.
-                                                                        const liveVal = parameterValues[p.parameter_name];
-                                                                        const defVal = (p as any).default_value ?? (p as any).defaultValue ?? (p as any).value ?? (p as any).default;
-                                                                        const val = (liveVal !== undefined && liveVal !== null && liveVal !== '')
-                                                                            ? liveVal
-                                                                            : defVal;
-                                                                        if (val === 0 || val === false) return val.toString();
-                                                                        return val || <span className="text-[var(--text-muted)] italic opacity-30">(not set)</span>;
-                                                                    })()}
-                                                                </span>
+                                                    {[...parameters].sort((a, b) => {
+                                                        const nameA = a.parameter_name || (a as any).name || '';
+                                                        const nameB = b.parameter_name || (b as any).name || '';
+                                                        return nameA.localeCompare(nameB);
+                                                    }).map(p => {
+                                                        const pName = p.parameter_name || (p as any).name;
+                                                        if (!pName) return null;
+                                                        return (
+                                                            <div key={pName} className="flex items-center gap-2 px-2 py-0.5 hover:bg-brand/5 rounded transition-colors group">
+                                                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                    <span className="text-[10px] font-bold uppercase tracking-tight text-[var(--text-main)] shrink-0">
+                                                                        {pName.toString().toUpperCase()}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-[var(--text-muted)] shrink-0">—</span>
+                                                                    <span className="text-[11px] font-medium text-[var(--text-main)] truncate">
+                                                                        {(() => {
+                                                                            // Prioritize the live resolved state (parameterValues) first —
+                                                                            // it holds the project ID for system params and the initialized defaults.
+                                                                            const liveVal = parameterValues[pName];
+                                                                            const defVal = (p as any).default_value ?? (p as any).defaultValue ?? (p as any).value ?? (p as any).default;
+                                                                            const val = (liveVal !== undefined && liveVal !== null && liveVal !== '')
+                                                                                ? liveVal
+                                                                                : defVal;
+                                                                            if (val === 0 || val === false) return val.toString();
+                                                                            return val || <span className="text-[var(--text-muted)] italic opacity-30">(not set)</span>;
+                                                                        })()}
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         )}
