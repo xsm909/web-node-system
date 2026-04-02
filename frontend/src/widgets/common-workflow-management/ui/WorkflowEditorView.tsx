@@ -10,7 +10,8 @@ import { Icon } from '../../../shared/ui/icon';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { AppParameterListEditor } from '../../../shared/ui/app-parameter-list-editor';
 import { AppConsole, AppConsoleLogLine, type ConsoleLog } from '../../../shared/ui/app-console';
-import { AppJsonView } from '../../../shared/ui/app-json-view/AppJsonView';
+import { AppJsonView, type AppJsonViewRef } from '../../../shared/ui/app-json-view/AppJsonView';
+import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { useWorkflowEditor } from './WorkflowEditorProvider';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
@@ -79,6 +80,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
     const shownPreviewsRef = useRef<Set<string>>(new Set());
     const [savingParam, setSavingParam] = useState<ObjectParameter | null>(null);
     const { savePreset, isLoading: isSavingParamPreset } = usePresets('parameter');
+    const jsonPreviewRef = useRef<AppJsonViewRef>(null);
 
     const handleToggleParams = useCallback(() => {
         setIsParamsExpanded(!isParamsExpanded);
@@ -507,9 +509,17 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                         }
                     }}
                     discardLabel="Download"
+                    headerRightContent={
+                        <div className="flex items-center gap-1">
+                            <AppRoundButton icon="expand_all" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.expandAll()} title="Expand All" />
+                            <AppRoundButton icon="collapse_all" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.collapseAll()} title="Collapse All" />
+                            <AppRoundButton icon="content_copy" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.copy()} title="Copy JSON" />
+                            <AppRoundButton icon="schema" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.showSchema()} title="Show Schema" />
+                        </div>
+                    }
                 >
                     <div className="h-[60vh] overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-app-alt)]">
-                        <AppJsonView data={jsonPreviewModal.data} />
+                        <AppJsonView data={jsonPreviewModal.data} hideHeader={true} ref={jsonPreviewRef} />
                     </div>
                 </AppCompactModalForm>
             )}
