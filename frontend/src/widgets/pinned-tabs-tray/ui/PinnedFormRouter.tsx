@@ -213,6 +213,16 @@ const PinnedTabContent = React.memo<PinnedTabContentProps>(({
                     />
                 );
 
+            case 'api_registry':
+                return (
+                    <ApiManagement 
+                        initialTab="api_registry"
+                        initialEditId={tab.entityId}
+                        onToggleSidebar={() => {}}
+                        isSidebarOpen={false}
+                    />
+                );
+
             case 'ai_providers':
                 return (
                     <ApiManagement 
