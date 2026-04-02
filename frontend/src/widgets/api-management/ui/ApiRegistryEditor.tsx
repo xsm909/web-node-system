@@ -11,10 +11,14 @@ import {
     DndContext, 
     closestCenter, 
     KeyboardSensor, 
-    PointerSensor, 
+    PointerSensor,
+    MouseSensor,
+    TouchSensor, 
     useSensor, 
     useSensors, 
-    type DragEndEvent 
+    type DragEndEvent,
+    type DragStartEvent,
+    DragOverlay
 } from '@dnd-kit/core';
 import { 
     arrayMove, 
@@ -23,6 +27,7 @@ import {
     verticalListSortingStrategy, 
     useSortable 
 } from '@dnd-kit/sortable';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
 
 interface SortableApiFunctionItemProps {
@@ -34,36 +39,53 @@ interface SortableApiFunctionItemProps {
     onRemove: (index: number) => void;
 }
 
-function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUpdate, onRemove }: SortableApiFunctionItemProps) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging
-    } = useSortable({ id: func._dndId });
-
-    const style = {
-        transform: CSS.Translate.toString(transform),
-        transition,
-        zIndex: isDragging ? 50 : 0,
-        opacity: isDragging ? 0.6 : 1,
+interface ApiFunctionItemProps {
+    func: ApiFunction & { _dndId: string };
+    index: number;
+    isExpanded: boolean;
+    onToggleExpand?: (id: string) => void;
+    onUpdate?: (index: number, updates: Partial<ApiFunction>) => void;
+    onRemove?: (index: number) => void;
+    isOverlay?: boolean;
+    isGhost?: boolean;
+    sortableProps?: {
+        attributes: any;
+        listeners: any;
     };
+}
 
+function ApiFunctionItem({ 
+    func, 
+    index, 
+    isExpanded, 
+    onToggleExpand, 
+    onUpdate, 
+    onRemove, 
+    isOverlay, 
+    isGhost,
+    sortableProps 
+}: ApiFunctionItemProps) {
     return (
         <div 
-            ref={setNodeRef} 
-            style={style}
-            className={`flex flex-col gap-3 p-4 rounded-xl bg-surface-900/40 backdrop-blur-sm border border-[var(--border-base)] group animate-in fade-in slide-in-from-left-2 duration-200 ${isDragging ? 'shadow-2xl ring-2 ring-brand/50 bg-surface-800/80' : 'hover:border-brand/30'}`}
+            className={`flex flex-col gap-3 group animate-in fade-in slide-in-from-left-2 duration-200 
+                ${isOverlay 
+                    ? 'p-4 rounded-xl bg-brand/10 border border-brand/50 shadow-2xl ring-2 ring-brand/30 backdrop-blur-md opacity-100 scale-[1.02] z-[100]' 
+                    : isGhost 
+                        ? 'opacity-30 border-b border-[var(--border-base)]/40 py-5' 
+                        : 'py-5 border-b border-[var(--border-base)]/40 last:border-b-0'
+                }`}
         >
             {/* Header with Drag Handle, Summary, and Collapse Toggle */}
             <div className="flex items-center gap-3">
-                <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
+                <div 
+                    {...(sortableProps?.attributes || {})} 
+                    {...(sortableProps?.listeners || {})} 
+                    className={`${isOverlay ? 'cursor-grabbing' : 'cursor-grab'} active:cursor-grabbing p-1 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors`}
+                >
                     <Icon name="drag_indicator" size={16} />
                 </div>
                 
-                <div className="flex-1 flex items-center gap-4 cursor-pointer min-w-0" onClick={() => onToggleExpand(func._dndId)}>
+                <div className="flex-1 flex items-center gap-4 cursor-pointer min-w-0" onClick={() => !isOverlay && onToggleExpand?.(func._dndId)}>
                     <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase shrink-0 border tracking-wider ${
                         func.method === 'GET' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                         func.method === 'POST' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
@@ -81,53 +103,62 @@ function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUp
                 </div>
 
                 <div className="flex items-center gap-1">
-                    <AppRoundButton
-                        icon="delete"
-                        onClick={(e) => { e.stopPropagation(); onRemove(index); }}
-                        variant="danger"
-                        size="small"
-                        title="Remove Function"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                    />
-                    <AppRoundButton
-                        icon={isExpanded ? 'expand_less' : 'expand_more'}
-                        onClick={(e) => { e.stopPropagation(); onToggleExpand(func._dndId); }}
-                        variant="ghost"
-                        size="small"
-                        title={isExpanded ? "Collapse" : "Expand"}
-                        className={`transition-all duration-300 ${isExpanded ? 'bg-[var(--border-base)]' : ''}`}
-                    />
+                    {!isOverlay && (
+                        <>
+                            <AppRoundButton
+                                icon="delete"
+                                onClick={(e) => { e.stopPropagation(); onRemove?.(index); }}
+                                variant="danger"
+                                size="small"
+                                title="Remove Function"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            />
+                            <AppRoundButton
+                                icon={isExpanded ? 'expand_less' : 'expand_more'}
+                                onClick={(e) => { e.stopPropagation(); onToggleExpand?.(func._dndId); }}
+                                variant="ghost"
+                                size="small"
+                                title={isExpanded ? "Collapse" : "Expand"}
+                                className={`transition-all duration-300 ${isExpanded ? 'bg-[var(--border-base)]' : ''}`}
+                            />
+                        </>
+                    )}
                 </div>
             </div>
 
             {/* Expanded Content */}
-            {isExpanded && (
+            {isExpanded && !isOverlay && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="grid grid-cols-3 gap-3">
                         <AppInput
                             label="Name"
                             value={func.name}
-                            onChange={(val) => onUpdate(index, { name: val })}
+                            onChange={(val) => onUpdate?.(index, { name: val })}
                             placeholder="get_weather"
                             className={UI_CONSTANTS.CODE_EDITOR_CLASS}
                         />
-                        <div className="flex flex-col gap-1">
-                            <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">Method</label>
-                            <select
-                                value={func.method}
-                                onChange={(e) => onUpdate(index, { method: e.target.value as any })}
-                                className={`bg-surface-800 border border-[var(--border-base)] rounded-lg px-2 text-xs focus:border-brand/50 outline-none h-8`}
-                            >
-                                <option value="GET">GET</option>
-                                <option value="POST">POST</option>
-                                <option value="PUT">PUT</option>
-                                <option value="DELETE">DELETE</option>
-                            </select>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold text-[var(--text-main)]">Method</label>
+                            <div className="relative group/select">
+                                <select
+                                    value={func.method}
+                                    onChange={(e) => onUpdate?.(index, { method: e.target.value as any })}
+                                    className={`${UI_CONSTANTS.FORM_CONTROL_HEIGHT} bg-surface-800 border border-[var(--border-base)] rounded-lg px-2 pr-8 text-[12px] font-mono text-[var(--text-main)] focus:border-brand/50 outline-none w-full appearance-none cursor-pointer hover:bg-surface-700/50 transition-colors`}
+                                >
+                                    <option value="GET">GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="DELETE">DELETE</option>
+                                </select>
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] group-hover/select:text-[var(--text-main)] transition-colors">
+                                    <Icon name="expand_more" size={16} />
+                                </div>
+                            </div>
                         </div>
                         <AppInput
                             label="Path"
                             value={func.path}
-                            onChange={(val) => onUpdate(index, { path: val })}
+                            onChange={(val) => onUpdate?.(index, { path: val })}
                             placeholder="/v1/weather"
                             className={UI_CONSTANTS.CODE_EDITOR_CLASS}
                         />
@@ -136,9 +167,9 @@ function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUp
                     <AppInput
                         label="Description (for AI tools)"
                         value={func.description || ''}
-                        onChange={(val) => onUpdate(index, { description: val })}
+                        onChange={(val) => onUpdate?.(index, { description: val })}
                         placeholder="Fetches current weather for a city"
-                        className="text-xs mb-1"
+                        className="text-xs"
                     />
                     
                     <div className="mt-1 pt-3 border-t border-[var(--border-base)]/30">
@@ -151,7 +182,7 @@ function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUp
                                 type="button"
                                 onClick={() => {
                                     const current = func.default_params || [];
-                                    onUpdate(index, { default_params: [...current, { key: '', value: '' }] });
+                                    onUpdate?.(index, { default_params: [...current, { key: '', value: '' }] });
                                 }}
                                 className="h-6 px-2 rounded-lg bg-brand/10 text-[10px] font-bold text-brand hover:bg-brand/20 transition-all flex items-center gap-1 border border-brand/20"
                             >
@@ -160,30 +191,30 @@ function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUp
                             </button>
                         </div>
                         
-                        <div className="space-y-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
                             {(func.default_params || []).map((param, pIdx: number) => (
-                                <div key={pIdx} className="flex gap-2 items-start animate-in fade-in slide-in-from-top-1 duration-200">
-                                    <div className="flex-1">
+                                <div key={pIdx} className="flex gap-2 items-start animate-in fade-in slide-in-from-top-1 duration-200 bg-surface-900/10 p-1.5 rounded-lg border border-[var(--border-base)]/20">
+                                    <div className="flex-1 flex flex-col gap-1">
                                         <AppInput
                                             value={param.key || ''}
                                             onChange={(val) => {
                                                 const newParams = [...(func.default_params || [])];
                                                 newParams[pIdx] = { ...newParams[pIdx], key: val };
-                                                onUpdate(index, { default_params: newParams });
+                                                onUpdate?.(index, { default_params: newParams });
                                             }}
-                                            placeholder="Param name (e.g. format)"
+                                            placeholder="Key"
                                             className={UI_CONSTANTS.CODE_EDITOR_CLASS}
                                         />
                                     </div>
-                                    <div className="flex-1">
+                                    <div className="flex-1 flex flex-col gap-1">
                                         <AppInput
                                             value={param.value || ''}
                                             onChange={(val) => {
                                                 const newParams = [...(func.default_params || [])];
                                                 newParams[pIdx] = { ...newParams[pIdx], value: val };
-                                                onUpdate(index, { default_params: newParams });
+                                                onUpdate?.(index, { default_params: newParams });
                                             }}
-                                            placeholder="Value (e.g. json)"
+                                            placeholder="Value"
                                             className={UI_CONSTANTS.CODE_EDITOR_CLASS}
                                         />
                                     </div>
@@ -191,22 +222,49 @@ function SortableApiFunctionItem({ func, index, isExpanded, onToggleExpand, onUp
                                         icon="close"
                                         onClick={() => {
                                             const newParams = (func.default_params as any[]).filter((_, i) => i !== pIdx);
-                                            onUpdate(index, { default_params: newParams });
+                                            onUpdate?.(index, { default_params: newParams });
                                         }}
-                                        variant="danger"
+                                        variant="ghost"
                                         size="xs"
                                         title="Remove Parameter"
                                         className="mt-1"
                                     />
                                 </div>
                             ))}
-                            {(!func.default_params || func.default_params.length === 0) && (
-                                <p className="text-[10px] text-[var(--text-muted)] italic opacity-40 py-1 px-1">No default parameters defined for this function.</p>
-                            )}
                         </div>
+                        {(!func.default_params || func.default_params.length === 0) && (
+                            <p className="text-[10px] text-[var(--text-muted)] italic opacity-40 py-1 px-1">No default parameters defined for this function.</p>
+                        )}
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+function SortableApiFunctionItem(props: SortableApiFunctionItemProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: props.func._dndId });
+
+    const style = {
+        transform: isDragging ? undefined : CSS.Translate.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : 0,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style}>
+            <ApiFunctionItem 
+                {...props} 
+                isGhost={isDragging} 
+                sortableProps={{ attributes, listeners }} 
+            />
         </div>
     );
 }
@@ -236,8 +294,12 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
 
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
+    const [activeId, setActiveId] = useState<string | null>(null);
+
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(TouchSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
@@ -309,6 +371,10 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
         setFunctionsList(functionsList.filter((_, i) => i !== index));
     };
 
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(event.active.id as string);
+    };
+
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
@@ -318,6 +384,11 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
                 return arrayMove(items, oldIndex, newIndex);
             });
         }
+        setActiveId(null);
+    };
+
+    const handleDragCancel = () => {
+        setActiveId(null);
     };
 
     const toggleExpand = (id: string) => {
@@ -347,7 +418,7 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
                     <p className="text-sm text-[var(--text-muted)] mt-1 opacity-60">Register a third-party API service to use its functions in workflows and AI agents.</p>
                 </header>
                 <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 gap-6 bg-surface-900/10 p-5 rounded-2xl border border-[var(--border-base)]/30 backdrop-blur-[2px]">
                         <AppInput
                             label="API Name"
                             required
@@ -433,22 +504,27 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
                             </div>
                         </div>
 
-                        <div className="space-y-3 bg-surface-900/20 backdrop-blur-[2px] p-4 rounded-2xl border border-[var(--border-base)] min-h-[100px]">
+                        <div className="space-y-0 min-h-[100px]">
                             {functionsList.length === 0 ? (
-                                <div className="h-16 flex items-center justify-center text-[var(--text-muted)] italic text-xs opacity-50">
-                                    No functions mapped. Click + to add your first function.
+                                <div className="h-24 flex flex-col items-center justify-center text-[var(--text-muted)] bg-surface-900/5 rounded-2xl border border-dashed border-[var(--border-base)] animate-in fade-in duration-500">
+                                    <Icon name="api" size={24} className="opacity-20 mb-2" />
+                                    <p className="italic text-xs opacity-50">No functions mapped.</p>
+                                    <p className="text-[10px] opacity-30 mt-1 uppercase tracking-tight">Click + to add your first function</p>
                                 </div>
                             ) : (
                                 <DndContext 
                                     sensors={sensors} 
                                     collisionDetection={closestCenter} 
+                                    onDragStart={handleDragStart}
                                     onDragEnd={handleDragEnd}
+                                    onDragCancel={handleDragCancel}
+                                    modifiers={[restrictToVerticalAxis]}
                                 >
                                     <SortableContext 
                                         items={functionsList.map(f => f._dndId)} 
                                         strategy={verticalListSortingStrategy}
                                     >
-                                        <div className="space-y-3">
+                                        <div className="space-y-0">
                                             {functionsList.map((func, index) => (
                                                 <SortableApiFunctionItem
                                                     key={func._dndId}
@@ -462,6 +538,16 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
                                             ))}
                                         </div>
                                     </SortableContext>
+                                    <DragOverlay modifiers={[restrictToVerticalAxis]}>
+                                        {activeId ? (
+                                            <ApiFunctionItem
+                                                func={functionsList.find(f => f._dndId === activeId)!}
+                                                index={functionsList.findIndex(f => f._dndId === activeId)}
+                                                isExpanded={false}
+                                                isOverlay
+                                            />
+                                        ) : null}
+                                    </DragOverlay>
                                 </DndContext>
                             )}
                         </div>
