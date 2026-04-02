@@ -13,6 +13,7 @@ import { AppConsole, AppConsoleLogLine, type ConsoleLog } from '../../../shared/
 import { AppJsonView, type AppJsonViewRef } from '../../../shared/ui/app-json-view/AppJsonView';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { useWorkflowEditor } from './WorkflowEditorProvider';
+import { marked } from 'marked';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { apiClient } from '../../../shared/api/client';
@@ -72,10 +73,12 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
         title: string;
         url?: string;
         filename?: string;
+        previewType?: string;
     }>({
         isOpen: false,
         data: null,
-        title: 'JSON Preview'
+        title: 'Preview',
+        previewType: 'json_preview'
     });
     const shownPreviewsRef = useRef<Set<string>>(new Set());
     const [savingParam, setSavingParam] = useState<ObjectParameter | null>(null);
@@ -163,14 +166,14 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
         });
     }, [isParamsExpanded, isParametersModalOpen, activeWorkflow?.parameters, modalParams, paramOptions]);
 
-    // Scan for JSON previews in live runtime data
+    // Scan for previews in live runtime data
     useEffect(() => {
         if (!liveRuntimeData) return;
 
         const scanForPreviews = (obj: any) => {
             if (!obj || typeof obj !== 'object') return;
 
-            if (obj.type === 'json_preview' && obj.url) {
+            if ((obj.type === 'json_preview' || obj.type === 'text_preview' || obj.type === 'markdown_preview') && obj.url) {
                 const url = obj.url;
                 if (!shownPreviewsRef.current.has(url)) {
                     shownPreviewsRef.current.add(url);
@@ -181,12 +184,13 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                             setJsonPreviewModal({
                                 isOpen: true,
                                 data: res.data,
-                                title: `Preview: ${obj.filename || 'JSON Data'}`,
+                                title: `Preview: ${obj.filename || 'Data'}`,
                                 url: obj.url,
-                                filename: obj.filename
+                                filename: obj.filename,
+                                previewType: obj.type
                             });
                         })
-                        .catch(err => console.error('Failed to fetch JSON preview:', err));
+                        .catch(err => console.error(`Failed to fetch ${obj.type}:`, err));
                 }
             }
 
@@ -510,16 +514,34 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                     }}
                     discardLabel="Download"
                     headerRightContent={
-                        <div className="flex items-center gap-1">
-                            <AppRoundButton icon="expand_all" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.expandAll()} title="Expand All" />
-                            <AppRoundButton icon="collapse_all" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.collapseAll()} title="Collapse All" />
-                            <AppRoundButton icon="content_copy" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.copy()} title="Copy JSON" />
-                            <AppRoundButton icon="schema" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.showSchema()} title="Show Schema" />
-                        </div>
+                        jsonPreviewModal.previewType === 'json_preview' ? (
+                            <div className="flex items-center gap-1">
+                                <AppRoundButton icon="expand_all" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.expandAll()} title="Expand All" />
+                                <AppRoundButton icon="collapse_all" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.collapseAll()} title="Collapse All" />
+                                <AppRoundButton icon="content_copy" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.copy()} title="Copy JSON" />
+                                <AppRoundButton icon="schema" variant="ghost" size="xs" onClick={() => jsonPreviewRef.current?.showSchema()} title="Show Schema" />
+                            </div>
+                        ) : null
                     }
                 >
                     <div className="h-[60vh] overflow-hidden rounded-xl border border-[var(--border-base)] bg-[var(--bg-app-alt)]">
-                        <AppJsonView data={jsonPreviewModal.data} hideHeader={true} ref={jsonPreviewRef} />
+                        {(!jsonPreviewModal.previewType || jsonPreviewModal.previewType === 'json_preview') ? (
+                            <AppJsonView data={jsonPreviewModal.data} hideHeader={true} ref={jsonPreviewRef} />
+                        ) : jsonPreviewModal.previewType === 'markdown_preview' ? (
+                            <div className="p-4 h-full overflow-auto text-sm markdown-content bg-[var(--bg-app)]">
+                                <div dangerouslySetInnerHTML={{ 
+                                    __html: marked.parse(typeof jsonPreviewModal.data === 'string' 
+                                        ? jsonPreviewModal.data 
+                                        : JSON.stringify(jsonPreviewModal.data, null, 2)) as string 
+                                }} />
+                            </div>
+                        ) : (
+                            <div className="p-4 h-full overflow-auto text-xs font-mono text-[var(--text-main)] whitespace-pre-wrap select-text">
+                                {typeof jsonPreviewModal.data === 'string' 
+                                    ? jsonPreviewModal.data 
+                                    : JSON.stringify(jsonPreviewModal.data, null, 2)}
+                            </div>
+                        )}
                     </div>
                 </AppCompactModalForm>
             )}

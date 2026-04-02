@@ -78,6 +78,12 @@
         "boost": 1
     },
     {
+        "label": "dataclasses",
+        "type": "module",
+        "detail": "Allowed module",
+        "boost": 1
+    },
+    {
         "label": "libs",
         "type": "variable",
         "detail": "libs namespace",
@@ -579,6 +585,42 @@
         "label": "files.view",
         "type": "function",
         "detail": "files.view function",
+        "boost": 4
+    },
+    {
+        "label": "show",
+        "type": "variable",
+        "detail": "show namespace",
+        "boost": 3
+    },
+    {
+        "label": "show.json",
+        "type": "function",
+        "detail": "show.json function",
+        "boost": 4
+    },
+    {
+        "label": "show.md",
+        "type": "function",
+        "detail": "show.md function",
+        "boost": 4
+    },
+    {
+        "label": "show.txt",
+        "type": "function",
+        "detail": "show.txt function",
+        "boost": 4
+    },
+    {
+        "label": "show.file",
+        "type": "function",
+        "detail": "show.file function",
+        "boost": 4
+    },
+    {
+        "label": "show.files",
+        "type": "function",
+        "detail": "show.files function",
         "boost": 4
     },
     {

@@ -249,6 +249,13 @@ SAFE_GLOBALS = {
         download=temp_files_lib.download,
         view=temp_files_lib.view
     ),
+    "show": SimpleNamespace(
+        json=temp_files_lib.show_json,
+        md=temp_files_lib.show_md,
+        txt=temp_files_lib.show_txt,
+        file=temp_files_lib.view,
+        files=temp_files_lib.view
+    ),
     "charts": charts,
     "datetime": datetime,
     "time": time,

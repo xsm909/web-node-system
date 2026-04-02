@@ -125,10 +125,47 @@ def download(filename: str) -> Dict[str, Any]:
 
 def view(filename: str) -> Dict[str, Any]:
     """
-    Returns information needed to preview a JSON file on the frontend.
-    The frontend should detect the 'json_preview' type and open a viewer.
+    Returns information needed to preview a file on the frontend.
+    The frontend should detect the type and open an appropriate viewer.
     """
     res = download(filename)
     if res.get("success"):
-        res["type"] = "json_preview"
+        ext = filename.split(".")[-1].lower() if "." in filename else ""
+        if ext == "json":
+            res["type"] = "json_preview"
+        elif ext == "md":
+            res["type"] = "markdown_preview"
+        elif ext in ("txt", "log", "csv"):
+            res["type"] = "text_preview"
+        else:
+            res["type"] = "file_download"
+    return res
+
+def _extract_text(data: Any) -> Any:
+    """Extracts raw text if data is a dict with a single string value."""
+    if isinstance(data, dict) and len(data) == 1:
+        val = list(data.values())[0]
+        if isinstance(val, str):
+            return val
+    return data
+
+def show_json(data: Any) -> Dict[str, Any]:
+    """Saves data as JSON and returns a json_preview command."""
+    res = save(data, file_type="json")
+    if res.get("success"):
+        return view(res["filename"])
+    return res
+
+def show_md(data: Any) -> Dict[str, Any]:
+    """Saves data as Markdown and returns a markdown_preview command."""
+    res = save(_extract_text(data), file_type="md")
+    if res.get("success"):
+        return view(res["filename"])
+    return res
+
+def show_txt(data: Any) -> Dict[str, Any]:
+    """Converts data to string, saves as TXT and returns a text_preview command."""
+    res = save(str(_extract_text(data)), file_type="txt")
+    if res.get("success"):
+        return view(res["filename"])
     return res
