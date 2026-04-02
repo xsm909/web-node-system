@@ -41,8 +41,9 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
             hozAlign: "left",
             headerHozAlign: "left",
             headerSort: false,
-            minWidth: 100,
+            minWidth: 80,
             vertAlign: "middle",
+            resizable: false,
         }));
 
         if (!isReadOnly) {
@@ -123,62 +124,139 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
     };
 
     return (
-        <div className="space-y-1.5 group w-full col-span-full mb-4 dataclass-list-editor">
-            <div className="flex items-center justify-between px-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] group-focus-within:text-brand transition-colors">
+        <div className="space-y-1 group w-full col-span-full mb-4 dataclass-list-editor">
+            <div className="flex items-center justify-between px-0">
+                <label className="text-[8px] font-normal uppercase tracking-[0.15em] text-[var(--text-muted)] group-focus-within:text-[var(--brand)] opacity-80 transition-all">
                     {label}
                 </label>
                 {!isReadOnly && (
-                    <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-bold uppercase tracking-tighter text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity">
-                            Add Row
-                        </span>
-                        <AppRoundButton
-                            icon="add_circle"
-                            variant="outline"
-                            size="xs"
-                            onClick={handleAddRow}
-                            title="Add Row"
-                        />
-                    </div>
+                    <AppRoundButton
+                        icon="add_circle"
+                        variant="outline"
+                        size="xs"
+                        onClick={handleAddRow}
+                        title="Add Row"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    />
                 )}
             </div>
 
-            <div className="border border-[var(--border-base)]/50 rounded-lg overflow-hidden bg-surface-900/10 backdrop-blur-sm">
-                <div ref={tableRef} className="w-full text-[12px] compact-dataclass-table" />
+            <div className="border-t border-b border-[var(--border-base)]/30 bg-transparent overflow-hidden">
+                <div 
+                    ref={tableRef} 
+                    className="w-full text-[12px] compact-dataclass-table no-scrollbar custom-scrollbar" 
+                    style={{ maxHeight: '208px', overflowY: 'auto', scrollbarGutter: 'stable' }}
+                />
             </div>
 
             <style>{`
+                .compact-dataclass-table {
+                    background: transparent !important;
+                    border: none !important;
+                }
+                .compact-dataclass-table .tabulator-tableholder {
+                    overflow-x: hidden !important;
+                    overflow-y: visible !important;
+                }
+                /* Custom Emerald Scrollbar */
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: var(--border-base);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: var(--brand);
+                }
+
                 .compact-dataclass-table .tabulator-header {
-                    background-color: color-mix(in srgb, var(--brand), transparent 90%) !important;
-                    color: var(--text-main) !important;
+                    background-color: transparent !important;
+                    color: var(--text-muted) !important;
                     border-bottom: 1px solid var(--border-base) !important;
-                    font-size: 10px !important;
+                    position: sticky;
+                    top: 0;
+                    z-index: 100;
+                    border-top: none !important;
                 }
                 .compact-dataclass-table .tabulator-header .tabulator-col {
                     background-color: transparent !important;
-                    border-right: 1px solid var(--border-base) !important;
+                    border-right: none !important;
+                }
+                .compact-dataclass-table .tabulator-header .tabulator-col-content {
+                    padding: 2px 0 !important;
                 }
                 .compact-dataclass-table .tabulator-header .tabulator-col-title {
-                    padding: 4px 8px !important;
+                    font-size: 8px !important;
+                    font-weight: 400 !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.15em !important;
+                    color: var(--text-muted) !important;
                 }
                 .compact-dataclass-table .tabulator-row {
-                    min-height: 28px !important;
+                    min-height: 26px !important;
                     background-color: transparent !important;
+                    border-bottom: 1px solid var(--border-base) !important;
+                    display: flex !important;
+                    align-items: center !important;
+                }
+                .compact-dataclass-table .tabulator-row.tabulator-row-even {
+                    background-color: rgba(var(--brand), 0.03) !important;
+                }
+                .compact-dataclass-table .tabulator-row:last-child {
+                    border-bottom: none !important;
                 }
                 .compact-dataclass-table .tabulator-cell {
-                    padding: 4px 8px !important;
-                    border-right: 1px solid var(--border-base) !important;
+                    padding: 4px 0 !important;
+                    border-right: none !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    height: 26px !important;
+                    color: var(--text-main) !important;
+                }
+                .compact-dataclass-table .tabulator-cell.tabulator-editing {
+                    padding: 0 !important;
+                }
+                .compact-dataclass-table .tabulator-cell.tabulator-editing input {
+                    border: none !important;
+                    padding: 0 4px !important;
+                    margin: 0 !important;
+                    background: var(--bg-app) !important;
+                    color: var(--text-main) !important;
+                    font-size: 12px !important;
+                    width: 100% !important;
+                    height: 26px !important;
+                    outline: none !important;
+                    box-shadow: inset 0 0 0 1px var(--brand) !important;
+                    z-index: 50;
+                    position: relative;
                 }
                 .compact-dataclass-table .tabulator-cell[field="__actions"] {
                     padding: 0 !important;
                 }
-                .dark .compact-dataclass-table .tabulator-row.tabulator-row-even {
-                    background-color: rgba(255, 255, 255, 0.01) !important;
+                .compact-dataclass-table .tabulator-placeholder {
+                    background-color: transparent !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    min-height: 26px !important;
+                    height: 26px !important;
+                    border: none !important;
+                    padding: 0 !important;
                 }
-                .compact-dataclass-table .tabulator-header .tabulator-col:last-child,
-                .compact-dataclass-table .tabulator-cell:last-child {
-                    border-right: none !important;
+                .compact-dataclass-table .tabulator-placeholder span,
+                .compact-dataclass-table .tabulator-placeholder div {
+                    font-size: 8px !important;
+                    font-weight: 400 !important;
+                    color: var(--text-muted) !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.15em !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    opacity: 0.7;
                 }
             `}</style>
         </div>
