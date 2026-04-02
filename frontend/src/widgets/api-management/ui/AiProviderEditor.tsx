@@ -6,7 +6,6 @@ import { Icon } from '../../../shared/ui/icon';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { useCredentials } from '../../../entities/credential/api';
-import { useProjectStore } from '../../../features/projects/store';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 interface AiProviderEditorProps {
@@ -17,8 +16,7 @@ interface AiProviderEditorProps {
 }
 
 export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiProviderEditorProps) {
-    const { baseProject } = useProjectStore();
-    const { data: credentials = [] } = useCredentials(baseProject?.id);
+    const { data: credentials = [] } = useCredentials();
 
     const [formData, setFormData] = useState<Partial<AiProvider>>(provider || {
         key: '',

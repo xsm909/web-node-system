@@ -267,6 +267,8 @@ class CredentialCreate(BaseModel):
     key: str
     value: str
     type: str
+    auth_type: Optional[str] = "header"
+    meta: Optional[dict] = None
     description: Optional[str] = None
     expired: bool = False
 
@@ -276,6 +278,8 @@ class CredentialOut(BaseModel):
     key: str
     value: str
     type: str
+    auth_type: Optional[str] = "header"
+    meta: Optional[dict] = None
     description: Optional[str] = None
     expired: bool = False
     is_locked: bool = False
@@ -458,12 +462,12 @@ def delete_node_type(node_id: uuid.UUID, db: Session = Depends(get_db), _=admin_
 
 @router.get("/credentials", response_model=List[CredentialOut])
 def list_credentials(db: Session = Depends(get_db), _=admin_only):
-    is_locked_subquery = db.query(LockData.id).filter(
-        LockData.entity_id == Credential.id,
-        LockData.entity_type == "credentials"
-    ).exists()
-    
-    results = db.query(Credential, is_locked_subquery.label("is_locked")).all()
+    # Use an outer join to check for locks, which is more portable than exists() in SELECT
+    results = db.query(Credential, LockData.id.isnot(None).label("is_locked")) \
+        .outerjoin(LockData, and_(
+            LockData.entity_id == Credential.id,
+            LockData.entity_type == "credentials"
+        )).all()
     
     response = []
     for cred, is_locked in results:

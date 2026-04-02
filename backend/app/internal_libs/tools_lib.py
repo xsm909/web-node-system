@@ -2,6 +2,7 @@ import json
 import urllib.request
 import urllib.error
 from .logger_lib import system_log
+from . import api_registry_lib
 
 def calculator(expression: str) -> str:
     """Calculates a mathematical expression."""
@@ -291,4 +292,8 @@ def write_runtime_data(data: str, execution_id: str = None) -> str:
         res = f"Error: {str(e)}"
         system_log(f"[TOOL] Error: write_runtime_data -> {res}", level="error")
         return res
+
+def call_api_function(api_name: str, function_name: str, params: dict = None) -> any:
+    """Calls a function from the registered external API registry."""
+    return api_registry_lib.call_api_function(api_name, function_name, params)
 

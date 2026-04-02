@@ -38,6 +38,7 @@ ALL_TOOLS = {
     "database_query": tools_lib.database_query,
     "http_request": tools_lib.http_request,
     "smart_search": tools_lib.smart_search,
+    "call_api_function": tools_lib.call_api_function,
 }
 
 def prepare_tools(tools: List[str], provider: str) -> Dict[str, Any]:

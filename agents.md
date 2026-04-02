@@ -222,6 +222,7 @@ metadata - metadata.svg
 projects - project.svg
 Users - user.svg
 User management - user.svg
+API Registry - api.svg
 
 #### 9.3.1 UI icons rules
 pin - keep.svg
@@ -603,4 +604,29 @@ To prevent visual "nesting" artifacts, grouping follows a strict single-frame de
 Groups are designed to align perfectly with the editor's background grid:
 - **Grid-Aligned Padding**: Vertical padding is fixed at **30px** (three grid steps) and horizontal padding at **20px** (two grid steps). This ensures the frame always overlaps with the grid dots.
 - **Drag Behavior**: Groups act as parent containers; moving a group instantly moves all contained nodes without layout lag.
+
+## 22. External API Registry
+
+The platform provides a unified mechanism to register, manage, and invoke external third-party APIs. These APIs are treated as first-class functional units that can be used both as workflow nodes and as tools for AI agents.
+
+### 22.1 API Configuration
+Registered APIs are managed in a centralized registry (similar to `AiProvider`). Each entry defines:
+- **Base URL**: The target endpoint (e.g., `http://localhost:8018`).
+- **Authentication**: Supported methods include:
+    - **Header**: `X-API-Key` (e.g., `-H "X-API-Key: your_secret_key"`).
+    - **Query Parameter**: `api_key` (e.g., `?api_key=...`).
+- **Function Mapping**: Instead of LLM models, the entry lists the specific functions/endpoints available at that address.
+
+### 22.2 Workflow Execution (`API.CallAPIFunction`)
+Python nodes can trigger external logic via a standardized internal utility:
+- **Usage**: `result = API.CallAPIFunction(api_name, function_name, parameters)`
+- **Execution**: The system automatically injects the required credentials, handles the HTTP transport, and returns the parsed result to the node's local context.
+
+### 22.3 AI Agents & Tool Calling
+Registered APIs can be dynamically exposed as **Tools** for LLM providers:
+- **Automatic Registration**: The platform can inject registered API functions into the `tools` configuration of an agent (OpenAI `web_search` style or Gemini `function_calling`).
+- **Interception**: When an LLM requests a tool call, the backend resolves the corresponding API registry entry and executes the actual request on behalf of the agent.
+
+### 22.4 Documentation & Testing
+The system supports integrated documentation views (e.g., `/doc?api_key=...`) to allow Administrators to verify connectivity and explore function schemas directly from the platform.
 ```

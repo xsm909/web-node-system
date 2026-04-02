@@ -19,6 +19,16 @@ import {
     useCredentials, 
     useDeleteCredential 
 } from '../../../entities/credential/api';
+import { 
+    useApiRegistries,
+    useApiRegistry,
+    useCreateApiRegistry,
+    useUpdateApiRegistry,
+    useDeleteApiRegistry
+} from '../../../entities/api-registry/api';
+import { ApiRegistryList } from './ApiRegistryList';
+import { ApiRegistryEditor } from './ApiRegistryEditor';
+import type { ApiRegistry } from '../../../entities/api-registry/model/types';
 import type { AiProvider } from '../../../entities/ai-provider/model/types';
 import type { Credential } from '../../../entities/credential/model/types';
 import { useProjectStore } from '../../../features/projects/store';
@@ -26,12 +36,12 @@ import { useProjectStore } from '../../../features/projects/store';
 interface ApiManagementProps {
     onToggleSidebar?: () => void;
     isSidebarOpen?: boolean;
-    initialTab?: 'providers' | 'credentials';
+    initialTab?: 'providers' | 'credentials' | 'api_registry';
     initialEditId?: string | null;
 }
 
 export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, initialEditId }: ApiManagementProps) {
-    const [activeTab, setActiveTab] = useState<'providers' | 'credentials'>(initialTab || 'providers');
+    const [activeTab, setActiveTab] = useState<'providers' | 'credentials' | 'api_registry'>(initialTab || 'providers');
     const { baseProject } = useProjectStore();
     
     // AI Providers state
@@ -42,15 +52,24 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
     const deleteProvider = useDeleteAiProvider();
 
     // Credentials state
-    const { data: credentials = [], isLoading: credentialsLoading } = useCredentials(baseProject?.id);
+    const { data: credentials = [], isLoading: credentialsLoading } = useCredentials();
     const deleteCredentialMutation = useDeleteCredential();
     
     const [view, setView] = useState<'list' | 'edit'>('list');
     const [selectedProvider, setSelectedProvider] = useState<AiProvider | null>(null);
     const [providerToDelete, setProviderToDelete] = useState<AiProvider | null>(null);
     const [credentialToDelete, setCredentialToDelete] = useState<Credential | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
     const [editingCredentialId, setEditingCredentialId] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // API Registry state
+    const { data: apiRegistries = [], isLoading: apisLoading } = useApiRegistries(baseProject?.id);
+    const { data: directApi, isLoading: directApiLoading } = useApiRegistry(initialEditId);
+    const createApi = useCreateApiRegistry();
+    const updateApi = useUpdateApiRegistry();
+    const deleteApi = useDeleteApiRegistry();
+    const [selectedApi, setSelectedApi] = useState<ApiRegistry | null>(null);
+    const [apiToDelete, setApiToDelete] = useState<ApiRegistry | null>(null);
 
     // Internal deep-link support
     useEffect(() => {
@@ -70,9 +89,18 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
             } else if (activeTab === 'credentials') {
                 setEditingCredentialId(initialEditId);
                 setView('edit');
+            } else if (activeTab === 'api_registry') {
+                const found = apiRegistries.find(a => a.id === initialEditId);
+                if (found) {
+                    setSelectedApi(found);
+                    setView('edit');
+                } else if (directApi && !directApiLoading) {
+                    setSelectedApi(directApi);
+                    setView('edit');
+                }
             }
         }
-    }, [initialTab, initialEditId, providers, directProvider, directProviderLoading, activeTab]);
+    }, [initialTab, initialEditId, providers, directProvider, directProviderLoading, apiRegistries, directApi, directApiLoading, activeTab]);
 
     const handleCreateProvider = () => {
         setSelectedProvider(null);
@@ -94,6 +122,16 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
         setView('edit');
     };
 
+    const handleCreateApi = () => {
+        setSelectedApi(null);
+        setView('edit');
+    };
+
+    const handleEditApi = (api: ApiRegistry) => {
+        setSelectedApi(api);
+        setView('edit');
+    };
+
     const handleSaveProvider = async (data: Partial<AiProvider>) => {
         try {
             let result: AiProvider;
@@ -103,8 +141,26 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                 result = await createProvider.mutateAsync(data);
             }
             setSelectedProvider(result);
+            setView('list');
         } catch (err) {
             console.error("Failed to save provider", err);
+            alert("Failed to save provider. Check console for details.");
+        }
+    };
+
+    const handleSaveApi = async (data: Partial<ApiRegistry>) => {
+        try {
+            let result: ApiRegistry;
+            if (selectedApi) {
+                result = await updateApi.mutateAsync({ id: selectedApi.id, data });
+            } else {
+                result = await createApi.mutateAsync(data);
+            }
+            setSelectedApi(result);
+            setView('list');
+        } catch (err) {
+            console.error("Failed to save API Registry entry", err);
+            alert("Failed to save API Registry entry. Check console for details.");
         }
     };
 
@@ -126,6 +182,15 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
         }
     };
 
+    const confirmDeleteApi = async () => {
+        if (!apiToDelete) return;
+        try {
+            await deleteApi.mutateAsync(apiToDelete.id);
+        } finally {
+            setApiToDelete(null);
+        }
+    };
+
     if (view === 'edit') {
         if (activeTab === 'providers') {
             return (
@@ -142,6 +207,15 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                     credentialId={editingCredentialId}
                     onCancel={() => setView('list')}
                     onSaveSuccess={(cred) => setEditingCredentialId(cred.id)}
+                />
+            );
+        } else if (activeTab === 'api_registry') {
+            return (
+                <ApiRegistryEditor
+                    api={selectedApi}
+                    isSaving={createApi.isPending || updateApi.isPending}
+                    onSave={handleSaveApi}
+                    onCancel={() => setView('list')}
                 />
             );
         }
@@ -161,27 +235,40 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                 }
                 rightContent={
                     <AppRoundButton
-                        onClick={activeTab === 'providers' ? handleCreateProvider : handleCreateCredential}
+                        onClick={
+                            activeTab === 'providers' ? handleCreateProvider : 
+                            activeTab === 'api_registry' ? handleCreateApi : 
+                            handleCreateCredential
+                        }
                         icon="add"
                         variant="brand"
-                        title={activeTab === 'providers' ? "Add AI Provider" : "Add Credential"}
+                        title={
+                            activeTab === 'providers' ? "Add AI Provider" : 
+                            activeTab === 'api_registry' ? "Add External API" : 
+                            "Add Credential"
+                        }
                         iconSize={20}
                     />
                 }
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                searchPlaceholder={activeTab === 'providers' ? "Search providers..." : "Search credentials..."}
+                searchPlaceholder={
+                    activeTab === 'providers' ? "Search providers..." : 
+                    activeTab === 'api_registry' ? "Search APIs..." : 
+                    "Search credentials..."
+                }
             />
 
             <div className="px-8 border-b border-[var(--border-base)] bg-[var(--bg-app)]">
                 <AppTabs
                     tabs={[
                         { id: 'providers', label: 'AI Providers', icon: 'hive' },
+                        { id: 'api_registry', label: 'External APIs', icon: 'api' },
                         { id: 'credentials', label: 'Credentials', icon: 'verified' },
                     ]}
                     activeTab={activeTab}
                     onTabChange={(id) => {
-                        setActiveTab(id as 'providers' | 'credentials');
+                        setActiveTab(id as 'providers' | 'credentials' | 'api_registry');
                         setSearchQuery('');
                         setView('list');
                     }}
@@ -199,6 +286,17 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                             searchQuery={searchQuery}
                             onEdit={handleEditProvider}
                             onDelete={setProviderToDelete}
+                        />
+                    )
+                ) : activeTab === 'api_registry' ? (
+                    apisLoading ? (
+                        <div className="p-8 text-center text-[var(--text-muted)] italic">Loading APIs...</div>
+                    ) : (
+                        <ApiRegistryList
+                            apis={apiRegistries}
+                            searchQuery={searchQuery}
+                            onEdit={handleEditApi}
+                            onDelete={setApiToDelete}
                         />
                     )
                 ) : (
@@ -228,11 +326,21 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
             <ConfirmModal
                 isOpen={!!credentialToDelete}
                 title="Delete Credential"
-                description={`Are you sure you want to delete the credential '${credentialToDelete?.key}'?`}
+                description={`Are you sure you want to delete the credential '${credentialToDelete?.key || ''}'?`}
                 confirmLabel="Delete"
                 isLoading={deleteCredentialMutation.isPending}
                 onConfirm={confirmDeleteCredential}
                 onCancel={() => setCredentialToDelete(null)}
+            />
+
+            <ConfirmModal
+                isOpen={!!apiToDelete}
+                title="Delete External API"
+                description={`Are you sure you want to delete the API '${apiToDelete?.name}'?`}
+                confirmLabel="Delete"
+                isLoading={deleteApi.isPending}
+                onConfirm={confirmDeleteApi}
+                onCancel={() => setApiToDelete(null)}
             />
         </div>
     );

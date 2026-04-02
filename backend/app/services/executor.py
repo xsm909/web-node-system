@@ -47,6 +47,7 @@ from ..internal_libs.runtime_lib import (
     delete_runtime_value as runtime_delete_value
 )
 from ..internal_libs import temp_files_lib
+from ..internal_libs import api_registry_lib
 
 
 def json_sanitize(obj):
@@ -251,6 +252,9 @@ SAFE_GLOBALS = {
     "datetime": datetime,
     "time": time,
     "timedelta": timedelta,
+    "API": SimpleNamespace(
+        CallAPIFunction=api_registry_lib.call_api_function
+    ),
     "workflow": SimpleNamespace(
         execute_node=lambda h, i: None,
         runtime=SimpleNamespace(

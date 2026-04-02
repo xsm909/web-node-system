@@ -32,11 +32,12 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
         key: '',
         value: '',
         type: 'api',
+        auth_type: 'header',
         description: '',
         expired: false
     });
     const [initialFormState, setInitialFormState] = useState<Partial<Credential>>({
-        key: '', value: '', type: 'api', description: '', expired: false
+        key: '', value: '', type: 'api', auth_type: 'header' as 'header' | 'query', description: '', expired: false
     });
 
     useEffect(() => {
@@ -50,7 +51,7 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
                 setInitialFormState(directCredential);
             }
         } else if (!credentialId || credentialId === 'new') {
-            const empty = { key: '', value: '', type: 'api', description: '', expired: false };
+            const empty = { key: '', value: '', type: 'api', auth_type: 'header' as 'header' | 'query', description: '', expired: false };
             setFormData(empty);
             setInitialFormState(empty);
         }
@@ -81,6 +82,7 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
     const isDirty = formData.key !== initialFormState.key ||
                     formData.value !== initialFormState.value ||
                     formData.type !== initialFormState.type ||
+                    formData.auth_type !== initialFormState.auth_type ||
                     formData.description !== initialFormState.description ||
                     formData.expired !== initialFormState.expired;
 
@@ -146,6 +148,24 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
                                 </select>
                             </AppFormFieldRect>
                         </div>
+
+                        {formData.type === 'api' && (
+                            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <label className="text-sm font-bold text-[var(--text-main)]">Authentication Method</label>
+                                <AppFormFieldRect disabled={!!formData.is_locked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
+                                    <select
+                                        value={formData.auth_type}
+                                        onChange={(e) => setFormData({ ...formData, auth_type: e.target.value as any })}
+                                        className="w-full bg-transparent outline-none h-full text-xs font-normal cursor-pointer"
+                                        disabled={!!formData.is_locked}
+                                    >
+                                        <option value="header">Header (X-API-Key)</option>
+                                        <option value="query">Query Parameter (?api_key=)</option>
+                                    </select>
+                                </AppFormFieldRect>
+                            </div>
+                        )}
+                        
                         <AppInput
                             label="Description"
                             value={formData.description || ''}

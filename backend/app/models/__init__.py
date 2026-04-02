@@ -13,6 +13,7 @@ from .lock import LockData
 from .project import Project
 from .preset import Preset
 from .ai_provider import AiProvider
+from .api_registry import ApiRegistry
 
 __all__ = [
     "User",
@@ -40,4 +41,5 @@ __all__ = [
     "Project",
     "Preset",
     "AiProvider",
+    "ApiRegistry",
 ]

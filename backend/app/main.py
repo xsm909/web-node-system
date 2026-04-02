@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.database import Base, engine
-from .routers import auth, admin, workflow, client, ai_task, data_type, client_metadata, report, ai, schemas, metadata, agent_hints, prompts, python_hints, database_metadata, locks, projects, presets, files, ai_providers
+from .routers import auth, admin, workflow, client, ai_task, data_type, client_metadata, report, ai, schemas, metadata, agent_hints, prompts, python_hints, database_metadata, locks, projects, presets, files, ai_providers, admin_api_registry
 from .models.intermediate_result import IntermediateResult  # noqa: F401 — registers table with Base
 from .models.ai_task import AI_Task  # noqa: F401 — registers table with Base
 from .models.client_metadata import ClientMetadata  # noqa: F401
@@ -55,6 +55,18 @@ async def lifespan(app: FastAPI):
                 db.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS category VARCHAR(255);"))
             else:
                 db.execute(text("ALTER TABLE reports ADD COLUMN category VARCHAR(255);"))
+            db.commit()
+        except:
+            db.rollback()
+
+        # Migrations for credentials
+        try:
+            if dialect == 'postgresql':
+                db.execute(text("ALTER TABLE credentials ADD COLUMN IF NOT EXISTS auth_type VARCHAR(50) DEFAULT 'header';"))
+                db.execute(text("ALTER TABLE credentials ADD COLUMN IF NOT EXISTS meta JSONB;"))
+            else:
+                db.execute(text("ALTER TABLE credentials ADD COLUMN auth_type VARCHAR(50) DEFAULT 'header';"))
+                db.execute(text("ALTER TABLE credentials ADD COLUMN meta JSON;"))
             db.commit()
         except:
             db.rollback()
@@ -119,6 +131,16 @@ async def lifespan(app: FastAPI):
                 db.execute(text("ALTER TABLE workflow_executions ADD COLUMN IF NOT EXISTS graph JSONB;"))
             else:
                 db.execute(text("ALTER TABLE workflow_executions ADD COLUMN graph JSON;"))
+            db.commit()
+        except:
+            db.rollback()
+
+        # Migrations for api_registry
+        try:
+            if dialect == 'postgresql':
+                db.execute(text("ALTER TABLE api_registry ADD COLUMN IF NOT EXISTS project_id UUID;"))
+            else:
+                db.execute(text("ALTER TABLE api_registry ADD COLUMN project_id CHAR(36);"))
             db.commit()
         except:
             db.rollback()
@@ -265,6 +287,7 @@ app.include_router(projects.router)
 app.include_router(presets.router)
 app.include_router(files.router)
 app.include_router(ai_providers.router)
+app.include_router(admin_api_registry.router)
 
 @app.get("/")
 def root():
