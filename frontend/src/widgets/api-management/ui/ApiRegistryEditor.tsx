@@ -69,9 +69,9 @@ function ApiFunctionItem({
         <div 
             className={`flex flex-col gap-3 group animate-in fade-in slide-in-from-left-2 duration-200 
                 ${isOverlay 
-                    ? 'p-4 rounded-xl bg-brand/10 border border-brand/50 shadow-2xl ring-2 ring-brand/30 backdrop-blur-md opacity-100 scale-[1.02] z-[100]' 
+                    ? 'p-4 rounded-xl bg-surface-800/60 border border-brand/30 shadow-2xl ring-1 ring-brand/20 backdrop-blur-md opacity-100 scale-[1.01] z-[100] pointer-events-none' 
                     : isGhost 
-                        ? 'opacity-30 border-b border-[var(--border-base)]/40 py-5' 
+                        ? 'opacity-0 py-5' 
                         : 'py-5 border-b border-[var(--border-base)]/40 last:border-b-0'
                 }`}
         >
@@ -127,7 +127,7 @@ function ApiFunctionItem({
             </div>
 
             {/* Expanded Content */}
-            {isExpanded && !isOverlay && (
+            {isExpanded && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="grid grid-cols-3 gap-3">
                         <AppInput
@@ -543,7 +543,7 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
                                             <ApiFunctionItem
                                                 func={functionsList.find(f => f._dndId === activeId)!}
                                                 index={functionsList.findIndex(f => f._dndId === activeId)}
-                                                isExpanded={false}
+                                                isExpanded={expandedIds.has(activeId)}
                                                 isOverlay
                                             />
                                         ) : null}
