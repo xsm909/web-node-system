@@ -138,8 +138,16 @@ async def lifespan(app: FastAPI):
         # Migrations for api_registry
         try:
             if dialect == 'postgresql':
+                db.execute(text("ALTER TABLE api_registry ADD COLUMN IF NOT EXISTS base_url VARCHAR(255);"))
+                db.execute(text("ALTER TABLE api_registry ADD COLUMN IF NOT EXISTS credential_key VARCHAR(100);"))
+                db.execute(text("ALTER TABLE api_registry ADD COLUMN IF NOT EXISTS functions JSONB;"))
+                db.execute(text("ALTER TABLE api_registry ADD COLUMN IF NOT EXISTS description TEXT;"))
                 db.execute(text("ALTER TABLE api_registry ADD COLUMN IF NOT EXISTS project_id UUID;"))
             else:
+                db.execute(text("ALTER TABLE api_registry ADD COLUMN base_url VARCHAR(255);"))
+                db.execute(text("ALTER TABLE api_registry ADD COLUMN credential_key VARCHAR(100);"))
+                db.execute(text("ALTER TABLE api_registry ADD COLUMN functions JSON;"))
+                db.execute(text("ALTER TABLE api_registry ADD COLUMN description TEXT;"))
                 db.execute(text("ALTER TABLE api_registry ADD COLUMN project_id CHAR(36);"))
             db.commit()
         except:

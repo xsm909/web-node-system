@@ -45,31 +45,46 @@ def list_api_registry(
 @router.post("/", response_model=ApiRegistry)
 def create_api_registry(api_in: ApiRegistryCreate, db: Session = Depends(get_db)):
     try:
-        # Check for existing name
+        # 1. Check if name already exists
         existing = db.query(ApiRegistryModel).filter(ApiRegistryModel.name == api_in.name).first()
         if existing:
             raise HTTPException(status_code=400, detail=f"API with name '{api_in.name}' already exists")
             
-        # Safely extract data, filtering for only keys that exist in the SQLAlchemy model
+        # 2. Extract data safely
         data = api_in.model_dump()
-        model_columns = {c.key for c in ApiRegistryModel.__table__.columns}
-        filtered_data = {k: v for k, v in data.items() if k in model_columns}
         
-        db_obj = ApiRegistryModel(**filtered_data)
+        # 3. Create model instance with manual assignment for maximum safety
+        db_obj = ApiRegistryModel()
+        db_obj.name = data.get('name')
+        db_obj.base_url = data.get('base_url')
+        db_obj.credential_key = data.get('credential_key')
+        db_obj.description = data.get('description')
+        db_obj.project_id = data.get('project_id')
+        
+        # Handle JSON field explicitly
+        funcs = data.get('functions')
+        if funcs is not None:
+            db_obj.functions = funcs
+        else:
+            db_obj.functions = []
+            
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
-        # Explicitly validate and return the schema-ready object
-        # This handles potential JSON serialization issues on the return trip
+        
+        # 4. Validate and return
         return ApiRegistry.model_validate(db_obj)
+        
     except Exception as e:
-        print(f"DEBUG Error in create_api_registry: {str(e)}")
         import traceback
-        traceback.print_exc()
-        # If it's already an HTTPException, re-raise it
+        err_msg = str(e)
+        stack = traceback.format_exc()
+        print(f"DEBUG Error in create_api_registry: {err_msg}")
+        print(stack)
+        
         if isinstance(e, HTTPException):
             raise e
-        raise HTTPException(status_code=500, detail=f"Database error during API creation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {err_msg}")
 
 @router.patch("/{api_id}/", response_model=ApiRegistry)
 def update_api_registry(api_id: UUID, api_in: ApiRegistryUpdate, db: Session = Depends(get_db)):
