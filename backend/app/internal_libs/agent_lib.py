@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Optional, List, Any, Dict
+from typing import Optional, List, Any, Dict, Union
 from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
@@ -41,7 +41,7 @@ ALL_TOOLS = {
     "call_api_function": tools_lib.call_api_function,
 }
 
-def prepare_tools(tools: List[str], provider: str) -> Dict[str, Any]:
+def prepare_tools(tools: List[Union[str, Dict[str, Any]]], provider: str) -> Dict[str, Any]:
     """
     Identifies allowed tools, handles auto-search mapping, and generates a description string.
     Returns a dictionary with:
@@ -56,10 +56,25 @@ def prepare_tools(tools: List[str], provider: str) -> Dict[str, Any]:
     tools_desc = ""
     native_tools = []
     
-    auto_search_requested = any(t.lower() == "auto-search" for t in tools)
+    # Handle both string identifiers and full dict definitions
+    flat_tool_names = [t.lower() if isinstance(t, str) else "" for t in tools]
+    auto_search_requested = any(t == "auto-search" for t in flat_tool_names)
     
-    for t_name in tools:
-        name = t_name.lower()
+    for tool in tools:
+        if isinstance(tool, dict):
+            # Full tool definition (e.g. from ApiRegistry)
+            # We don't have a direct function pointer here, 
+            # it's handled via resolve_and_call_api in the main loop.
+            f_def = tool.get("function", {})
+            name = f_def.get("name", "unnamed_tool")
+            desc = f_def.get("description", "")
+            params = f_def.get("parameters", {})
+            
+            tools_desc += f"- {name}: {desc}\n"
+            # We don't add to allowed_tools_funcs because it's dynamic
+            continue
+
+        name = tool.lower()
         if name == "auto-search":
             continue
             
@@ -338,10 +353,18 @@ AVAILABLE TOOLS:
                 # Support both 'parameters' and 'arguments' aliases
                 params = step.tool_call.parameters or step.tool_call.arguments or {}
                 
-                if t_name in allowed_tools:
-                    func = allowed_tools[t_name]
+                if t_name in allowed_tools or "__" in t_name:
                     system_log(f"[AGENT] Calling tool: {t_name} with params: {params}", level="system")
                     try:
+                        # Case 1: Registry-based tool (api__function)
+                        if "__" in t_name:
+                            from . import api_registry_lib
+                            result = api_registry_lib.resolve_and_call_api(t_name, params)
+                            messages.append({"role": "user", "content": f"Tool result: {result}"})
+                            continue
+
+                        # Case 2: Static library tool
+                        func = allowed_tools[t_name]
                         # 1. Inspect function signature to handle parameter mapping
                         sig = inspect.signature(func)
                         bound_params = {}

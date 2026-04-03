@@ -107,3 +107,74 @@ def call_api_function(api_name: str, function_name: str, params: dict = None) ->
 
     finally:
         db.close()
+
+def get_agent_tool_definitions(tool_identifiers: list[dict]) -> list[dict]:
+    """
+    Resolves a list of tool identifiers into OpenAI-compatible tool definitions.
+    Identifier format: {"tool": "api_name"} or {"tool": "api_name:function_name"}
+    """
+    if not tool_identifiers or not isinstance(tool_identifiers, list):
+        return []
+        
+    db = SessionLocal()
+    definitions = []
+    try:
+        for item in tool_identifiers:
+            tool_id = item.get("tool", "")
+            if not tool_id:
+                continue
+            
+            parts = tool_id.split(":")
+            api_name = parts[0]
+            target_func = parts[1] if len(parts) > 1 else None
+            
+            api_entry = db.query(ApiRegistryModel).filter(ApiRegistryModel.name == api_name).first()
+            if not api_entry:
+                continue
+            
+            functions = api_entry.functions or []
+            for func in functions:
+                f_name = func.get("name")
+                if not f_name:
+                    continue
+                
+                # If specific function requested, skip others
+                if target_func and f_name != target_func:
+                    continue
+                
+                # Format as OpenAI tool
+                # We use double underscore to separate api and function in the tool name
+                # as OpenAI tools usually prefer snake_case and no special chars like :
+                tool_name = f"{api_name}__{f_name}"
+                
+                # Parameters schema (default to empty object if not provided)
+                parameters = func.get("parameters")
+                if not parameters or not isinstance(parameters, dict):
+                    parameters = {
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+
+                definitions.append({
+                    "type": "function",
+                    "function": {
+                        "name": tool_name,
+                        "description": func.get("description") or f"Call {f_name} from {api_name} API.",
+                        "parameters": parameters
+                    }
+                })
+        return definitions
+    finally:
+        db.close()
+
+def resolve_and_call_api(tool_name: str, params: dict) -> any:
+    """
+    Parses a tool name in the format 'api__function' and executes it.
+    """
+    if "__" not in tool_name:
+        return f"Error: Invalid tool name format '{tool_name}'. Expected 'api__function'."
+    
+    api_name, function_name = tool_name.split("__", 1)
+    return call_api_function(api_name, function_name, params)
+

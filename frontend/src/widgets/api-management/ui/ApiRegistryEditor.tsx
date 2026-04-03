@@ -169,9 +169,32 @@ function ApiFunctionItem({
                             label="Description (for AI tools)"
                             value={func.description || ''}
                             onChange={(val) => onUpdate?.(index, { description: val })}
-                            placeholder="Fetches current weather for a city"
+                            placeholder="Fetches latest news articles by topic or keyword."
                             className="text-xs"
                         />
+                    </div>
+
+                    <div onPointerDown={(e) => e.stopPropagation()}>
+                        <AppInput
+                            label="Parameters Schema (JSON)"
+                            value={typeof func.parameters === 'string' ? func.parameters : JSON.stringify(func.parameters || {}, null, 2)}
+                            onChange={(val) => {
+                                try {
+                                    const parsed = JSON.parse(val);
+                                    onUpdate?.(index, { parameters: parsed });
+                                } catch (e) {
+                                    // If invalid JSON, still update as string for dirty tracking/editing
+                                    onUpdate?.(index, { parameters: val } as any);
+                                }
+                            }}
+                            multiline
+                            rows={6}
+                            placeholder='{ "type": "object", "properties": { "query": { "type": "string" } } }'
+                            className={UI_CONSTANTS.CODE_EDITOR_CLASS}
+                        />
+                        <p className="text-[10px] text-[var(--text-muted)] italic opacity-60 mt-1">
+                            Standard JSON Schema for the tool's input parameters. Used by AI agents to understand the API.
+                        </p>
                     </div>
 
                     <div className="mt-1 pt-3 border-t border-[var(--border-base)]/30">
@@ -343,6 +366,7 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
             method: f.method || 'GET',
             path: f.path || '',
             description: f.description || '',
+            parameters: f.parameters || {},
             default_params: (f.default_params || []).map((p: any) => ({
                 key: p.key || '',
                 value: p.value || ''
@@ -368,7 +392,9 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
     const handleSave = () => {
         onSave({
             ...formData,
-            functions: functionsList.filter(f => f.name.trim() !== '' && f.path.trim() !== '')
+            functions: functionsList
+                .filter(f => f.name.trim() !== '' && f.path.trim() !== '')
+                .map(({ _dndId, ...f }) => f)
         });
     };
 
@@ -379,6 +405,7 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
             method: 'GET',
             path: '',
             description: '',
+            parameters: {},
             default_params: [],
             _dndId: newId
         }]);

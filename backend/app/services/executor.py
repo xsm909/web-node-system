@@ -260,8 +260,10 @@ SAFE_GLOBALS = {
     "datetime": datetime,
     "time": time,
     "timedelta": timedelta,
+    "api_registry_lib": api_registry_lib,
     "API": SimpleNamespace(
-        CallAPIFunction=api_registry_lib.call_api_function
+        CallAPIFunction=api_registry_lib.call_api_function,
+        get_agent_tool_definitions=api_registry_lib.get_agent_tool_definitions
     ),
     "workflow": SimpleNamespace(
         execute_node=lambda h, i: None,
