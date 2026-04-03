@@ -25,7 +25,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ value, onChange,
                     <button onClick={() => setPreviewMode(false)} className="text-[10px] font-bold text-brand hover:underline">Back to Edit</button>
                 </div>
                 <div 
-                    className="flex-1 overflow-y-auto p-6 prose prose-invert max-w-none text-sm leading-relaxed custom-scrollbar markdown-preview"
+                    className="flex-1 overflow-y-auto p-6 text-sm leading-relaxed custom-scrollbar markdown-content"
                     dangerouslySetInnerHTML={{ __html: marked.parse(value || '') as any }}
                 />
             </div>
