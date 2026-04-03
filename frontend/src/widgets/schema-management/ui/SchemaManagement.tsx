@@ -135,7 +135,7 @@ export const SchemaManagement = ({ onToggleSidebar, isSidebarOpen, initialEditId
         try {
             const parsedContent = JSON.parse(content);
             const data = {
-                key,
+                key: key.trim(),
                 content: parsedContent,
                 category: category.trim() || null,
                 is_system: isSystem,

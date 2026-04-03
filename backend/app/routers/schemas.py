@@ -55,8 +55,9 @@ def create_schema(
     current_user: User = Depends(get_current_user)
 ):
     check_admin(current_user)
+    # Check if key already exists globally or in current project (keys must be unique across all projects)
     if db.query(Schema).filter(Schema.key == schema_in.key).first():
-        raise HTTPException(status_code=400, detail="Schema key already exists")
+        raise HTTPException(status_code=400, detail=f"Schema with key '{schema_in.key}' already exists in the system (it might be a global or project-specific schema).")
     
     new_schema = Schema(
         **schema_in.model_dump(exclude={"project_id"}),
@@ -100,7 +101,7 @@ def update_schema(
 
     if "key" in update_data and update_data["key"] != schema.key:
         if db.query(Schema).filter(Schema.key == update_data["key"]).first():
-            raise HTTPException(status_code=400, detail="Schema key already exists")
+            raise HTTPException(status_code=400, detail=f"Schema with key '{update_data['key']}' already exists in the system (it might be a global or project-specific schema).")
         schema.key = update_data["key"]
     
     if "content" in update_data:
