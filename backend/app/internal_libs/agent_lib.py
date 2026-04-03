@@ -108,37 +108,49 @@ def get_provider(model: str) -> Any:
     """
     Factory to retrieve and initialize the correct provider instance.
     """
-    from .credentials import get_credential_by_model
-    from .common_lib import GetAIByModel
+    from .common_lib import resolve_ai_config
     from .agent_providers import get_provider_class
     
-    provider_name = GetAIByModel(model).lower()
-    model_name = model.lower()
+    config = resolve_ai_config(model)
+    provider_name = config["provider_key"]
+    api_key = config["api_key"]
+    base_url = config["base_url"]
     
-    api_key = None
-    base_url = None
+    from .logger_lib import system_log
+    system_log(f"[AGENT_LIB] Resolved config for model {model}: provider={provider_name}, has_api_key={bool(api_key)}, base_url={base_url}", level="system")
     
-    api_key = get_credential_by_model(model)
-    base_url = None
-    
-    if provider_name == "perplexity":
-        base_url = "https://api.perplexity.ai"
-    elif provider_name == "grok":
-        base_url = "https://api.x.ai/v1"
-        # Backward compatibility for old workflows
-        if model == "grok-2-latest": model = "grok-2"
-    elif provider_name == "deepseek":
-        base_url = "https://api.deepseek.com"
-    elif provider_name == "groq":
-        base_url = "https://api.groq.com/openai/v1"
-    elif provider_name == "gemini":
-        if model == "gemini-1.5-flash": model = "gemini-1.5-flash-latest"
-        elif model == "gemini-1.5-pro": model = "gemini-1.5-pro-latest"
+    if not api_key:
+        from .credentials import get_credential_by_model
+        api_key = get_credential_by_model(model)
         
     if not api_key:
         raise ValueError(f"API key not found for model {model} (provider: {provider_name})")
         
+    # Standard overrides if still missing base_url
+    if not base_url:
+        if provider_name == "perplexity":
+            base_url = "https://api.perplexity.ai"
+        elif provider_name == "grok":
+            base_url = "https://api.x.ai/v1"
+        elif provider_name == "deepseek":
+            base_url = "https://api.deepseek.com"
+        elif provider_name == "groq":
+            base_url = "https://api.groq.com/openai/v1"
+
+    if provider_name == "grok":
+        # Backward compatibility for old workflows
+        if model == "grok-2-latest": model = "grok-2"
+    elif provider_name == "gemini":
+        if model == "gemini-1.5-flash": model = "gemini-1.5-flash-latest"
+        elif model == "gemini-1.5-pro": model = "gemini-1.5-pro-latest"
+        
     ProviderClass = get_provider_class(model)
+    
+    # Specific override for compatible providers
+    if provider_name in ["openai_compatible", "local_openai"]:
+        from .openai.openai_lib import OpenAICompatibleAgentProvider
+        ProviderClass = OpenAICompatibleAgentProvider
+        
     return ProviderClass(model=model, api_key=api_key, base_url=base_url), provider_name
 
 

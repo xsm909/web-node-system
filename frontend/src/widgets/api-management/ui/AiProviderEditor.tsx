@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import type { AiProvider } from '../../../entities/ai-provider/model/types';
+import type { AiProvider, AiProviderModel } from '../../../entities/ai-provider/model/types';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
 import { Icon } from '../../../shared/ui/icon';
@@ -22,13 +22,14 @@ export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiPro
         key: '',
         models: { models: [] },
         api_key: '',
+        base_url: '',
         description: ''
     });
 
     // Extract models list from the required structure { "models": [] }
-    const [modelsList, setModelsList] = useState<string[]>(() => {
+    const [modelsList, setModelsList] = useState<AiProviderModel[]>(() => {
         if (provider?.models && typeof provider.models === 'object' && Array.isArray(provider.models.models)) {
-            return provider.models.models;
+            return provider.models.models.map(m => typeof m === 'string' ? { name: m } : m);
         }
         return [];
     });
@@ -38,7 +39,7 @@ export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiPro
         if (provider) {
             setFormData(provider);
             if (provider.models && typeof provider.models === 'object' && Array.isArray(provider.models.models)) {
-                setModelsList(provider.models.models);
+                setModelsList(provider.models.models.map(m => typeof m === 'string' ? { name: m } : m));
             } else {
                 setModelsList([]);
             }
@@ -47,15 +48,16 @@ export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiPro
 
     const isDirty = useMemo(() => {
         const initialModels = provider?.models && typeof provider.models === 'object' && Array.isArray(provider.models.models) 
-            ? provider.models.models 
+            ? provider.models.models.map(m => typeof m === 'string' ? { name: m } : m)
             : [];
         
         return provider 
             ? (formData.key !== provider.key || 
                formData.api_key !== provider.api_key || 
+               formData.base_url !== provider.base_url ||
                formData.description !== provider.description ||
                JSON.stringify(modelsList) !== JSON.stringify(initialModels))
-            : (formData.key !== '' || formData.api_key !== '' || formData.description !== '' || modelsList.length > 0);
+            : (formData.key !== '' || formData.api_key !== '' || formData.base_url !== '' || formData.description !== '' || modelsList.length > 0);
     }, [formData, modelsList, provider]);
 
     const handleSave = () => {
@@ -63,17 +65,18 @@ export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiPro
             ...formData, 
             description: formData.description || null,
             api_key: formData.api_key || null,
-            models: { models: modelsList.filter(m => m.trim() !== '') }
+            base_url: formData.base_url || undefined,
+            models: { models: modelsList.filter(m => m.name.trim() !== '') }
         });
     };
 
     const handleAddModel = () => {
-        setModelsList([...modelsList, '']);
+        setModelsList([...modelsList, { name: '', base_url: '' }]);
     };
 
-    const handleUpdateModel = (index: number, value: string) => {
+    const handleUpdateModel = (index: number, field: keyof AiProviderModel, value: string) => {
         const newList = [...modelsList];
-        newList[index] = value;
+        newList[index] = { ...newList[index], [field]: value };
         setModelsList(newList);
     };
 
@@ -114,7 +117,7 @@ export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiPro
                             required
                             value={formData.key || ''}
                             onChange={(val) => setFormData({ ...formData, key: val })}
-                            placeholder="e.g. current_openai"
+                            placeholder="e.g. local_openai"
                             className={UI_CONSTANTS.CODE_EDITOR_CLASS}
                         />
                         
@@ -132,20 +135,29 @@ export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiPro
                             />
                         </div>
                     </div>
-                    
-                    <AppInput
-                        label="Description"
-                        value={formData.description || ''}
-                        onChange={(val) => setFormData({ ...formData, description: val })}
-                        placeholder="Short purpose note"
-                    />
+
+                    <div className="grid grid-cols-2 gap-6">
+                        <AppInput
+                            label="Base URL"
+                            value={formData.base_url || ''}
+                            onChange={(val) => setFormData({ ...formData, base_url: val })}
+                            placeholder="e.g. http://localhost:1234/v1"
+                            className={UI_CONSTANTS.CODE_EDITOR_CLASS}
+                        />
+                        <AppInput
+                            label="Description"
+                            value={formData.description || ''}
+                            onChange={(val) => setFormData({ ...formData, description: val })}
+                            placeholder="Short purpose note"
+                        />
+                    </div>
                     
                     <div className="mt-8">
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h3 className="text-sm font-bold text-[var(--text-main)]">Models List</h3>
                                 <p className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60 mt-0.5">
-                                    Define available models for this provider
+                                    Define available models and optional individual API endpoints
                                 </p>
                             </div>
                             <AppRoundButton
@@ -165,11 +177,19 @@ export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiPro
                             ) : (
                                 modelsList.map((model, index) => (
                                     <div key={index} className="flex items-center gap-3 group animate-in fade-in slide-in-from-left-2 duration-200">
-                                        <div className="flex-1">
+                                        <div className="flex-[2]">
                                             <AppInput
-                                                value={model}
-                                                onChange={(val) => handleUpdateModel(index, val)}
-                                                placeholder="Model name (e.g. gpt-4o)"
+                                                value={model.name}
+                                                onChange={(val) => handleUpdateModel(index, 'name', val)}
+                                                placeholder="Model name (e.g. assistant)"
+                                                className={UI_CONSTANTS.CODE_EDITOR_CLASS}
+                                            />
+                                        </div>
+                                        <div className="flex-[3]">
+                                            <AppInput
+                                                value={model.base_url || ''}
+                                                onChange={(val) => handleUpdateModel(index, 'base_url', val)}
+                                                placeholder="API URL Override (optional)"
                                                 className={UI_CONSTANTS.CODE_EDITOR_CLASS}
                                             />
                                         </div>

@@ -122,15 +122,29 @@ def openai_perform_web_search(query: str, model: str = "gpt-5.2") -> str:
     )
 
 from ..agent_providers import AgentProvider
+from ..logger_lib import system_log
 
 class OpenAIAgentProvider(AgentProvider):
     def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> tuple[str, str]:
-        client = OpenAI(api_key=self.api_key)
+        # Normalize base_url (ensure protocol)
+        final_base_url = self.base_url
+        if final_base_url and "://" not in final_base_url:
+            final_base_url = f"http://{final_base_url}"
+        
+        system_log(f"[OPENAI_PROVIDER] Initializing client for model {self.model} with base_url: {final_base_url or 'DEFAULT (OpenAI)'}", level="system")
+        
+        # Mask API key for logs
+        masked_key = f"{self.api_key[:6]}...{self.api_key[-4:]}" if self.api_key else "None"
+        system_log(f"[OPENAI_PROVIDER] Using API Key: {masked_key}", level="system")
+
+        client = OpenAI(api_key=self.api_key, base_url=final_base_url)
         
         # Section 13: OpenAI responses.create pattern
         # Including system prompt ensures models follow the JSON schema rules
         input_messages = [{"role": "system", "content": system_prompt}] + messages
             
+        system_log(f"[OPENAI_PROVIDER] Sending request to {final_base_url or 'https://api.openai.com/v1'}", level="system")
+        
         resp = client.responses.create(
             model=self.model,
             tools=native_tools if native_tools else None,
@@ -138,3 +152,42 @@ class OpenAIAgentProvider(AgentProvider):
         )
         from ..common_lib import safe_json_dumps
         return resp.output_text, safe_json_dumps(resp)
+
+class OpenAICompatibleAgentProvider(AgentProvider):
+    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> tuple[str, str]:
+        # Normalize base_url (ensure protocol and /v1)
+        final_base_url = self.base_url
+        if final_base_url and "://" not in final_base_url:
+            final_base_url = f"http://{final_base_url}"
+        
+        # Auto-append /v1 if missing
+        if final_base_url and not final_base_url.rstrip("/").endswith("/v1"):
+            final_base_url = final_base_url.rstrip("/") + "/v1"
+            
+        system_log(f"[COMPATIBLE_PROVIDER] Initializing client for model {self.model} with base_url: {final_base_url}", level="system")
+        
+        client = OpenAI(api_key=self.api_key, base_url=final_base_url)
+        
+        # Build messages for standard chat completion
+        input_messages = [{"role": "system", "content": system_prompt}] + messages
+            
+        system_log(f"[COMPATIBLE_PROVIDER] Sending request to {final_base_url}/chat/completions", level="system")
+        
+        try:
+            resp = client.chat.completions.create(
+                model=self.model,
+                messages=input_messages,
+                tools=native_tools if native_tools else None,
+            )
+            
+            if not resp or not resp.choices or len(resp.choices) == 0:
+                raise ValueError(f"Empty response from server at {final_base_url}")
+                
+            content = resp.choices[0].message.content
+            
+            # Create a proxy object to match 'response.output_text' pattern if needed elsewhere
+            from ..common_lib import safe_json_dumps
+            return content, safe_json_dumps(resp)
+        except Exception as e:
+            system_log(f"[COMPATIBLE_PROVIDER] Error: {str(e)}", level="error")
+            raise e

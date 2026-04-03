@@ -153,6 +153,16 @@ async def lifespan(app: FastAPI):
         except:
             db.rollback()
 
+        # Migrations for ai_providers
+        try:
+            if dialect == 'postgresql':
+                db.execute(text("ALTER TABLE ai_providers ADD COLUMN IF NOT EXISTS base_url VARCHAR(255);"))
+            else:
+                db.execute(text("ALTER TABLE ai_providers ADD COLUMN base_url VARCHAR(255);"))
+            db.commit()
+        except:
+            db.rollback()
+        
         # Project system migrations - Ensure project_id exists in relevant tables
         project_table_mapping = {
             'metadata': ['metadata', 'records'],
