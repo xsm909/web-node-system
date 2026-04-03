@@ -155,7 +155,18 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
                             lowerPressedKey === 'pagedown' ||
                             (lowerPressedKey.length === 1 && !hasModifier);
 
-                        if (isEditingKey && !isSystemKey && !hasModifier) {
+                        // 4. Standard clipboard/editing shortcuts with modifiers
+                        const isClipboardOrSelection = [
+                            'cmd+c', 'ctrl+c', 
+                            'cmd+v', 'ctrl+v', 
+                            'cmd+x', 'ctrl+x', 
+                            'cmd+a', 'ctrl+a',
+                            'cmd+z', 'ctrl+z',
+                            'cmd+y', 'ctrl+y',
+                            'cmd+shift+z', 'ctrl+shift+z', 'ctrl+y'
+                        ].includes(lowerPressedKey);
+
+                        if ((isEditingKey || isClipboardOrSelection) && !isSystemKey) {
                             return; // Let standard browser/input behavior work
                         }
                     }
