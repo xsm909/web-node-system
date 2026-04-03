@@ -10,11 +10,20 @@ from ..credentials import get_credential_by_model
 _conversations: Dict[str, List[Dict[str, str]]] = {}
 _system_prompts: Dict[str, str] = {}
 
-def _get_api_key(model: str) -> Optional[str]:
-    return get_credential_by_model(model)
+def _get_ai_config(model: str) -> Dict[str, Any]:
+    from ..common_lib import resolve_ai_config
+    return resolve_ai_config(model)
 
-def _make_request(api_key: str, messages: list, model: str, tools: Optional[List[Dict]] = None, timeout: int = 60) -> str:
+def _make_request(api_key: str, messages: list, model: str, tools: Optional[List[Dict]] = None, timeout: int = 60, base_url: Optional[str] = None) -> str:
     url = "https://api.openai.com/v1/chat/completions"
+    if base_url:
+        # Normalize base_url
+        if "://" not in base_url:
+            base_url = f"http://{base_url}"
+        if not base_url.rstrip("/").endswith("/v1"):
+            base_url = base_url.rstrip("/") + "/v1"
+        url = f"{base_url.rstrip('/')}/chat/completions"
+
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
@@ -70,7 +79,10 @@ def openai_ask_chat(conversation_id: str, text: str, model: str = "gpt-5.2") -> 
     """
     Sends a message to the conversation and returns the AI's response.
     """
-    api_key = _get_api_key(model)
+    config = _get_ai_config(model)
+    api_key = config.get("api_key")
+    base_url = config.get("base_url")
+
     if not api_key:
         return f"Error: API key for model {model} not found in credentials."
         
@@ -87,7 +99,7 @@ def openai_ask_chat(conversation_id: str, text: str, model: str = "gpt-5.2") -> 
     messages.extend(history)
     messages.append({"role": "user", "content": text})
     
-    answer = _make_request(api_key, messages, model)
+    answer = _make_request(api_key, messages, model, base_url=base_url)
     
     # Check if the request was successful
     if not answer.startswith("Error:") and not answer.startswith("HTTPError"):
@@ -100,19 +112,35 @@ def openai_ask_single(text: str, model: str = "gpt-4o-mini", timeout: int = 60) 
     """
     Simple version to ask AI a single question without conversation history.
     """
-    api_key = _get_api_key(model)
+    config = _get_ai_config(model)
+    api_key = config.get("api_key")
+    base_url = config.get("base_url")
+
     if not api_key:
         return f"Error: API key for model {model} not found in credentials."
         
     messages = [{"role": "user", "content": text}]
-    return _make_request(api_key, messages, model, timeout=timeout)
+    return _make_request(api_key, messages, model, timeout=timeout, base_url=base_url)
 
 def openai_perform_web_search(query: str, model: str = "gpt-5.2") -> str:
     
-    api_key = _get_api_key(model)
+    config = _get_ai_config(model)
+    api_key = config.get("api_key")
+    base_url = config.get("base_url")
+
     if not api_key:
         return f"Error: API key for model {model} not found in credentials."
-    client = OpenAI(api_key=api_key)
+    
+    # Normalize base_url
+    final_base_url = None
+    if base_url:
+        if "://" not in base_url:
+            base_url = f"http://{base_url}"
+        if not base_url.rstrip("/").endswith("/v1"):
+            base_url = base_url.rstrip("/") + "/v1"
+        final_base_url = base_url
+
+    client = OpenAI(api_key=api_key, base_url=final_base_url)
 
     response = client.responses.create(
         model="gpt-5",

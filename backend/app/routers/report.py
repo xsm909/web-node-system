@@ -129,6 +129,7 @@ class ReportTemplateGenerateRequest(BaseModel):
     schema_json: Optional[Dict[str, Any]] = None
     query: Optional[str] = None
     additional_info: Optional[str] = None
+    model: Optional[str] = "gpt-4o"
 
 class ReportTemplateGenerateResponse(BaseModel):
     template: str
@@ -473,7 +474,7 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     {data.additional_info if data.additional_info else ""}
     """
     
-    response_text = openai_ask_single(prompt, "gpt-4o")
+    response_text = openai_ask_single(prompt, data.model or "gpt-4o")
     if response_text.startswith("Error:") or response_text.startswith("HTTPError"):
         raise HTTPException(status_code=500, detail=response_text)
         
@@ -487,6 +488,25 @@ def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_acce
     template_text = template_text.strip()
     
     return {"template": template_text}
+
+@router.get("/ai-models")
+def get_available_ai_models(db: Session = Depends(get_db), _=manager_access):
+    """Returns a list of available AI models across all providers."""
+    sql = """
+      SELECT ai_providers.key || ' - ' || (jsonb_array_elements_text(ai_providers.models::jsonb->'models')::json->>'name') AS "label", 
+             jsonb_array_elements_text(ai_providers.models::jsonb->'models')::json->>'name' AS "value"
+      FROM "ai_providers" AS "ai_providers"
+    """
+    try:
+        result = db.execute(text(sql))
+        models = [{"label": row[0], "value": row[1]} for row in result.fetchall()]
+        # Add default if empty
+        if not models:
+            models = [{"label": "OpenAI - gpt-4o", "value": "gpt-4o"}]
+        return models
+    except Exception as e:
+        print(f"Error fetching AI models: {e}")
+        return [{"label": "OpenAI - gpt-4o", "value": "gpt-4o"}]
 
 # --- Helper Functions ---
 

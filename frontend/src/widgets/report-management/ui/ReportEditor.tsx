@@ -41,7 +41,7 @@ export interface ReportEditorRef {
     handleSave: (params?: { project_id?: string | null }) => Promise<Report | void>;
     handleCompile: () => Promise<void>;
     handleGenerate: () => Promise<void>;
-    handleGenerateTemplate: (layout?: 'table' | 'structural') => Promise<void>;
+    handleGenerateTemplate: (layout?: 'table' | 'structural', model?: string) => Promise<void>;
     handleOpenQueryBuilder: () => void;
     isSaving: boolean;
     isCompiling: boolean;
@@ -334,7 +334,7 @@ def GenerateReport(report_parameters):
         collapseAll
     }));
 
-    const handleGenerateTemplate = async (layout?: 'table' | 'structural') => {
+    const handleGenerateTemplate = async (layout?: 'table' | 'structural', model?: string) => {
         // 1. Compile first to get the latest schema
         const freshSchema = await handleCompile();
         
@@ -350,6 +350,7 @@ def GenerateReport(report_parameters):
                 report_id: report?.id,
                 schema_json: effectiveSchema,
                 query: code, // Pass the whole code as context
+                model: model || "gpt-4o",
                 additional_info: layout === 'table' 
                     ? 'LAYOUT REQUIREMENT: Use a FLAT <table> layout for all data.' 
                     : layout === 'structural' 

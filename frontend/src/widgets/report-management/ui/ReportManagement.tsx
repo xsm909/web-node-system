@@ -11,6 +11,7 @@ import { AppFormView } from '../../../shared/ui/app-form-view/AppFormView';
 import { AppTabs } from '../../../shared/ui/app-tabs/AppTabs';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
 import { AppSectionTitle } from '../../../shared/ui/app-section-title/AppSectionTitle';
+import { UI_CONSTANTS } from '../../../shared/ui/constants';
 
 import { ReportList } from './ReportList';
 import { ReportEditor, type ReportEditorRef } from './ReportEditor';
@@ -108,8 +109,25 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
     const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
     const [showLayoutModal, setShowLayoutModal] = useState(false);
     const [reportEditorIsDirty, setReportEditorIsDirty] = useState(false);
+    const [availableModels, setAvailableModels] = useState<{label: string, value: string}[]>([]);
+    const [selectedModel, setSelectedModel] = useState<string>('gpt-4o');
     const styleEditorRef = useRef<StyleEditorRef>(null);
     const [styleEditorIsDirty, setStyleEditorIsDirty] = useState(false);
+
+    useEffect(() => {
+        const fetchModels = async () => {
+            try {
+                const res = await apiClient.get('/reports/ai-models');
+                setAvailableModels(res.data);
+                if (res.data.length > 0) {
+                    setSelectedModel(res.data[0].value);
+                }
+            } catch (err) {
+                console.error("Failed to fetch available AI models", err);
+            }
+        };
+        fetchModels();
+    }, []);
 
     const handleHeaderCompile = async () => {
         if (isCompiling || view !== 'edit') return;
@@ -141,7 +159,7 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
         setShowLayoutModal(false);
         setIsGeneratingTemplate(true);
         try {
-            await reportEditorRef.current?.handleGenerateTemplate(layout);
+            await reportEditorRef.current?.handleGenerateTemplate(layout, selectedModel);
         } finally {
             setIsGeneratingTemplate(false);
         }
@@ -658,14 +676,30 @@ export function ReportManagement({ onToggleSidebar, isSidebarOpen, initialEditId
                 onClose={() => setShowLayoutModal(false)}
                 onSubmit={() => { }} // No default submit, handled via buttons
                 title="Generate Template"
-                icon="play"
+                icon="wizard"
                 width="max-w-sm"
                 headerRightContent={null}
             >
-                <div className="py-2">
-                    <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mb-6 opacity-70 font-medium uppercase tracking-widest">
-                        Choose how you want to structure your report based on your data.
+                <div className="py-1">
+                    <p className="text-[10px] text-[var(--text-muted)] leading-relaxed mb-4 opacity-70 font-medium uppercase tracking-widest">
+                        Choose model and structure for your report.
                     </p>
+
+                    <div className="mb-6 space-y-2">
+                        <label className="text-[10px] uppercase tracking-wider font-bold text-[var(--text-muted)] ml-1">AI Model Provider</label>
+                        <div className={`flex items-center px-3 rounded-xl bg-[var(--bg-app)] border border-[var(--border-base)] focus-within:border-brand transition-all ${UI_CONSTANTS.FORM_CONTROL_HEIGHT}`}>
+                            <Icon name="function" size={14} className="text-brand opacity-70 mr-2" />
+                            <select
+                                value={selectedModel}
+                                onChange={(e) => setSelectedModel(e.target.value)}
+                                className="flex-1 bg-transparent outline-none text-[11px] font-medium h-full cursor-pointer"
+                            >
+                                {availableModels.map(m => (
+                                    <option key={`${m.value}-${m.label}`} value={m.value}>{m.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
 
                     <div className="flex flex-col gap-2">
                         <button
