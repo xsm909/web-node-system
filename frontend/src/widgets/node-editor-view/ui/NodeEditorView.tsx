@@ -2,18 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import type { Node } from 'reactflow';
 import type { NodeType } from '../../../entities/node-type/model/types';
-import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
-import type { SelectionItem } from '../../../shared/ui/selection-list/SelectionList';
-import { apiClient } from '../../../shared/api/client';
 import { AppHeader } from '../../app-header';
 import { useForm } from '@tanstack/react-form';
-import { AppInput } from '../../../shared/ui/app-input';
 import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
 import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { useHotkeys } from '../../../shared/lib/hotkeys/useHotkeys';
 import { HOTKEY_LEVEL } from '../../../shared/lib/hotkeys/HotkeysContext';
 import { SYSTEM_PARAMETERS } from '../../../entities/report/model/constants';
-import { DataclassListEditor } from './DataclassListEditor';
+import { ParameterRow } from './components/ParameterRow';
+import { SpecializedEditorsModal } from './components/SpecializedEditorsModal';
+import { useThemeStore } from '../../../shared/lib/theme/store';
+import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 
 interface NodeEditorViewProps {
     node: Node | null;
@@ -26,204 +25,6 @@ interface NodeEditorViewProps {
     isLocked?: boolean;
 }
 
-const ParameterRow: React.FC<{
-    param: any;
-    value: any;
-    displayValue?: any;
-    onChange: (updates: Record<string, any>) => void;
-    isReadOnly: boolean;
-    onOpenSqlEditor?: () => void;
-    nodeTypeId?: string;
-    allParams?: any;
-}> = ({ param, value, displayValue, onChange, isReadOnly, onOpenSqlEditor, nodeTypeId, allParams }) => {
-    const [options, setOptions] = useState<SelectionItem[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-
-    useEffect(() => {
-        if (param.options_source?.component === 'ComboBox') {
-            const fetchOptions = async () => {
-                setIsLoading(true);
-                try {
-                    let endpoint = "";
-                    let requestParams = {};
-                    
-                    if (param.options_source.function) {
-                        endpoint = `/workflows/node-types/${nodeTypeId}/parameter-options/${param.name}`;
-                        requestParams = { source_func: param.options_source.function };
-                    } else if (param.options_source.table === "AI_Tasks") {
-                        endpoint = "/ai-tasks/";
-                    } else if (param.options_source.table === "users") {
-                        endpoint = "/workflows/users/";
-                    } else if (param.options_source.table) {
-                        // Fallback for other tables if needed
-                        endpoint = `/${param.options_source.table.toLowerCase().replace(/_/g, '-')}/`;
-                    }
-
-                    if (!endpoint) {
-                        setIsLoading(false);
-                        return;
-                    }
-
-                    const response = await apiClient.get(endpoint, { 
-                        params: { 
-                            ...requestParams,
-                            params: JSON.stringify(allParams || {})
-                        } 
-                    });
-                    const data = response.data;
-
-                    let flatOptions: SelectionItem[] = [];
-                    
-                    if (param.options_source.function) {
-                        // Backend for functions already returns {value, label}
-                        flatOptions = data.map((item: any) => ({
-                            id: String(item.value),
-                            name: String(item.label),
-                            icon: 'bolt'
-                        }));
-                    } else {
-                        flatOptions = data
-                            .filter((item: any) => {
-                                if (param.options_source.filters) {
-                                    return Object.entries(param.options_source.filters).every(
-                                        ([key, val]) => item[key] === val
-                                    );
-                                }
-                                return true;
-                            })
-                            .map((item: any) => ({
-                                id: String(item[param.options_source.value_field]),
-                                name: String(item[param.options_source.label_field]),
-                                icon: 'bolt'
-                            }));
-                    }
-                        
-                    setOptions(flatOptions);
-                } catch (error) {
-                    console.error("Failed to fetch options for", param.name, error);
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-            fetchOptions();
-        }
-    }, [param, nodeTypeId, JSON.stringify(allParams || {})]);
-
-    const getSelectedLabel = () => {
-        if (value === undefined || value === null || value === "") return "";
-        const item = options.find(i => i.id === String(value));
-        if (item) return item.name;
-        if (displayValue) return String(displayValue);
-        if (isLoading) return "Loading...";
-        return value;
-    };
-
-    if (param.type === 'list_dataclass') {
-        return (
-            <DataclassListEditor
-                schema={param.schema}
-                value={value}
-                onChange={(newVal) => onChange({ [param.name]: newVal })}
-                isReadOnly={isReadOnly}
-                label={param.label}
-            />
-        );
-    }
-
-    return (
-        <div className="space-y-1.5 group">
-            <div className="flex items-center justify-between">
-                <label
-                    htmlFor={`param-${param.name}`}
-                    className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] group-focus-within:text-brand transition-colors"
-                >
-                    {param.label}
-                </label>
-                {param.type === 'boolean' && (
-                    <div
-                        className={`relative inline-flex h-5 w-9 shrink-0 ${isReadOnly ? 'cursor-default opacity-50' : 'cursor-pointer'} items-center rounded-full transition-colors focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2 ${value ? 'bg-brand' : 'bg-[var(--border-base)]'}`}
-                        onClick={() => !isReadOnly && onChange({ [param.name]: !(value ?? false) })}
-                    >
-                        <input
-                            id={`param-${param.name}`}
-                            type="checkbox"
-                            checked={value ?? false}
-                            onChange={(e) => !isReadOnly && onChange({ [param.name]: e.target.checked })}
-                            className="sr-only"
-                            disabled={isReadOnly}
-                        />
-                        <div
-                            className={`
-                                pointer-events-none block h-3.5 w-3.5 rounded-full bg-white shadow ring-0 transition-transform
-                                ${value ? 'translate-x-4.5' : 'translate-x-1'}
-                            `}
-                        />
-                    </div>
-                )}
-            </div>
-
-            {param.type !== 'boolean' && (
-                param.options_source?.component === 'ComboBox' ? (
-                    <ComboBox
-                        value={String(value ?? '')}
-                        label={getSelectedLabel()}
-                        icon="bolt"
-                        placeholder={isLoading ? "Loading..." : `Select ${param.label.toLowerCase()}...`}
-                        data={{}}
-                        items={options}
-                        onSelect={(item) => {
-                            // Immediately call onChange with BOTH the real ID value and the display label
-                            onChange({
-                                [param.name]: item.id,
-                                [`_DISPLAY_${param.name}`]: item.name
-                            });
-                        }}
-                        className="w-full"
-                        disabled={isReadOnly}
-                    />
-                ) : param.is_sql_query_constructor ? (
-                    <AppInput
-                        type="text"
-                        multiline={false}
-                        value={value ?? ''}
-                        onChange={(val) => onChange({ [param.name]: val })}
-                        placeholder={`Enter SQL query...`}
-                        disabled={isReadOnly}
-                        onKeyDown={(e) => {
-                            if (e.key === 'F1') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onOpenSqlEditor?.();
-                            }
-                        }}
-                        actions={[
-                            {
-                                icon: 'wizard',
-                                onClick: () => onOpenSqlEditor?.(),
-                                title: 'Open Query Constructor',
-                                color: 'success',
-                            }
-                        ]}
-                    />
-                ) : (
-                    <AppInput
-                        label=""
-                        type={param.type === 'number' ? 'number' : 'text'}
-                        value={value ?? ''}
-                        onChange={(val) => {
-                            const parsedVal = param.type === 'number' ? (val === '' ? '' : Number(val)) : val;
-                            onChange({ [param.name]: parsedVal });
-                        }}
-                        placeholder={`Enter ${param.label.toLowerCase()}...`}
-                        disabled={isReadOnly}
-                    />
-                )
-            )}
-
-        </div>
-    );
-};
-
 export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
     node,
     nodeTypes,
@@ -234,8 +35,13 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
     workflowParameters = [],
     isLocked: _isLocked = false,
 }) => {
+    const { theme } = useThemeStore();
+    const editorTheme = theme === "dark" ? vscodeDark : vscodeLight;
     const [showConfirmBack, setShowConfirmBack] = useState(false);
     const [sqlEditorParam, setSqlEditorParam] = useState<string | null>(null);
+    const [specialEditorParam, setSpecialEditorParam] = useState<string | null>(null);
+    const [specialEditorValue, setSpecialEditorValue] = useState<string>('');
+    
     // Capture initial parameters when node is first opened to detect changes
     const [initialParams] = useState(() => JSON.stringify(node?.data.params || {}));
 
@@ -277,8 +83,6 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
         const currentParams = JSON.stringify(form.state.values);
         const reallyDirty = currentParams !== initialParams;
         
-        console.log('[NodeEditorView] handleBack reallyDirty:', reallyDirty, 'isReadOnly:', effectiveReadOnly);
-        
         if (reallyDirty && !effectiveReadOnly) {
             setShowConfirmBack(true);
         } else {
@@ -286,13 +90,33 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
         }
     };
 
+    const handleOpenSpecialEditor = (name: string) => {
+        setSpecialEditorParam(name);
+        setSpecialEditorValue(form.state.values[name] || '');
+    };
+
+    const handleSaveSpecialEditor = () => {
+        if (specialEditorParam) {
+            form.setFieldValue(specialEditorParam as any, specialEditorValue);
+            if (node) {
+                const updatedFormData = { ...(node.data.params || {}), [specialEditorParam]: specialEditorValue };
+                onChange(node.id, updatedFormData);
+            }
+        }
+        setSpecialEditorParam(null);
+    };
+
+    const activeParam = parameters.find((p: any) => p.name === specialEditorParam);
+
     useHotkeys([
         {
             key: 'Escape',
             description: 'Back to Workflow',
             handler: () => {
-                if (!showConfirmBack && sqlEditorParam === null) {
+                if (!showConfirmBack && sqlEditorParam === null && specialEditorParam === null) {
                     handleBack();
+                } else if (specialEditorParam !== null) {
+                    setSpecialEditorParam(null);
                 }
             }
         },
@@ -301,8 +125,10 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
             description: 'Save Parameters',
             preventDefault: true,
             handler: () => {
-                if (!showConfirmBack && sqlEditorParam === null) {
+                if (!showConfirmBack && sqlEditorParam === null && specialEditorParam === null) {
                     form.handleSubmit();
+                } else if (specialEditorParam !== null) {
+                    handleSaveSpecialEditor();
                 }
             }
         },
@@ -311,8 +137,10 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
             description: 'Save Parameters',
             preventDefault: true,
             handler: () => {
-                if (!showConfirmBack && sqlEditorParam === null) {
+                if (!showConfirmBack && sqlEditorParam === null && specialEditorParam === null) {
                     form.handleSubmit();
+                } else if (specialEditorParam !== null) {
+                    handleSaveSpecialEditor();
                 }
             }
         }
@@ -379,12 +207,12 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                                                     // Trigger upstream update immediately for real-time application
                                                     if (node) {
                                                         const updatedFormData = { ...(node.data.params || {}), ...updates };
-                                                        console.log('[NodeEditorView] onChange triggered for node:', node.id, 'updates:', updates, 'final params:', updatedFormData);
                                                         onChange(node.id, updatedFormData);
                                                     }
                                                 }}
                                                 isReadOnly={effectiveReadOnly}
                                                 onOpenSqlEditor={() => setSqlEditorParam(param.name)}
+                                                onOpenSpecialEditor={handleOpenSpecialEditor}
                                                 nodeTypeId={nodeTypeData?.id}
                                                 allParams={form.state.values}
                                             />
@@ -441,7 +269,16 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                 }}
                 parameters={[...(workflowParameters || []), ...SYSTEM_PARAMETERS]}
             />
+
+            <SpecializedEditorsModal
+                param={activeParam}
+                value={specialEditorValue}
+                onChange={setSpecialEditorValue}
+                onClose={() => setSpecialEditorParam(null)}
+                onSave={handleSaveSpecialEditor}
+                isReadOnly={effectiveReadOnly}
+                editorTheme={editorTheme}
+            />
         </div>
     );
 };
-
