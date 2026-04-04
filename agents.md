@@ -229,6 +229,8 @@ User management - user.svg
 API Registry - api.svg
 
 #### 9.3.1 UI icons rules
+add (table row) - add_st.svg
+remove (table row) - remove_st.svg
 pin - keep.svg
 unpin - keep_off.svg
 visible - visibility.svg
