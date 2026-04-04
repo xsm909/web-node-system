@@ -181,12 +181,12 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                         e.stopPropagation();
                         form.handleSubmit();
                     }}
-                    className={`${inline ? 'space-y-4' : 'max-w-4xl mx-auto space-y-8'} animate-in fade-in slide-in-from-bottom-4 duration-500`}
+                    className={`${inline ? 'space-y-4' : 'max-w-4xl mx-auto space-y-5'} animate-in fade-in slide-in-from-bottom-4 duration-500`}
                 >
                     <div className={`${inline ? 'bg-transparent border-0 p-0 shadow-none' : 'bg-surface-800 border border-[var(--border-base)] rounded-2xl p-6 shadow-xl'}`}>
                         {!inline && <div className="px-1 text-xs font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] mb-6 border-b border-[var(--border-base)] pb-3">Configuration & Settings</div>}
 
-                        <div className={`grid grid-cols-1 ${inline ? '' : 'md:grid-cols-2'} gap-4 relative z-10`}>
+                        <div className={`grid grid-cols-1 ${inline ? '' : 'md:grid-cols-2'} gap-x-4 gap-y-2 relative z-10`}>
                             {parameters.map((param: any) => (
                                 <div key={param.name} className={param.type === 'list_dataclass' ? 'col-span-full' : ''}>
                                     <form.Field

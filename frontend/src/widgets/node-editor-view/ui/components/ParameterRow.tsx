@@ -191,7 +191,7 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
     }
 
     return (
-        <div className="space-y-1.5 group">
+        <div className="space-y-0.5 group">
             <div className="flex items-center justify-between h-[21px] gap-2">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                     <label
@@ -200,36 +200,6 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
                     >
                         {param.label}
                     </label>
-                    {(param.is_sql_query_constructor || param.is_md_editor || param.is_text_editor || param.is_python_editor) && (
-                        <div 
-                            className={`flex-1 min-w-0 flex items-center h-full ${!isReadOnly && !isLinked ? 'cursor-pointer hover:opacity-70 transition-opacity active:scale-[0.98]' : ''}`}
-                            onClick={(e) => {
-                                if (isReadOnly || isLinked) return;
-                                e.preventDefault();
-                                e.stopPropagation();
-                                if (param.is_sql_query_constructor) onOpenSqlEditor?.();
-                                else onOpenSpecialEditor?.(param.name);
-                            }}
-                        >
-                            {isLinked ? (
-                                <AppValuePreview 
-                                    value={value}
-                                    isLocked={true}
-                                    parameterName={param.name}
-                                    paramDef={param}
-                                    className="w-full"
-                                />
-                            ) : (
-                                <AppValuePreview 
-                                    value={value}
-                                    isLocked={true}
-                                    parameterName={param.name}
-                                    paramDef={param}
-                                    className="w-full pointer-events-none"
-                                />
-                            )}
-                        </div>
-                    )}
                 </div>
                 
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -254,13 +224,70 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
                             />
                         </div>
                     )}
-                    
-                    {!isLinked && (param.is_sql_query_constructor || param.is_md_editor || param.is_text_editor || param.is_python_editor) && (
+                </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+                <div className="flex-1 min-w-0">
+                    {(param.is_sql_query_constructor || param.is_md_editor || param.is_text_editor || param.is_python_editor) ? (
+                        <div 
+                            className={`flex items-center h-full ${!isReadOnly && !isLinked ? 'cursor-pointer hover:opacity-70 transition-opacity active:scale-[0.98]' : ''}`}
+                            onClick={(e) => {
+                                if (isReadOnly || isLinked) return;
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (param.is_sql_query_constructor) onOpenSqlEditor?.();
+                                else onOpenSpecialEditor?.(param.name);
+                            }}
+                        >
+                            <AppValuePreview 
+                                value={value}
+                                isLocked={true}
+                                parameterName={param.name}
+                                paramDef={param}
+                                className="w-full"
+                            />
+                        </div>
+                    ) : (param.type !== 'boolean' && (
+                        isLinked ? (
+                            <AppValuePreview 
+                                value={value}
+                                isLocked={true}
+                                parameterName={param.name}
+                                paramDef={param}
+                                className="w-full"
+                            />
+                        ) : (
+                            param.options_source?.component === 'ComboBox' ? (
+                                <ComboBox
+                                    value={String(value ?? '')}
+                                    label={getSelectedLabel()}
+                                    items={options}
+                                    onSelect={(item) => onChange({ [param.name]: item.id, [`_DISPLAY_${param.name}`]: item.name })}
+                                    disabled={isReadOnly}
+                                    placeholder={param.placeholder || "Select..."}
+                                    className="w-full"
+                                />
+                            ) : (
+                                <AppInput
+                                    value={String(value ?? "")}
+                                    onChange={(val) => onChange({ [param.name]: val })}
+                                    disabled={isReadOnly}
+                                    placeholder={param.placeholder}
+                                    className="w-full"
+                                />
+                            )
+                        )
+                    ))}
+                </div>
+
+                {/* Actions Section: Link/Unlink and Specialized Editors */}
+                <div className="flex items-center gap-1.5 shrink-0 h-[32px]">
+                    {!isLinked && !isReadOnly && (param.is_sql_query_constructor || param.is_md_editor || param.is_text_editor || param.is_python_editor) && (
                         <AppRoundButton 
                             icon={param.is_sql_query_constructor ? "QueryBuilder" : "edit"} 
                             variant="outline" 
                             size="xs" 
-                            isDisabled={isReadOnly}
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -289,7 +316,7 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
                                     }
                                 }}
                                 title={isLinked ? "Unlink from Workflow" : "Link to Workflow"}
-                                iconClassName={isLinked ? "text-brand" : "text-[var(--text-muted)]"}
+                                iconClassName={isLinked ? "text-blue-500" : "text-[var(--text-muted)]"}
                             />
                             
                             <AppContextMenu
@@ -328,51 +355,6 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
                     )}
                 </div>
             </div>
-
-            {param.type !== 'boolean' && !param.is_sql_query_constructor && !param.is_md_editor && !param.is_text_editor && !param.is_python_editor && (
-                isLinked ? (
-                    <div className="flex-1 min-w-0">
-                        <AppValuePreview 
-                            value={value}
-                            isLocked={true}
-                            parameterName={param.name}
-                            paramDef={param}
-                            className="w-full"
-                        />
-                    </div>
-                ) : (
-                    param.options_source?.component === 'ComboBox' ? (
-                        <ComboBox
-                            value={String(value ?? '')}
-                            label={getSelectedLabel()}
-                            icon="bolt"
-                            placeholder={isLoading ? "Loading..." : `Select ${param.label.toLowerCase()}...`}
-                            data={{}}
-                            items={options}
-                            onSelect={(item) => {
-                                onChange({
-                                    [param.name]: item.id,
-                                    [`_DISPLAY_${param.name}`]: item.name
-                                });
-                            }}
-                            className="w-full"
-                            disabled={isReadOnly}
-                        />
-                    ) : (
-                        <AppInput
-                            label=""
-                            type={param.type === 'number' ? 'number' : 'text'}
-                            value={value ?? ''}
-                            onChange={(val) => {
-                                const parsedVal = param.type === 'number' ? (val === '' ? '' : Number(val)) : val;
-                                onChange({ [param.name]: parsedVal });
-                            }}
-                            placeholder={`Enter ${param.label.toLowerCase()}...`}
-                            disabled={isReadOnly}
-                        />
-                    )
-                )
-            )}
         </div>
     );
 };

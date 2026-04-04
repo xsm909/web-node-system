@@ -639,3 +639,35 @@ Registered APIs can be dynamically exposed as **Tools** for LLM providers:
 ### 22.4 Documentation & Testing
 The system supports integrated documentation views (e.g., `/doc?api_key=...`) to allow Administrators to verify connectivity and explore function schemas directly from the platform.
 ```
+
+## 23. Workflow Parameter Linking
+
+To support dynamic automation, node parameters can be linked to global workflow parameters. This system uses a combination of naming conventions and visual standards to ensure data integrity and a premium user experience.
+
+### 23.1 Shadow Persistence Logic
+When a parameter is linked to a workflow variable, its current local value is preserved to prevent data loss:
+- **Prefix `@`**: A value starting with `@` (e.g., `@base_model`) indicates a link to a workflow parameter.
+- **Shadow Key (`_LOCAL_`)**: Before applying a link, the UI automatically backs up the current manual value into a `_LOCAL_<param_name>` key.
+- **Restoration**: Upon unlinking, the system primary value is restored from the `_LOCAL_` shadow key. If the key is missing, it defaults to an empty string.
+- **Display Key (`_DISPLAY_`)**: For complex selection components (ComboBox), the human-readable label is stored in `_DISPLAY_<param_name>` to ensure valid UI rendering during loading states.
+
+### 23.2 Visual & Selection Standards
+To maintain clarity in dense configurations, parameters follow a specific color and icon hierarchy:
+- **Linked Parameters (Blue)**:
+    - **Theme**: Text and borders use `blue-500` shades; background uses a subtle `blue-50` (or translucent equivalent).
+    - **Icon**: Always use `link_st.svg`. Semantic icons (e.g., `verified`) are suppressed in favor of the link status.
+    - **Brackets**: Values are wrapped in silver curly braces `{ }` within the gadget.
+- **Structural Data (Purple)**:
+    - **Usage**: Applied to Tables, Objects, Arrays, and Schemas.
+    - **Theme**: High-contrast `purple-600` (Text/Border) to distinguish structure from functional links.
+- **Hints (Amber)**: Applied to informational markers or system suggestions.
+
+### 23.3 Sidebar Layout Rules
+To maximize vertical space and improve interaction context:
+- **Internal Spacing**: Use `space-y-0.5` between the Parameter Label and the Value Control.
+- **Action Alignment**: Action buttons (Link/Unlink, Edit Code, SQL Builder) must be positioned in a single horizontal row **directly opposite or adjacent to the value field**, never in the header with the label.
+- **Row Height**: The label row is fixed at `h-[21px]` to ensure perfect vertical rhythm.
+
+### 23.4 Graph Interaction Pattern
+- **Restricted Selection**: Click-to-edit interactions on workflow nodes are strictly limited to the **visual bubble area** (`AppValuePreview`). 
+- **Empty Space Protection**: Clicking on the technical padding or label area of a parameter row in a node must NOT trigger the editor. This prevents accidental sidebar navigation when dragging or panning the graph.
