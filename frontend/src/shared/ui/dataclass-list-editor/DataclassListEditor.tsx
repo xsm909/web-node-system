@@ -121,14 +121,27 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
         }
     }, [safeValue, isInternalUpdate]);
 
-    const handleAddRow = () => {
+    const handleAddRow = async () => {
         if (tabulatorInstance.current) {
             const newRow = schema.reduce((acc, field) => ({ ...acc, [field.name]: field.type === 'number' ? 0 : '' }), {});
-            tabulatorInstance.current.addRow(newRow);
+            const rowComponent = await tabulatorInstance.current.addRow(newRow);
+            
             const newData = tabulatorInstance.current.getData();
             setIsInternalUpdate(true);
             onChange(newData);
             setTimeout(() => setIsInternalUpdate(false), 0);
+
+            // Focus the first editable cell in the new row
+            if (rowComponent && schema.length > 0) {
+                // Small delay to ensure Tabulator has rendered the new row
+                // and React's change detection hasn't stolen focus
+                setTimeout(() => {
+                    const cells = rowComponent.getCells();
+                    if (cells.length > 0) {
+                        cells[0].edit();
+                    }
+                }, 64);
+            }
         }
     };
 
