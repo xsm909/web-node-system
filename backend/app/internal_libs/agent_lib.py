@@ -348,25 +348,31 @@ AVAILABLE TOOLS:
             )
             last_response_raw = response_raw
 
-            #system_log(f"[AGENT] AI raw response: {response_text[:300]}...", level="system")
-            
-            # Robust JSON extraction
-            cleaned_json = _extract_json(response_text)
-            
-            if cleaned_json == "INVALID_JSON_NO_STRUCTURE_FOUND":
-                error_msg = "Invalid response: No JSON structure found. You MUST respond ONLY with a valid JSON object matching the schema. Do NOT talk."
-                system_log(f"[AGENT] Parsing error: {error_msg}", level="error")
-                messages.append({"role": "assistant", "content": response_text})
-                messages.append({"role": "user", "content": error_msg})
+            # 1. Check for Empty Data
+            if not response_text or not response_text.strip():
+                error_msg = f"[EMPTY_DATA] AI provider returned an EMPTY response at iteration {i}."
+                system_log(error_msg, level="error")
+                messages.append({"role": "user", "content": "Your response was empty. You MUST respond with a valid JSON object matching the AgentStep schema."})
                 continue
 
+            # 2. Extract JSON and Check for Structure
+            # We check if cleaned_json contains any JSON structural markers
+            cleaned_json = _extract_json(response_text)
+            if not any(char in cleaned_json for char in ('{', '[')):
+                error_msg = f"[NO_JSON_STRUCTURE] No JSON markers ({{ or [) detected in the extracted content.\nRaw received: {response_text[:500]}"
+                system_log(error_msg, level="error")
+                messages.append({"role": "assistant", "content": response_text})
+                messages.append({"role": "user", "content": "I couldn't find any JSON structure in your response. Ensure you return ONLY a JSON object."})
+                continue
+
+            # 3. Validate against AgentStep Schema
             try:
                 step = AgentStep.model_validate_json(cleaned_json)
             except Exception as ve:
-                error_msg = f"Invalid JSON response: {str(ve)}. Please ensure you return ONLY a JSON object matching the AgentStep schema. Raw received: {response_text[:200]}"
-                system_log(f"[AGENT] Validation error: {error_msg}", level="error")
+                error_msg = f"[VALIDATION_ERROR] {str(ve)}\nAttempted to parse: {cleaned_json[:500]}\nRaw received: {response_text[:500]}"
+                system_log(f"[AGENT] {error_msg}", level="error")
                 messages.append({"role": "assistant", "content": response_text})
-                messages.append({"role": "user", "content": error_msg})
+                messages.append({"role": "user", "content": f"Validation error: {str(ve)}. Please fix and try again."})
                 continue
             
             # Save assistant message to history
