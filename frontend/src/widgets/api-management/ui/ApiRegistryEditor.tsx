@@ -5,6 +5,7 @@ import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
 import { Icon } from '../../../shared/ui/icon';
 import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
+import { AppCompactModalForm } from '../../../shared/ui/app-compact-modal-form/AppCompactModalForm';
 import { ComboBox } from '../../../shared/ui/combo-box/ComboBox';
 import { useCredentials } from '../../../entities/credential/api';
 import { UI_CONSTANTS } from '../../../shared/ui/constants';
@@ -324,6 +325,10 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel, isHotkeysEn
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [isAiHintModalOpen, setIsAiHintModalOpen] = useState(false);
+    const [isFillDataModalOpen, setIsFillDataModalOpen] = useState(false);
+    const [aiJsonInput, setAiJsonInput] = useState('');
+    const [importError, setImportError] = useState<string | null>(null);
     const queryClient = useQueryClient();
     
     const sensors = useSensors(
@@ -415,6 +420,58 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel, isHotkeysEn
         toggleExpand(newId);
     };
 
+    const handleFillFunctions = () => {
+        try {
+            setImportError(null);
+            if (!aiJsonInput.trim()) {
+                setImportError('Please paste some JSON data.');
+                return;
+            }
+
+            const data = JSON.parse(aiJsonInput);
+            if (!Array.isArray(data)) {
+                setImportError('Data must be a JSON array of function objects.');
+                return;
+            }
+
+            const newFunctions: (ApiFunction & { _dndId: string })[] = [];
+            const errors: string[] = [];
+
+            data.forEach((item, idx) => {
+                const name = item.name || item.function_name;
+                const path = item.path || item.endpoint || item.url;
+                const method = (item.method || 'GET').toUpperCase();
+
+                if (!name) errors.push(`Item #${idx + 1} is missing "name"`);
+                if (!path) errors.push(`Item #${idx + 1} is missing "path"`);
+                
+                if (name && path) {
+                    newFunctions.push({
+                        name,
+                        method: method as any,
+                        path,
+                        description: item.description || '',
+                        parameters: item.parameters || item.params || {},
+                        default_params: item.default_params || [],
+                        _dndId: crypto.randomUUID()
+                    });
+                }
+            });
+
+            if (errors.length > 0) {
+                setImportError(`Validation errors:\n${errors.join('\n')}`);
+                return;
+            }
+
+            // Append new functions
+            setFunctionsList([...functionsList, ...newFunctions]);
+            setIsFillDataModalOpen(false);
+            setAiJsonInput('');
+        } catch (e: any) {
+            setImportError(`Invalid JSON format: ${e.message}`);
+        }
+    };
+
     const handleUpdateFunction = (index: number, updates: Partial<ApiFunction>) => {
         const newList = [...functionsList];
         newList[index] = { ...newList[index], ...updates };
@@ -498,8 +555,13 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel, isHotkeysEn
                             required
                             value={formData.base_url || ''}
                             onChange={(val) => setFormData({ ...formData, base_url: val })}
-                            placeholder="http://localhost:8018"
+                            placeholder="https://api.example.com"
                             className={UI_CONSTANTS.CODE_EDITOR_CLASS}
+                            actions={[{
+                                icon: 'question_here',
+                                title: 'AI Prompt Helper',
+                                onClick: () => setIsAiHintModalOpen(true)
+                            }]}
                         />
                     </div>
 
@@ -559,13 +621,25 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel, isHotkeysEn
                                         />
                                     </>
                                 )}
-                                <AppRoundButton
-                                    icon="add"
-                                    onClick={handleAddFunction}
-                                    variant="brand"
-                                    size="small"
-                                    title="Add Function"
-                                />
+                                <div className="flex items-center gap-1.5 ml-1">
+                                    <AppRoundButton
+                                        icon="filldown"
+                                        onClick={() => {
+                                            setImportError(null);
+                                            setIsFillDataModalOpen(true);
+                                        }}
+                                        variant="outline"
+                                        size="small"
+                                        title="Import from AI (JSON)"
+                                    />
+                                    <AppRoundButton
+                                        icon="add"
+                                        onClick={handleAddFunction}
+                                        variant="brand"
+                                        size="small"
+                                        title="Add Function manualmente"
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -619,6 +693,114 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel, isHotkeysEn
                     </div>
                 </div>
             </div>
+
+            {/* AI Prompt Modal */}
+            <AppCompactModalForm
+                isOpen={isAiHintModalOpen}
+                onClose={() => setIsAiHintModalOpen(false)}
+                title="AI Integration Hint"
+                icon="question_here"
+                submitLabel="I understand"
+                showCancel={false}
+                onSubmit={() => setIsAiHintModalOpen(false)}
+                width="max-w-2xl"
+            >
+                <div className="space-y-4 py-2">
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand opacity-80">AI System Hint</label>
+                        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                            Copy this prompt and send it to your AI assistant. It explicitly instructs the AI to generate a <span className="text-brand font-bold">JSON Array</span> of endpoints for <span className="text-[var(--text-main)] font-mono font-bold tracking-tight">{formData.base_url || 'this documentation'}</span>.
+                        </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-surface-900/20 border border-[var(--border-base)]/50 relative group">
+                        <pre className="text-[11px] font-mono text-[var(--text-main)] leading-relaxed whitespace-pre-wrap break-words">
+{`Act as an API Integration Expert.
+I am building a workflow system and I need to register the endpoints for the API located at: ${formData.base_url || 'provided URL'}.
+
+Please provide a JSON object which is a SINGLE ARRAY of function definitions.
+Each object in the array MUST follow this format:
+{
+  "name": "get_markets",  // Must be snake_case, e.g. get_{entity_name}
+  "method": "GET",        // GET, POST, PUT, or DELETE
+  "path": "/v1/markets",  // The relative path is MANDATORY
+  "description": "Clear description of what this endpoint provides",
+  "parameters": {         // Use standard JSON Schema for input parameters
+    "type": "object",
+    "properties": {
+      "limit": { "type": "number", "description": "max results" }
+    }
+  }
+}
+
+Important Rules:
+1. The response MUST be a VALID JSON ARRAY ( [ ... ] ).
+2. Do not include any explanations, only the JSON array.
+3. Every function MUST have a "path".`}
+                        </pre>
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <AppRoundButton
+                                icon="content_copy"
+                                size="small"
+                                variant="ghost"
+                                title="Copy Prompt"
+                                onClick={() => {
+                                    const prompt = `Act as an API Integration Expert.\nI am building a workflow system and I need to register the endpoints for the API located at: ${formData.base_url || 'provided URL'}.\n\nPlease provide a JSON object which is a SINGLE ARRAY of function definitions.\nEach object in the array MUST follow this format:\n{\n  "name": "get_markets",  // Must be snake_case, e.g. get_{entity_name}\n  "method": "GET",\n  "path": "/v1/markets",  // The relative path is MANDATORY\n  "description": "Clear description of what this endpoint provides",\n  "parameters": {\n    "type": "object",\n    "properties": {\n      "limit": { "type": "number", "description": "max results" }\n    }\n  }\n}\n\nImportant Rules:\n1. The response MUST be a VALID JSON ARRAY ( [ ... ] ).\n2. Do not include any explanations, only the JSON array.\n3. Every function MUST have a "path".`;
+                                    navigator.clipboard.writeText(prompt);
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-xl bg-brand/5 border border-brand/10 translate-y-1">
+                        <Icon name="lightbulb_circle" size={16} className="text-brand shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                            Once the AI gives you the JSON, click the <Icon name="filldown" size={10} className="inline-block" /> button next to "Function Mapping" to paste and import it.
+                        </p>
+                    </div>
+                </div>
+            </AppCompactModalForm>
+
+            {/* Data Import Modal */}
+            <AppCompactModalForm
+                isOpen={isFillDataModalOpen}
+                onClose={() => setIsFillDataModalOpen(false)}
+                title="Import Functions from AI"
+                icon="filldown"
+                submitLabel="Fill Functions"
+                onSubmit={handleFillFunctions}
+                error={importError || undefined}
+                width="max-w-3xl"
+            >
+                <div className="space-y-4 py-2">
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Paste AI Response</label>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-brand">Required Format: JSON Array [ ]</span>
+                        </div>
+                        <AppInput
+                            value={aiJsonInput}
+                            onChange={setAiJsonInput}
+                            multiline
+                            rows={15}
+                            placeholder='[ { "name": "get_markets", "method": "GET", "path": "/markets", ... } ]'
+                            className={UI_CONSTANTS.CODE_EDITOR_CLASS}
+                            autoFocus
+                        />
+                    </div>
+                    
+                    <div className="p-3 rounded-xl bg-surface-900/10 border border-[var(--border-base)]/30 flex items-start gap-3">
+                        <Icon name="info" size={14} className="text-[var(--text-muted)] mt-0.5 shrink-0" />
+                        <div className="flex flex-col gap-0.5">
+                           <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-tight">Import Logic</span>
+                           <p className="text-[10px] text-[var(--text-muted)] opacity-60 leading-relaxed">
+                               This tool will parse your JSON and append any valid function definitions found to the current list. 
+                               We also try to normalize fields like "endpoint" to "path" automatically.
+                           </p>
+                        </div>
+                    </div>
+                </div>
+            </AppCompactModalForm>
         </AppFormView>
     );
 }
