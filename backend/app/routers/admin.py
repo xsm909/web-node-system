@@ -203,7 +203,8 @@ def extract_node_parameters(code: str) -> list:
     # Try full parse first
     try:
         # Replace problematic assignment-to-comment shorthand to prevent SyntaxError
-        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*#', r'\1 #', code)
+        # Use lookahead (?=#) to ensure we ONLY match if it's immediately followed by a comment
+        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*(?=#)', r'\1 ', code)
         tree = ast.parse(cleaned_code)
         return _parse_class_body(tree)
     except SyntaxError:
@@ -215,7 +216,7 @@ def extract_node_parameters(code: str) -> list:
         if match:
             class_code = match.group(1)
             # Also clean the fallback
-            cleaned_class_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*#', r'\1 #', class_code)
+            cleaned_class_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*(?=#)', r'\1 ', class_code)
             tree = ast.parse(cleaned_class_code)
             return _parse_class_body(tree)
     except Exception:

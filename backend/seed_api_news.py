@@ -22,7 +22,7 @@ class param_info:
 class NodeParameters:
     api_name: str = "news" #@get_api
     api_function: str = "get_documentation" #@get_functions_list
-    api_parameters: list[param_info]
+    api_parameters: list[param_info] #^=FillParametersByDefault
     
 
 def run(inputs, params):

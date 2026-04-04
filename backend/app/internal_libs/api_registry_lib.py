@@ -185,6 +185,7 @@ def get_function_parameters(api_name: str, function_name: str) -> list:
     Returns list of dicts with 'name' and 'value'.
     Merges schema parameters with default values from 'default_params'.
     """
+    print(f"[API_REGISTRY] Fetching parameters for '{api_name}' -> '{function_name}'")
     db = SessionLocal()
     try:
         api_entry = db.query(ApiRegistryModel).filter(ApiRegistryModel.name == api_name).first()
@@ -198,12 +199,26 @@ def get_function_parameters(api_name: str, function_name: str) -> list:
             except:
                 functions = []
         
-        func_def = next((f for f in functions if f.get("name") == function_name), None)
+        # 0. Find the function definition (check 'name' and 'function_name')
+        func_def = None
+        for f in functions:
+            f_id = f.get("name") or f.get("function_name")
+            if f_id == function_name:
+                func_def = f
+                break
+        
+        # If still not found, check if it's an OpenAI style tool wrapper
         if not func_def:
+            for f in functions:
+                if f.get("type") == "function" and f.get("function", {}).get("name") == function_name:
+                    func_def = f.get("function")
+                    break
+        
+        if not func_def:
+            print(f"[API_REGISTRY] ERROR: Function '{function_name}' not found for API '{api_name}'. Available: {[f.get('name') or f.get('function_name') for f in functions]}")
             return []
         
         # 1. Get default values mapping
-        # Supports both list of {name, value} and flat dict
         defaults_raw = func_def.get("default_params") or func_def.get("default_parameters") or {}
         defaults_map = {}
         if isinstance(defaults_raw, list):
@@ -216,29 +231,41 @@ def get_function_parameters(api_name: str, function_name: str) -> list:
         elif isinstance(defaults_raw, dict):
             defaults_map = defaults_raw
 
-        # 2. Extract base parameters from schema
-        params_data = func_def.get("parameters") or func_def.get("params") or []
+        # 2. Extract base parameters from schema (check various aliases)
+        params_data = (
+            func_def.get("parameters") or 
+            func_def.get("params") or 
+            func_def.get("input_schema") or 
+            func_def.get("input_parameters") or 
+            []
+        )
         
         result_params = []
         
-        # If it's the OpenAI schema object, parameters are in ['properties']
-        if isinstance(params_data, dict) and "properties" in params_data:
-            props = params_data.get("properties", {})
-            for k, v in props.items():
-                # Priority: explicit default_params > schema example > schema default
-                val = defaults_map.get(k)
-                if val is None:
-                    val = v.get("example") if v.get("example") is not None else v.get("default")
-                
-                result_params.append({
-                    "name": k,
-                    "value": val if val is not None else ""
-                })
-            return result_params
-            
-        # If it's a dict of {name: info}, convert to list
+        # If it's a JSON Schema object containing 'properties'
         if isinstance(params_data, dict):
+            props = params_data.get("properties")
+            
+            # Nested OpenAI/Gemini support: if 'type' is 'function', look inside
+            if not props and params_data.get("type") == "function" and "function" in params_data:
+                props = params_data.get("function", {}).get("parameters", {}).get("properties")
+            
+            if props:
+                for k, v in props.items():
+                    # Priority: explicit default_params > schema example > schema default
+                    val = defaults_map.get(k)
+                    if val is None:
+                        val = v.get("example") if v.get("example") is not None else v.get("default")
+                    
+                    result_params.append({
+                        "name": k,
+                        "value": val if val is not None else ""
+                    })
+                return result_params
+
+            # If it's just a dict of {name: info}, convert to list
             for k, v in params_data.items():
+                if k in ("type", "properties", "required"): continue # Skip schema metadata
                 val = defaults_map.get(k)
                 if val is None:
                     if isinstance(v, dict):
@@ -251,13 +278,13 @@ def get_function_parameters(api_name: str, function_name: str) -> list:
                     "name": k,
                     "value": val if val is not None else ""
                 })
-            return result_params
+            if result_params: return result_params
             
         # If it's already a list of objects
         if isinstance(params_data, list):
             for p in params_data:
-                if isinstance(p, dict) and "name" in p:
-                    name = p["name"]
+                if isinstance(p, dict) and ("name" in p or "key" in p):
+                    name = p.get("name") or p.get("key")
                     val = defaults_map.get(name)
                     if val is None:
                         val = p.get("example") if p.get("example") is not None else p.get("default")
@@ -272,4 +299,25 @@ def get_function_parameters(api_name: str, function_name: str) -> list:
         return []
     finally:
         db.close()
+
+
+def fill_parameters_by_default(params: dict) -> list:
+    """
+    Standard helper to populate node parameters from the API registry.
+    This version is robust and handles multiple common aliases:
+    - API: api_name, api, target_api
+    - Function: function_name, api_function, function, api_method
+    """
+    # 1. Resolve API name
+    api = params.get("api_name") or params.get("api") or params.get("target_api")
+    
+    # 2. Resolve Function name
+    func = params.get("api_function") or params.get("function") or params.get("api_method") or params.get("api_function_name")
+    
+    if not api or not func:
+        print(f"[API_REGISTRY] ERROR: Missing API name ('{api}') or Function name ('{func}') in params: {params}")
+        return []
+    
+    print(f"[API_REGISTRY] Auto-fill triggered: API='{api}', FUNC='{func}'")
+    return get_function_parameters(str(api), str(func))
 

@@ -264,8 +264,10 @@ SAFE_GLOBALS = {
     "API": SimpleNamespace(
         CallAPIFunction=api_registry_lib.call_api_function,
         get_agent_tool_definitions=api_registry_lib.get_agent_tool_definitions,
-        GetFunctionParametersByFunctionName=api_registry_lib.get_function_parameters
+        GetFunctionParametersByFunctionName=api_registry_lib.get_function_parameters,
+        FillParametersByDefault=api_registry_lib.fill_parameters_by_default
     ),
+    "FillParametersByDefault": api_registry_lib.fill_parameters_by_default,
     "workflow": SimpleNamespace(
         execute_node=lambda h, i: None,
         runtime=SimpleNamespace(

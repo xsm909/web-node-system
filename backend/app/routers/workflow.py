@@ -630,9 +630,8 @@ def validate_node_code(data: NodeCodeValidateRequest, current_user: User = Depen
     import re
 
     try:
-        # Clean the code to handle assignments with markers (e.g., model: str = #@get_model)
-        # This prevents SyntaxError during compilation by removing the '=' before the comment
-        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*#', r'\1 #', data.code)
+        # Clean code but preserve defaults using lookahead (?=#)
+        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*(?=#)', r'\1 ', data.code)
 
         compile_restricted(
             cleaned_code, 
@@ -679,9 +678,8 @@ def get_node_parameter_options(
         # This allows unsafe_request to resolve permissions in configuration mode
         token = execution_context.set(str(current_user.id))
         
-        # Clean the code to handle assignments with markers (e.g., model: str = #@get_model)
-        # This prevents SyntaxError during compilation by removing the '=' before the comment
-        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*#', r'\1 #', node.code)
+        # Clean code but preserve defaults using lookahead (?=#)
+        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*(?=#)', r'\1 ', node.code)
 
         # Compile the node's code in restricted mode
         byte_code = compile_restricted(
@@ -796,8 +794,16 @@ def get_node_fill_data(
         except Exception:
             current_params = {}
 
+        # Merge defaults from NodeParameters code to handle cases where the frontend sends an incomplete params dict
+        from .admin import extract_node_parameters
+        node_params_meta = extract_node_parameters(node.code)
+        for p in node_params_meta:
+            if p['name'] not in current_params and p.get('default') is not None:
+                current_params[p['name']] = p['default']
+
         token = execution_context.set(str(current_user.id))
-        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*#', r'\1 #', node.code)
+        # Clean code but preserve defaults using lookahead (?=#)
+        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*(?=#)', r'\1 ', node.code)
 
         byte_code = compile_restricted(
             cleaned_code, 
@@ -836,15 +842,19 @@ def get_node_fill_data(
         try:
             sig = inspect.signature(target_func)
             if len(sig.parameters) > 0:
+                print(f"[FILL_DATA] Calling '{fill_func}' with current_params...")
                 res = target_func(current_params)
             else:
+                print(f"[FILL_DATA] Calling '{fill_func}' (no args)...")
                 res = target_func()
             
-            print(f"[FILL_DATA] Function '{fill_func}' returned: {res}")
+            print(f"[FILL_DATA] SUCCESS: '{fill_func}' returned {len(res) if isinstance(res, list) else 'non-list'} items: {res}")
             return res
         except Exception as e:
-            print(f"[FILL_DATA] Execution error in '{fill_func}': {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
+            print(f"[FILL_DATA] ERROR in '{fill_func}': {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=f"Execution error in {fill_func}: {str(e)}")
         
     except HTTPException:
         raise
