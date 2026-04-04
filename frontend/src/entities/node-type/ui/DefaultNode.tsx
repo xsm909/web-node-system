@@ -63,7 +63,15 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                 </div>
             ) : (
                 <>
-                    <div className="flex items-center gap-2 w-full pb-2 mb-2 border-b border-[var(--border-base)]/50">
+                    <div 
+                        className="flex items-center gap-2 w-full pb-2 mb-2 border-b border-[var(--border-base)]/50 cursor-pointer"
+                        onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            if (data.onDoubleClick) {
+                                data.onDoubleClick(e, { id, data, type: data.type });
+                            }
+                        }}
+                    >
                         <Icon
                             name={data.isActive ? "clock" : (data.icon || 'task')}
                             dir={data.isActive ? 'icons' : 'node_icons'}

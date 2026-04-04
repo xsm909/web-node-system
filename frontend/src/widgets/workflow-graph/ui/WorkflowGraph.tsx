@@ -712,6 +712,7 @@ export const WorkflowGraph = React.memo(({
                     isRightInputProvider: !!nodeTypes.find(t => t.id === node.data?.nodeTypeId && (t as any).isRightInputProvider),
                     onUngroup: handleUngroup,
                     onRename: handleGroupRename,
+                    onDoubleClick: (e: any, n: any) => onNodeDoubleClickCallback?.(e, n),
                     onSelect: () => {
                         setSelectedNodeId(node.id);
                         onNodeSelectCallback?.(node);
@@ -756,7 +757,6 @@ export const WorkflowGraph = React.memo(({
                     }
                 }}
                 onPaneClick={() => { setSelectedNodeId(null); onNodeSelectCallback?.(null); setMenu(null); }}
-                onNodeDoubleClick={onNodeDoubleClickCallback}
                 onNodeContextMenu={(e, n) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, nodeId: n.id }); }}
                 onMoveEnd={onMoveEnd}
                 nodeTypes={nodeTypesConfig}
