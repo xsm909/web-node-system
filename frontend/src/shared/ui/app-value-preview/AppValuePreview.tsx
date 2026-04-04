@@ -1,74 +1,182 @@
-import { memo, useRef, useState } from 'react';
+import React, { useState, memo, useMemo, useEffect, useRef } from 'react';
+import { AppCompactModalForm } from '../app-compact-modal-form/AppCompactModalForm';
+import { AppValueEditor } from './AppValueEditor';
+import { SelectionList } from '../selection-list/SelectionList';
+import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
+import { SpecializedEditorsModal } from '../../../widgets/node-editor-view/ui/components/SpecializedEditorsModal';
+import { useParameterOptions } from '../../../features/node-editor/lib/useParameterOptions';
 import { resolveValuePreview } from './ValuePreview.lib';
 import { AppPreviewWrapper } from './AppPreviewWrapper';
-import { AppValueTooltip } from './AppValueTooltip';
+import { useThemeStore } from '../../lib/theme/store';
+import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 
-/**
- * Props for AppValuePreview
- */
-interface AppValuePreviewProps {
-    /** The value to display in preview mode */
+export interface AppValuePreviewProps {
     value: any;
-    /** The name of the parameter (for logic-based type detection) */
     parameterName?: string;
-    /** Optional CSS classes */
+    paramDef?: any;
+    nodeTypeId?: string;
+    allParams?: Record<string, any>;
+    label?: string;
+    onSave?: (newValue: any, displayLabel?: string) => void;
+    isLocked?: boolean;
     className?: string;
+    workflowParameters?: any[];
 }
 
 /**
  * AppValuePreview
  * 
- * Orchestrates the display of values by resolving their preview string
- * and wrapping them in the premium { ... } gadget if they are complex.
- * Also manages the high-fidelity hover tooltip for full content inspection.
+ * Renders a stylized 'gadget' preview of a value.
+ * Clicking triggers context-aware editing interfaces.
+ * Ensures synchronization with the sidebar/workflow state.
  */
-export const AppValuePreview = memo(({ value, parameterName, className = '' }: AppValuePreviewProps) => {
-    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const timeoutRef = useRef<any>(null);
+export const AppValuePreview = memo(({ 
+    value, 
+    parameterName, 
+    paramDef,
+    nodeTypeId,
+    allParams = {},
+    label,
+    onSave,
+    isLocked = false,
+    className = '',
+    workflowParameters = [],
+}: AppValuePreviewProps) => {
+    const { theme } = useThemeStore();
+    const editorTheme = theme === "dark" ? vscodeDark : vscodeLight;
 
-    const handleMouseEnter = () => {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        if (containerRef.current) {
-            setAnchorRect(containerRef.current.getBoundingClientRect());
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isSqlModalOpen, setIsSqlModalOpen] = useState(false);
+    const [isSpecialModalOpen, setIsSpecialModalOpen] = useState(false);
+    const [isComboOpen, setIsComboOpen] = useState(false);
+    const [comboPosition, setComboPosition] = useState({ x: 0, y: 0 });
+    
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Local state for the modal editor
+    const [modalTempValue, setModalTempValue] = useState<any>(value);
+
+    // Sync local state when external value changes
+    useEffect(() => {
+        setModalTempValue(value);
+    }, [value]);
+
+    // Detect parameter behavior based on metadata
+    // Priority 1: SQL/Specialized Modals
+    const isSqlConstructor = !!paramDef?.is_sql_query_constructor;
+    const isSpecialEditor = !!(paramDef?.is_md_editor || paramDef?.is_python_editor || paramDef?.is_text_editor || paramDef?.parameter_type === 'code' || paramDef?.parameter_type === 'text');
+    
+    // Priority 2: ComboBox (Strict check matching sidebar logic)
+    const isComboBox = paramDef?.options_source?.component === 'ComboBox';
+
+    // Fetch options for ComboBox if applicable
+    const { options, isLoading: isOptionsLoading } = useParameterOptions({
+        param: paramDef,
+        nodeTypeId,
+        allParams
+    });
+
+    // Get the visual type and display string from the shared library
+    const preview = useMemo(() => resolveValuePreview(value, parameterName), [value, parameterName]);
+
+    const isEditable = !!onSave && !isLocked;
+
+    const handleContainerClick = (e: React.MouseEvent) => {
+        if (!isEditable) return;
+        e.stopPropagation();
+
+        if (isSqlConstructor) {
+            setIsSqlModalOpen(true);
+        } else if (isSpecialEditor) {
+            setModalTempValue(value);
+            setIsSpecialModalOpen(true);
+        } else if (isComboBox) {
+            // Calculate position for the SelectionList dropdown
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (rect) {
+                setComboPosition({ x: rect.left, y: rect.bottom + 4 });
+                setIsComboOpen(true);
+            }
+        } else {
+            setModalTempValue(value);
+            setIsEditModalOpen(true);
         }
     };
 
-    const handleMouseLeave = () => {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        setAnchorRect(null);
+    const handleInternalSave = (newVal: any, displayLabel?: string) => {
+        onSave?.(newVal, displayLabel);
+        setIsEditModalOpen(false);
+        setIsSqlModalOpen(false);
+        setIsSpecialModalOpen(false);
+        setIsComboOpen(false);
     };
 
-    if (value === null || value === undefined) return null;
-
-    const { display, isComplex, type } = resolveValuePreview(value, parameterName);
-
     return (
-        <div 
+        <div
             ref={containerRef}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            title=""
-            className={`flex items-center min-w-0 whitespace-nowrap overflow-hidden ${className}`} 
-            style={{
-                animation: 'fade-in 0.2s ease-out forwards'
-            }}
+            onClick={handleContainerClick}
+            className={`
+                group relative flex items-center min-w-0 transition-all
+                ${isEditable ? 'cursor-pointer hover:opacity-80 active:scale-[0.98]' : 'opacity-100'}
+                ${className}
+            `}
         >
-            {isComplex ? (
-                <AppPreviewWrapper type={type}>
-                    {display}
-                </AppPreviewWrapper>
-            ) : (
-                <span className="text-[10px] text-[var(--text-main)] truncate" title="">
-                    {display}
-                </span>
+            <AppPreviewWrapper type={preview.type}>
+                {preview.display || <span className="opacity-30 italic leading-none">empty</span>}
+            </AppPreviewWrapper>
+
+            {/* Seamless ComboBox: Rendered as a Portal-based SelectionList directly from the gadget */}
+            {isComboOpen && isEditable && isComboBox && (
+                <SelectionList
+                    data={{}}
+                    items={options}
+                    activeItemId={String(value ?? '')}
+                    onSelect={(item) => handleInternalSave(item.id, item.name)}
+                    onClose={() => setIsComboOpen(false)}
+                    position={comboPosition}
+                    searchPlaceholder={isOptionsLoading ? "Loading options..." : "Search..."}
+                />
             )}
 
-            {anchorRect && (
-                <AppValueTooltip 
-                    value={value} 
-                    type={type} 
-                    anchorRect={anchorRect}
+            {/* Editing Interfaces */}
+            {isEditModalOpen && (
+                <AppCompactModalForm
+                    isOpen={isEditModalOpen}
+                    title={label || parameterName || 'Edit Value'}
+                    onClose={() => setIsEditModalOpen(false)}
+                    onSubmit={() => handleInternalSave(modalTempValue)}
+                    width="max-w-md"
+                >
+                    <div className="py-2">
+                        <AppValueEditor
+                            value={modalTempValue}
+                            type={preview.type}
+                            onChange={setModalTempValue}
+                            isLocked={isLocked}
+                        />
+                    </div>
+                </AppCompactModalForm>
+            )}
+
+            {isSqlModalOpen && (
+                <QueryBuilderModal
+                    isOpen={isSqlModalOpen}
+                    initialSql={value || ''}
+                    onClose={() => setIsSqlModalOpen(false)}
+                    onDone={handleInternalSave}
+                    parameters={workflowParameters}
+                />
+            )}
+
+            {isSpecialModalOpen && (
+                <SpecializedEditorsModal
+                    param={paramDef}
+                    value={String(modalTempValue ?? '')}
+                    onChange={setModalTempValue}
+                    onClose={() => setIsSpecialModalOpen(false)}
+                    onSave={() => handleInternalSave(modalTempValue)}
+                    isReadOnly={isLocked}
+                    editorTheme={editorTheme}
                 />
             )}
         </div>

@@ -93,7 +93,27 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                                     return (
                                         <div key={key} className="flex items-baseline gap-2 min-w-0">
                                             <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-tight shrink-0">{key}:</span>
-                                            <AppValuePreview value={finalValue} parameterName={key} className="flex-1" />
+                                            <AppValuePreview 
+                                                value={finalValue} 
+                                                parameterName={key} 
+                                                paramDef={paramInfo}
+                                                nodeTypeId={data.nodeTypeId}
+                                                allParams={data.params}
+                                                label={paramInfo?.label || key}
+                                                onSave={data.onUpdateParams ? (val: any, displayLabel?: string) => {
+                                                    const nextParams = { ...data.params, [key]: val };
+                                                    const displayKey = `_DISPLAY_${key}`;
+                                                    if (displayLabel) {
+                                                        nextParams[displayKey] = displayLabel;
+                                                    } else {
+                                                        delete nextParams[displayKey];
+                                                    }
+                                                    data.onUpdateParams(nextParams);
+                                                } : undefined}
+                                                isLocked={data.isLocked}
+                                                className="flex-1" 
+                                                workflowParameters={data.workflowParameters}
+                                            />
                                         </div>
                                     );
                                 })}

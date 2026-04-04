@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from '../icon';
 import { SelectionList, type SelectionGroup, type SelectionItem, type SelectionAction, type SelectionListConfig } from '../selection-list';
 import { AppFormFieldRect } from '../app-input/AppFormFieldRect';
@@ -7,7 +7,6 @@ import { AppRoundButton } from '../app-round-button/AppRoundButton';
 import { UI_CONSTANTS } from '../constants';
 
 interface ComboBoxProps {
-// ... (omitted props for brevity, but I must provide full target content)
     value?: string;
     label?: string;
     subLabel?: string;
@@ -19,6 +18,7 @@ interface ComboBoxProps {
     onSelect: (item: SelectionItem) => void;
     onAction?: (action: SelectionAction, target: SelectionItem | SelectionGroup) => void;
     onOpenChange?: (open: boolean) => void;
+    defaultOpen?: boolean;
     className?: string;
     triggerClassName?: string;
     labelClassName?: string;
@@ -45,6 +45,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     onSelect,
     onAction,
     onOpenChange,
+    defaultOpen = false,
     className = '',
     triggerClassName = '',
     labelClassName = '',
@@ -61,8 +62,15 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
     const isSmall = size === 'small';
     const computedIconSize = iconSize || (isSmall ? 14 : 16);
     
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(defaultOpen);
     const triggerRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        if (defaultOpen) {
+            setIsOpen(true);
+            if (onOpenChange) onOpenChange(true);
+        }
+    }, [defaultOpen]);
 
     const toggleOpen = (e: React.MouseEvent) => {
         e.stopPropagation();

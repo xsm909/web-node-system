@@ -321,6 +321,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
                                     onNodeSelectCallback={handleNodeSelect}
                                     activeNodeIds={activeNodeIds}
                                     isHotkeysEnabled={isHotkeysEnabled}
+                                    onUpdateParams={handleParamsChange}
                                 />
                             )}
                         </div>

@@ -137,14 +137,22 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
                         // 1. Always allow Escape, F-keys even when typing
                         const isSystemKey = lowerPressedKey === 'escape' || /^f\d+$/.test(lowerPressedKey);
                         
-                        // 2. Allow modifiers (Ctrl/Cmd/Alt) shortcuts
+                        // 2. Allow modifiers (Ctrl/Cmd/Alt) shortcuts (e.g. Save, Select All)
                         const hasModifier = isMod;
 
-                        // 3. Block single character keys, Backspace, Delete, Enter, Arrows, Space
-                        const isEditingKey = 
+                        // 3. SPECIAL ALLOWANCE: If it's Enter, and we matched a hotkey (like Submit Modal), 
+                        // we ONLY skip if it's NOT a modifier-enhanced Enter AND the target is NOT a textarea/contenteditable.
+                        // Actually, simpler: if they registered ENTER as a hotkey, they probably WANT it to trigger.
+                        // But we must NOT steal it from Textareas.
+                        if (lowerPressedKey === 'enter' && (target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+                            // Let the textarea have its newline unless a modifier like Cmd+Enter is used
+                            if (!hasModifier) return;
+                        }
+
+                        // 4. Block single character keys, Backspace, Delete, Arrows, Space for normal typing
+                        const isBaseEditingKey = 
                             lowerPressedKey === 'backspace' || 
                             lowerPressedKey === 'delete' || 
-                            lowerPressedKey === 'enter' || 
                             lowerPressedKey === ' ' || 
                             lowerPressedKey === 'space' ||
                             lowerPressedKey.startsWith('arrow') ||
@@ -155,20 +163,24 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
                             lowerPressedKey === 'pagedown' ||
                             (lowerPressedKey.length === 1 && !hasModifier);
 
-                        // 4. Standard clipboard/editing shortcuts with modifiers
-                        const isClipboardOrSelection = [
+                        // 5. Allow standard clipboard/editing shortcuts with modifiers to propagate to browser
+                        const isStandardEditAction = [
                             'cmd+c', 'ctrl+c', 
                             'cmd+v', 'ctrl+v', 
                             'cmd+x', 'ctrl+x', 
                             'cmd+a', 'ctrl+a',
                             'cmd+z', 'ctrl+z',
                             'cmd+y', 'ctrl+y',
-                            'cmd+shift+z', 'ctrl+shift+z', 'ctrl+y'
+                            'cmd+shift+z', 'ctrl+shift+z'
                         ].includes(lowerPressedKey);
 
-                        if ((isEditingKey || isClipboardOrSelection) && !isSystemKey) {
-                            return; // Let standard browser/input behavior work
+                        // If it's a base editing key or a standard browser action, and NOT a system key (Esc/F-keys),
+                        // we let the browser/input handle it instead of our hotkey system.
+                        if ((isBaseEditingKey || isStandardEditAction) && !isSystemKey) {
+                            return;
                         }
+                        
+                        // NOTE: 'Enter' and 'Cmd+S' will now reach matchedHotkey.handler() because they are NOT in the return list above.
                     }
 
                     if (matchedHotkey.preventDefault !== false) {

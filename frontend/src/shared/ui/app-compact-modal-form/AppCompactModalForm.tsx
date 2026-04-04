@@ -172,12 +172,25 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
         <div 
             className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/20 backdrop-blur-none animate-in fade-in duration-200"
             onMouseDown={(e) => {
-                if (e.target === e.currentTarget) e.stopPropagation();
+                e.stopPropagation();
+            }}
+            onMouseUp={(e) => {
+                e.stopPropagation();
+            }}
+            onClick={(e) => {
+                e.stopPropagation();
+            }}
+            onDoubleClick={(e) => {
+                e.stopPropagation();
             }}
         >
             <div 
                 ref={modalRef}
                 role="dialog"
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseUp={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
                 style={{ 
                     transform: `translate(${position.x}px, ${position.y}px)`,
                     transition: isDragging ? 'none' : 'transform 0.1s ease-out',
@@ -218,7 +231,6 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
                                     onToggle={onLockToggle}
                                     isSaving={isSaving}
                                     isDirty={isDirty}
-                                    size={14}
                                 />
                             </div>
                         )}

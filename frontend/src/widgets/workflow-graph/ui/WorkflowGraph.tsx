@@ -60,6 +60,7 @@ interface WorkflowGraphProps {
     onNodeSelectCallback?: (node: Node | null) => void;
     activeNodeIds?: string[];
     isHotkeysEnabled?: boolean;
+    onUpdateParams?: (nodeId: string, params: Record<string, any>) => void;
 }
 
 export const WorkflowGraph = React.memo(({
@@ -71,7 +72,8 @@ export const WorkflowGraph = React.memo(({
     onNodeDoubleClickCallback,
     onNodeSelectCallback,
     activeNodeIds = [],
-    isHotkeysEnabled = true
+    isHotkeysEnabled = true,
+    onUpdateParams: onUpdateParamsProp
 }: WorkflowGraphProps) => {
     const lastInitializedIdRef = useRef<string | null>(null);
     const lastInitializedUpdateRef = useRef<number>(0);
@@ -168,43 +170,49 @@ export const WorkflowGraph = React.memo(({
         }
     }, [workflow?.id, fitView]);
 
-    // Targeted Parameter Sync: 
-    // This allows sidebar edits to show up on the graph WITHOUT resetting the entire graph structure.
-    useEffect(() => {
-        if (!workflow?.graph?.nodes || !lastInitializedIdRef.current) return;
-        const externalNodes = workflow.graph.nodes;
-
-        setNodes(nds => {
-            let hasChanges = false;
-            const next = nds.map(local => {
-                const external = externalNodes.find((en: any) => en.id === local.id);
-                if (!external) return local; // Keep local nodes that are not in the master graph (drafts)
-                
-                const localParamsStr = JSON.stringify(local.data?.params);
-                const externalParamsStr = JSON.stringify(external.data?.params);
-
-                if (localParamsStr !== externalParamsStr) {
-                    hasChanges = true;
-                    // MERGE ONLY THE PARAMS. Do NOT merge type, label, or position from props while editing.
-                    return { ...local, data: { ...local.data, params: external.data?.params } };
-                }
-                return local;
-            });
-
-            if (hasChanges) {
-                nodesRefInternal.current = next;
-                onNodesChangeCallback?.(next); // Sync back to Ref
-                return next;
-            }
-            return nds;
-        });
-    }, [workflow?.graph?.nodes, setNodes, onNodesChangeCallback]);
-
     // Synchronous state propagation to parent Ref
     const notifyNodesChange = useCallback((nextNodes: Node[]) => {
         nodesRefInternal.current = nextNodes;
         onNodesChangeCallback?.(nextNodes);
     }, [onNodesChangeCallback]);
+
+    // Targeted Parameter Sync: 
+    // This allows sidebar edits to show up on the graph WITHOUT resetting the entire graph structure.
+    useEffect(() => {
+        if (!workflow?.graph?.nodes || !lastInitializedIdRef.current) return;
+        
+        const externalNodes = workflow.graph.nodes;
+        setNodes(currentNodes => {
+            let hasChanges = false;
+            const nextNodes = currentNodes.map(local => {
+                const external = externalNodes.find((en: any) => en.id === local.id);
+                if (!external) return local;
+
+                // Targeted check of params to avoid unnecessary state propagation
+                const localParamsStr = JSON.stringify(local.data?.params || {});
+                const externalParamsStr = JSON.stringify(external.data?.params || {});
+
+                if (localParamsStr !== externalParamsStr) {
+                    hasChanges = true;
+                    // Inject master params from the workflow prop into the local node state
+                    return { 
+                        ...local, 
+                        data: { 
+                            ...local.data, 
+                            params: { ...external.data?.params } 
+                        } 
+                    };
+                }
+                return local;
+            });
+
+            if (hasChanges) {
+                notifyNodesChange(nextNodes);
+                return nextNodes;
+            }
+            return currentNodes;
+        });
+    }, [workflow?.graph?.nodes, setNodes, notifyNodesChange]);
 
     const notifyEdgesChange = useCallback((nextEdges: Edge[]) => {
         edgesRefInternal.current = nextEdges;
@@ -676,6 +684,15 @@ export const WorkflowGraph = React.memo(({
         setAddNodeMenu(null);
     };
 
+    const onUpdateParamsLocal = useCallback((nodeId: string, params: any) => {
+        if (isReadOnly) return;
+        setNodes(nds => {
+            const next = nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, params } } : n);
+            notifyNodesChange(next);
+            return next;
+        });
+    }, [isReadOnly, setNodes, notifyNodesChange]);
+
     const renderedNodes = useMemo(() => {
         return nodes.map(node => {
             // 3D STACKING MODEL:
@@ -694,11 +711,22 @@ export const WorkflowGraph = React.memo(({
                     isExecuting: activeNodeIds.includes(node.id),
                     isRightInputProvider: !!nodeTypes.find(t => t.id === node.data?.nodeTypeId && (t as any).isRightInputProvider),
                     onUngroup: handleUngroup,
-                    onRename: handleGroupRename
+                    onRename: handleGroupRename,
+                    onUpdateParams: (updatedParams: any) => {
+                        if (onUpdateParamsProp) {
+                            onUpdateParamsProp(node.id, updatedParams);
+                        } else {
+                            onUpdateParamsLocal(node.id, updatedParams);
+                        }
+                    },
+                    isLocked: isReadOnly,
+                    parameters: nodeTypes.find(t => t.id === node.data?.nodeTypeId)?.parameters || [],
+                    workflowParameters: workflow?.parameters || [],
+                    nodeTypeId: node.data?.nodeTypeId
                 }
             };
         });
-    }, [nodes, nodeTypes, activeNodeIds, handleUngroup, handleGroupRename]);
+    }, [nodes, nodeTypes, activeNodeIds, handleUngroup, handleGroupRename, onUpdateParamsProp]);
 
     if (!workflow) return <div className="flex items-center justify-center h-full text-slate-500">No workflow data</div>;
 
