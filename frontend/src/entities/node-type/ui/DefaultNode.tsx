@@ -2,6 +2,8 @@ import { memo, useEffect } from 'react';
 import { Handle, Position, useUpdateNodeInternals } from 'reactflow';
 import { Icon } from '../../../shared/ui/icon';
 
+import { AppValuePreview } from '../../../shared/ui/app-value-preview';
+
 /** Branch handle colors cycling through a small palette */
 
 export const DefaultNode = memo(({ id, data, selected }: any) => {
@@ -86,14 +88,12 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
 
                                     // Prefer display value if it exists
                                     const displayValue = data.params[`_DISPLAY_${key}`];
-                                    const finalValue = displayValue !== undefined ? displayValue : (isAny ? 'any' : String(value));
+                                    const finalValue = displayValue !== undefined ? displayValue : (isAny ? 'any' : value);
 
                                     return (
                                         <div key={key} className="flex items-baseline gap-2 min-w-0">
                                             <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-tight shrink-0">{key}:</span>
-                                            <span className="text-[10px] font-medium text-[var(--text-main)] truncate" title={String(finalValue)}>
-                                                {String(finalValue)}
-                                            </span>
+                                            <AppValuePreview value={finalValue} className="flex-1" />
                                         </div>
                                     );
                                 })}
@@ -101,6 +101,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                     )}
                 </>
             )}
+
 
 
             {/* Input handles (right edge) dynamically based on input_schema.inputs */}
