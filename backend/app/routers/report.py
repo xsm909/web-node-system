@@ -389,24 +389,34 @@ def test_parameter_source(data: SourceTestRequest, db: Session = Depends(get_db)
         elif source.lower().startswith("select"):
             system_params = get_system_parameters()
             result = db.execute(text(source), system_params)
-            val_field = data.value_field or "value"
-            lbl_field = data.label_field or "label"
             columns = result.keys()
             rows = [tuple(r) for r in result.fetchall()]
             
             param_options = []
             for row in rows:
                 row_dict = dict(zip(columns, row))
-                param_options.append({
-                    "value": str(row_dict.get(val_field, row[0])), 
-                    "label": str(row_dict.get(lbl_field, row[1] if len(row) > 1 else row[0]))
-                })
+                
+                # Case-insensitive lookup for 'value' and 'label'
+                val_key = next((k for k in row_dict if k.lower() == 'value'), None)
+                lab_key = next((k for k in row_dict if k.lower() == 'label'), None)
+                
+                val = row_dict.get(val_key) if val_key else None
+                if val is None and len(row) > 0:
+                    val = row[0]
+                
+                if val is None:
+                    continue
+                
+                lbl = row_dict.get(lab_key) if lab_key else None
+                if lbl is None:
+                    lbl = val
+                
+                param_options.append({"value": str(val), "label": str(lbl)})
             return {"options": param_options, "error": None}
         else:
             return {"options": [], "error": "Unknown source format"}
     except Exception as e:
-        print(f"Failed to test source {source}: {e}")
-        return {"options": [], "error": "Error source"}
+        return {"options": [], "error": str(e)}
 
 @router.post("/generate-template", response_model=ReportTemplateGenerateResponse)
 def generate_report_template(data: ReportTemplateGenerateRequest, _=manager_access):
@@ -954,10 +964,32 @@ def get_report_parameter_options(report_id: uuid.UUID, db: Session = Depends(get
                 result = db.execute(text(f"SELECT {val_field}, {lbl_field} FROM {table_name} LIMIT 1000"), get_system_parameters())
                 options[param.parameter_name] = [{"value": str(row[0]), "label": str(row[1])} for row in result.fetchall()]
             elif source.lower().startswith("select"):
-                result = db.execute(text(source), get_system_parameters())
-                val_field, lbl_field = param.value_field or "value", param.label_field or "label"
+                system_params = get_system_parameters()
+                result = db.execute(text(source), system_params)
                 columns = result.keys()
-                options[param.parameter_name] = [{"value": str(row_dict.get(val_field, row[0])), "label": str(row_dict.get(lbl_field, row[1] if len(row) > 1 else row[0]))} for row in result.fetchall() for row_dict in [dict(zip(columns, row))]]
+                rows = [tuple(r) for r in result.fetchall()]
+                
+                param_options = []
+                for row in rows:
+                    row_dict = dict(zip(columns, row))
+                    
+                    # Case-insensitive lookup for 'value' and 'label'
+                    val_key = next((k for k in row_dict if k.lower() == 'value'), None)
+                    lab_key = next((k for k in row_dict if k.lower() == 'label'), None)
+                    
+                    val = row_dict.get(val_key) if val_key else None
+                    if val is None and len(row) > 0:
+                        val = row[0]
+                    
+                    if val is None:
+                        continue
+                    
+                    lbl = row_dict.get(lab_key) if lab_key else None
+                    if lbl is None:
+                        lbl = val
+                    
+                    param_options.append({"value": str(val), "label": str(lbl)})
+                options[param.parameter_name] = param_options
             else: options[param.parameter_name] = []
         except Exception as e:
             print(f"Error fetching options: {e}")

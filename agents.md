@@ -247,7 +247,7 @@ expand all - expand_all.svg
 back - arrow_back.svg
 stop/interrupt - stop.svg
 rename - drive_file_rename_outline.svg
-
+SQL Constructor/QueryBuilder - QueryBuilder.svg
 ## 10. Types of Nodes
 
 The system supports 4 static node types and 1 dynamic behavior based on graph context:

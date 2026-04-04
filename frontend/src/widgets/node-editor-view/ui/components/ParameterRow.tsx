@@ -67,11 +67,15 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
                     let flatOptions: SelectionItem[] = [];
                     
                     if (param.options_source.function) {
-                        flatOptions = data.map((item: any) => ({
-                            id: String(item.value),
-                            name: String(item.label),
-                            icon: 'bolt'
-                        }));
+                        flatOptions = data.map((item: any) => {
+                            const val = item.value !== undefined ? item.value : (item.id !== undefined ? item.id : Object.values(item)[0]);
+                            const lab = item.label !== undefined ? item.label : (item.name !== undefined ? item.name : val);
+                            return {
+                                id: String(val),
+                                name: String(lab),
+                                icon: 'bolt'
+                            };
+                        });
                     } else {
                         flatOptions = data
                             .filter((item: any) => {
@@ -82,11 +86,27 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
                                 }
                                 return true;
                             })
-                            .map((item: any) => ({
-                                id: String(item[param.options_source.value_field]),
-                                name: String(item[param.options_source.label_field]),
-                                icon: 'bolt'
-                            }));
+                            .map((item: any) => {
+                                // Priority 1: explicitly configured fields
+                                // Priority 2: 'value'/'label' common convention
+                                // Priority 3: 'id'/'name' common convention
+                                // Priority 4: first/second columns
+                                
+                                const valField = param.options_source.value_field;
+                                const labField = param.options_source.label_field;
+                                
+                                let val = valField ? item[valField] : undefined;
+                                if (val === undefined) val = item.value !== undefined ? item.value : (item.id !== undefined ? item.id : Object.values(item)[0]);
+                                
+                                let lab = labField ? item[labField] : undefined;
+                                if (lab === undefined) lab = item.label !== undefined ? item.label : (item.name !== undefined ? item.name : val);
+
+                                return {
+                                    id: String(val),
+                                    name: String(lab),
+                                    icon: 'bolt'
+                                };
+                            });
                     }
                         
                     setOptions(flatOptions);
@@ -133,7 +153,7 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
                     </label>
                     {(param.is_sql_query_constructor || param.is_md_editor || param.is_text_editor || param.is_python_editor) && (
                         <AppRoundButton 
-                            icon="edit" 
+                            icon={param.is_sql_query_constructor ? "QueryBuilder" : "edit"} 
                             variant="outline" 
                             size="xs" 
                             onClick={(e) => {

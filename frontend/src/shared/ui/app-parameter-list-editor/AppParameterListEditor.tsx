@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Icon } from '../icon';
 import type { ObjectParameter } from '../../../entities/report/model/types';
 import { AppParameterSelectByTamplate } from '../app-parameter-select-by-tamplate';
 import { AppFormFieldRect } from '../app-input';
 import { UI_CONSTANTS } from '../constants';
 import { AppFormButton } from '../app-form-button/AppFormButton';
+import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
+import { SYSTEM_PARAMETERS } from '../../../entities/report/model/constants';
 
 interface AppParameterListEditorProps {
     parameters: ObjectParameter[];
@@ -23,6 +25,9 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
     renderParameterActions,
     isLocked = false
 }) => {
+    const [isQueryBuilderOpen, setIsQueryBuilderOpen] = useState(false);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
     const handleAdd = () => {
         const newParam: ObjectParameter = {
             id: `temp_${Date.now()}`,
@@ -46,6 +51,11 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
         const newParams = [...parameters];
         newParams[index] = { ...newParams[index], ...updates };
         onChange(newParams);
+    };
+
+    const handleOpenQueryBuilder = (index: number) => {
+        setEditingIndex(index);
+        setIsQueryBuilderOpen(true);
     };
 
     return (
@@ -121,46 +131,29 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                         </div>
 
                         {param.parameter_type === 'select' && (
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="space-y-1.5 flex flex-col">
-                                    <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Source (@table or SQL)</label>
-                                    <AppFormFieldRect disabled={isLocked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
-                                        <input
-                                            type="text"
-                                            value={param.source}
-                                            onChange={(e) => updateParam(index, { source: e.target.value })}
-                                            className="w-full bg-transparent outline-none h-full text-xs font-normal disabled:opacity-50"
-                                            placeholder="@users->id,name"
-                                            disabled={isLocked}
-                                        />
-                                    </AppFormFieldRect>
+                            <div className="space-y-1.5 flex flex-col">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">SQL Source (Must return 'value' and 'label')</label>
+                                    {!isLocked && (
+                                        <button
+                                            onClick={() => handleOpenQueryBuilder(index)}
+                                            className="text-[10px] font-normal text-brand hover:underline flex items-center gap-1"
+                                        >
+                                            <Icon name="QueryBuilder" size={12} />
+                                            Open Query Builder
+                                        </button>
+                                    )}
                                 </div>
-                                <div className="space-y-1.5 flex flex-col">
-                                    <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Value Field</label>
-                                    <AppFormFieldRect disabled={isLocked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
-                                        <input
-                                            type="text"
-                                            value={param.value_field}
-                                            onChange={(e) => updateParam(index, { value_field: e.target.value })}
-                                            className="w-full bg-transparent outline-none h-full text-xs font-normal disabled:opacity-50"
-                                            placeholder="id"
-                                            disabled={isLocked}
-                                        />
-                                    </AppFormFieldRect>
-                                </div>
-                                <div className="space-y-1.5 flex flex-col">
-                                    <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Label Field</label>
-                                    <AppFormFieldRect disabled={isLocked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
-                                        <input
-                                            type="text"
-                                            value={param.label_field}
-                                            onChange={(e) => updateParam(index, { label_field: e.target.value })}
-                                            className="w-full bg-transparent outline-none h-full text-xs font-normal disabled:opacity-50"
-                                            placeholder="name"
-                                            disabled={isLocked}
-                                        />
-                                    </AppFormFieldRect>
-                                </div>
+                                <AppFormFieldRect disabled={isLocked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
+                                    <input
+                                        type="text"
+                                        value={param.source}
+                                        onChange={(e) => updateParam(index, { source: e.target.value })}
+                                        className="w-full bg-transparent outline-none h-full text-xs font-normal disabled:opacity-50"
+                                        placeholder="SELECT id as value, name as label FROM users..."
+                                        disabled={isLocked}
+                                    />
+                                </AppFormFieldRect>
                             </div>
                         )}
 
@@ -187,11 +180,24 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                                 className="mt-4 text-xs font-normal text-brand hover:underline"
                             >
                                 Add your first parameter
-                            </button>
+                              </button>
                         )}
                     </div>
                 )}
             </div>
+
+            <QueryBuilderModal
+                isOpen={isQueryBuilderOpen}
+                onClose={() => setIsQueryBuilderOpen(false)}
+                onDone={(sql) => {
+                    if (editingIndex !== null) {
+                        updateParam(editingIndex, { source: sql });
+                    }
+                    setIsQueryBuilderOpen(false);
+                }}
+                initialSql={editingIndex !== null ? parameters[editingIndex].source : ''}
+                parameters={SYSTEM_PARAMETERS}
+            />
         </div>
     );
 };

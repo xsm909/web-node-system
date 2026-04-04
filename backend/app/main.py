@@ -86,9 +86,11 @@ async def lifespan(app: FastAPI):
             if dialect == 'postgresql':
                 db.execute(text("ALTER TABLE object_parameters ADD COLUMN IF NOT EXISTS parameter_type VARCHAR(50) DEFAULT 'text';"))
                 db.execute(text("ALTER TABLE object_parameters ADD COLUMN IF NOT EXISTS default_value TEXT;"))
+                db.execute(text("ALTER TABLE object_parameters ALTER COLUMN source TYPE TEXT;"))
             else:
                 db.execute(text("ALTER TABLE object_parameters ADD COLUMN parameter_type VARCHAR(50) DEFAULT 'text';"))
                 db.execute(text("ALTER TABLE object_parameters ADD COLUMN default_value TEXT;"))
+                # SQLite ALTER COLUMN is a bit limited, so we skip it as the user is primarily on Postgres.
             db.commit()
         except:
             db.rollback()

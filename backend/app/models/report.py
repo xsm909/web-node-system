@@ -59,7 +59,7 @@ class ObjectParameter(Base):
     parameter_name = Column(String(255), nullable=False)
     parameter_type = Column(String(50), nullable=False, default="text")
     default_value = Column(String(1000), nullable=True)
-    source = Column(String(255), nullable=True)
+    source = Column(Text, nullable=True)
     value_field = Column(String(255), nullable=True)
     label_field = Column(String(255), nullable=True)
 

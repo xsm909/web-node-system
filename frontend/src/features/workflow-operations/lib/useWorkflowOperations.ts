@@ -110,7 +110,6 @@ export function useWorkflowOperations({
             await apiClient.put(`/workflows/workflows/${activeWorkflow.id}`, {
                 graph,
                 workflow_data: activeWorkflow.workflow_data,
-                runtime_data: activeWorkflow.runtime_data,
                 parameters: (activeWorkflow.parameters || []).map(({ id, ...rest }: any) => rest)
             });
             
