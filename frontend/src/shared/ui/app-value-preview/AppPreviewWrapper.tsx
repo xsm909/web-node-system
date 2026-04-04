@@ -35,23 +35,26 @@ export const AppPreviewWrapper = memo(({ children, type = 'markdown' }: AppPrevi
     const iconName = TYPE_ICONS[type];
 
     return (
-        <span className={`
-            flex items-center gap-1.5 min-w-0 font-mono text-[10px] px-2 py-0.5 rounded-md border
-            transition-all duration-500 ease-out
-            hover:scale-[1.03] hover:shadow-md cursor-default
-            opacity-0 animate-[fade-in_0.5s_ease-out_forwards]
-            ${styleClass}
-        `}>
+        <span
+            title=""
+            className={`
+                flex items-center gap-1.5 min-w-0 font-mono text-[10px] px-2 py-0.5 rounded-md border
+                transition-all duration-100 ease-out
+                hover:scale-[0.96] hover:shadow-md cursor-default
+                opacity-0 animate-[fade-in_0.5s_ease-out_forwards]
+                ${styleClass}
+            `}
+        >
             <span className="opacity-40 font-bold select-none">{'{'}</span>
-            
+
             {iconName && (
                 <Icon name={iconName} size={11} className="shrink-0 opacity-80" />
             )}
 
-            <span className="italic truncate leading-none mr-0.5">
+            <span className="italic truncate leading-none mr-0.5" title="">
                 {children}
             </span>
-            
+
             <span className="opacity-40 font-bold select-none">{'}'}</span>
         </span>
     );
