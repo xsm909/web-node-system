@@ -132,7 +132,7 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
 
     const handleFillData = async () => {
         if (!nodeTypeId || !parameterName || !fillDataFunc) return;
-        
+
         setIsFilling(true);
         try {
             const { apiClient } = await import('../../../shared/api/client');
@@ -142,7 +142,7 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
                     params: JSON.stringify(allParams || {})
                 }
             });
-            
+
             if (Array.isArray(response.data) && response.data.length > 0) {
                 setIsInternalUpdate(true);
                 onChange(response.data);
@@ -164,20 +164,23 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
         }
     };
 
-    const handleAddRow = async () => {
-        if (tabulatorInstance.current) {
-            const newRow = schema.reduce((acc, field) => ({ ...acc, [field.name]: field.type === 'number' ? 0 : '' }), {});
-            const rowComponent = await tabulatorInstance.current.addRow(newRow);
-            
+    const handleAddRow = () => {
+        if (tabulatorInstance.current && !isReadOnly) {
+            const defaultItem = schema.reduce((acc, field) => ({
+                ...acc,
+                [field.name]: field.type === 'number' ? 0 : ""
+            }), {});
+
+            tabulatorInstance.current.addRow(defaultItem, true);
             const newData = tabulatorInstance.current.getData();
             setIsInternalUpdate(true);
             onChange(newData);
             setTimeout(() => setIsInternalUpdate(false), 0);
 
-            // Focus the first editable cell in the new row
-            if (rowComponent && schema.length > 0) {
-                // Small delay to ensure Tabulator has rendered the new row
-                // and React's change detection hasn't stolen focus
+            // Auto-edit first cell of the new row
+            const rows = tabulatorInstance.current.getRows();
+            if (rows.length > 0) {
+                const rowComponent = rows[0];
                 setTimeout(() => {
                     const cells = rowComponent.getCells();
                     if (cells.length > 0) {
@@ -227,7 +230,7 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
     );
 
     return (
-        <div className="space-y-1 group w-full col-span-full mb-4 dataclass-list-editor">
+        <div className="space-y-1 group w-full col-span-full mb-4 dataclass-list-editor animate-in fade-in slide-in-from-top-1 duration-300">
             <div className="flex items-center justify-between px-0">
                 <label className="text-[8px] font-normal uppercase tracking-[0.15em] text-[var(--text-muted)] group-focus-within:text-[var(--brand)] opacity-80 transition-all">
                     {label}
@@ -257,46 +260,82 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
                 </div>
             </div>
 
-            <div className="border-b border-[var(--border-base)]/60 bg-transparent overflow-hidden">
-                <div
-                    ref={tableRef}
-                    className="w-full text-[12px] compact-dataclass-table no-scrollbar custom-scrollbar"
-                    style={{ maxHeight: '208px', overflowY: 'auto', scrollbarGutter: 'stable' }}
-                />
-            </div>
+            <div
+                ref={tableRef}
+                className="w-full text-[12px] compact-dataclass-table overflow-hidden border-b border-[var(--border-base)]/60"
+            />
 
             <style>{`
                 .compact-dataclass-table {
                     background: transparent !important;
                     border: none !important;
+                    max-height: 320px;
+                    height: auto !important;
+                    min-height: 32px;
+                    margin-top: 8px;
                 }
-                .compact-dataclass-table .tabulator-tableholder {
-                    overflow-x: hidden !important;
-                    overflow-y: visible !important;
+                .compact-dataclass-table .tabulator-header {
+                    background-color: transparent !important;
+                    color: var(--text-muted) !important;
+                    border-bottom: 1px solid var(--border-base) !important;
+                    border-top: none !important;
+                    min-height: 18px !important;
+                    height: 18px !important;
                 }
-                /* Custom Emerald Scrollbar */
+                .compact-dataclass-table .tabulator-header .tabulator-col {
+                    background-color: transparent !important;
+                    border-right: none !important;
+                    height: 18px !important;
+                }
+                .compact-dataclass-table .tabulator-header .tabulator-col-content {
+                    padding: 0 4px !important;
+                    height: 18px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                }
+                .compact-dataclass-table .tabulator-header .tabulator-col-title {
+                    text-transform: uppercase !important;
+                    font-size: 8px !important;
+                    letter-spacing: 0.15em !important;
+                    font-weight: 700 !important;
+                    line-height: normal !important;
+                }
+                .compact-dataclass-table .tabulator-placeholder {
+                    background: transparent !important;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 8px 0 !important;
+                }
+                .compact-dataclass-table .tabulator-placeholder span {
+                    color: var(--text-muted);
+                    font-size: 10px;
+                    letter-spacing: 0.1em;
+                    text-transform: uppercase;
+                }
+                .compact-dataclass-table .tabulator-row {
+                    background: transparent !important;
+                    border-bottom: 1px solid var(--border-base) !important;
+                    min-height: 32px !important;
+                }
+                .compact-dataclass-table .tabulator-row .tabulator-cell {
+                    padding: 4px 6px !important;
+                    display: flex;
+                    align-items: center;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: var(--border-base);
+                    border-radius: 10px;
+                }
                 .custom-scrollbar::-webkit-scrollbar {
                     width: 4px;
                 }
                 .custom-scrollbar::-webkit-scrollbar-track {
                     background: transparent;
                 }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: var(--border-base);
-                    border-radius: 10px;
-                }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
                     background: var(--brand);
                 }
-
-                .compact-dataclass-table .tabulator-header {
-                    background-color: transparent !important;
-                    color: var(--text-muted) !important;
-                    border-bottom: 1px solid var(--border-base) !important;
-                    position: sticky;
-                    top: 0;
-                    z-index: 100;
-                    border-top: none !important;
                 }
                 .compact-dataclass-table .tabulator-header .tabulator-col {
                     background-color: transparent !important;

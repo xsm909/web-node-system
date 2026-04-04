@@ -174,7 +174,7 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
             )}
 
 
-            <div className={inline ? 'p-0' : 'flex-1 overflow-y-auto custom-scrollbar p-8'}>
+            <div className={inline ? 'p-0 overflow-y-auto custom-scrollbar max-h-[60vh]' : 'flex-1 overflow-y-auto custom-scrollbar p-8'}>
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();
