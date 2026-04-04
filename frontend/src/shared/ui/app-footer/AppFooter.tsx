@@ -1,15 +1,25 @@
 import React, { useMemo } from 'react';
 import { useThemeStore } from '../../lib/theme/store';
-import { useHotkeysState } from '../../lib/hotkeys/HotkeysContext';
+import { useHotkeysState, formatHotkeyDisplay } from '../../lib/hotkeys/HotkeysContext';
 
 // Helper to determine order weight
 const getWeight = (key: string): number => {
     const lower = key.toLowerCase();
-    if (lower === 'escape' || lower === 'esc') return 1;
-    if (lower === 'enter') return 2;
-    if (/^f\d+$/.test(lower)) return 3;
-    if (lower.includes('ctrl') || lower.includes('cmd') || lower.includes('meta') || lower.includes('alt')) return 5;
-    return 4; // Other keys
+    if (lower === 'escape' || lower === 'esc' || lower === 'enter') return 1;
+    if (/^f\d+$/.test(lower)) return 2;
+    
+    // Check if it has any modifiers or is a combination
+    const hasModifier = lower.includes('ctrl+') || 
+                        lower.includes('cmd+') || 
+                        lower.includes('mod+') || 
+                        lower.includes('meta+') || 
+                        lower.includes('alt+') || 
+                        lower.includes('shift+') || 
+                        lower.includes('+');
+                        
+    if (hasModifier) return 4;
+    
+    return 3; // Simple keys (C, Backspace, etc.)
 };
 
 // Helper to extract numerical value from F-keys for secondary sorting
@@ -21,30 +31,25 @@ const getSecondaryWeight = (key: string): number => {
 };
 
 const formatGroupedKeys = (keys: string[]): string => {
-    const lowerKeys = keys.map(k => k.toLowerCase());
-    const usedKeys = new Set<string>();
-    const mergedPairs: string[] = [];
-
-    // Group matching ctrl+ and cmd+ keys
-    const ctrlKeys = lowerKeys.filter(k => k.startsWith('ctrl+'));
-    const cmdKeys = new Set(lowerKeys.filter(k => k.startsWith('cmd+')));
-
-    for (const c of ctrlKeys) {
-        const suffix = c.slice(5);
-        if (cmdKeys.has(`cmd+${suffix}`)) {
-            mergedPairs.push(`ctrl/cmd+${suffix}`);
-            usedKeys.add(c);
-            usedKeys.add(`cmd+${suffix}`);
+    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    
+    // First, map them all through formatHotkeyDisplay
+    let formatted = keys.map(k => formatHotkeyDisplay(k));
+    
+    // SMART DEDUPLICATION FOR MAC:
+    // If we have '⌘C' and '⌃C', we should probably only show '⌘C'
+    if (isMac) {
+        const hasCommand = formatted.some(f => f.includes('⌘'));
+        if (hasCommand) {
+            // Filter out any that ONLY have '⌃' and no '⌘' if a '⌘' version exists
+            formatted = formatted.filter(f => !f.startsWith('⌃') || f.includes('⌘'));
         }
     }
-
-    // Retain remaining unique keys (e.g. F5, Esc) formatting them properly
-    const remainingKeys = lowerKeys
-        .filter(k => !usedKeys.has(k))
-        .map(k => /^f\d+$/.test(k) ? k.toUpperCase() : k);
-
-    // Join all formatted keys into one string (e.g. "F5 / ctrl/cmd+r")
-    return [...remainingKeys, ...mergedPairs].join(' / ');
+    
+    // De-duplicate the results
+    const unique = Array.from(new Set(formatted));
+    
+    return unique.join(' / ');
 };
 
 export const AppFooter: React.FC = () => {

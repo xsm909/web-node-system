@@ -130,22 +130,19 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     
     useHotkeys([
         {
+            key: 'mod+enter',
+            description: 'Submit',
+            enabled: isSimpleDialog || (!noPadding && !!submitLabel && !fullHeight),
+            handler: () => onSubmit()
+        },
+        {
             key: 'enter',
             description: 'Submit',
             enabled: isSimpleDialog || (!noPadding && !!submitLabel && !fullHeight),
             handler: () => onSubmit()
         },
         {
-            key: 'cmd+s',
-            description: 'Save Changes',
-            enabled: !isSimpleDialog,
-            handler: (e) => {
-                e.preventDefault();
-                onSubmit();
-            }
-        },
-        {
-            key: 'ctrl+s',
+            key: 'mod+s',
             description: 'Save Changes',
             enabled: !isSimpleDialog,
             handler: (e) => {

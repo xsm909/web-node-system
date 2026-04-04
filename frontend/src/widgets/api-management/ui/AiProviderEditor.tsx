@@ -13,9 +13,10 @@ interface AiProviderEditorProps {
     isSaving: boolean;
     onSave: (data: Partial<AiProvider>) => void;
     onCancel: () => void;
+    isHotkeysEnabled?: boolean;
 }
 
-export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiProviderEditorProps) {
+export function AiProviderEditor({ provider, isSaving, onSave, onCancel, isHotkeysEnabled }: AiProviderEditorProps) {
     const { data: credentials = [] } = useCredentials();
 
     const [formData, setFormData] = useState<Partial<AiProvider>>(provider || {
@@ -105,6 +106,7 @@ export function AiProviderEditor({ provider, isSaving, onSave, onCancel }: AiPro
             saveLabel={provider ? "Save Provider" : "Add Provider"}
             entityId={provider?.id}
             entityType="ai_providers"
+            isHotkeysEnabled={isHotkeysEnabled}
         >
             <div className="max-w-5xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                 <header className="mb-4">

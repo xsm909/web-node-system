@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { ApiRegistry, ApiFunction } from '../../../entities/api-registry/model/types';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppFormView } from '../../../shared/ui/app-form-view';
 import { AppInput } from '../../../shared/ui/app-input';
 import { Icon } from '../../../shared/ui/icon';
@@ -301,9 +302,10 @@ interface ApiRegistryEditorProps {
     isSaving: boolean;
     onSave: (data: Partial<ApiRegistry>) => void;
     onCancel: () => void;
+    isHotkeysEnabled?: boolean;
 }
 
-export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegistryEditorProps) {
+export function ApiRegistryEditor({ api, isSaving, onSave, onCancel, isHotkeysEnabled }: ApiRegistryEditorProps) {
 
     const [formData, setFormData] = useState<Partial<ApiRegistry>>(api || {
         name: '',
@@ -322,7 +324,8 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
     const [activeId, setActiveId] = useState<string | null>(null);
-
+    const queryClient = useQueryClient();
+    
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: { distance: 10 },
@@ -469,8 +472,11 @@ export function ApiRegistryEditor({ api, isSaving, onSave, onCancel }: ApiRegist
             onSave={handleSave}
             onCancel={onCancel}
             saveLabel={api ? "Save API" : "Add API"}
-            entityId={api?.id}
-            entityType="api_registry"
+            onLockToggle={(locked) => {
+                setFormData(prev => ({ ...prev, is_locked: locked }));
+                queryClient.invalidateQueries({ queryKey: ['credentials'] });
+            }}
+            isHotkeysEnabled={isHotkeysEnabled}
         >
             <div className="max-w-5xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                 <header className="mb-4">

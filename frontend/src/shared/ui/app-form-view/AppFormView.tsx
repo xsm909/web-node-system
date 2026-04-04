@@ -155,12 +155,7 @@ export const AppFormView: React.FC<AppFormViewProps> = ({
             handler: handleBack,
         },
         {
-            key: 'cmd+s',
-            description: saveLabel,
-            handler: onSave,
-        },
-        {
-            key: 'ctrl+s',
+            key: 'mod+s',
             description: saveLabel,
             handler: onSave,
         }

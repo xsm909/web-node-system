@@ -38,9 +38,10 @@ interface ApiManagementProps {
     isSidebarOpen?: boolean;
     initialTab?: 'providers' | 'credentials' | 'api_registry';
     initialEditId?: string | null;
+    isHotkeysEnabled?: boolean;
 }
 
-export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, initialEditId }: ApiManagementProps) {
+export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, initialEditId, isHotkeysEnabled }: ApiManagementProps) {
     const [activeTab, setActiveTab] = useState<'providers' | 'credentials' | 'api_registry'>(initialTab || 'providers');
     const { baseProject } = useProjectStore();
     
@@ -201,6 +202,7 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                     isSaving={createProvider.isPending || updateProvider.isPending}
                     onSave={handleSaveProvider}
                     onCancel={() => setView('list')}
+                    isHotkeysEnabled={isHotkeysEnabled}
                 />
             );
         } else if (activeTab === 'credentials') {
@@ -209,6 +211,7 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                     credentialId={editingCredentialId}
                     onCancel={() => setView('list')}
                     onSaveSuccess={(cred) => setEditingCredentialId(cred.id)}
+                    isHotkeysEnabled={isHotkeysEnabled}
                 />
             );
         } else if (activeTab === 'api_registry') {
@@ -218,6 +221,7 @@ export function ApiManagement({ onToggleSidebar, isSidebarOpen, initialTab, init
                     isSaving={createApi.isPending || updateApi.isPending}
                     onSave={handleSaveApi}
                     onCancel={() => setView('list')}
+                    isHotkeysEnabled={isHotkeysEnabled}
                 />
             );
         }

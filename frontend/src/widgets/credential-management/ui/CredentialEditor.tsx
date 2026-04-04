@@ -17,9 +17,10 @@ interface CredentialEditorProps {
     isSaving?: boolean;
     onSaveSuccess?: (cred: Credential) => void;
     onCancel: () => void;
+    isHotkeysEnabled?: boolean;
 }
 
-export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: CredentialEditorProps) => {
+export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel, isHotkeysEnabled }: CredentialEditorProps) => {
     const { baseProject } = useProjectStore();
     const { data: credentials = [] } = useCredentials(baseProject?.id);
     const { data: directCredential, isLoading: isDirectLoading } = useCredential(credentialId);
@@ -105,6 +106,7 @@ export const CredentialEditor = ({ credentialId, onSaveSuccess, onCancel }: Cred
                 setFormData(prev => ({ ...prev, is_locked: locked }));
                 queryClient.invalidateQueries({ queryKey: ['credentials'] });
             }}
+            isHotkeysEnabled={isHotkeysEnabled}
         >
             <div className="max-w-5xl mx-auto w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-2 pt-1 pb-2">
                 <header className="mb-8">

@@ -210,6 +210,7 @@ const PinnedTabContent = React.memo<PinnedTabContentProps>(({
                         initialEditId={tab.entityId}
                         onToggleSidebar={() => {}}
                         isSidebarOpen={false}
+                        isHotkeysEnabled={isHotkeysEnabled}
                     />
                 );
 
@@ -220,6 +221,7 @@ const PinnedTabContent = React.memo<PinnedTabContentProps>(({
                         initialEditId={tab.entityId}
                         onToggleSidebar={() => {}}
                         isSidebarOpen={false}
+                        isHotkeysEnabled={isHotkeysEnabled}
                     />
                 );
 
@@ -230,6 +232,7 @@ const PinnedTabContent = React.memo<PinnedTabContentProps>(({
                         initialEditId={tab.entityId}
                         onToggleSidebar={() => {}}
                         isSidebarOpen={false}
+                        isHotkeysEnabled={isHotkeysEnabled}
                     />
                 );
 

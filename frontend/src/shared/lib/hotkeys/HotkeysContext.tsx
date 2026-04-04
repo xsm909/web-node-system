@@ -24,7 +24,74 @@ export const HOTKEY_LEVEL = {
     PAGE: 10,
     FRAGMENT: 15,
     MODAL: 20,
-    OVERLAY: 30
+    OVERLAY: 30,
+};
+
+/**
+ * Formats an internal hotkey string (like 'mod+s') into a user-friendly label 
+ * (like '⌘S' on Mac or 'Ctrl+S' on Windows).
+ */
+export const formatHotkeyDisplay = (key: string): string => {
+    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    let formatted = key.toLowerCase();
+    
+    // Platform-specific modifier symbols
+    const symbols = isMac ? {
+        mod: '⌘',
+        cmd: '⌘',
+        ctrl: '⌃',
+        alt: '⌥',
+        shift: '⇧'
+    } : {
+        mod: 'Ctrl+',
+        cmd: 'Cmd+',
+        ctrl: 'Ctrl+',
+        alt: 'Alt+',
+        shift: 'Shift+'
+    };
+
+    // If it mentions several modifiers (e.g. ctrl+cmd+s), it will replace them all
+    formatted = formatted
+        .replace('mod+', symbols.mod)
+        .replace('cmd+', symbols.cmd)
+        .replace('ctrl+', symbols.ctrl)
+        .replace('alt+', symbols.alt)
+        .replace('shift+', symbols.shift);
+
+    // Capitalize the main key (the last part)
+    // For F-keys like f5 -> F5
+    if (/^f\d+$/.test(formatted)) return formatted.toUpperCase();
+    
+    // For "Enter" -> "⏎" or "Enter"
+    if (formatted === 'enter') return isMac ? '⏎' : 'Enter';
+    if (formatted === 'escape' || formatted === 'esc') return 'Esc';
+
+    // If it's just a single letter or includes a modifier symbol, capitalize it
+    if (formatted.length === 1) return formatted.toUpperCase();
+    
+    // Capitalize the character after a modifier symbol
+    // ⌘s -> ⌘S
+    const lastChar = formatted.slice(-1);
+    const hasModifierSymbol = formatted.length > 1 && (
+        formatted.includes('⌘') || 
+        formatted.includes('⌃') || 
+        formatted.includes('⌥') || 
+        formatted.includes('⇧') || 
+        formatted.includes('+')
+    );
+
+    if (hasModifierSymbol && /^[a-z]$/.test(lastChar)) {
+        return formatted.slice(0, -1) + lastChar.toUpperCase();
+    }
+
+    return formatted;
+};
+
+/**
+ * Normalizes a key string FOR COMPARISON (e.g. 'cmd+s' -> 'mod+s')
+ */
+export const normalizeKeyForComparison = (key: string): string => {
+    return key.toLowerCase().replace(/^(cmd\+|ctrl\+)/, 'mod+');
 };
 
 export interface HotkeysActions {
@@ -114,7 +181,12 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
         const handleKeyDown = (e: KeyboardEvent) => {
             const currentScopes = scopesRef.current;
             const target = e.target as HTMLElement;
-            const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable;
+            
+            // IMPROVED TYPING DETECTION: Include CodeMirror (.cm-content)
+            const isTyping = 
+                ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || 
+                target.isContentEditable ||
+                target.closest('.cm-content'); 
             
             // Normalize key
             let pressedKey = e.key;
@@ -125,11 +197,18 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
             if (e.ctrlKey && e.metaKey) pressedKey = `ctrl+cmd+${e.key.toLowerCase()}`;
             
             const lowerPressedKey = pressedKey.toLowerCase();
+            // Virtual 'mod' key normalization
+            const modPressedKey = lowerPressedKey.replace(/^(cmd\+|ctrl\+)/, 'mod+');
             
             // Iterate scopes from top (priority) to bottom
             for (let i = currentScopes.length - 1; i >= 0; i--) {
                 const scope = currentScopes[i];
-                const matchedHotkey = scope.hotkeys.find(h => h.key.toLowerCase() === lowerPressedKey && h.enabled !== false);
+                
+                // Match against raw key OR normalized mod+key
+                const matchedHotkey = scope.hotkeys.find(h => {
+                    const hk = h.key.toLowerCase();
+                    return (hk === lowerPressedKey || hk === modPressedKey) && h.enabled !== false;
+                });
                 
                 if (matchedHotkey) {
                     // PROTECTION RULES FOR TYPING
@@ -197,12 +276,17 @@ export const HotkeysProvider: React.FC<{ children: ReactNode }> = ({ children })
                 if (scope.exclusive) {
                     const isGlobalShortcut = 
                         /^f\d+$/.test(lowerPressedKey) || 
+                        lowerPressedKey.includes('mod+s') ||
+                        modPressedKey.includes('mod+s') ||
                         lowerPressedKey.includes('cmd+s') || 
                         lowerPressedKey.includes('ctrl+s') ||
                         lowerPressedKey === 'escape';
 
                     const isException = scope.exclusiveExceptions?.some(
-                        exc => exc.toLowerCase() === lowerPressedKey
+                        exc => {
+                            const ek = normalizeKeyForComparison(exc);
+                            return ek === lowerPressedKey || ek === modPressedKey;
+                        }
                     );
 
                     if (isGlobalShortcut && !isException) {

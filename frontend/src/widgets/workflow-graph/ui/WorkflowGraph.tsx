@@ -567,25 +567,13 @@ export const WorkflowGraph = React.memo(({
 
     useHotkeys([
         { 
-            key: 'cmd+c', 
+            key: 'mod+c', 
             description: 'Copy', 
             handler: handleCopy, 
             enabled: isHotkeysEnabled && !isReadOnly && hasSelection 
         },
         { 
-            key: 'ctrl+c', 
-            description: 'Copy', 
-            handler: handleCopy, 
-            enabled: isHotkeysEnabled && !isReadOnly && hasSelection 
-        },
-        { 
-            key: 'cmd+v', 
-            description: 'Paste', 
-            handler: () => handlePaste(true), 
-            enabled: isHotkeysEnabled && !isReadOnly && hasClipboard 
-        },
-        { 
-            key: 'ctrl+v', 
+            key: 'mod+v', 
             description: 'Paste', 
             handler: () => handlePaste(true), 
             enabled: isHotkeysEnabled && !isReadOnly && hasClipboard 

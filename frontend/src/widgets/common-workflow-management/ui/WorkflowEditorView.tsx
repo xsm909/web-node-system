@@ -269,7 +269,7 @@ export const WorkflowEditorView: React.FC<WorkflowEditorViewProps> = ({ onBack, 
             onCancel={isInitialScene ? (() => { }) : onBack}
             isSaving={isSaving}
             saveLabel="Save Workflow"
-            allowedShortcuts={['cmd+c', 'ctrl+c', 'cmd+v', 'ctrl+v', 'f5', 'f2']}
+            allowedShortcuts={['mod+c', 'mod+v', 'f5', 'f2', 'mod+s']}
             fullHeight
             noPadding
             entityId={activeWorkflow?.id}
