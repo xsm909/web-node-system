@@ -229,6 +229,8 @@ User management - user.svg
 API Registry - api.svg
 
 #### 9.3.1 UI icons rules
+link - link_st.svg
+link off - link_st_off.svg
 add (table row) - add_st.svg
 remove (table row) - remove_st.svg
 pin - keep.svg
