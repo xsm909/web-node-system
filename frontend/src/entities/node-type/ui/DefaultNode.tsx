@@ -93,7 +93,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                                     return (
                                         <div key={key} className="flex items-baseline gap-2 min-w-0">
                                             <span className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-tight shrink-0">{key}:</span>
-                                            <AppValuePreview value={finalValue} className="flex-1" />
+                                            <AppValuePreview value={finalValue} parameterName={key} className="flex-1" />
                                         </div>
                                     );
                                 })}

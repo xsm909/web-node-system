@@ -8,6 +8,8 @@ import { AppPreviewWrapper } from './AppPreviewWrapper';
 interface AppValuePreviewProps {
     /** The value to display in preview mode */
     value: any;
+    /** The name of the parameter (for logic-based type detection) */
+    parameterName?: string;
     /** Optional CSS classes */
     className?: string;
 }
@@ -18,10 +20,10 @@ interface AppValuePreviewProps {
  * Orchestrates the display of values by resolving their preview string
  * and wrapping them in the premium { ... } gadget if they are complex.
  */
-export const AppValuePreview = memo(({ value, className = '' }: AppValuePreviewProps) => {
+export const AppValuePreview = memo(({ value, parameterName, className = '' }: AppValuePreviewProps) => {
     if (value === null || value === undefined) return null;
 
-    const { display, isComplex } = resolveValuePreview(value);
+    const { display, isComplex, type } = resolveValuePreview(value, parameterName);
 
     // Full value tooltip
     const titleValue = typeof value === 'string' 
@@ -32,9 +34,12 @@ export const AppValuePreview = memo(({ value, className = '' }: AppValuePreviewP
         <div 
             className={`flex items-center min-w-0 whitespace-nowrap overflow-hidden ${className}`} 
             title={titleValue}
+            style={{
+                animation: 'fade-in 0.2s ease-out forwards'
+            }}
         >
             {isComplex ? (
-                <AppPreviewWrapper>
+                <AppPreviewWrapper type={type}>
                     {display}
                 </AppPreviewWrapper>
             ) : (
