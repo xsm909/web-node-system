@@ -18,6 +18,10 @@ interface DataclassListEditorProps {
     onChange: (newValue: any[]) => void;
     isReadOnly?: boolean;
     label: string;
+    nodeTypeId?: string;
+    parameterName?: string;
+    allParams?: any;
+    fillDataFunc?: string | null;
 }
 
 export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
@@ -26,10 +30,15 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
     onChange,
     isReadOnly = false,
     label,
+    nodeTypeId,
+    parameterName,
+    allParams,
+    fillDataFunc,
 }) => {
     const tableRef = useRef<HTMLDivElement>(null);
     const tabulatorInstance = useRef<Tabulator | null>(null);
     const [isInternalUpdate, setIsInternalUpdate] = useState(false);
+    const [isFilling, setIsFilling] = useState(false);
     // Tracks whether a cell editor is currently open
     const [isCellEditing, setIsCellEditing] = useState(false);
 
@@ -121,6 +130,40 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
         }
     }, [safeValue, isInternalUpdate]);
 
+    const handleFillData = async () => {
+        if (!nodeTypeId || !parameterName || !fillDataFunc) return;
+        
+        setIsFilling(true);
+        try {
+            const { apiClient } = await import('../../../shared/api/client');
+            const response = await apiClient.get(`/workflows/node-types/${nodeTypeId}/fill-data/${parameterName}`, {
+                params: {
+                    fill_func: fillDataFunc,
+                    params: JSON.stringify(allParams || {})
+                }
+            });
+            
+            if (Array.isArray(response.data) && response.data.length > 0) {
+                setIsInternalUpdate(true);
+                onChange(response.data);
+                if (tabulatorInstance.current) {
+                    tabulatorInstance.current.setData(response.data);
+                }
+                setTimeout(() => setIsInternalUpdate(false), 0);
+            } else if (Array.isArray(response.data) && response.data.length === 0) {
+                alert(`The fill function '${fillDataFunc}' returned an empty list. Check if params like 'api_name' are correctly set.`);
+            } else {
+                alert(`Unexpected response from fill function: ${JSON.stringify(response.data)}`);
+            }
+        } catch (error: any) {
+            console.error("Failed to fill data:", error);
+            const errorDetail = error.response?.data?.detail || error.message;
+            alert(`Failed to fill data: ${errorDetail}`);
+        } finally {
+            setIsFilling(false);
+        }
+    };
+
     const handleAddRow = async () => {
         if (tabulatorInstance.current) {
             const newRow = schema.reduce((acc, field) => ({ ...acc, [field.name]: field.type === 'number' ? 0 : '' }), {});
@@ -189,16 +232,29 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
                 <label className="text-[8px] font-normal uppercase tracking-[0.15em] text-[var(--text-muted)] group-focus-within:text-[var(--brand)] opacity-80 transition-all">
                     {label}
                 </label>
-                {!isReadOnly && (
-                    <AppRoundButton
-                        icon="add_st"
-                        variant="outline"
-                        size="xs"
-                        onClick={handleAddRow}
-                        title="Add Row"
-                        className="transition-opacity"
-                    />
-                )}
+                <div className="flex items-center gap-1">
+                    {fillDataFunc && !isReadOnly && (
+                        <AppRoundButton
+                            icon="filldown"
+                            variant="outline"
+                            size="xs"
+                            onClick={handleFillData}
+                            isLoading={isFilling}
+                            title={`Fill using ${fillDataFunc}`}
+                            className="transition-opacity text-brand"
+                        />
+                    )}
+                    {!isReadOnly && (
+                        <AppRoundButton
+                            icon="add_st"
+                            variant="outline"
+                            size="xs"
+                            onClick={handleAddRow}
+                            title="Add Row"
+                            className="transition-opacity"
+                        />
+                    )}
+                </div>
             </div>
 
             <div className="border-b border-[var(--border-base)]/60 bg-transparent overflow-hidden">

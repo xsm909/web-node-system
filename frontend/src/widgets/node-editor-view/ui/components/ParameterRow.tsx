@@ -186,6 +186,10 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
                 onChange={(newVal) => onChange({ [param.name]: newVal })}
                 isReadOnly={isReadOnly}
                 label={param.label}
+                nodeTypeId={nodeTypeId}
+                parameterName={param.name}
+                allParams={allParams}
+                fillDataFunc={param.fill_data_func}
             />
         );
     }

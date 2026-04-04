@@ -181,6 +181,7 @@ def extract_node_parameters(code: str) -> list:
                         md_editor_match = re.search(r"@=md_editor", line_content)
                         text_editor_match = re.search(r"@=text_editor", line_content)
                         python_editor_match = re.search(r"@=python_editor", line_content)
+                        fill_data_match = re.search(r"\^=([\w]+)", line_content)
 
                         params.append({
                             "name": name,
@@ -192,6 +193,7 @@ def extract_node_parameters(code: str) -> list:
                             "is_md_editor": bool(md_editor_match),
                             "is_text_editor": bool(text_editor_match),
                             "is_python_editor": bool(python_editor_match),
+                            "fill_data_func": fill_data_match.group(1) if fill_data_match else None,
                             "schema": schema,
                             "dataclass_name": dataclass_name
                         })

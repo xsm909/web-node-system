@@ -703,6 +703,7 @@ def get_node_parameter_options(
                 **SAFE_GLOBALS["__builtins__"],
                 "__import__": restricted_import
             },
+            "params": current_params,
         }
         
         # Execute the module to populate globals with defined functions
@@ -766,6 +767,93 @@ def get_node_parameter_options(
         raise HTTPException(status_code=500, detail=f"Dynamic options script failed: {str(e)}")
     finally:
         # Reset context variable
+        execution_context.reset(token)
+
+
+@router.get("/node-types/{node_id}/fill-data/{parameter_name}")
+def get_node_fill_data(
+    node_id: uuid.UUID, 
+    parameter_name: str, 
+    fill_func: str, 
+    params: str = Query("{}"),
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Executes a specific function from the node's code to "fill" a complex parameter (like a list of dataclasses).
+    """
+    node = db.query(NodeType).filter(NodeType.id == node_id).first()
+    if not node:
+        raise HTTPException(status_code=404, detail="Node type not found")
+    
+    from ..services.executor import SAFE_GLOBALS, CustomRestrictingNodeTransformer, custom_getattr, restricted_import
+    from RestrictedPython import compile_restricted, Guards
+    from ..internal_libs.context_lib import execution_context
+    
+    try:
+        try:
+            current_params = json.loads(params)
+        except Exception:
+            current_params = {}
+
+        token = execution_context.set(str(current_user.id))
+        cleaned_code = re.sub(r'([ \t]+[\w]+[ \t]*:[ \t]*[\w]+[ \t]*)=[ \t]*#', r'\1 #', node.code)
+
+        byte_code = compile_restricted(
+            cleaned_code, 
+            f"<node-fill:{node_id}>", 
+            "exec", 
+            policy=CustomRestrictingNodeTransformer
+        )
+        
+        # Add comprehensive globals for the execution
+        node_globals = {
+            **SAFE_GLOBALS,
+            "__name__": f"<node-fill:{node_id}>",
+            "_getattr_": custom_getattr,
+            "_setattr_": Guards.guarded_setattr,
+            "_delattr_": Guards.guarded_delattr,
+            "__builtins__": {
+                **SAFE_GLOBALS["__builtins__"],
+                "__import__": restricted_import
+            },
+            "params": current_params,
+        }
+        
+        exec(byte_code, node_globals)
+        
+        if fill_func not in node_globals:
+             print(f"[FILL_DATA] Error: Function '{fill_func}' not found in node globals. Available: {list(node_globals.keys())}")
+             raise HTTPException(status_code=400, detail=f"Fill function '{fill_func}' not found in node code.")
+             
+        target_func = node_globals[fill_func]
+        if not callable(target_func):
+             raise HTTPException(status_code=400, detail=f"Fill function '{fill_func}' is not callable.")
+
+        # Log parameters being passed for debugging
+        print(f"[FILL_DATA] Executing '{fill_func}' with params: {current_params}")
+        
+        try:
+            sig = inspect.signature(target_func)
+            if len(sig.parameters) > 0:
+                res = target_func(current_params)
+            else:
+                res = target_func()
+            
+            print(f"[FILL_DATA] Function '{fill_func}' returned: {res}")
+            return res
+        except Exception as e:
+            print(f"[FILL_DATA] Execution error in '{fill_func}': {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"Error executing fill function for {node.name}.{parameter_name}: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
         execution_context.reset(token)
 
 

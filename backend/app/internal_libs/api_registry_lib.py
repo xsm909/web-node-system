@@ -178,3 +178,53 @@ def resolve_and_call_api(tool_name: str, params: dict) -> any:
     api_name, function_name = tool_name.split("__", 1)
     return call_api_function(api_name, function_name, params)
 
+
+def get_function_parameters(api_name: str, function_name: str) -> list:
+    """
+    Returns the parameter definitions for a specific function in the API registry.
+    Returns list of dicts with 'name' and 'value' (from example).
+    """
+    db = SessionLocal()
+    try:
+        api_entry = db.query(ApiRegistryModel).filter(ApiRegistryModel.name == api_name).first()
+        if not api_entry:
+            return []
+        
+        functions = api_entry.functions or []
+        # Support both parsed JSON (dict/list) and raw JSON (string)
+        if isinstance(functions, str):
+            try:
+                functions = json.loads(functions)
+            except:
+                functions = []
+        
+        func_def = next((f for f in functions if f.get("name") == function_name), None)
+        if not func_def:
+            return []
+        
+        # Try both 'parameters' (OpenAI style) and 'params' (internal style)
+        params_data = func_def.get("parameters") or func_def.get("params") or []
+        
+        # If it's the OpenAI schema object, parameters are in ['properties']
+        if isinstance(params_data, dict) and "properties" in params_data:
+            props = params_data.get("properties", {})
+            return [{"name": k, "value": v.get("example") or v.get("default")} for k, v in props.items()]
+            
+        # If it's a dict of {name: info}, convert to list
+        if isinstance(params_data, dict):
+            params_list = []
+            for k, v in params_data.items():
+                if isinstance(v, dict):
+                    params_list.append({"name": k, "value": v.get("example") or v.get("default") or v.get("value")})
+                else:
+                    params_list.append({"name": k, "value": v})
+            return params_list
+            
+        # If it's already a list of objects
+        if isinstance(params_data, list):
+            return [{"name": p.get("name"), "value": p.get("example") or p.get("default") or p.get("value")} for p in params_data if isinstance(p, dict) and "name" in p]
+            
+        return []
+    finally:
+        db.close()
+
