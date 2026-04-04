@@ -7,6 +7,8 @@ import { UI_CONSTANTS } from '../constants';
 import { AppFormButton } from '../app-form-button/AppFormButton';
 import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
 import { SYSTEM_PARAMETERS } from '../../../entities/report/model/constants';
+import { AppValuePreview } from '../app-value-preview';
+import { AppRoundButton } from '../app-round-button/AppRoundButton';
 
 interface AppParameterListEditorProps {
     parameters: ObjectParameter[];
@@ -128,44 +130,45 @@ export const AppParameterListEditor: React.FC<AppParameterListEditorProps> = ({
                                     </select>
                                 </AppFormFieldRect>
                             </div>
-                        </div>
 
-                        {param.parameter_type === 'select' && (
-                            <div className="space-y-1.5 flex flex-col">
-                                <div className="flex items-center justify-between">
-                                    <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">SQL Source (Must return 'value' and 'label')</label>
-                                    {!isLocked && (
-                                        <button
-                                            onClick={() => handleOpenQueryBuilder(index)}
-                                            className="text-[10px] font-normal text-brand hover:underline flex items-center gap-1"
+                            {param.parameter_type === 'select' && (
+                                <div className="space-y-1.5 flex flex-col">
+                                    <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">SQL Source</label>
+                                    <div className="flex items-center gap-2 h-[32px]">
+                                        <div 
+                                            className={`flex-1 min-w-0 h-full flex items-center ${!isLocked ? 'cursor-pointer hover:opacity-70 transition-all active:scale-[0.98]' : ''}`}
+                                            onClick={() => !isLocked && handleOpenQueryBuilder(index)}
                                         >
-                                            <Icon name="QueryBuilder" size={12} />
-                                            Open Query Builder
-                                        </button>
-                                    )}
+                                            <AppValuePreview 
+                                                value={param.source}
+                                                isLocked={true}
+                                                parameterName="SQL"
+                                                className="w-full pointer-events-none"
+                                            />
+                                        </div>
+                                        <AppRoundButton 
+                                            icon="QueryBuilder"
+                                            variant="outline"
+                                            size="xs"
+                                            isDisabled={isLocked}
+                                            onClick={() => handleOpenQueryBuilder(index)}
+                                            title="Open Query Builder"
+                                        />
+                                    </div>
                                 </div>
-                                <AppFormFieldRect disabled={isLocked} className={UI_CONSTANTS.FORM_CONTROL_HEIGHT}>
-                                    <input
-                                        type="text"
-                                        value={param.source}
-                                        onChange={(e) => updateParam(index, { source: e.target.value })}
-                                        className="w-full bg-transparent outline-none h-full text-xs font-normal disabled:opacity-50"
-                                        placeholder="SELECT id as value, name as label FROM users..."
-                                        disabled={isLocked}
-                                    />
-                                </AppFormFieldRect>
-                            </div>
-                        )}
+                            )}
 
-                        <div className="space-y-1.5 flex flex-col">
-                            <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Default Value</label>
-                            <AppParameterSelectByTamplate
-                                parameter={param}
-                                value={param.default_value}
-                                onChange={(val) => updateParam(index, { default_value: val })}
-                                options={options[param.parameter_name] || []}
-                                disabled={isLocked}
-                            />
+                            <div className={`space-y-1.5 flex flex-col ${param.parameter_type === 'select' ? '' : 'col-span-2'}`}>
+                                <label className="text-[10px] font-normal uppercase tracking-wider text-[var(--text-muted)]">Default Value</label>
+                                <AppParameterSelectByTamplate
+                                    parameter={param}
+                                    value={param.default_value}
+                                    onChange={(val) => updateParam(index, { default_value: val })}
+                                    options={options[param.parameter_name] || []}
+                                    disabled={isLocked}
+                                    className="w-full"
+                                />
+                            </div>
                         </div>
                     </div>
                 ))}
