@@ -229,6 +229,8 @@ User management - user.svg
 API Registry - api.svg
 
 #### 9.3.1 UI icons rules
+question mark here - question_here.svg
+filldown - filldown.svg
 link - link_st.svg
 link off - link_st_off.svg
 add (table row) - add_st.svg
