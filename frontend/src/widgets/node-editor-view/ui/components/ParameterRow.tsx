@@ -5,6 +5,7 @@ import { apiClient } from '../../../../shared/api/client';
 import { AppInput } from '../../../../shared/ui/app-input';
 import { DataclassListEditor } from '../../../../shared/ui/dataclass-list-editor';
 import { AppRoundButton } from '../../../../shared/ui/app-round-button/AppRoundButton';
+import { AppValuePreview } from '../../../../shared/ui/app-value-preview';
 
 interface ParameterRowProps {
     param: any;
@@ -143,27 +144,48 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
 
     return (
         <div className="space-y-1.5 group">
-            <div className="flex items-center justify-between h-[21px]">
-                <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between h-[21px] gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                     <label
                         htmlFor={`param-${param.name}`}
-                        className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] group-focus-within:text-brand transition-colors"
+                        className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] group-focus-within:text-brand transition-colors shrink-0"
                     >
                         {param.label}
                     </label>
                     {(param.is_sql_query_constructor || param.is_md_editor || param.is_text_editor || param.is_python_editor) && (
-                        <AppRoundButton 
-                            icon={param.is_sql_query_constructor ? "QueryBuilder" : "edit"} 
-                            variant="outline" 
-                            size="xs" 
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                if (param.is_sql_query_constructor) onOpenSqlEditor?.();
-                                else onOpenSpecialEditor?.(param.name);
-                            }}
-                            title="Open Editor"
-                        />
+                        <>
+                            <div 
+                                className={`flex-1 min-w-0 flex items-center h-full ${!isReadOnly ? 'cursor-pointer hover:opacity-70 transition-opacity active:scale-[0.98]' : ''}`}
+                                onClick={(e) => {
+                                    if (isReadOnly) return;
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (param.is_sql_query_constructor) onOpenSqlEditor?.();
+                                    else onOpenSpecialEditor?.(param.name);
+                                }}
+                            >
+                                <AppValuePreview 
+                                    value={value}
+                                    isLocked={true}
+                                    parameterName={param.name}
+                                    paramDef={param}
+                                    className="scale-90 origin-left pointer-events-none"
+                                />
+                            </div>
+                            <AppRoundButton 
+                                icon={param.is_sql_query_constructor ? "QueryBuilder" : "edit"} 
+                                variant="outline" 
+                                size="xs" 
+                                isDisabled={isReadOnly}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (param.is_sql_query_constructor) onOpenSqlEditor?.();
+                                    else onOpenSpecialEditor?.(param.name);
+                                }}
+                                title="Open Editor"
+                            />
+                        </>
                     )}
                 </div>
                 {param.type === 'boolean' && (
