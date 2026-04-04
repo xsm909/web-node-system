@@ -712,6 +712,11 @@ export const WorkflowGraph = React.memo(({
                     isRightInputProvider: !!nodeTypes.find(t => t.id === node.data?.nodeTypeId && (t as any).isRightInputProvider),
                     onUngroup: handleUngroup,
                     onRename: handleGroupRename,
+                    onSelect: () => {
+                        setSelectedNodeId(node.id);
+                        onNodeSelectCallback?.(node);
+                        setNodes(nds => nds.map(n => ({ ...n, selected: n.id === node.id })));
+                    },
                     onUpdateParams: (updatedParams: any) => {
                         if (onUpdateParamsProp) {
                             onUpdateParamsProp(node.id, updatedParams);

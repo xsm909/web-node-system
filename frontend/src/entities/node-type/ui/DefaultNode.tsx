@@ -100,6 +100,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                                                 nodeTypeId={data.nodeTypeId}
                                                 allParams={data.params}
                                                 label={paramInfo?.label || key}
+                                                onSelect={data.onSelect}
                                                 onSave={data.onUpdateParams ? (val: any, displayLabel?: string) => {
                                                     const nextParams = { ...data.params, [key]: val };
                                                     const displayKey = `_DISPLAY_${key}`;

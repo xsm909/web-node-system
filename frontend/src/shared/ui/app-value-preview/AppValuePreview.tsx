@@ -18,6 +18,7 @@ export interface AppValuePreviewProps {
     allParams?: Record<string, any>;
     label?: string;
     onSave?: (newValue: any, displayLabel?: string) => void;
+    onSelect?: () => void;
     isLocked?: boolean;
     className?: string;
     workflowParameters?: any[];
@@ -38,6 +39,7 @@ export const AppValuePreview = memo(({
     allParams = {},
     label,
     onSave,
+    onSelect,
     isLocked = false,
     className = '',
     workflowParameters = [],
@@ -84,6 +86,15 @@ export const AppValuePreview = memo(({
     const handleContainerClick = (e: React.MouseEvent) => {
         if (!isEditable) return;
         e.stopPropagation();
+
+        // Trigger node selection relative to the graph when any parameter is clicked
+        onSelect?.();
+
+        // SPECIAL CASE: Booleans should just toggle immediately without a modal
+        if (typeof value === 'boolean') {
+            handleInternalSave(!value);
+            return;
+        }
 
         if (isSqlConstructor) {
             setIsSqlModalOpen(true);
