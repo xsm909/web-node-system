@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
-import '../../../shared/ui/app-tabulator-table/AppTabulatorTable.css';
-import { AppRoundButton } from '../../../shared/ui/app-round-button/AppRoundButton';
+import '../app-tabulator-table/AppTabulatorTable.css';
+import { AppRoundButton } from '../app-round-button/AppRoundButton';
 
 interface DataclassField {
     name: string;
@@ -55,7 +55,6 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
                 headerSort: false,
                 resizable: false,
                 formatter: () => {
-                    // Simulating AppRoundButton size="xs" variant="danger" structure
                     return `
                         <div class="flex items-center justify-center w-full h-full">
                             <div class="delete-row-btn flex items-center justify-center rounded-full transition-all active:scale-95 shrink-0 w-[21px] h-[21px] bg-[var(--bg-app)] border border-red-500/50 text-red-500 hover:bg-red-500/10 cursor-pointer">
@@ -82,7 +81,7 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
             layout: "fitColumns",
             responsiveLayout: "collapse",
             placeholder: "No items added",
-            height: safeValue.length > 0 ? undefined : 80, 
+            height: safeValue.length > 0 ? undefined : 80,
             headerVisible: true,
         });
 
@@ -142,9 +141,9 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
             </div>
 
             <div className="border-b border-[var(--border-base)]/60 bg-transparent overflow-hidden">
-                <div 
-                    ref={tableRef} 
-                    className="w-full text-[12px] compact-dataclass-table no-scrollbar custom-scrollbar" 
+                <div
+                    ref={tableRef}
+                    className="w-full text-[12px] compact-dataclass-table no-scrollbar custom-scrollbar"
                     style={{ maxHeight: '208px', overflowY: 'auto', scrollbarGutter: 'stable' }}
                 />
             </div>

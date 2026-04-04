@@ -4,6 +4,7 @@ import { AppValueEditor } from './AppValueEditor';
 import { SelectionList } from '../selection-list/SelectionList';
 import { QueryBuilderModal } from '../../../features/query-builder/ui/QueryBuilderModal';
 import { SpecializedEditorsModal } from '../../../widgets/node-editor-view/ui/components/SpecializedEditorsModal';
+import { DataclassListEditor } from '../dataclass-list-editor';
 import { useParameterOptions } from '../../../features/node-editor/lib/useParameterOptions';
 import { resolveValuePreview } from './ValuePreview.lib';
 import { AppPreviewWrapper } from './AppPreviewWrapper';
@@ -50,6 +51,7 @@ export const AppValuePreview = memo(({
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isSqlModalOpen, setIsSqlModalOpen] = useState(false);
     const [isSpecialModalOpen, setIsSpecialModalOpen] = useState(false);
+    const [isDataclassModalOpen, setIsDataclassModalOpen] = useState(false);
     const [isComboOpen, setIsComboOpen] = useState(false);
     const [comboPosition, setComboPosition] = useState({ x: 0, y: 0 });
     
@@ -67,8 +69,9 @@ export const AppValuePreview = memo(({
     // Priority 1: SQL/Specialized Modals
     const isSqlConstructor = !!paramDef?.is_sql_query_constructor;
     const isSpecialEditor = !!(paramDef?.is_md_editor || paramDef?.is_python_editor || paramDef?.is_text_editor || paramDef?.parameter_type === 'code' || paramDef?.parameter_type === 'text');
-    
-    // Priority 2: ComboBox (Strict check matching sidebar logic)
+    // Priority 2: Dataclass list table editor
+    const isDataclassList = paramDef?.type === 'list_dataclass' && Array.isArray(paramDef?.schema);
+    // Priority 3: ComboBox (Strict check matching sidebar logic)
     const isComboBox = paramDef?.options_source?.component === 'ComboBox';
 
     // Fetch options for ComboBox if applicable
@@ -101,6 +104,9 @@ export const AppValuePreview = memo(({
         } else if (isSpecialEditor) {
             setModalTempValue(value);
             setIsSpecialModalOpen(true);
+        } else if (isDataclassList) {
+            setModalTempValue(Array.isArray(value) ? value : []);
+            setIsDataclassModalOpen(true);
         } else if (isComboBox) {
             // Calculate position for the SelectionList dropdown
             const rect = containerRef.current?.getBoundingClientRect();
@@ -119,6 +125,7 @@ export const AppValuePreview = memo(({
         setIsEditModalOpen(false);
         setIsSqlModalOpen(false);
         setIsSpecialModalOpen(false);
+        setIsDataclassModalOpen(false);
         setIsComboOpen(false);
     };
 
@@ -189,6 +196,26 @@ export const AppValuePreview = memo(({
                     isReadOnly={isLocked}
                     editorTheme={editorTheme}
                 />
+            )}
+
+            {isDataclassModalOpen && isDataclassList && (
+                <AppCompactModalForm
+                    isOpen={isDataclassModalOpen}
+                    title={label || parameterName || 'Edit List'}
+                    onClose={() => setIsDataclassModalOpen(false)}
+                    onSubmit={() => handleInternalSave(modalTempValue)}
+                    width="max-w-2xl"
+                >
+                    <div className="py-2 px-1">
+                        <DataclassListEditor
+                            schema={paramDef.schema}
+                            value={modalTempValue}
+                            onChange={setModalTempValue}
+                            isReadOnly={isLocked}
+                            label={label || parameterName || ''}
+                        />
+                    </div>
+                </AppCompactModalForm>
             )}
         </div>
     );

@@ -3,7 +3,7 @@ import { ComboBox } from '../../../../shared/ui/combo-box/ComboBox';
 import type { SelectionItem } from '../../../../shared/ui/selection-list/SelectionList';
 import { apiClient } from '../../../../shared/api/client';
 import { AppInput } from '../../../../shared/ui/app-input';
-import { DataclassListEditor } from '../DataclassListEditor';
+import { DataclassListEditor } from '../../../../shared/ui/dataclass-list-editor';
 import { AppRoundButton } from '../../../../shared/ui/app-round-button/AppRoundButton';
 
 interface ParameterRowProps {
