@@ -182,7 +182,8 @@ def resolve_and_call_api(tool_name: str, params: dict) -> any:
 def get_function_parameters(api_name: str, function_name: str) -> list:
     """
     Returns the parameter definitions for a specific function in the API registry.
-    Returns list of dicts with 'name' and 'value' (from example).
+    Returns list of dicts with 'name' and 'value'.
+    Merges schema parameters with default values from 'default_params'.
     """
     db = SessionLocal()
     try:
@@ -191,7 +192,6 @@ def get_function_parameters(api_name: str, function_name: str) -> list:
             return []
         
         functions = api_entry.functions or []
-        # Support both parsed JSON (dict/list) and raw JSON (string)
         if isinstance(functions, str):
             try:
                 functions = json.loads(functions)
@@ -202,27 +202,72 @@ def get_function_parameters(api_name: str, function_name: str) -> list:
         if not func_def:
             return []
         
-        # Try both 'parameters' (OpenAI style) and 'params' (internal style)
+        # 1. Get default values mapping
+        # Supports both list of {name, value} and flat dict
+        defaults_raw = func_def.get("default_params") or func_def.get("default_parameters") or {}
+        defaults_map = {}
+        if isinstance(defaults_raw, list):
+            for d in defaults_raw:
+                if isinstance(d, dict):
+                    name = d.get("name") or d.get("key")
+                    val = d.get("value")
+                    if name:
+                        defaults_map[name] = val
+        elif isinstance(defaults_raw, dict):
+            defaults_map = defaults_raw
+
+        # 2. Extract base parameters from schema
         params_data = func_def.get("parameters") or func_def.get("params") or []
+        
+        result_params = []
         
         # If it's the OpenAI schema object, parameters are in ['properties']
         if isinstance(params_data, dict) and "properties" in params_data:
             props = params_data.get("properties", {})
-            return [{"name": k, "value": v.get("example") or v.get("default")} for k, v in props.items()]
+            for k, v in props.items():
+                # Priority: explicit default_params > schema example > schema default
+                val = defaults_map.get(k)
+                if val is None:
+                    val = v.get("example") if v.get("example") is not None else v.get("default")
+                
+                result_params.append({
+                    "name": k,
+                    "value": val if val is not None else ""
+                })
+            return result_params
             
         # If it's a dict of {name: info}, convert to list
         if isinstance(params_data, dict):
-            params_list = []
             for k, v in params_data.items():
-                if isinstance(v, dict):
-                    params_list.append({"name": k, "value": v.get("example") or v.get("default") or v.get("value")})
-                else:
-                    params_list.append({"name": k, "value": v})
-            return params_list
+                val = defaults_map.get(k)
+                if val is None:
+                    if isinstance(v, dict):
+                        val = v.get("example") if v.get("example") is not None else v.get("default")
+                        if val is None: val = v.get("value")
+                    else:
+                        val = v
+                
+                result_params.append({
+                    "name": k,
+                    "value": val if val is not None else ""
+                })
+            return result_params
             
         # If it's already a list of objects
         if isinstance(params_data, list):
-            return [{"name": p.get("name"), "value": p.get("example") or p.get("default") or p.get("value")} for p in params_data if isinstance(p, dict) and "name" in p]
+            for p in params_data:
+                if isinstance(p, dict) and "name" in p:
+                    name = p["name"]
+                    val = defaults_map.get(name)
+                    if val is None:
+                        val = p.get("example") if p.get("example") is not None else p.get("default")
+                        if val is None: val = p.get("value")
+                    
+                    result_params.append({
+                        "name": name,
+                        "value": val if val is not None else ""
+                    })
+            return result_params
             
         return []
     finally:
