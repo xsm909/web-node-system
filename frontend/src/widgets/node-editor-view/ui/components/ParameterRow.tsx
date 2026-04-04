@@ -169,7 +169,7 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
                                     isLocked={true}
                                     parameterName={param.name}
                                     paramDef={param}
-                                    className="scale-90 origin-left max-w-full pointer-events-none"
+                                    className="w-full pointer-events-none"
                                 />
                             </div>
                             <AppRoundButton 

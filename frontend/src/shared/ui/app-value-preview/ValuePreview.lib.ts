@@ -64,7 +64,8 @@ export const resolveValuePreview = (value: any, keyName?: string): PreviewResult
         }
 
         // Apply length constraints for the preview "gadget"
-        const maxLength = isComplex ? 30 : 40;
+        // We increase this significantly to allow CSS truncate to handle the actual UI boundary
+        const maxLength = 200;
         if (display.length > maxLength) {
             display = display.substring(0, maxLength - 3) + '...';
         }

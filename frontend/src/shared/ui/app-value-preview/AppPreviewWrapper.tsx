@@ -51,7 +51,7 @@ export const AppPreviewWrapper = memo(({ children, type = 'markdown' }: AppPrevi
                 <Icon name={iconName} size={11} className="shrink-0 opacity-80" />
             )}
 
-            <span className="italic truncate leading-none mr-0.5" title="">
+            <span className="italic truncate leading-none mr-0.5 flex-1 min-w-0 block" title="">
                 {children}
             </span>
 

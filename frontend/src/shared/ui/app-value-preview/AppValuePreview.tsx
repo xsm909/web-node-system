@@ -32,9 +32,9 @@ export interface AppValuePreviewProps {
  * Clicking triggers context-aware editing interfaces.
  * Ensures synchronization with the sidebar/workflow state.
  */
-export const AppValuePreview = memo(({ 
-    value, 
-    parameterName, 
+export const AppValuePreview = memo(({
+    value,
+    parameterName,
     paramDef,
     nodeTypeId,
     allParams = {},
@@ -54,7 +54,7 @@ export const AppValuePreview = memo(({
     const [isDataclassModalOpen, setIsDataclassModalOpen] = useState(false);
     const [isComboOpen, setIsComboOpen] = useState(false);
     const [comboPosition, setComboPosition] = useState({ x: 0, y: 0 });
-    
+
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Local state for the modal editor
