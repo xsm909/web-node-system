@@ -120,7 +120,6 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                                                     data.onUpdateParams(nextParams);
                                                 } : undefined}
                                                 isLocked={data.isLocked}
-                                                className="flex-1" 
                                                 workflowParameters={data.workflowParameters}
                                             />
                                         </div>

@@ -41,7 +41,6 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
     const linkButtonRef = useRef<HTMLButtonElement>(null);
 
     const isLinked = typeof value === 'string' && value.startsWith('@');
-    const linkKey = isLinked ? value.slice(1) : '';
 
     const matchingWorkflowParams = (workflowParameters || [])
         .filter(p => {
