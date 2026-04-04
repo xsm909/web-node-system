@@ -63,7 +63,7 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
                         <div class="flex items-center justify-center w-full h-full">
                             <div class="delete-row-btn flex items-center justify-center rounded-full transition-all active:scale-95 shrink-0 w-[21px] h-[21px] bg-[var(--bg-app)] border border-red-500/50 text-red-500 hover:bg-red-500/10 cursor-pointer">
                                 <svg width="10" height="10" viewBox="0 -960 960 960" fill="currentColor">
-                                    <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+                                    <path d="M240-460v-40h480v40H240Z"/>
                                 </svg>
                             </div>
                         </div>
@@ -191,12 +191,12 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
                 </label>
                 {!isReadOnly && (
                     <AppRoundButton
-                        icon="add_circle"
+                        icon="add_st"
                         variant="outline"
                         size="xs"
                         onClick={handleAddRow}
                         title="Add Row"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="transition-opacity"
                     />
                 )}
             </div>
