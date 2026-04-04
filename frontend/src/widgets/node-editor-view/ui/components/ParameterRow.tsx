@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ComboBox } from '../../../../shared/ui/combo-box/ComboBox';
+import { Icon } from '../../../../shared/ui/icon';
+import { AppContextMenu } from '../../../../shared/ui/app-context-menu';
 import type { SelectionItem } from '../../../../shared/ui/selection-list/SelectionList';
 import { apiClient } from '../../../../shared/api/client';
 import { AppInput } from '../../../../shared/ui/app-input';
@@ -17,6 +19,7 @@ interface ParameterRowProps {
     onOpenSpecialEditor?: (name: string) => void;
     nodeTypeId?: string;
     allParams?: any;
+    workflowParameters?: any[];
 }
 
 export const ParameterRow: React.FC<ParameterRowProps> = ({ 
@@ -28,10 +31,39 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
     onOpenSqlEditor, 
     onOpenSpecialEditor, 
     nodeTypeId, 
-    allParams 
+    allParams,
+    workflowParameters = []
 }) => {
     const [options, setOptions] = useState<SelectionItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLinkDropdownOpen, setIsLinkDropdownOpen] = useState(false);
+    const [linkAnchorRect, setLinkAnchorRect] = useState<DOMRect | null>(null);
+    const linkButtonRef = useRef<HTMLButtonElement>(null);
+
+    const isLinked = typeof value === 'string' && value.startsWith('@');
+    const linkKey = isLinked ? value.slice(1) : '';
+
+    const matchingWorkflowParams = (workflowParameters || [])
+        .filter(p => {
+            const nodeType = (param.type || "").toLowerCase();
+            const workflowType = (p.parameter_type || "").toLowerCase();
+            
+            if (nodeType === workflowType) return true;
+            
+            // Text node can accept almost any basic workflow parameter or sql constructor
+            if (nodeType === 'text' || nodeType === 'string') {
+                return ['text', 'string', 'select', 'sql_query_constructor'].includes(workflowType);
+            }
+            
+            return false;
+        })
+        .map(p => ({
+            id: `@${p.parameter_name}`,
+            name: p.parameter_name,
+            icon: 'workflow'
+        }));
+
+    const canBeLinked = !param.is_sql_query_constructor; // SQL Constructor is excluded
 
     useEffect(() => {
         if (param.options_source?.component === 'ComboBox') {
@@ -121,6 +153,23 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
         }
     }, [param, nodeTypeId, JSON.stringify(allParams || {})]);
 
+    const handleLink = (targetParamName: string) => {
+        onChange({ 
+            [param.name]: targetParamName,
+            [`_LOCAL_${param.name}`]: value, // Backup current local value
+            [`_DISPLAY_${param.name}`]: undefined 
+        });
+    };
+
+    const handleUnlink = () => {
+        const localBackup = allParams?.[`_LOCAL_${param.name}`];
+        onChange({ 
+            [param.name]: localBackup !== undefined ? localBackup : "",
+            [`_LOCAL_${param.name}`]: undefined, // Cleanup backup
+            [`_DISPLAY_${param.name}`]: undefined
+        });
+    };
+
     const getSelectedLabel = () => {
         if (value === undefined || value === null || value === "") return "";
         const item = options.find(i => i.id === String(value));
@@ -153,17 +202,25 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
                         {param.label}
                     </label>
                     {(param.is_sql_query_constructor || param.is_md_editor || param.is_text_editor || param.is_python_editor) && (
-                        <>
-                            <div 
-                                className={`flex-1 min-w-0 flex items-center h-full ${!isReadOnly ? 'cursor-pointer hover:opacity-70 transition-opacity active:scale-[0.98]' : ''}`}
-                                onClick={(e) => {
-                                    if (isReadOnly) return;
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    if (param.is_sql_query_constructor) onOpenSqlEditor?.();
-                                    else onOpenSpecialEditor?.(param.name);
-                                }}
-                            >
+                        <div 
+                            className={`flex-1 min-w-0 flex items-center h-full ${!isReadOnly && !isLinked ? 'cursor-pointer hover:opacity-70 transition-opacity active:scale-[0.98]' : ''}`}
+                            onClick={(e) => {
+                                if (isReadOnly || isLinked) return;
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (param.is_sql_query_constructor) onOpenSqlEditor?.();
+                                else onOpenSpecialEditor?.(param.name);
+                            }}
+                        >
+                            {isLinked ? (
+                                <AppValuePreview 
+                                    value={value}
+                                    isLocked={true}
+                                    parameterName={param.name}
+                                    paramDef={param}
+                                    className="w-full"
+                                />
+                            ) : (
                                 <AppValuePreview 
                                     value={value}
                                     isLocked={true}
@@ -171,76 +228,150 @@ export const ParameterRow: React.FC<ParameterRowProps> = ({
                                     paramDef={param}
                                     className="w-full pointer-events-none"
                                 />
-                            </div>
-                            <AppRoundButton 
-                                icon={param.is_sql_query_constructor ? "QueryBuilder" : "edit"} 
-                                variant="outline" 
-                                size="xs" 
-                                isDisabled={isReadOnly}
+                            )}
+                        </div>
+                    )}
+                </div>
+                
+                <div className="flex items-center gap-1.5 shrink-0">
+                    {param.type === 'boolean' && (
+                        <div
+                            className={`relative inline-flex h-5 w-9 shrink-0 ${isReadOnly ? 'cursor-default opacity-50' : 'cursor-pointer'} items-center rounded-full transition-colors focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2 ${value ? 'bg-brand' : 'bg-[var(--border-base)]'}`}
+                            onClick={() => !isReadOnly && onChange({ [param.name]: !(value ?? false) })}
+                        >
+                            <input
+                                id={`param-${param.name}`}
+                                type="checkbox"
+                                checked={value ?? false}
+                                onChange={(e) => !isReadOnly && onChange({ [param.name]: e.target.checked })}
+                                className="sr-only"
+                                disabled={isReadOnly}
+                            />
+                            <div
+                                className={`
+                                    pointer-events-none block h-3.5 w-3.5 rounded-full bg-white shadow ring-0 transition-transform
+                                    ${value ? 'translate-x-4.5' : 'translate-x-1'}
+                                `}
+                            />
+                        </div>
+                    )}
+                    
+                    {!isLinked && (param.is_sql_query_constructor || param.is_md_editor || param.is_text_editor || param.is_python_editor) && (
+                        <AppRoundButton 
+                            icon={param.is_sql_query_constructor ? "QueryBuilder" : "edit"} 
+                            variant="outline" 
+                            size="xs" 
+                            isDisabled={isReadOnly}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (param.is_sql_query_constructor) onOpenSqlEditor?.();
+                                else onOpenSpecialEditor?.(param.name);
+                            }}
+                            title="Open Editor"
+                        />
+                    )}
+
+                    {canBeLinked && !isReadOnly && (
+                        <>
+                            <AppRoundButton
+                                ref={linkButtonRef}
+                                icon={isLinked ? "link_st_off" : "link_st"}
+                                variant="outline"
+                                size="xs"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    if (param.is_sql_query_constructor) onOpenSqlEditor?.();
-                                    else onOpenSpecialEditor?.(param.name);
+                                    if (isLinked) {
+                                        handleUnlink();
+                                    } else {
+                                        setLinkAnchorRect(linkButtonRef.current?.getBoundingClientRect() || null);
+                                        setIsLinkDropdownOpen(true);
+                                    }
                                 }}
-                                title="Open Editor"
+                                title={isLinked ? "Unlink from Workflow" : "Link to Workflow"}
+                                iconClassName={isLinked ? "text-brand" : "text-[var(--text-muted)]"}
                             />
+                            
+                            <AppContextMenu
+                                isOpen={isLinkDropdownOpen}
+                                onClose={() => setIsLinkDropdownOpen(false)}
+                                anchorRect={linkAnchorRect}
+                            >
+                                <div className="p-2 space-y-1">
+                                    <div className="px-3 py-1.5 mb-1 border-b border-[var(--border-base)]/50">
+                                        <div className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">Link to Param</div>
+                                    </div>
+                                    {matchingWorkflowParams.length === 0 ? (
+                                        <div className="px-4 py-3 text-[10px] text-[var(--text-muted)] italic">
+                                            No matching parameters found
+                                        </div>
+                                    ) : (
+                                        matchingWorkflowParams.map(p => (
+                                            <button
+                                                key={p.id}
+                                                onClick={() => {
+                                                    handleLink(p.id);
+                                                    setIsLinkDropdownOpen(false);
+                                                }}
+                                                className="w-full flex items-center gap-3 px-3 py-2 text-[11px] font-normal text-[var(--text-main)] hover:bg-brand/10 rounded-xl transition-all outline-none group"
+                                            >
+                                                <div className="w-7 h-7 rounded-lg bg-brand/5 flex items-center justify-center text-brand transition-colors group-hover:bg-brand/20">
+                                                    <Icon name="workflow" size={14} />
+                                                </div>
+                                                <span className="flex-1 text-left">{p.name}</span>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            </AppContextMenu>
                         </>
                     )}
                 </div>
-                {param.type === 'boolean' && (
-                    <div
-                        className={`relative inline-flex h-5 w-9 shrink-0 ${isReadOnly ? 'cursor-default opacity-50' : 'cursor-pointer'} items-center rounded-full transition-colors focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2 ${value ? 'bg-brand' : 'bg-[var(--border-base)]'}`}
-                        onClick={() => !isReadOnly && onChange({ [param.name]: !(value ?? false) })}
-                    >
-                        <input
-                            id={`param-${param.name}`}
-                            type="checkbox"
-                            checked={value ?? false}
-                            onChange={(e) => !isReadOnly && onChange({ [param.name]: e.target.checked })}
-                            className="sr-only"
-                            disabled={isReadOnly}
-                        />
-                        <div
-                            className={`
-                                pointer-events-none block h-3.5 w-3.5 rounded-full bg-white shadow ring-0 transition-transform
-                                ${value ? 'translate-x-4.5' : 'translate-x-1'}
-                            `}
-                        />
-                    </div>
-                )}
             </div>
 
             {param.type !== 'boolean' && !param.is_sql_query_constructor && !param.is_md_editor && !param.is_text_editor && !param.is_python_editor && (
-                param.options_source?.component === 'ComboBox' ? (
-                    <ComboBox
-                        value={String(value ?? '')}
-                        label={getSelectedLabel()}
-                        icon="bolt"
-                        placeholder={isLoading ? "Loading..." : `Select ${param.label.toLowerCase()}...`}
-                        data={{}}
-                        items={options}
-                        onSelect={(item) => {
-                            onChange({
-                                [param.name]: item.id,
-                                [`_DISPLAY_${param.name}`]: item.name
-                            });
-                        }}
-                        className="w-full"
-                        disabled={isReadOnly}
-                    />
+                isLinked ? (
+                    <div className="flex-1 min-w-0">
+                        <AppValuePreview 
+                            value={value}
+                            isLocked={true}
+                            parameterName={param.name}
+                            paramDef={param}
+                            className="w-full"
+                        />
+                    </div>
                 ) : (
-                    <AppInput
-                        label=""
-                        type={param.type === 'number' ? 'number' : 'text'}
-                        value={value ?? ''}
-                        onChange={(val) => {
-                            const parsedVal = param.type === 'number' ? (val === '' ? '' : Number(val)) : val;
-                            onChange({ [param.name]: parsedVal });
-                        }}
-                        placeholder={`Enter ${param.label.toLowerCase()}...`}
-                        disabled={isReadOnly}
-                    />
+                    param.options_source?.component === 'ComboBox' ? (
+                        <ComboBox
+                            value={String(value ?? '')}
+                            label={getSelectedLabel()}
+                            icon="bolt"
+                            placeholder={isLoading ? "Loading..." : `Select ${param.label.toLowerCase()}...`}
+                            data={{}}
+                            items={options}
+                            onSelect={(item) => {
+                                onChange({
+                                    [param.name]: item.id,
+                                    [`_DISPLAY_${param.name}`]: item.name
+                                });
+                            }}
+                            className="w-full"
+                            disabled={isReadOnly}
+                        />
+                    ) : (
+                        <AppInput
+                            label=""
+                            type={param.type === 'number' ? 'number' : 'text'}
+                            value={value ?? ''}
+                            onChange={(val) => {
+                                const parsedVal = param.type === 'number' ? (val === '' ? '' : Number(val)) : val;
+                                onChange({ [param.name]: parsedVal });
+                            }}
+                            placeholder={`Enter ${param.label.toLowerCase()}...`}
+                            disabled={isReadOnly}
+                        />
+                    )
                 )
             )}
         </div>

@@ -88,7 +88,7 @@ export const DefaultNode = memo(({ id, data, selected }: any) => {
                     {data.params && Object.keys(data.params).length > 0 && (
                         <div className="space-y-1 opacity-90 overflow-hidden">
                             {Object.entries(data.params)
-                                .filter(([key]) => !(/^[A-Z0-9_]+$/.test(key)) && !key.startsWith('_DISPLAY_'))
+                                .filter(([key]) => !(/^[A-Z0-9_]+$/.test(key)) && !key.startsWith('_DISPLAY_') && !key.startsWith('_LOCAL_'))
                                 .map(([key, value]) => {
                                     // Find parameter info from node definition if available to check type
                                     const paramInfo = data.parameters?.find((p: any) => p.name === key);

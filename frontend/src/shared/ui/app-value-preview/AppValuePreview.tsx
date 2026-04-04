@@ -150,7 +150,7 @@ export const AppValuePreview = memo(({
                 ${className}
             `}
         >
-            <AppPreviewWrapper type={preview.type}>
+            <AppPreviewWrapper type={preview.type} isLinked={preview.isLinked}>
                 {preview.display || <span className="opacity-30 italic leading-none">empty</span>}
             </AppPreviewWrapper>
 

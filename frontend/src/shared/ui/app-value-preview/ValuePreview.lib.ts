@@ -30,6 +30,7 @@ export interface PreviewResult {
     display: string;
     isComplex: boolean;
     type: ValuePreviewType;
+    isLinked?: boolean;
 }
 
 /**
@@ -39,13 +40,16 @@ export interface PreviewResult {
 export const resolveValuePreview = (value: any, keyName?: string): PreviewResult => {
     if (value === null || value === undefined) return { display: '', isComplex: false, type: 'primitive' };
 
-    // Handle Strings (SQL, MD, Python, etc.)
+    // Handle Strings (SQL, MD, Python, Linked, etc.)
     if (typeof value === 'string') {
         const trimmed = value.trim();
         if (!trimmed) return { display: '', isComplex: false, type: 'primitive' };
+
+        // Detection for linked workflow parameters
+        const isLinked = trimmed.startsWith('@');
         
-        const lines = value.split('\n').filter(l => l.trim().length > 0);
-        const firstLine = lines.length > 0 ? lines[0].trim() : '';
+        const contentLines = value.split('\n').filter(l => l.trim().length > 0);
+        const firstLine = contentLines.length > 0 ? contentLines[0].trim() : '';
         
         // Rules for complexity (visual wrapping in gadgets)
         const isS = isSql(trimmed);
@@ -53,7 +57,7 @@ export const resolveValuePreview = (value: any, keyName?: string): PreviewResult
         const isMd = isMarkdown(trimmed);
         const isH = (keyName?.toUpperCase().includes('HINT')) || (isMd && trimmed.length > 5);
 
-        const isComplex = isS || isPy || isMd || isH || lines.length > 1 || trimmed.length > 12;
+        const isComplex = isS || isPy || isMd || isH || contentLines.length > 1 || trimmed.length > 12;
         const type: ValuePreviewType = isH ? 'hint' : isS ? 'sql' : isPy ? 'python' : isMd ? 'markdown' : 'primitive';
 
         let display = firstLine;
@@ -71,12 +75,12 @@ export const resolveValuePreview = (value: any, keyName?: string): PreviewResult
         }
 
         // Add visual hint for multi-line or truncated content
-        const hasExtraContent = lines.length > 1 || (firstLine.length < trimmed.length && !display.endsWith('...'));
+        const hasExtraContent = contentLines.length > 1 || (firstLine.length < trimmed.length && !display.endsWith('...'));
         if (isComplex && hasExtraContent) {
             display = display.endsWith('...') ? display : `${display}...`;
         }
 
-        return { display, isComplex, type };
+        return { display, isComplex, type, isLinked };
     }
 
     // Handle Arrays / Tables

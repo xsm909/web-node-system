@@ -4,6 +4,7 @@ import { Icon } from '../icon';
 interface AppPreviewWrapperProps {
     children: ReactNode;
     type?: string;
+    isLinked?: boolean;
 }
 
 /** Color mapping for different gadget types */
@@ -30,26 +31,30 @@ const TYPE_ICONS: Record<string, string> = {
  * Visual gadget container with curly braces for complex data.
  * Purely responsible for the "Premium" look.
  */
-export const AppPreviewWrapper = memo(({ children, type = 'markdown' }: AppPreviewWrapperProps) => {
-    const styleClass = TYPE_STYLES[type] || TYPE_STYLES.markdown;
+export const AppPreviewWrapper = memo(({ children, type = 'markdown', isLinked = false }: AppPreviewWrapperProps) => {
+    const semanticStyle = TYPE_STYLES[type] || TYPE_STYLES.markdown;
+    const styleClass = isLinked 
+        ? 'text-blue-500/90 bg-blue-500/10 border-blue-500/40 shadow-blue-500/10' 
+        : semanticStyle;
     const iconName = TYPE_ICONS[type];
 
     return (
         <div
-            title=""
+            title={isLinked ? "Linked to Workflow Parameter" : ""}
             className={`
                 flex items-center gap-1.5 min-w-0 font-mono text-[10px] px-2 py-0.5 rounded-md border w-fit max-w-full
                 transition-all duration-100 ease-out
                 hover:scale-[0.96] hover:shadow-md cursor-default
-                opacity-0 animate-[fade-in_0.5s_ease-out_forwards]
                 ${styleClass}
             `}
         >
             <span className="opacity-40 font-bold select-none">{'{'}</span>
 
-            {iconName && (
+            {isLinked ? (
+                <Icon name="link_st" size={11} className="shrink-0 text-blue-500" />
+            ) : (iconName && (
                 <Icon name={iconName} size={11} className="shrink-0 opacity-80" />
-            )}
+            ))}
 
             <span className="italic truncate leading-none mr-0.5 flex-1 min-w-0 block" title="">
                 {children}

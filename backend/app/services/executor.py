@@ -880,6 +880,14 @@ class WorkflowExecutor:
                 for key, p_info in param_info_map.items():
                     # Get value from instance params or fallback to metadata default
                     value = params.get(key)
+                    
+                    # Resolve linked parameters (from workflow parameters)
+                    if isinstance(value, str) and value.startswith("@"):
+                        ref_key = value[1:]
+                        # Resolve from runtime_data which was merged with workflow parameters earlier
+                        if ref_key in (self.execution.runtime_data or {}):
+                            value = self.execution.runtime_data[ref_key]
+                    
                     if value is None:
                         value = p_info.get("default")
                     

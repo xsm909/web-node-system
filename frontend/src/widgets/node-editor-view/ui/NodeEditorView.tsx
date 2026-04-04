@@ -215,6 +215,7 @@ export const NodeEditorView: React.FC<NodeEditorViewProps> = ({
                                                 onOpenSpecialEditor={handleOpenSpecialEditor}
                                                 nodeTypeId={nodeTypeData?.id}
                                                 allParams={form.state.values}
+                                                workflowParameters={workflowParameters}
                                             />
                                         )}
                                     />
