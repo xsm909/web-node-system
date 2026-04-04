@@ -11,7 +11,14 @@ class AgentProvider(ABC):
         self.base_url = base_url
 
     @abstractmethod
-    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> tuple[str, str]:
+    def generate_response(
+        self, 
+        messages: List[Dict[str, str]], 
+        system_prompt: str, 
+        native_tools: Optional[List[Any]] = None, 
+        files: Optional[List[str]] = None,
+        response_schema: Optional[Dict[str, Any]] = None
+    ) -> tuple[str, str]:
         """
         Generates a response from the AI model.
         """

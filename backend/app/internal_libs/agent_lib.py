@@ -69,8 +69,9 @@ def prepare_tools(tools: List[Union[str, Dict[str, Any]]], provider: str) -> Dic
             name = f_def.get("name", "unnamed_tool")
             desc = f_def.get("description", "")
             params = f_def.get("parameters", {})
+            params_str = json.dumps(params, ensure_ascii=False) if params else "No parameters required."
             
-            tools_desc += f"- {name}: {desc}\n"
+            tools_desc += f"- {name}: {desc}. Parameters Schema: {params_str}\n"
             # We don't add to allowed_tools_funcs because it's dynamic
             continue
 
@@ -233,21 +234,32 @@ def _extract_json(text: str) -> str:
     for c in candidates:
         try:
             parsed = json.loads(c)
-            valid_candidates.append((c, parsed))
+            # Ensure it's not just a string/number that gets parsed as JSON
+            if isinstance(parsed, (dict, list)):
+                valid_candidates.append((c, parsed))
         except:
             continue
             
-    # Priority 1: First dictionary
+    # Priority 1: First dictionary (most likely AgentStep)
+    for c, parsed in valid_candidates:
+        if isinstance(parsed, dict):
+            # Check if it has at least one of the expected keys to avoid false positives
+            if "tool_call" in parsed or "final_answer" in parsed:
+                return c
+            
+    # Priority 2: Any dictionary
     for c, parsed in valid_candidates:
         if isinstance(parsed, dict):
             return c
             
-    # Priority 2: First list
+    # Priority 3: First list
     for c, parsed in valid_candidates:
         if isinstance(parsed, list):
             return c
             
-    return text
+    # If no valid JSON found, return a sentinel that will trigger a clearer error
+    # Instead of returning the plain text which might look like malformed JSON to Pydantic
+    return "INVALID_JSON_NO_STRUCTURE_FOUND"
 
 def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, iteration_limit: int = 10, files: list = None):
 
@@ -275,25 +287,31 @@ def run(model: str, tools: list, hint: str, task: str, schema_key: str = None, i
     if target_schema:
         schema_instruction = f"\nCRITICAL: Your 'final_answer' MUST conform to this JSON Schema:\n{json.dumps(target_schema, indent=2)}"
 
-    system_prompt = f"""You are an autonomous AI Agent.
+    system_prompt = f"""SYSTEM_PROMPT_HEADER:
+You are an autonomous AI Agent operating in a structured environment.
 Context/Hint: {hint}
 
 OBJECTIVE: {task}
 
-RESPONSE FORMAT:
-You MUST respond with a JSON object matching this schema:
+CRITICAL RESPONSE RULES:
+1. You MUST respond ONLY with a valid JSON object.
+2. DO NOT include any conversational text, introductory remarks, or concluding thoughts.
+3. DO NOT use markdown blocks like ```json unless the environment explicitly supports them (prefer pure JSON).
+4. If you use grounding/search, DO NOT include citations in the conversational text because THERE SHOULD BE NO CONVERSATIONAL TEXT. Put all your findings into the 'final_answer' or use them to decide the next 'tool_call'.
+
+JSON SCHEMA:
+Your response MUST exactly match this JSON schema:
 {json.dumps(AgentStep.model_json_schema(), indent=2)}
 
 {schema_instruction}
 
-RULES:
+OPERATIONAL RULES:
 1. NEVER narrate your thoughts.
-2. If you need a tool, use 'tool_call'. You MUST provide all required parameters in the 'parameters' (or 'arguments') dictionary. If a function signature shows a parameter is required (e.g. 'client_id'), you MUST provide it.
+2. If you need a tool, use 'tool_call'. You MUST provide all required parameters in the 'parameters' (or 'arguments') dictionary.
 3. Look for IDs in the task or hint. If a client ID is mentioned (e.g., '123-abc'), you MUST pass it to tools like 'get_all_client_metadata'.
 4. Do NOT leave 'parameters' empty {{}} if the tool requires arguments.
 
 TOOL CALL EXAMPLE:
-If you need to get metadata for client '123-abc':
 ```json
 {{
   "tool_call": {{
@@ -305,7 +323,6 @@ If you need to get metadata for client '123-abc':
 
 5. If you have the result, use 'final_answer'.
 6. Do NOT use both 'tool_call' and 'final_answer' in the same response.
-7. For metadata tools, common 'entity_type' values are 'client' or 'manager'.
 
 AVAILABLE TOOLS:
 {tools_desc if tools_desc else "No tools available."}
@@ -326,7 +343,8 @@ AVAILABLE TOOLS:
                 messages=messages, 
                 system_prompt=system_prompt,
                 native_tools=native_tools,
-                files=files
+                files=files,
+                response_schema=AgentStep.model_json_schema()
             )
             last_response_raw = response_raw
 
@@ -335,6 +353,13 @@ AVAILABLE TOOLS:
             # Robust JSON extraction
             cleaned_json = _extract_json(response_text)
             
+            if cleaned_json == "INVALID_JSON_NO_STRUCTURE_FOUND":
+                error_msg = "Invalid response: No JSON structure found. You MUST respond ONLY with a valid JSON object matching the schema. Do NOT talk."
+                system_log(f"[AGENT] Parsing error: {error_msg}", level="error")
+                messages.append({"role": "assistant", "content": response_text})
+                messages.append({"role": "user", "content": error_msg})
+                continue
+
             try:
                 step = AgentStep.model_validate_json(cleaned_json)
             except Exception as ve:

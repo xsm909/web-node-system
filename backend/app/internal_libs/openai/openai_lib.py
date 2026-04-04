@@ -153,7 +153,14 @@ from ..agent_providers import AgentProvider
 from ..logger_lib import system_log
 
 class OpenAIAgentProvider(AgentProvider):
-    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> tuple[str, str]:
+    def generate_response(
+        self, 
+        messages: List[Dict[str, str]], 
+        system_prompt: str, 
+        native_tools: Optional[List[Any]] = None, 
+        files: Optional[List[str]] = None,
+        response_schema: Optional[Dict[str, Any]] = None
+    ) -> tuple[str, str]:
         # Normalize base_url (ensure protocol)
         final_base_url = self.base_url
         if final_base_url and "://" not in final_base_url:
@@ -182,7 +189,14 @@ class OpenAIAgentProvider(AgentProvider):
         return resp.output_text, safe_json_dumps(resp)
 
 class OpenAICompatibleAgentProvider(AgentProvider):
-    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> tuple[str, str]:
+    def generate_response(
+        self, 
+        messages: List[Dict[str, str]], 
+        system_prompt: str, 
+        native_tools: Optional[List[Any]] = None, 
+        files: Optional[List[str]] = None,
+        response_schema: Optional[Dict[str, Any]] = None
+    ) -> tuple[str, str]:
         # Normalize base_url (ensure protocol and /v1)
         final_base_url = self.base_url
         if final_base_url and "://" not in final_base_url:
@@ -202,10 +216,20 @@ class OpenAICompatibleAgentProvider(AgentProvider):
         system_log(f"[COMPATIBLE_PROVIDER] Sending request to {final_base_url}/chat/completions", level="system")
         
         try:
+            # Implement structured output if response_schema is provided and provider is OpenAI-like
+            extra_body = {}
+            if response_schema and ("openai" in final_base_url.lower() or "deepseek" in final_base_url.lower()):
+                 # Some providers support response_format
+                 pass # We use it in the call below if we want to be explicit
+            
             resp = client.chat.completions.create(
                 model=self.model,
                 messages=input_messages,
                 tools=native_tools if native_tools else None,
+                # We disable response_format here because many compatible providers (DeepSeek, local LLMs)
+                # have conflicting requirements for its type (json_object vs json_schema vs text).
+                # The agent_lib._extract_json handles raw output robustly.
+                # response_format={"type": "json_object"} if response_schema else None
             )
             
             if not resp or not resp.choices or len(resp.choices) == 0:

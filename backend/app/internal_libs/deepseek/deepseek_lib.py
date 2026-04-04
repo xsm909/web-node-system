@@ -88,7 +88,14 @@ def deepseek_ask_single(text: str, model: str = "deepseek-chat") -> str:
     return _make_request(api_key, messages, model)
 
 class DeepSeekAgentProvider(AgentProvider):
-    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> str:
+    def generate_response(
+        self, 
+        messages: List[Dict[str, str]], 
+        system_prompt: str, 
+        native_tools: Optional[List[Any]] = None, 
+        files: Optional[List[str]] = None,
+        response_schema: Optional[Dict[str, Any]] = None
+    ) -> tuple[str, str]:
         client = OpenAI(api_key=self.api_key, base_url=self.base_url)
         
         # DeepSeek uses standard Chat Completions

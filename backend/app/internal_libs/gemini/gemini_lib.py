@@ -134,7 +134,14 @@ def _clean_schema_for_gemini(schema: Any) -> Any:
     return schema
 
 class GeminiAgentProvider(AgentProvider):
-    def generate_response(self, messages: List[Dict[str, str]], system_prompt: str, native_tools: Optional[List[Any]] = None, files: Optional[List[str]] = None) -> str:
+    def generate_response(
+        self, 
+        messages: List[Dict[str, str]], 
+        system_prompt: str, 
+        native_tools: Optional[List[Any]] = None, 
+        files: Optional[List[str]] = None,
+        response_schema: Optional[Dict[str, Any]] = None
+    ) -> tuple[str, str]:
         client = genai.Client(api_key=self.api_key)
         
         # Convert messages to Gemini format
@@ -165,12 +172,20 @@ class GeminiAgentProvider(AgentProvider):
             
             contents.append(types.Content(role=role, parts=parts))
             
+        # Clean and prepare schema for Gemini
+        cleaned_schema = None
+        if response_schema:
+            import copy
+            # Use a deep copy to avoid modifying the original schema passed in
+            cleaned_schema = _clean_schema_for_gemini(copy.deepcopy(response_schema))
+
         resp = client.models.generate_content(
             model=self.model,
             contents=contents,
             config=types.GenerateContentConfig(
                 tools=native_tools if native_tools else None,
-                response_mime_type="application/json",
+                response_mime_type="application/json" if cleaned_schema else None,
+                response_schema=cleaned_schema,
                 system_instruction=system_prompt
             )
         )
