@@ -145,7 +145,7 @@ export const AppValuePreview = memo(({
             ref={containerRef}
             onClick={handleContainerClick}
             className={`
-                group relative flex items-center min-w-0 transition-all
+                group relative flex items-center min-w-0 transition-all w-fit max-w-full
                 ${isEditable ? 'cursor-pointer hover:opacity-80 active:scale-[0.98]' : 'opacity-100'}
                 ${className}
             `}
