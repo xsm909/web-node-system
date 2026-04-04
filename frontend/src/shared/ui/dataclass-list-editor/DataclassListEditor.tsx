@@ -3,6 +3,8 @@ import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
 import '../app-tabulator-table/AppTabulatorTable.css';
 import { AppRoundButton } from '../app-round-button/AppRoundButton';
+import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
+import { HOTKEY_LEVEL } from '../../lib/hotkeys/HotkeysContext';
 
 interface DataclassField {
     name: string;
@@ -23,11 +25,13 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
     value = [],
     onChange,
     isReadOnly = false,
-    label
+    label,
 }) => {
     const tableRef = useRef<HTMLDivElement>(null);
     const tabulatorInstance = useRef<Tabulator | null>(null);
     const [isInternalUpdate, setIsInternalUpdate] = useState(false);
+    // Tracks whether a cell editor is currently open
+    const [isCellEditing, setIsCellEditing] = useState(false);
 
     const safeValue = Array.isArray(value) ? value : [];
 
@@ -90,6 +94,12 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
             setIsInternalUpdate(true);
             onChange(newData);
             setTimeout(() => setIsInternalUpdate(false), 0);
+            setIsCellEditing(false);
+        });
+
+        // 'cellEditing' fires when the user opens a cell editor
+        table.on("cellEditing", () => {
+            setIsCellEditing(true);
         });
 
         tabulatorInstance.current = table;
@@ -121,6 +131,44 @@ export const DataclassListEditor: React.FC<DataclassListEditorProps> = ({
             setTimeout(() => setIsInternalUpdate(false), 0);
         }
     };
+
+    /**
+     * While a Tabulator cell editor is open, register an exclusive OVERLAY scope.
+     * This blocks higher-priority hotkeys from parent layers (e.g. Enter → modal submit,
+     * Esc → modal close) so the user can freely type and commit/cancel the cell.
+     * Tabulator handles Enter and Esc natively via its own DOM keydown listeners;
+     * we only need the scope to be registered so those keys don't propagate upward.
+     */
+    useHotkeys(
+        [
+            {
+                key: 'enter',
+                description: 'Confirm cell edit',
+                // preventDefault:false — let Tabulator's native keydown handler commit the cell.
+                // We register this scope only to block the parent modal's Enter (→ submit).
+                preventDefault: false,
+                stopPropagation: false,
+                handler: () => { /* Tabulator handles this natively */ },
+            },
+            {
+                key: 'escape',
+                description: 'Cancel cell edit',
+                // preventDefault:false — let Tabulator's native keydown handler cancel the cell.
+                // We register this scope only to block the parent modal's Esc (→ close).
+                preventDefault: false,
+                stopPropagation: false,
+                handler: () => {
+                    setIsCellEditing(false);
+                },
+            },
+        ],
+        {
+            scopeName: 'DataclassListEditor-CellEdit',
+            level: HOTKEY_LEVEL.OVERLAY,
+            exclusive: true,
+            enabled: isCellEditing,
+        }
+    );
 
     return (
         <div className="space-y-1 group w-full col-span-full mb-4 dataclass-list-editor">

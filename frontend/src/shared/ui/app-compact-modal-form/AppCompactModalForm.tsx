@@ -39,6 +39,8 @@ interface AppCompactModalFormProps {
     onLockToggle?: (isLocked: boolean) => void;
     isSaving?: boolean;
     isSubmitDisabled?: boolean;
+    /** When true, the Enter hotkey won't trigger submit (e.g. while a table cell editor is active) */
+    disableEnterSubmit?: boolean;
 }
 
 export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
@@ -70,6 +72,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
     onLockToggle,
     isSaving = false,
     isSubmitDisabled = false,
+    disableEnterSubmit = false,
 }) => {
     const [showDirtyConfirm, setShowDirtyConfirm] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -138,7 +141,7 @@ export const AppCompactModalForm: React.FC<AppCompactModalFormProps> = ({
         {
             key: 'enter',
             description: 'Submit',
-            enabled: isSimpleDialog || (!noPadding && !!submitLabel && !fullHeight),
+            enabled: !disableEnterSubmit && (isSimpleDialog || (!noPadding && !!submitLabel && !fullHeight)),
             handler: () => onSubmit()
         },
         {

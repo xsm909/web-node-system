@@ -59,9 +59,20 @@ export const AppValuePreview = memo(({
 
     // Local state for the modal editor
     const [modalTempValue, setModalTempValue] = useState<any>(value);
+    // Ref shadow — always holds the latest value synchronously.
+    // Needed because DataclassListEditor's onChange (cellEdited) and the modal
+    // form submit can race: the Enter key both confirms a Tabulator cell AND
+    // triggers form submit before React flushes the setState.
+    const latestModalTempValue = useRef<any>(value);
+
+    const setModalTempValueSync = (val: any) => {
+        latestModalTempValue.current = val;
+        setModalTempValue(val);
+    };
 
     // Sync local state when external value changes
     useEffect(() => {
+        latestModalTempValue.current = value;
         setModalTempValue(value);
     }, [value]);
 
@@ -203,14 +214,14 @@ export const AppValuePreview = memo(({
                     isOpen={isDataclassModalOpen}
                     title={label || parameterName || 'Edit List'}
                     onClose={() => setIsDataclassModalOpen(false)}
-                    onSubmit={() => handleInternalSave(modalTempValue)}
+                    onSubmit={() => handleInternalSave(latestModalTempValue.current)}
                     width="max-w-2xl"
                 >
                     <div className="py-2 px-1">
                         <DataclassListEditor
                             schema={paramDef.schema}
                             value={modalTempValue}
-                            onChange={setModalTempValue}
+                            onChange={setModalTempValueSync}
                             isReadOnly={isLocked}
                             label={label || parameterName || ''}
                         />
